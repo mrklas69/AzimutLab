@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Výstupy / generovaná data (deštníková fáze: zatím nic, ale připraveno)
+output/
+sandbox/**/output/
+sandbox/**/data/
+
+# Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
+*.tif
+*.tiff
+*.laz
+*.las
+
+# Claude / IDE lokální
+.claude/settings.local.json
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
