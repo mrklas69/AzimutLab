@@ -4,7 +4,8 @@ A lab for cartography & orienteering map intelligence — tools, experiments, an
 knowledgebase. **Not one application: a set of them**, sharing a common understanding
 of what an orienteering map *is*.
 
-**Status: founding (sezení 1). UC1 meta-layer only — no CV/ML code yet.**
+**Status: phase B (umbrella). First real code (session 4): a procedural synthetic-map
+generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth.**
 
 ## What this is
 
@@ -38,10 +39,12 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ☐ research only |
 | UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
-| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ☐ (III = Pic2Omap, WIP elsewhere) |
+| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
 
-UC4-III is the project's summit and currently lives in Pic2Omap. UC4-I (plausible-random,
-not a random pile of ISOM symbols) is the hardest and most distant — it stays at the end.
+UC4-III is the project's summit and currently lives in Pic2Omap. Full UC4-I
+(plausible-random, not a random pile of ISOM symbols) is still the hardest goal — but as a
+**synthetic-data generator with free ground-truth it became an enabler-feeder for UC5**
+(session 4 reframe), no longer "the very end". PoC: `sandbox/generator-poc/`.
 
 ## Relationship to Pic2Omap
 
@@ -63,7 +66,9 @@ docs/
     data-sources.md    #   UC2 survey: ČÚZK / geoportál / ortofoto / LIDAR + licences
     isom-issprom.md    #   symbol semantics, spec links
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
+    generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
 sandbox/               # UC1: isolated experiments, one folder each
+  generator-poc/       #   first code: procedural OB-map generator (contours/veg/marsh + masks)
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods
 TODO.md / DONE.md      # work tracking

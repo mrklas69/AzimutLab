@@ -2,6 +2,17 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 4 (2026-05-23) — Procedurální generátor OB map (MVP)
+- [x] Resumé projektu (sjednocení obrazu) + debata o konektorech: tři datové cesty
+      (A geodata / B korpusy / C syntetika), sim-to-real recept.
+- [x] Spec generátoru zachycena do repa: `docs/kb/generator-procedural.md` (z Downloads).
+- [x] **První reálný kód v repu:** `sandbox/generator-poc/generator.py` — vrstevnice
+      (izolinie) + vegetace + bažiny + GT masky zdarma. Stack Python 3.14 + numpy +
+      contourpy + Pillow (scikit-image vynechán, KISS + 3.14 wheels).
+- [x] `batch.py` — mini dataset 16 map, reprodukovatelný z (seed0=1000, n=16), diverzita
+      ověřena mozaikou.
+- [x] Reframe (architecture/IDEAS): UC4-I syntetika z „úplný konec" → enabler-feeder pro UC5.
+
 ## Sezení 3 (2026-05-23) — Vegetace gate (ČÚZK plné mračno = NE)
 - [x] Ověřeno: ČÚZK **neposkytuje** plné klasifikované multi-echo mračno jako open data.
       Nový hustý DMP OK je z **obrazové korelace** (fotogrammetrie, jen povrch, žádné echoes),

@@ -44,4 +44,7 @@ Mapwright/Mapník (map-SW kolize), Mapárna/Cartouche (chtěné mezinárodní).
 - **Zobecnění domény (OSM/Google).** Vědomě odložené — viz `docs/architecture.md`
   „Čekající rozhodnutí". Past na conceptual integrity, dokud orienteering jádro nestojí.
 - **Synteticky renderované trénovací mapy** (původní jiskra projektu z Pic2Omap ML pilotu) —
-  patří pod UC4-I/II + UC5 trénink. Nejtěžší, nejvzdálenější. Drž na konci.
+  patří pod UC4-I/II + UC5 trénink. **→ DONE (Sez. 4): realizováno jako PoC** —
+  procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
+  **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
+  sparse-GT past. Reálný terén (ČÚZK DMR) = pozdější upgrade (§8.5 spec).

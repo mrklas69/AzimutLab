@@ -52,11 +52,25 @@ metody vegetation density (viz Zdroje).
   + náhradní cesta (CHM, NIR maska) v `docs/kb/data-sources.md` → „Vegetace gate".
 - Tohle je přímý vstup pro **UC4-II** (generování inspirované souřadnicemi/terénem).
 
+## Datové cesty pro UC5/UC4 (A / B / C) + sim-to-real
+
+Tři **nekonkurenční** zdroje pro modelovou větev (rozlišeno Sez. 4):
+
+- **(A) Geodata** (ČÚZK DMR/ortofoto) — reálný terén, ale ne hotové mapy.
+- **(B) Reálné korpusy map** (`.omap`/`.ocd` + skeny) — řídké, licenčně zatížené.
+- **(C) Syntetická generace** — neomezený objem, **ground-truth zdarma** (každá vrstva
+  je segmentační maska). Cena: domain gap (hladší než realita).
+
+**Recept (sim-to-real):** předtrénink na (C) + fine-tuning/validace na (B); reálný terén
+z (A) dosazený do (C) místo šumu (spec §8.5). Realizace (C): metoda
+`docs/kb/generator-procedural.md`, PoC `sandbox/generator-poc/` (Sez. 4).
+
 ## Metody (z Pic2Omap)
 
 - Segmentace ploch (U-Net) — viz Pic2Omap ML pilot (mean IoU 0.666 within-domain).
 - Color separation (palette-based, LAB nearest) — Pic2Omap `color_separator.py`.
-- *(generování map UC4-I, restaurace/inpainting UC3 — TBD)*
+- Generování map (UC4-I) — **PoC hotov** (procedurální, viz „Datové cesty" výše).
+  Restaurace/inpainting (UC3) — TBD.
 
 ## Otevřené otázky průzkumu
 

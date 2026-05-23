@@ -22,8 +22,11 @@ Katalog konkrétních nástrojů, knihoven a modelů použitelných v AzimutLab.
 | Palette separation (LAB nearest) | produkční | `Pic2Omap/color_separator.py` |
 | Area segmentation (U-Net resnet34) | pilot (mIoU 0.666 within-domain) | `Pic2Omap/train.py` |
 | ISOM symbol DB (parser) | produkční | `Pic2Omap/omap_parser.py` |
+| Procedurální generátor (skalární pole → vrstvy + GT masky) | PoC (Sez. 4) | `sandbox/generator-poc/` |
 
-## Stack (až vznikne kód)
+## Stack
 
-Python 3.10+, numpy, opencv, scikit-image (zděděno z Pic2Omap). ML: torch / smp /
-albumentations (odděleně, GPU box). Zatím nic nezakládáno — deštníková fáze.
+- **PoC generátor** (Sez. 4): Python 3.14 + numpy + contourpy (marching squares) +
+  Pillow. Venv v kořeni repa (`.venv`). `scikit-image` vynechán (KISS + jistota wheelů na 3.14).
+- **Zděděno z Pic2Omap** (až bude konzument): numpy, opencv. ML: torch / smp /
+  albumentations (odděleně, GPU box).

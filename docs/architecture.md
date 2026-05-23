@@ -1,6 +1,7 @@
 # Architektura — AzimutLab
 
-**Status**: Founding (Sezení 1, 2026-05-22). Kanonický popis UC DAGu a vrstvení.
+**Status**: Deštník fáze B; první reálný kód (Sezení 4, 2026-05-23) — syntetický
+generátor (`sandbox/generator-poc/`) jako UC4-I/UC5 enabler-feeder. Kanonický popis UC DAGu a vrstvení.
 **Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, kód (zatím žádný)
 implementuje sem.
 
@@ -68,7 +69,10 @@ inpainting).
 
 ### UC4 — Generátory (APP)
 - **I. plausible-random** — náhodné, ale realisticky vyhlížející mapy (ne náhodný
-  soubor ISOM symbolů; terén/vrstevnice musí dávat smysl). **Nejtěžší, nejvzdálenější.**
+  soubor ISOM symbolů; terén/vrstevnice musí dávat smysl). Plná verze zůstává nejtěžší,
+  ale **jako generátor trénovacích dat s ground-truth zdarma je to enabler-feeder pro UC5**
+  (reframe Sez. 4) — ne „úplný konec". PoC: `sandbox/generator-poc/`, metoda:
+  `docs/kb/generator-procedural.md` (skalární pole → vrstvy; reálný terén §8.5 = pozdější upgrade).
 - **II. inspirované** — mapou (obrázkem) nebo souřadnicemi konkrétní lokality (→ UC2).
 - **III. přesné** — **vrchol projektu**: sken zablácené pomačkané závodní mapy → OCD/OMAP.
   Toto *je* Pic2Omap. Žije ve vlastním repu (WIP); při přechodu na monorepo → `apps/pic2omap`.
