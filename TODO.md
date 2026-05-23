@@ -4,13 +4,12 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[x]` hotovo (přesouvá se do DON
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
-- [~] Founding kostra repo (README, CLAUDE.md, PROMPTS, architecture, KB skeleton) — Sezení 1
-- [ ] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi (váže na UC2 průzkum)
-- [ ] Doplnit `RESEARCH.md` — generativní přístupy (UC4-I), dewarping/inpainting (UC3)
+- [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK hotovo (Sez. 2), další zdroje TBD
+- [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
 
 ## UC2 — Data konektory (enabler, průzkum)
-- [!] Prozkoumat ČÚZK ZTMP / geoportál: typ přístupu (WMS/WFS), **licenční podmínky**
-- [ ] LIDAR (DMR 5G) — dostupnost, formát, licence
+- [ ] Reálný ČÚZK konektor: ověřit nové (únor 2026) GetCapabilities URL; pipeline LAZ → DMR → vrstevnice (pozor: za MVP-deštník, až bude konzument)
+- [!] Ověřit: poskytuje ČÚZK plné klasifikované mračno bodů (vč. vegetačních ech)? DMR 5G je ground-only → na vegetaci nestačí (viz RESEARCH)
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo)
