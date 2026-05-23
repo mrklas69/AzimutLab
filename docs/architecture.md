@@ -21,7 +21,7 @@ prací: enablery před aplikacemi.
 │ ENABLER  UC2  Data        │          │ ENABLER  UC5  Modely        │
 │   konektory               │          │   „rozumí mapám"            │
 │   LIDAR / ortofoto /      │          │   palette separation,       │
-│   QGIS / ČÚZK ZTMP /      │          │   klasifikace bod/linie/    │
+│   QGIS / ČÚZK ZABAGED /   │          │   klasifikace bod/linie/    │
 │   geoportál               │          │   plocha (ISOM)             │
 └───────┬───────────────────┘          └───────────┬─────────────────┘
         │                                           │
@@ -48,7 +48,7 @@ nejnižší riziko, a místo, kam ostatní UC zapisují svoje nálezy.
 
 ### UC2 — Data konektory (ENABLER)
 Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ortofoto, QGIS,
-ČÚZK ZTMP, geoportál. Najít vhodné mapové portály/podklady/databáze.
+ČÚZK ZABAGED/ZTM, geoportál. Najít vhodné mapové portály/podklady/databáze.
 - Krmí UC4-II (inspirované souřadnicemi) a UC4-III (georef podklady).
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
 - MVP fáze = *průzkum* (survey + licence), ne ještě běžící konektory.

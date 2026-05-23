@@ -2,6 +2,14 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 3 (2026-05-23) — Vegetace gate (ČÚZK plné mračno = NE)
+- [x] Ověřeno: ČÚZK **neposkytuje** plné klasifikované multi-echo mračno jako open data.
+      Nový hustý DMP OK je z **obrazové korelace** (fotogrammetrie, jen povrch, žádné echoes),
+      surové LLS mračno není open. → „Vegetace gate" zavřena, náhrada jen CHM+NIR proxy.
+      Ověřeno proti primárnímu zdroji (technická zpráva DMP OK, 1/2026).
+- [x] KB konsolidace (SLAP): `data-sources.md` (DMP OK, oprava DMR 5G, „Vegetace gate"),
+      `RESEARCH.md` (otázka uzavřena), `TODO.md` (`[!]` hotovo).
+
 ## Sezení 2 (2026-05-23) — UC2 průzkum ČÚZK + LIDAR research
 - [x] UC2 průzkum ČÚZK geoportálu: přístup (WMS/WMTS/WFS/WCS/ATOM) + **licence = CC BY 4.0**
       (gate otevřena → na ČÚZK datech lze stavět UC4-II/III s atribucí).

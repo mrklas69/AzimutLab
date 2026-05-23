@@ -47,7 +47,9 @@ metody vegetation density (viz Zdroje).
 ### Důsledek pro AzimutLab (váže na `docs/kb/data-sources.md`)
 - **ČÚZK DMR 5G je ground-only** výškopis → stačí na **vrstevnice**, ale **ne na vegetaci**.
 - Vegetace (zelená/žlutá) vyžaduje **plné klasifikované mračno bodů** se všemi echo třídami.
-  Jeho dostupnost u ČÚZK jako open data **zatím nepotvrzena** → viz otevřené otázky.
+  **Ověřeno (Sez. 3): ČÚZK ho jako open data neposkytuje** — nový hustý DMP OK je z obrazové
+  korelace (fotogrammetrie, jen povrch, žádné echoes), surové LLS mračno není open. Detail
+  + náhradní cesta (CHM, NIR maska) v `docs/kb/data-sources.md` → „Vegetace gate".
 - Tohle je přímý vstup pro **UC4-II** (generování inspirované souřadnicemi/terénem).
 
 ## Metody (z Pic2Omap)
@@ -58,8 +60,9 @@ metody vegetation density (viz Zdroje).
 
 ## Otevřené otázky průzkumu
 
-- **Poskytuje ČÚZK plné klasifikované mračno bodů** (všechny echo třídy, ne jen DMR 5G
-  ground) jako open data? Bez něj nelze přes Karttapullautin generovat vegetaci.
+- ~~Poskytuje ČÚZK plné klasifikované mračno bodů jako open data?~~ **Vyřešeno (Sez. 3): NE**
+  — viz „Vegetace gate" v `docs/kb/data-sources.md`. Pro vegetaci přes Karttapullautin chybí
+  multi-echo mračno; náhrada jen slabší (CHM + NIR maska).
 - Jaké generativní přístupy dávají „realisticky vyhlížející" orienťácké mapy (UC4-I)?
 - Jaký je state-of-the-art v de-creasing / dewarping fotografií dokumentů (UC3)?
 

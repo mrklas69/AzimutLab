@@ -9,7 +9,6 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC2 — Data konektory (enabler, průzkum)
 - [ ] Reálný ČÚZK konektor: ověřit nové (únor 2026) GetCapabilities URL; pipeline LAZ → DMR → vrstevnice (pozor: za MVP-deštník, až bude konzument)
-- [!] Ověřit: poskytuje ČÚZK plné klasifikované mračno bodů (vč. vegetačních ech)? DMR 5G je ground-only → na vegetaci nestačí (viz RESEARCH)
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo)
