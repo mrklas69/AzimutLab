@@ -1,0 +1,225 @@
+"""
+generator.py — procedurální generátor výseku mapy pro orientační běh (MVP).
+
+Implementuje řez specifikace docs/kb/generator-procedural.md:
+  vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4) + ground-truth masky (§8.1).
+
+Hlavní myšlenka (§0): mapa NENÍ sada nakreslených čar, ale vrstvy odvozené ze
+skalárních polí. Vrstevnice jsou izolinie spojitého výškového pole → z definice
+se nikdy nekříží a nikdy nekončí ve vzduchu. Vegetace a bažiny jsou prahované
+šumové masky. Protože si všechny vrstvy počítáme sami, máme ke každé mapě
+ground-truth zdarma — každá vrstva je zároveň segmentační maska.
+"""
+from __future__ import annotations  # type hinty bez nutnosti uvozovek (PEP 563)
+
+import argparse
+import json
+from pathlib import Path
+
+import numpy as np
+from PIL import Image, ImageDraw
+import contourpy
+
+# ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
+GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
+W, H = 672, 458          # výstupní plátno v pixelech
+CONTOUR_STEP = 5         # ekvidistance vrstevnic [m]
+CONTOUR_INDEX = 25       # zvýrazněná (hlavní) vrstevnice každých 25 m
+BASE_ELEV = 700          # bazální nadmořská výška [m]
+
+# ---------- Barevná paleta (§5, aproximace ISOM 2017-2 pro obrazovku) ----------
+# Pozn. (DRY): zatím natvrdo. Až generátor poroste, vytáhnout do jediného zdroje
+# pravdy (docs/kb/isom-issprom.md), ať se palety na více místech nerozejdou.
+C_YELLOW = (254, 202, 23)    # otevřená plocha (paseka)
+C_GREEN1 = (194, 232, 176)   # světle zelená — pomalý běh
+C_GREEN2 = (109, 199, 113)   # středně zelená — chůze
+C_GREEN3 = (45, 169, 79)     # tmavě zelená — těžko prostupné
+C_BROWN = (160, 95, 31)      # vrstevnice
+C_BLUE = (46, 194, 248)      # voda / bažina
+
+
+# =====================================================================
+#  Skalární pole (§2-3)
+# =====================================================================
+def _smooth_resize(grid: np.ndarray, w: int, h: int) -> np.ndarray:
+    """Roztáhne hrubou mřížku `grid` na rozměr (h, w) bilineárně se smoothstep.
+
+    Smoothstep 3t²−2t³ změkčí přechody mezi buňkami — bez něj by šum vypadal
+    kostičkovaně. Celé je to vektorizované přes numpy (žádná Python smyčka přes pixely):
+    `np.ix_(y, x)` vyrobí 2D výběr (h×w) ze čtyř rohových hodnot každé buňky.
+    """
+    gh0, gw0 = grid.shape
+    # spojité souřadnice výstupních bodů přepočtené do soustavy hrubé mřížky
+    xs = np.linspace(0, gw0 - 1, w)
+    ys = np.linspace(0, gh0 - 1, h)
+    x0 = np.floor(xs).astype(int)
+    x1 = np.minimum(x0 + 1, gw0 - 1)
+    y0 = np.floor(ys).astype(int)
+    y1 = np.minimum(y0 + 1, gh0 - 1)
+    tx = xs - x0
+    ty = ys - y0
+    sx = tx * tx * (3 - 2 * tx)   # smoothstep ve směru x (vektor délky w)
+    sy = ty * ty * (3 - 2 * ty)   # smoothstep ve směru y (vektor délky h)
+    g00 = grid[np.ix_(y0, x0)]
+    g01 = grid[np.ix_(y0, x1)]
+    g10 = grid[np.ix_(y1, x0)]
+    g11 = grid[np.ix_(y1, x1)]
+    # bilineární interpolace: nejdřív blend ve směru x (horní a dolní hrana), pak y
+    top = g00 * (1 - sx)[None, :] + g01 * sx[None, :]
+    bot = g10 * (1 - sx)[None, :] + g11 * sx[None, :]
+    return top * (1 - sy)[:, None] + bot * sy[:, None]
+
+
+def fractal(rng: np.random.Generator, base_scale: float, octaves: int) -> np.ndarray:
+    """Fraktální value noise v [0,1] na mřížce (GH, GW) — §2.
+
+    Sčítá několik oktáv šumu: každá další oktáva má jemnější mřížku (víc buněk)
+    a poloviční amplitudu. Výsledek se min-max normalizuje do [0,1].
+    """
+    out = np.zeros((GH, GW), dtype=np.float32)
+    amp, total = 1.0, 0.0
+    for o in range(octaves):
+        c = max(2, round(base_scale * 1.9 ** o))           # počet buněk hrubé mřížky oktávy
+        coarse = rng.random((c + 1, c + 1)).astype(np.float32)
+        out += _smooth_resize(coarse, GW, GH) * amp
+        total += amp
+        amp *= 0.5
+    out /= total
+    return (out - out.min()) / (out.max() - out.min() + 1e-9)
+
+
+def box_blur(field: np.ndarray, radius: int = 2) -> np.ndarray:
+    """Jednoduchý box blur (průměr v okně (2r+1)²).
+
+    Použito 2× na `hbase` → vyhlazený výškopis `eb`, ze kterého počítáme sklon.
+    `np.pad(..., mode="edge")` rozšíří okraje opakováním krajních hodnot, ať se
+    okno nedostane mimo pole.
+    """
+    k = 2 * radius + 1
+    padded = np.pad(field, radius, mode="edge")
+    acc = np.zeros_like(field)
+    for dy in range(k):
+        for dx in range(k):
+            acc += padded[dy:dy + field.shape[0], dx:dx + field.shape[1]]
+    return acc / (k * k)
+
+
+def _to_pixels(field: np.ndarray) -> np.ndarray:
+    """Bilineárně roztáhne pole z mřížky (GH, GW) na plátno (H, W).
+
+    Mód "F" = 32bitový float obraz; PIL umí takto převzorkovat spojitou hodnotu
+    (ne jen 0-255), takže prahování na pixelech sedí s mřížkou.
+    """
+    im = Image.fromarray(field.astype(np.float32), mode="F").resize((W, H), Image.BILINEAR)
+    return np.asarray(im, dtype=np.float32)
+
+
+# =====================================================================
+#  Hlavní generování
+# =====================================================================
+def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str) -> Path:
+    """Vygeneruje jednu instanci mapy + GT masky do `out_dir`. Vrací cestu k složce."""
+    # Pozn.: spec doporučuje PRNG mulberry32, ale požadavek je jen DETERMINISMUS
+    # (stejný seed + parametry → stejná mapa), ne bitová shoda s JS referencí.
+    # Proto volíme jednodušší a korektní numpy generátor (PCG64).
+    rng = np.random.default_rng(seed)
+
+    # --- skalární pole (§2-3) ---
+    hbase = fractal(rng, 1.6 + rug * 2.6, 3 + round(rug * 2))   # výškopis (členitost = rug)
+    veg = fractal(rng, 3.2 + vd * 1.5, 3)                       # hustota porostu
+    clear = fractal(rng, 2.4, 2)                                # paseky / otevřené plochy
+    eb = box_blur(box_blur(hbase))                              # vyhlazený výškopis pro sklon
+    gy, gx = np.gradient(eb)                                    # centrální diference (§3)
+    slope = np.sqrt(gx ** 2 + gy ** 2)
+    slope = slope / (slope.max() + 1e-9)                        # sklon normalizovaný do [0,1]
+    vrange = 25 + rug * 90                                      # převýšení: víc členitosti → víc vrstevnic
+    elev = BASE_ELEV + hbase * vrange                           # nadmořská výška [m]
+
+    # --- převzorkování polí na pixely (pro plošné vrstvy) ---
+    veg_px = _to_pixels(veg)
+    clear_px = _to_pixels(clear)
+    hbase_px = _to_pixels(hbase)
+    slope_px = _to_pixels(slope)
+
+    # --- plátno + GT maska vegetace ---
+    rgb = np.full((H, W, 3), 255, dtype=np.uint8)   # bílá = průběžný les (§4.1)
+    veg_mask = np.zeros((H, W), dtype=np.uint8)     # třídy: 0 les, 1-3 zeleň, 4 paseka
+
+    # vegetace (§4.2): tři prahy, malujeme odspodu (světlá → tmavá), vyšší vd = víc zeleně
+    a = float(np.clip(0.82 - vd * 0.5, 0.0, 1.0))
+    b = a + 0.13
+    c = a + 0.23
+    for thr, color, cls in [(a, C_GREEN1, 1), (b, C_GREEN2, 2), (c, C_GREEN3, 3)]:
+        m = veg_px >= thr
+        rgb[m] = color
+        veg_mask[m] = cls
+
+    # paseky (§4.3): otevřená plocha žlutě
+    clear_thr = 0.70 + vd * 0.22
+    open_m = clear_px >= clear_thr
+    rgb[open_m] = C_YELLOW
+    veg_mask[open_m] = 4
+
+    # bažina / mokřad (§4.4): nízko (malá výška) a ploše (malý sklon)
+    marsh = (hbase_px < (0.10 + wat * 0.16)) & (slope_px < 0.16)
+    hatch = np.zeros((H, W), dtype=bool)
+    hatch[::4, :] = True                            # vodorovná šrafa: každý 4. řádek pixelů
+    rgb[marsh & hatch] = C_BLUE
+
+    # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
+    img = Image.fromarray(rgb, mode="RGB")
+    draw = ImageDraw.Draw(img)
+    cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic
+    cdraw = ImageDraw.Draw(cmask_img)
+    # LineType.Separate → .lines(level) vrátí prostý seznam polí bodů (N×2) v souřadnicích mřížky
+    cont = contourpy.contour_generator(z=elev, line_type=contourpy.LineType.Separate)
+    lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
+    hi = int(elev.max())
+    for level in range(lo, hi + 1, CONTOUR_STEP):
+        is_main = (level - BASE_ELEV) % CONTOUR_INDEX == 0
+        width = 2 if is_main else 1                 # hlavní vrstevnice silnější
+        for line in cont.lines(level):
+            # přepočet souřadnic mřížky (x∈0..GW-1, y∈0..GH-1) na pixely plátna
+            pts = [(float(x) / (GW - 1) * W, float(y) / (GH - 1) * H) for x, y in line]
+            if len(pts) >= 2:
+                draw.line(pts, fill=C_BROWN, width=width)
+                cdraw.line(pts, fill=255, width=width)
+
+    # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    img.save(out / "rgb.png")
+    cmask_img.save(out / "mask_contours.png")
+    Image.fromarray(veg_mask, mode="L").save(out / "mask_veg.png")          # třídy 0-4
+    Image.fromarray((marsh * 255).astype(np.uint8), mode="L").save(out / "mask_water.png")
+    meta = {
+        "seed": seed,
+        "params": {"rug": rug, "vd": vd, "wat": wat},
+        "grid": [GW, GH],
+        "canvas": [W, H],
+        "scale": "1:10000",
+        "contour_step_m": CONTOUR_STEP,
+        "contour_index_m": CONTOUR_INDEX,
+        "veg_classes": {
+            "0": "les/bílá", "1": "světle zelená", "2": "středně zelená",
+            "3": "tmavě zelená", "4": "paseka/žlutá",
+        },
+    }
+    (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    return out
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description="Procedurální generátor výseku OB mapy (MVP).")
+    p.add_argument("--seed", type=int, default=1, help="seed PRNG (determinismus)")
+    p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1")
+    p.add_argument("--vd", type=float, default=0.5, help="hustota vegetace 0-1")
+    p.add_argument("--wat", type=float, default=0.4, help="vodní prvky / velikost bažin 0-1")
+    p.add_argument("--out", default="output", help="výstupní složka")
+    args = p.parse_args()
+    out = generate(args.seed, args.rug, args.vd, args.wat, args.out)
+    print(f"Hotovo -> {out.resolve()}")
+
+
+if __name__ == "__main__":
+    main()
