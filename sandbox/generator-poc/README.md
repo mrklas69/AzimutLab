@@ -4,14 +4,15 @@ Proof-of-concept procedurálního generátoru výseku mapy pro orientační běh
 První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../../docs/kb/generator-procedural.md):
 
-- **vrstevnice** — izolinie výškového pole (§4.5),
+- **vrstevnice** — izolinie výškového pole (§4.5), hlavní zvýrazněné (3 px),
 - **vegetace** — prahovaná šumová pásma bílá → 3× zelená + žluté paseky (§4.2-4.3),
-- **bažiny** — nízká + plochá místa, vodorovná modrá šrafa (§4.4),
+- **bažiny** — nízká + plochá místa, vodorovná modrá šrafa + tečkovaný obrys (§4.4),
+- **balvany** — černé tečky, slope-vážené (hustěji ve strmém terénu) (§4.11),
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`, vegetace/bažiny zůstávají syntetické).
 
-Záměrně NEobsahuje (přijde inkrementálně): tratě, balvany, cesty, rýhy, bodové
+Záměrně NEobsahuje (přijde inkrementálně): tratě, cesty, rýhy, bodové
 značky, severník.
 
 ## Cíl
@@ -25,7 +26,7 @@ obchází sparse-GT past z Pic2Omap.
 ```powershell
 # z kořene repa, ve venv:
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --out sandbox\generator-poc\output
-# parametry: --seed INT  --rug 0-1  --vd 0-1  --wat 0-1
+# parametry: --seed INT  --rug 0-1  --vd 0-1  --wat 0-1  --rock 0-1
 
 # Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Děčínsko, §8.5):
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out sandbox\generator-poc\output
@@ -40,6 +41,7 @@ obchází sparse-GT past z Pic2Omap.
 | `mask_contours.png` | binární maska vrstevnic |
 | `mask_veg.png` | multi-class maska vegetace (hodnoty 0-4, vizuálně tmavá — je to GT, ne náhled) |
 | `mask_water.png` | binární maska bažin |
+| `mask_rock.png` | binární maska balvanů |
 | `meta.json` | seed, parametry, legenda tříd |
 
 ## Stack

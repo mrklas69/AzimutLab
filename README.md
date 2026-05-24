@@ -4,9 +4,10 @@ A lab for cartography & orienteering map intelligence — tools, experiments, an
 knowledgebase. **Not one application: a set of them**, sharing a common understanding
 of what an orienteering map *is*.
 
-**Status: phase B (umbrella). First real code (sessions 4-5): a procedural synthetic-map
-generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth; now also
-draws real terrain from ČÚZK DMR 5G (`--terrain real`).**
+**Status: phase B (umbrella). First real code (sessions 4-6): a procedural synthetic-map
+generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth (contours,
+vegetation, marsh with dotted outline, slope-weighted boulders); also draws real terrain from
+ČÚZK DMR 5G (`--terrain real`).**
 
 ## What this is
 
@@ -69,7 +70,7 @@ docs/
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
     generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
 sandbox/               # UC1: isolated experiments, one folder each
-  generator-poc/       #   first code: procedural OB-map generator (contours/veg/marsh + masks)
+  generator-poc/       #   first code: procedural OB-map generator (contours/veg/marsh/boulders + masks)
                        #     + dmr.py: real terrain from ČÚZK DMR 5G (--terrain real, Option 2)
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods

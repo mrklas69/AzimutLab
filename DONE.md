@@ -2,6 +2,18 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 6 (2026-05-24) — Věrnost generátoru: balvany, obrys bažin, index contours
+- [x] **Tečkovaný obrys bažin (§4.4):** `contourpy` na binární masce bažin (level 0,5),
+      helper `_draw_dotted` (arc-length vzorkování teček). Obrys přesně kopíruje výplň,
+      kreslen pod vrstevnicemi (z-order). Doplněn chybějící prvek spec §4.4.
+- [x] **Vrstva balvanů (§4.11):** nový `--rock` parametr, `round(rock*120)` černých teček,
+      přijetí `0.25 + slope*0.9` (slope-vážené = fyzikálně smysluplné), GT maska `mask_rock.png`.
+- [x] **Index contours výraznější:** hlavní vrstevnice 2→3 px (baseline ukázal, že 2 px bez
+      antialiasingu splývá; jasnější odlišení tříd pomáhá i UC5, v intencích spec §8.2).
+- [x] Verify (ne odhad): noise render OK, `--terrain real` regrese OK (cache hit 0,31 s),
+      všech 5 GT masek se zapisuje. Vizuálně ověřen obrys i slope-vážení balvanů.
+- [x] `.gitignore`: vzor `output_*/` — obrana proti commitnutí pojmenovaných scratch renderů.
+
 ## Sezení 5 (2026-05-24) — Option 2: reálný ČÚZK DMR 5G terén
 - [x] **Feasibility ověřena prakticky** (ne odhad): `pyproj` wheel na Py3.14 funguje;
       ČÚZK DMR 5G ArcGIS ImageServer (`/arcgis2/rest/services/dmr5g/ImageServer`,
