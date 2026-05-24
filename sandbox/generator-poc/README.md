@@ -33,6 +33,15 @@ obchází sparse-GT past z Pic2Omap.
 # jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
 ```
 
+Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
+
+```powershell
+# noise sada (16 map, reprodukovatelná z seed0+n):
+.venv\Scripts\python.exe sandbox\generator-poc\batch.py --out sandbox\generator-poc\output\dataset_noise
+# reálná sada z lokalit ČR (CZ_LOCATIONS — 10 členitých OB oblastí, DMR 5G terén):
+.venv\Scripts\python.exe sandbox\generator-poc\batch.py --terrain real --out sandbox\generator-poc\output\dataset_real
+```
+
 ## Výstup (`output/`, gitignored)
 
 | Soubor | Obsah |

@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 7 (2026-05-24) — Reálný batch dataset z lokalit ČR
+- [x] **`batch.py --terrain noise|real`:** reálná větev vyrobí dataset map z různých míst ČR
+      (`CZ_LOCATIONS` — 10 členitých OB oblastí). Hlavní variace = lokalita; losují se jen
+      `vd/wat/rock` (`rug` u reálného terénu mrtvý). Manifest s lokalitou + souřadnicemi.
+- [x] **Noise sada zachována bitově reprodukovatelná** (rozvětvení dle terénu — pořadí
+      losování `master.random` se neposunulo). Variace `--rock` v noise větvi odložena (TODO).
+- [x] **Montáž s popisky lokalit** (`build_montage(labels=...)`, bílý podklad + černý text);
+      default `--out` → `output/dataset_<terrain>` (noise/real se nepřepíšou).
+- [x] **Bug `dmr.py` (cache-before-validate):** cache zapisovala `raw` PŘED validací TIFF →
+      degenerovaný soubor se uložil a každý další běh na něm spadl. Opraveno: `Image.open`
+      předchází zápisu + srozumitelná `RuntimeError` (hint „mimo pokrytí / za hranicí").
+- [x] **Krušné hory mimo hranici:** souřadnice 50.68,13.45 ležely na hřebeni = státní hranici,
+      bbox 1466 m zasahoval za ni → ČÚZK vracel oříznutý 1364 B TIFF (ověřeno 3×, CL match).
+      Posunuto na jižní svahy (50.50,13.40), převýšení 108 m. Odhaleno verify, ne tipem.
+- [x] Verify (ne odhad): 10 map vygenerováno, montáž + manifest sedí, detail Moravského krasu
+      (rock=0,975) ukazuje balvany ve strmu, reálné vrstevnice, bažinu v údolní nivě.
+
 ## Sezení 6 (2026-05-24) — Věrnost generátoru: balvany, obrys bažin, index contours
 - [x] **Tečkovaný obrys bažin (§4.4):** `contourpy` na binární masce bažin (level 0,5),
       helper `_draw_dotted` (arc-length vzorkování teček). Obrys přesně kopíruje výplň,
