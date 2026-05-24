@@ -100,8 +100,20 @@ def fetch_elevation_grid(
                 f"ČÚZK DMR 5G nevrátil TIFF (Content-Type={ctype!r}). "
                 f"Odpověď: {raw[:300].decode('utf-8', 'replace')}"
             )
-        cpath.write_bytes(raw)                          # ulož do cache
-        arr = np.asarray(Image.open(io.BytesIO(raw)), dtype=np.float32)
+        # Validace PŘED zápisem do cache: ImageServer občas vrátí degenerovaný TIFF
+        # (validní hlavička, ale oříznutá data, Content-Length přitom „sedí") — typicky
+        # když bbox zasahuje za hranici ČR, kde DMR 5G nemá data. Takový soubor NESMÍ
+        # do cache, jinak ho každý další běh načte a zase spadne. Proto: nejdřív zkus
+        # načíst, teprve po úspěchu ulož.
+        try:
+            arr = np.asarray(Image.open(io.BytesIO(raw)), dtype=np.float32)
+        except OSError as e:
+            raise RuntimeError(
+                f"ČÚZK DMR 5G vrátil neúplný TIFF ({len(raw)} B) pro ({lat}, {lon}) — "
+                f"dlaždice nejspíš zasahuje mimo pokrytí (za hranicí ČR). Posuň lokalitu "
+                f"hlouběji do vnitrozemí. (PIL: {e})"
+            ) from e
+        cpath.write_bytes(raw)                          # ulož do cache až po úspěšném načtení
 
     # sanity check: výšky v ČR jsou cca 115–1603 m n. m.; mimo rozsah = noData/díra
     if arr.min() < -100 or arr.max() > 2000:
