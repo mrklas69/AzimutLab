@@ -25,7 +25,11 @@ GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výš
 W, H = 672, 458          # výstupní plátno v pixelech
 CONTOUR_STEP = 5         # ekvidistance vrstevnic [m]
 CONTOUR_INDEX = 25       # zvýrazněná (hlavní) vrstevnice každých 25 m
-BASE_ELEV = 700          # bazální nadmořská výška [m]
+BASE_ELEV = 700          # bazální nadmořská výška [m] — jen pro terrain="noise"
+
+# ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
+# Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
+DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 
 # ---------- Barevná paleta (§5, aproximace ISOM 2017-2 pro obrazovku) ----------
 # Pozn. (DRY): zatím natvrdo. Až generátor poroste, vytáhnout do jediného zdroje
@@ -117,23 +121,39 @@ def _to_pixels(field: np.ndarray) -> np.ndarray:
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
-def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str) -> Path:
-    """Vygeneruje jednu instanci mapy + GT masky do `out_dir`. Vrací cestu k složce."""
+def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
+             terrain: str = "noise", lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
+    """Vygeneruje jednu instanci mapy + GT masky do `out_dir`. Vrací cestu k složce.
+
+    `terrain="noise"` (default) = fraktální šum (Option 1). `terrain="real"` =
+    reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu (Option 2, §8.5).
+    U reálného terénu se `rug` na výškopis neuplatní (terén je daný realitou) —
+    `vd`/`wat` (vegetace/bažiny) platí dál.
+    """
     # Pozn.: spec doporučuje PRNG mulberry32, ale požadavek je jen DETERMINISMUS
     # (stejný seed + parametry → stejná mapa), ne bitová shoda s JS referencí.
     # Proto volíme jednodušší a korektní numpy generátor (PCG64).
     rng = np.random.default_rng(seed)
 
-    # --- skalární pole (§2-3) ---
-    hbase = fractal(rng, 1.6 + rug * 2.6, 3 + round(rug * 2))   # výškopis (členitost = rug)
+    # --- výškopis: reálný (DMR 5G) nebo syntetický šum ---
+    if terrain == "real":
+        # Lazy import: pyproj je závislost jen pro Option 2; Option 1 zůstává offline.
+        from dmr import fetch_elevation_grid
+        elev = fetch_elevation_grid(lat, lon, GW, GH)            # reálné metry (GH, GW), sever nahoře
+        # normalizace do [0,1]: zbytek pipeline (bažiny přes prahy) počítá s hbase
+        hbase = (elev - elev.min()) / (elev.max() - elev.min() + 1e-9)
+    else:
+        hbase = fractal(rng, 1.6 + rug * 2.6, 3 + round(rug * 2))  # výškopis (členitost = rug)
+        vrange = 25 + rug * 90                                    # převýšení: víc členitosti → víc vrstevnic
+        elev = BASE_ELEV + hbase * vrange                         # nadmořská výška [m]
+
+    # --- ostatní skalární pole (§2-3) — vždy syntetická (DMR nedává vegetaci) ---
     veg = fractal(rng, 3.2 + vd * 1.5, 3)                       # hustota porostu
     clear = fractal(rng, 2.4, 2)                                # paseky / otevřené plochy
     eb = box_blur(box_blur(hbase))                              # vyhlazený výškopis pro sklon
     gy, gx = np.gradient(eb)                                    # centrální diference (§3)
     slope = np.sqrt(gx ** 2 + gy ** 2)
     slope = slope / (slope.max() + 1e-9)                        # sklon normalizovaný do [0,1]
-    vrange = 25 + rug * 90                                      # převýšení: víc členitosti → víc vrstevnic
-    elev = BASE_ELEV + hbase * vrange                           # nadmořská výška [m]
 
     # --- převzorkování polí na pixely (pro plošné vrstvy) ---
     veg_px = _to_pixels(veg)
@@ -176,7 +196,9 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str) -> Path
     lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
     hi = int(elev.max())
     for level in range(lo, hi + 1, CONTOUR_STEP):
-        is_main = (level - BASE_ELEV) % CONTOUR_INDEX == 0
+        # hlavní vrstevnice na absolutních násobcích CONTOUR_INDEX (25 m) — platí
+        # pro reálné výšky i pro šum (BASE_ELEV=700 je násobek 25, chování stejné)
+        is_main = level % CONTOUR_INDEX == 0
         width = 2 if is_main else 1                 # hlavní vrstevnice silnější
         for line in cont.lines(level):
             # přepočet souřadnic mřížky (x∈0..GW-1, y∈0..GH-1) na pixely plátna
@@ -195,6 +217,13 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str) -> Path
     meta = {
         "seed": seed,
         "params": {"rug": rug, "vd": vd, "wat": wat},
+        # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
+        "terrain": ({"source": "noise"} if terrain != "real" else {
+            "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
+            "elev_min_m": round(float(elev.min()), 2),
+            "elev_max_m": round(float(elev.max()), 2),
+            "licence": "CC BY 4.0 (ČÚZK)",
+        }),
         "grid": [GW, GH],
         "canvas": [W, H],
         "scale": "1:10000",
@@ -215,9 +244,14 @@ def main() -> None:
     p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1")
     p.add_argument("--vd", type=float, default=0.5, help="hustota vegetace 0-1")
     p.add_argument("--wat", type=float, default=0.4, help="vodní prvky / velikost bažin 0-1")
+    p.add_argument("--terrain", choices=["noise", "real"], default="noise",
+                   help="noise = fraktální šum (default), real = ČÚZK DMR 5G (§8.5)")
+    p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
+    p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
-    out = generate(args.seed, args.rug, args.vd, args.wat, args.out)
+    out = generate(args.seed, args.rug, args.vd, args.wat, args.out,
+                   terrain=args.terrain, lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
 

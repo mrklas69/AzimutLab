@@ -15,6 +15,10 @@ sandbox/**/data/
 *.laz
 *.las
 
+# Cache stažených DMR 5G dlaždic (reálná ČÚZK data — nepatří do gitu)
+.dmr_cache/
+sandbox/**/.dmr_cache/
+
 # Claude / IDE lokální
 .claude/settings.local.json
 .idea/

@@ -7,10 +7,12 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 - **vrstevnice** — izolinie výškového pole (§4.5),
 - **vegetace** — prahovaná šumová pásma bílá → 3× zelená + žluté paseky (§4.2-4.3),
 - **bažiny** — nízká + plochá místa, vodorovná modrá šrafa (§4.4),
-- **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1).
+- **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
+- **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
+  výškopis z `dmr.py`, vegetace/bažiny zůstávají syntetické).
 
 Záměrně NEobsahuje (přijde inkrementálně): tratě, balvany, cesty, rýhy, bodové
-značky, severník. A reálný terén místo šumu (§8.5, = pozdější Option 2: ČÚZK DMR 5G).
+značky, severník.
 
 ## Cíl
 
@@ -24,6 +26,10 @@ obchází sparse-GT past z Pic2Omap.
 # z kořene repa, ve venv:
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --out sandbox\generator-poc\output
 # parametry: --seed INT  --rug 0-1  --vd 0-1  --wat 0-1
+
+# Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Děčínsko, §8.5):
+.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out sandbox\generator-poc\output
+# jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
 ```
 
 ## Výstup (`output/`, gitignored)
@@ -38,7 +44,10 @@ obchází sparse-GT past z Pic2Omap.
 
 ## Stack
 
-Python 3.14 · numpy · contourpy (marching squares) · Pillow. Venv v kořeni repa (`.venv`).
+Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen `--terrain real`,
+WGS84→S-JTSK). Venv v kořeni repa (`.venv`).
+
+Reálný terén = ČÚZK DMR 5G open data, **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).
 
 ## Determinismus
 
