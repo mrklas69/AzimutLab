@@ -2,6 +2,20 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 5 (2026-05-24) — Option 2: reálný ČÚZK DMR 5G terén
+- [x] **Feasibility ověřena prakticky** (ne odhad): `pyproj` wheel na Py3.14 funguje;
+      ČÚZK DMR 5G ArcGIS ImageServer (`/arcgis2/rest/services/dmr5g/ImageServer`,
+      pixelType F32, S-JTSK) vrací float grid přes `exportImage`; Pillow čte float TIFF
+      jako mode "F" → **žádný GDAL/rasterio nutný.**
+- [x] **`dmr.py`** (nový): stažení DMR 5G dlaždice, WGS84→S-JTSK (pyproj), poměrový bbox
+      (izotropní buňka), disk cache, sanity check výšek.
+- [x] **`generator.py`**: `--terrain noise|real` + `--lat/--lon`, reálný `elev` v metrech
+      → `hbase` normalizací, sjednocené hlavní vrstevnice (`level % 25`), atribuce v `meta.json`.
+- [x] Ověřeno vizuálně: reálné vrstevnice (údolí/hřbety/sráz), zmenšený domain gap vs blob (§8.4).
+      Regrese noise OK, cache hit 0,31 s, vegetace/bažiny správně syntetické (DMR ground-only).
+- [x] SLAP propsání: spec §8.5, architecture, IDEAS, RESEARCH, data-sources (exportImage kanál),
+      sandbox README (stack +pyproj, CC BY 4.0 atribuce), `.gitignore` (`.dmr_cache/`).
+
 ## Sezení 4 (2026-05-23) — Procedurální generátor OB map (MVP)
 - [x] Resumé projektu (sjednocení obrazu) + debata o konektorech: tři datové cesty
       (A geodata / B korpusy / C syntetika), sim-to-real recept.

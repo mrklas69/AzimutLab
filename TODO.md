@@ -12,10 +12,10 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
-- [~] Procedurální generátor OB map — MVP hotov (vrstevnice/vegetace/bažiny + GT masky, Sez. 4)
+- [~] Procedurální generátor OB map — MVP (Sez. 4) + reálný terén `--terrain real` (Sez. 5)
 - [ ] Doladit věrnost: výrazné index contours, tečkovaný obrys bažin, +1-2 vrstvy (cesty/balvany)
-- [!] Option 2 — reálný ČÚZK DMR 5G místo šumu (§8.5): souřadnice 50.8214458N 14.6712747E, výsek 1×1 km
 - [ ] DRY: paleta generátoru → jediný zdroj `docs/kb/isom-issprom.md`
+- [ ] Reálný batch dataset: `batch.py` + `--terrain real` + seznam lokalit ČR (různá místa → dataset reálných map)
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu

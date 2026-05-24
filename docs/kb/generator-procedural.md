@@ -242,10 +242,13 @@ funkce generate(seed, params):
    objemu syntetiky + fine-tuning a validace na menší sadě reálných map**
    (zdroje: World of O, Mapový portál ČSOS, MapAnt, Routegadget — viz samostatný
    přehled). Reálné mapy slouží i jako hold-out pro měření skutečné generalizace.
-5. **Náhrada šumu reálným terénem.** Místo `fractal()` pro výškopis dosaď reálný
-   DMR (ČR: ČÚZK DMR 5G, ~1 bod/m², volně). Vrstevnice pak nejsou „věrohodné", ale
-   skutečné; model se učí na reálné geometrii terénu. Produkčně to dělá
-   **Karttapullautin** (vegetace+vrstevnice z LiDARu) — stojí za projekty MapAnt.
+5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`
+   v `sandbox/generator-poc/` (modul `dmr.py`). Místo `fractal()` dosadí reálný ČÚZK
+   DMR 5G přes ArcGIS ImageServer `exportImage` (float32 grid přímo, ne LAZ → žádný GDAL;
+   WGS84→S-JTSK přes pyproj, poměrový výsek pro izotropní buňku). Vrstevnice pak nejsou
+   „věrohodné", ale skutečné; model se učí na reálné geometrii terénu. Vegetace/bažiny
+   zůstávají syntetické (DMR 5G je ground-only — viz vegetace gate v `data-sources.md`).
+   Produkčně vrstevnice+vegetaci z LiDARu dělá **Karttapullautin** — stojí za projekty MapAnt.
 
 ---
 

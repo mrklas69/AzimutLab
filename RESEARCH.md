@@ -62,8 +62,9 @@ Tři **nekonkurenční** zdroje pro modelovou větev (rozlišeno Sez. 4):
   je segmentační maska). Cena: domain gap (hladší než realita).
 
 **Recept (sim-to-real):** předtrénink na (C) + fine-tuning/validace na (B); reálný terén
-z (A) dosazený do (C) místo šumu (spec §8.5). Realizace (C): metoda
-`docs/kb/generator-procedural.md`, PoC `sandbox/generator-poc/` (Sez. 4).
+z (A) dosazený do (C) místo šumu (spec §8.5, **hotovo Sez. 5** — `--terrain real`, ČÚZK
+DMR 5G přes ArcGIS ImageServer). Realizace (C): metoda `docs/kb/generator-procedural.md`,
+PoC `sandbox/generator-poc/` (Sez. 4-5).
 
 ## Metody (z Pic2Omap)
 

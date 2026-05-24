@@ -47,4 +47,4 @@ Mapwright/Mapník (map-SW kolize), Mapárna/Cartouche (chtěné mezinárodní).
   patří pod UC4-I/II + UC5 trénink. **→ DONE (Sez. 4): realizováno jako PoC** —
   procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
   **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
-  sparse-GT past. Reálný terén (ČÚZK DMR) = pozdější upgrade (§8.5 spec).
+  sparse-GT past. Reálný terén (ČÚZK DMR 5G) dosazen přes `--terrain real` (§8.5, hotovo Sez. 5).

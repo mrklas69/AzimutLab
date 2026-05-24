@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
 | ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno |
-| **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno |
+| **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
 | Ortofoto ČR | letecké snímky, 2letý cyklus (2025 = západní půlka) | ČR | WMS/WMTS, ATOM | CC BY 4.0 | ✓ prozkoumáno |

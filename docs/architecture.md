@@ -72,7 +72,8 @@ inpainting).
   soubor ISOM symbolů; terén/vrstevnice musí dávat smysl). Plná verze zůstává nejtěžší,
   ale **jako generátor trénovacích dat s ground-truth zdarma je to enabler-feeder pro UC5**
   (reframe Sez. 4) — ne „úplný konec". PoC: `sandbox/generator-poc/`, metoda:
-  `docs/kb/generator-procedural.md` (skalární pole → vrstvy; reálný terén §8.5 = pozdější upgrade).
+  `docs/kb/generator-procedural.md` (skalární pole → vrstvy; reálný terén §8.5 = `--terrain real`,
+  ČÚZK DMR 5G, hotovo Sez. 5).
 - **II. inspirované** — mapou (obrázkem) nebo souřadnicemi konkrétní lokality (→ UC2).
 - **III. přesné** — **vrchol projektu**: sken zablácené pomačkané závodní mapy → OCD/OMAP.
   Toto *je* Pic2Omap. Žije ve vlastním repu (WIP); při přechodu na monorepo → `apps/pic2omap`.
