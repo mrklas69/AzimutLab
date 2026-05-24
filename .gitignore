@@ -5,8 +5,11 @@ __pycache__/
 venv/
 
 # Výstupy / generovaná data (deštníková fáze: zatím nic, ale připraveno)
+# Vzor output_* chytá i pojmenované scratch rendery (output_baseline, output_v2, …)
 output/
+output_*/
 sandbox/**/output/
+sandbox/**/output_*/
 sandbox/**/data/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB

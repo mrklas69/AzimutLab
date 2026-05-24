@@ -2,7 +2,8 @@
 generator.py — procedurální generátor výseku mapy pro orientační běh (MVP).
 
 Implementuje řez specifikace docs/kb/generator-procedural.md:
-  vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4) + ground-truth masky (§8.1).
+  vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4, výplň + tečkovaný obrys)
+  + balvany (§4.11) + ground-truth masky (§8.1).
 
 Hlavní myšlenka (§0): mapa NENÍ sada nakreslených čar, ale vrstvy odvozené ze
 skalárních polí. Vrstevnice jsou izolinie spojitého výškového pole → z definice
@@ -14,6 +15,7 @@ from __future__ import annotations  # type hinty bez nutnosti uvozovek (PEP 563)
 
 import argparse
 import json
+import math  # math.hypot pro délku segmentu při tečkování (§4.4)
 from pathlib import Path
 
 import numpy as np
@@ -118,11 +120,39 @@ def _to_pixels(field: np.ndarray) -> np.ndarray:
     return np.asarray(im, dtype=np.float32)
 
 
+def _draw_dotted(draw: ImageDraw.ImageDraw, pts: list[tuple[float, float]],
+                 color: tuple, spacing: float = 5.0, radius: int = 1) -> None:
+    """Vykreslí tečkovanou linii podél polyčáry `pts` (seznam bodů (x, y)).
+
+    PIL nemá nativní čárkovanou čáru, takže tečky klademe ručně: jdeme po
+    polyčáře a každých `spacing` px položíme vyplněný kroužek o poloměru `radius`.
+    Vzorkujeme podle DÉLKY OBLOUKU (arc length), ne podle indexu bodů — tečky
+    jsou tak rovnoměrné bez ohledu na to, jak hustě za sebou body polyčáry leží.
+    """
+    if len(pts) < 2:
+        return
+    next_dot = 0.0  # zbývající vzdálenost do položení další tečky (přenáší se mezi segmenty)
+    # zip(pts, pts[1:]) iteruje dvojice sousedních bodů = jednotlivé úsečky polyčáry
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        seg = math.hypot(dx, dy)        # délka úsečky
+        if seg == 0.0:
+            continue
+        d = next_dot
+        while d <= seg:                 # kladď tečky, dokud se vejdou do úsečky
+            t = d / seg                 # parametr 0..1 podél úsečky
+            cx, cy = x0 + dx * t, y0 + dy * t
+            draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=color)
+            d += spacing
+        next_dot = d - seg              # zbytek (přesah) přenes do další úsečky
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
 def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
-             terrain: str = "noise", lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
+             rock: float = 0.5, terrain: str = "noise",
+             lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky do `out_dir`. Vrací cestu k složce.
 
     `terrain="noise"` (default) = fraktální šum (Option 1). `terrain="real"` =
@@ -191,6 +221,16 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     draw = ImageDraw.Draw(img)
     cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic
     cdraw = ImageDraw.Draw(cmask_img)
+
+    # obrys bažin (§4.4): izolinie binární masky bažin na úrovni 0,5. Maska je
+    # už v pixelech (H, W) → contourpy vrací rovnou pixelové souřadnice (žádný
+    # přepočet mřížka→plátno), takže obrys přesně kopíruje vyplněnou oblast.
+    # Kreslíme PŘED vrstevnicemi (z-order §4: bažina 4.4 leží pod vrstevnicemi 4.5).
+    marsh_cont = contourpy.contour_generator(
+        z=marsh.astype(np.float32), line_type=contourpy.LineType.Separate)
+    for line in marsh_cont.lines(0.5):
+        _draw_dotted(draw, [(float(x), float(y)) for x, y in line], C_BLUE)
+
     # LineType.Separate → .lines(level) vrátí prostý seznam polí bodů (N×2) v souřadnicích mřížky
     cont = contourpy.contour_generator(z=elev, line_type=contourpy.LineType.Separate)
     lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
@@ -199,13 +239,35 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         # hlavní vrstevnice na absolutních násobcích CONTOUR_INDEX (25 m) — platí
         # pro reálné výšky i pro šum (BASE_ELEV=700 je násobek 25, chování stejné)
         is_main = level % CONTOUR_INDEX == 0
-        width = 2 if is_main else 1                 # hlavní vrstevnice silnější
+        # hlavní vrstevnice výrazně silnější (3 px vs 1 px). Reálně ~0,65 mm při
+        # 1:10000 — mírně nad ISOM normou (0,5 mm), ale (a) PIL nemá antialiasing,
+        # takže 2 px ještě splývá s normální, (b) jasnější odlišení index/normal
+        # pomáhá i modelu (UC5) tyto dvě třídy rozlišit. Spec §8.2 počítá s variací
+        # tlouštěk čar pro diverzitu datasetu, takže je to v intencích metodiky.
+        width = 3 if is_main else 1
         for line in cont.lines(level):
             # přepočet souřadnic mřížky (x∈0..GW-1, y∈0..GH-1) na pixely plátna
             pts = [(float(x) / (GW - 1) * W, float(y) / (GH - 1) * H) for x, y in line]
             if len(pts) >= 2:
                 draw.line(pts, fill=C_BROWN, width=width)
                 cdraw.line(pts, fill=255, width=width)
+
+    # --- balvany (§4.11): černé tečky, hustěji ve strmém terénu ---
+    # Fyzikální smysl (CLAUDE.md): skály/balvany jsou častější ve strmém členitém
+    # terénu. Proto bodový proces vážený sklonem — nikoli rovnoměrný posyp.
+    # Kreslíme NAHORU (z-order §4.11 nad plošnými vrstvami i vrstevnicemi).
+    rock_mask_img = Image.new("L", (W, H), 0)       # GT maska balvanů (§8.1)
+    rdraw = ImageDraw.Draw(rock_mask_img)
+    n_boulders = round(rock * 120)                  # počet pokusů o balvan (§4.11)
+    BOULDER_R = 2                                   # poloměr tečky balvanu [px]
+    for _ in range(n_boulders):
+        bx = int(rng.integers(0, W))                # náhodná pozice na plátně
+        by = int(rng.integers(0, H))
+        # přijetí roste se sklonem: ~0,25 v rovině → ~1,15 v nejstrmějším bodě
+        if rng.random() < 0.25 + float(slope_px[by, bx]) * 0.9:
+            box = [bx - BOULDER_R, by - BOULDER_R, bx + BOULDER_R, by + BOULDER_R]
+            draw.ellipse(box, fill=(0, 0, 0))       # balvan černě na mapu
+            rdraw.ellipse(box, fill=255)            # stejná geometrie do GT masky
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
@@ -214,9 +276,10 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     cmask_img.save(out / "mask_contours.png")
     Image.fromarray(veg_mask, mode="L").save(out / "mask_veg.png")          # třídy 0-4
     Image.fromarray((marsh * 255).astype(np.uint8), mode="L").save(out / "mask_water.png")
+    rock_mask_img.save(out / "mask_rock.png")                               # balvany (GT)
     meta = {
         "seed": seed,
-        "params": {"rug": rug, "vd": vd, "wat": wat},
+        "params": {"rug": rug, "vd": vd, "wat": wat, "rock": rock},
         # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
         "terrain": ({"source": "noise"} if terrain != "real" else {
             "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
@@ -244,6 +307,7 @@ def main() -> None:
     p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1")
     p.add_argument("--vd", type=float, default=0.5, help="hustota vegetace 0-1")
     p.add_argument("--wat", type=float, default=0.4, help="vodní prvky / velikost bažin 0-1")
+    p.add_argument("--rock", type=float, default=0.5, help="skály a balvany 0-1")
     p.add_argument("--terrain", choices=["noise", "real"], default="noise",
                    help="noise = fraktální šum (default), real = ČÚZK DMR 5G (§8.5)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
@@ -251,7 +315,7 @@ def main() -> None:
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
     out = generate(args.seed, args.rug, args.vd, args.wat, args.out,
-                   terrain=args.terrain, lat=args.lat, lon=args.lon)
+                   rock=args.rock, terrain=args.terrain, lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
 
