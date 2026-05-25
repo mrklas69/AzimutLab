@@ -58,13 +58,19 @@ Tři **nekonkurenční** zdroje pro modelovou větev (rozlišeno Sez. 4):
 
 - **(A) Geodata** (ČÚZK DMR/ortofoto) — reálný terén, ale ne hotové mapy.
 - **(B) Reálné korpusy map** (`.omap`/`.ocd` + skeny) — řídké, licenčně zatížené.
+  Příklad: **Mapový portál ČSOS** (7000+ map) — ale gate ZAVŘENA: jen náhledy 96 dpi
+  s vodoznakem, copyright klubů, souhlas vydavatele nutný i pro výzkum (viz
+  `docs/kb/data-sources.md`). Korpus (B) = oslovit vydavatele, ne scrapovat portál.
 - **(C) Syntetická generace** — neomezený objem, **ground-truth zdarma** (každá vrstva
   je segmentační maska). Cena: domain gap (hladší než realita).
 
 **Recept (sim-to-real):** předtrénink na (C) + fine-tuning/validace na (B); reálný terén
 z (A) dosazený do (C) místo šumu (spec §8.5, **hotovo Sez. 5** — `--terrain real`, ČÚZK
 DMR 5G přes ArcGIS ImageServer). Realizace (C): metoda `docs/kb/generator-procedural.md`,
-PoC `sandbox/generator-poc/` (Sez. 4-5).
+PoC `sandbox/generator-poc/` (Sez. 4-8). Od **Sez. 8** generátor vedle rastru+masek zapisuje
+i **vektor vrstevnic** (`contours.geojson`, ISOM 101/102, georef S-JTSK pro real, §9) —
+krok od UC5-feedru (rastr) k UC4 OCD/OMAP výstupu; přímo z contourpy polylinií, ne
+vektorizací rastru.
 
 ## Metody (z Pic2Omap)
 

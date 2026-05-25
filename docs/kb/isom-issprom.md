@@ -19,5 +19,9 @@ i cílová sémantika generátorů (UC4).
 - **Tři typy symbolů**: bodové / liniové / plošné — osa klasifikace (UC5).
 - **Paleta a priority** — barvy mají pořadí (priority); RGB-identické páry (`403.0`≡`403.1`)
   color separation nerozliší → potřeba sémantiky, ne jen barvy.
+  - *Konkrétní hodnoty:* runtime paleta generátoru = `sandbox/generator-poc/palette.py`
+    (jediný zdroj pravdy, slovník `PALETTE`); metodická tabulka hex+CMYK =
+    `generator-procedural.md §5`. KB tady RGB **nekopíruje** — drží sémantiku
+    (pořadí/priority, cross-spec rozdíly), ne odstíny (DRY).
 - **ISOM↔ISSprOM rozdíly**: stejný kód ≠ stejný symbol napříč spec (např. budovy
   BLACK v ISOM les vs GRAY v ISSprOM sprint — kořen cross-domain class gapu v Pic2Omap pilotu).

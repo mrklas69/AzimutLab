@@ -5,6 +5,7 @@ licence se na zdroj nesmí stavět UC4-II/III (viz CLAUDE.md doménové zásady)
 
 > Sezení 2 (2026-05-23): průzkum ČÚZK. Sloupce: zdroj · typ dat · pokrytí ·
 > přístup · **licence** · stav průzkumu.
+> Sezení 8 (2026-05-25): Mapový portál ČSOS (reálné OB mapy, cesta B) — gate ZAVŘENA.
 
 ## ČÚZK — gate OTEVŘENA
 
@@ -66,6 +67,12 @@ z **penetrujících (multi-echo) LiDAR odrazů**. Tu žádný open produkt ČÚZ
 Důsledek pro **UC4-II**: realistická vegetace z čistě ČÚZK open dat **nejde** Karttapullautin
 způsobem. Buď slabší proxy (CHM + NIR), nebo sehnat jiný zdroj multi-echo LiDARu.
 
+**Cesta otevření gate (odloženo, Sez. 8):** plné multi-echo klasifikované mračno **lze
+vyžádat / koupit** (ZÚ Pardubice, příp. krajská/zakázková data) — pak by Karttapullautin
+i lokální `lasertool` (viz `tools-models.md`) vegetaci zvládly. Vědomě **odloženo do fáze
+tvorby map z reálných podkladů**; teď je cíl generovat realisticky vyhlížející mapy (vektor
+vrstevnic z DMR 5G, gate netřeba). Až přijde konzument, prověřit zdroj + licenci znovu.
+
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).
   Při psaní konektoru ověřit aktuální GetCapabilities URL, nespoléhat na staré odkazy.
@@ -73,6 +80,29 @@ způsobem. Buď slabší proxy (CHM + NIR), nebo sehnat jiný zdroj multi-echo L
   (LAZ → DMR → vrstevnice), nikoli jen stažení. Detaily až u prvního konektoru.
 - DMR 5G vznikl ze skenování **2009–2013** (dokončeno 2016) — pro restaurované/staré mapy
   ověřit, zda časový posun terénu vs. mapy nevadí.
+
+## Mapový portál ČSOS — gate ZAVŘENA (náhledy + copyright klubů)
+
+Digitální archiv map ČSOS — **7000+ georeferencovaných map** pro OB / MTBO / Trail-O /
+sprint (filtr dle roku, archiv až 2007). Provozují **Mapová rada ČSOS + T-MAPY spol. s r.o.**
+(Hradec Králové). Primárně k **online prohlížení** (mapový nástroj Seznam.cz), ne hromadné
+stahování.
+
+**Role v DAGu — datová cesta (B):** nejbližší český zdroj *hotových reálných OB map*
+(komplement k ČÚZK, který dává geodata, ne hotové mapy). Teoretický potenciál:
+hold-out / fine-tuning pro UC5, reálné skeny pro UC3.
+
+**Licence — gate ZAVŘENA (ověřeno ze stránky „O projektu", 2026-05-25):**
+- Autorská práva drží **vydavatelé (kluby)** uvedení v tiráži mapy — ne portál.
+- Veřejné jsou jen **náhledy v nízkém rozlišení (96 dpi) s vodoznakem**.
+- Jakékoli užití (**včetně výzkumu i komerčního**) vyžaduje **souhlas vydavatele**.
+- → **Nestavět UC5 trénink ani UC3 na těchto datech bez svolení.** Navíc náhledy jsou
+  degradované (96 dpi + watermark) → i kdyby licence dovolila, kvalita je pro
+  trénink/restauraci nedostatečná. **Dvojitá gate: licence i kvalita.**
+
+**Důsledek:** portál slouží jako **reference / orientace** (kde mapy jsou, kdo je
+autor a vydavatel = koho oslovit o svolení), ne jako sklízitelný dataset. Reálný
+korpus cesty (B) = nutné oslovit jednotlivé vydavatele (kluby), ne scrapovat portál.
 
 ## Další zdroje (neprozkoumáno)
 
@@ -90,6 +120,10 @@ způsobem. Buď slabší proxy (CHM + NIR), nebo sehnat jiný zdroj multi-echo L
 - Technická zpráva DMR 4G/5G — <https://geoportal-orto.cuzk.cz/Dokumenty/TECHNICKA_ZPRAVA_DMR_4G_a_5G.pdf>
 - Podmínky poskytování dat ČÚZK — <https://cuzk.gov.cz/Predpisy/Podminky-poskytovani-prostor-dat-a-sitovych-sluzeb/Podminky-poskytovani-prostorovych-dat-CUZK.aspx>
 - DMR 5G na data.europa.eu — <https://data.europa.eu/data/datasets/cz-cuzk-dmr5g-v?locale=cs>
+- Mapový portál ČSOS — <https://mapy.ceskyorientak.cz/>
+- ČSOS portál — prohlížeč map — <https://mapy.ceskyorientak.cz/cs/map_browser>
+- ČSOS portál — katalog map — <https://mapy.ceskyorientak.cz/cs/maps>
+- ČSOS portál — O projektu (práva / podmínky užití) — <https://mapy.ceskyorientak.cz/cs/text/about>
 
 ## Poznámky
 

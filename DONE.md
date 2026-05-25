@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 8 (2026-05-25) — Vektorizace vrstevnic na ISOM + DRY paleta + ČSOS KB
+- [x] **DRY: paleta → `palette.py`** (jediný zdroj pravdy): slovník `PALETTE` (slug→Swatch
+      rgb+význam) + odvozené `C_*`. `generator.py` importuje (zahozeny lokální konstanty +
+      inline `(0,0,0)`). Oponováno TODO „→ isom-issprom.md": runtime konzument je Python,
+      parsovat MD je proti KISS → SSoT v kódu, docs (spec §5, KB) odkazují. Verify: noise
+      render + batch import OK.
+- [x] **Mapový portál ČSOS → KB** (`data-sources.md`): zdroj reálných OB map (cesta B,
+      7000+ map, Mapová rada ČSOS + T-MAPY). **Gate ZAVŘENA dvojitě** (ověřeno ze stránky
+      „O projektu"): copyright klubů + jen náhledy 96 dpi s vodoznakem, souhlas vydavatele
+      nutný i pro výzkum. Verify-against-source dotáhl licenci z „nevím" na jednoznačné NE.
+- [x] **Vektor vrstevnic → `contours.geojson`** (§9): polylinie z contourpy se symbolem
+      **101 Contour / 102 Index contour**, georef **S-JTSK (EPSG:5514)** pro real (lokální
+      metry noise). Žádná vektorizace rastru (AutoTrace) — z přesného zdroje. `dmr.build_bbox`
+      zveřejněn. Verify: 67/68 linií, rozsah přesně 1465×1000 m.
+- [x] **`.omap` export → `omap_export.py`** + `generator.py --omap-template`: template-based
+      (nahradí `<objects>` ve funkčním ISOM `.omap`), Local CRS, paper-space transform
+      (1 m→100 µm). Nesdílí kód s Pic2Omap `db2omap` (ten z rastru) — jen formát. **Verify
+      uživatelem v OOM: vrstevnice sedí.** (OOM 0.9.6 jen `windows` platform → headless nejde.)
+- [x] **lasertool / AutoTrace / multi-echo** do KB (`tools-models.md`, `data-sources.md`):
+      lasertool = LIDAR point cloud→rastr (Karttapullautin rodina, naráží na vegetace gate);
+      vektorizační nástroje pro UC4-III/UC3 (CoVe napřed); multi-echo LAS lze koupit (odloženo).
+
 ## Sezení 7 (2026-05-24) — Reálný batch dataset z lokalit ČR
 - [x] **`batch.py --terrain noise|real`:** reálná větev vyrobí dataset map z různých míst ČR
       (`CZ_LOCATIONS` — 10 členitých OB oblastí). Hlavní variace = lokalita; losují se jen

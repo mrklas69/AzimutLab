@@ -9,11 +9,24 @@ Katalog konkrétních nástrojů, knihoven a modelů použitelných v AzimutLab.
 
 | Nástroj | Účel | Odkaz / umístění |
 |---------|------|------------------|
-| OpenOrienteering Mapper | tvorba/editace OMAP | github.com/OpenOrienteering/mapper |
-| CoVe | color line vectorization | github.com/lpechacek/cove (v OOM) |
+| OpenOrienteering Mapper | tvorba/editace OMAP; import GDAL vektorů (GeoJSON→symboly) | github.com/OpenOrienteering/mapper |
+| CoVe | color line vectorization (orienťácké čáry) | github.com/lpechacek/cove (v OOM) |
 | Karttapullautin | LIDAR → mapa | — |
+| lasertool | LIDAR point cloud (LAS/ASC) → rastr: terén + „vegetation height image" | lokálně `lasertool/` (Win32 Qt4, ~2011; liblas+Triangle); rodina tmsw.no basemap |
+| AutoTrace | bitmap → vektor (raster tracing): SVG/DXF/EMF… | autotrace.sourceforge.net (GPL) |
 | OCAD | komerční tvorba map | — |
-| QGIS | GIS desktop / WMS-WFS klient | — |
+| QGIS | GIS desktop / WMS-WFS klient; import/CRS vektoru | — |
+
+**Vektorizace rastru (UC4-III / UC3) vs vektor zdarma (UC4-I).** Pro *reálné skeny* map
+(bez zdrojových vektorů) je raster→vektor nutný: **AutoTrace** + nástroje z jeho Links
+(**WinTopo** raster→vektor GIS, **Ras2Vec**, **CR2V** color segmentation). Pro orienťácké
+*čáry* je ale `CoVe` napřed (specializovaný). Pozn.: **náš generátor (UC4-I) vektorizaci
+nepotřebuje** — vrstevnice má rovnou jako polylinie z contourpy (export `contours.geojson`,
+viz `generator-procedural.md §9`). AutoTrace je pro opačný směr (pixely → vektor).
+
+**lasertool** jde naopak *point cloud → rastr* (rodina Karttapullautin), **ne** vektorizace.
+Vegetation height (CHM) ale potřebuje **multi-echo klasifikované mračno** — naráží na stejnou
+vegetace gate jako Karttapullautin (viz `data-sources.md`).
 
 ## Modely / metody (z Pic2Omap)
 
@@ -22,7 +35,7 @@ Katalog konkrétních nástrojů, knihoven a modelů použitelných v AzimutLab.
 | Palette separation (LAB nearest) | produkční | `Pic2Omap/color_separator.py` |
 | Area segmentation (U-Net resnet34) | pilot (mIoU 0.666 within-domain) | `Pic2Omap/train.py` |
 | ISOM symbol DB (parser) | produkční | `Pic2Omap/omap_parser.py` |
-| Procedurální generátor (skalární pole → vrstvy + GT masky) | PoC (Sez. 4) | `sandbox/generator-poc/` |
+| Procedurální generátor (skalární pole → vrstvy + GT masky + vektor vrstevnic) | PoC (Sez. 4–8) | `sandbox/generator-poc/` |
 
 ## Stack
 

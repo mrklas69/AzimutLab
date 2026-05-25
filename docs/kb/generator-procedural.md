@@ -175,6 +175,11 @@ kontroly kroužky (poslední dvojitý = cíl), spojnice. Číslování vpravo na
 | Černá | skály, cesty, stavby | `#000000` | 0/0/0/100 |
 | Purpurová | trať | `#C400AC` | 0/100/0/0 (Purple) |
 
+> **Runtime implementace (jediný zdroj pravdy):** `sandbox/generator-poc/palette.py`
+> (slovník `PALETTE`). Tato tabulka je metodický/jazykově nezávislý popis (slouží
+> i jako prompt, §10); konkrétní RGB pro běh generátoru bere kód odtamtud, ať se
+> hodnoty nerozejdou (DRY). Implementováno do `palette.py` v Sez. 8.
+
 ---
 
 ## 6. Parametry (UI ↔ vnitřní)
@@ -267,6 +272,18 @@ funkce generate(seed, params):
 - **Výstup do vektoru**: pokud potřebuješ OCD/OMAP, exportuj jednotlivé vrstvy jako
   GeoJSON/SHP a konvertuj (OpenOrienteering Mapper umí import GDAL vektorů; OCAD má
   XML skripty). Vrstevnice jdou exportovat přímo z marching squares jako polylinie.
+  - **✅ Vrstevnice implementováno (Sez. 8):** `generator.py` zapisuje `contours.geojson`
+    — polylinie z contourpy se symbolem **101 Contour / 102 Index contour**,
+    georeferencované v **S-JTSK (EPSG:5514)** pro `--terrain real` (lokální metry pro
+    noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
+    ne z pixelů. 103 Form line generátor zatím nedělá.
+  - **✅ `.omap` export (Sez. 8):** `omap_export.py` + `generator.py --omap-template <path>`
+    zapíše `map.omap` — **template-based** (vezme funkční ISOM `.omap`, nahradí jen
+    `<objects>`), Local CRS, paper-space transform (1 m → `1e6/scale` µm, vycentrováno,
+    bez Y-flip). Symbol id se čte z template (101/102). NEduplikuje Pic2Omap `db2omap`
+    (ten jde z rastru přes .pgw/cv2; my z přesných polylinií) — sdílíme jen FORMÁT.
+    Verify: OOM 0.9.6 má jen `windows` platform plugin → headless nejde, finální
+    kontrola = otevřít v OOM ručně (self-check: XML well-formed + počet objektů + rozsah).
 
 ---
 

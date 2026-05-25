@@ -11,6 +11,9 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`, vegetace/bažiny zůstávají syntetické).
+- **vektor vrstevnic** — `contours.geojson` (ISOM **101/102** linie, georef S-JTSK pro
+  real terén) a volitelně `map.omap` přes `--omap-template` (§9; `omap_export.py`).
+  Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
 
 Záměrně NEobsahuje (přijde inkrementálně): tratě, cesty, rýhy, bodové
 značky, severník.
@@ -31,6 +34,10 @@ obchází sparse-GT past z Pic2Omap.
 # Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Děčínsko, §8.5):
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out sandbox\generator-poc\output
 # jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
+
+# + vektorový .omap (vrstevnice 101/102) přes ISOM template — otevři výsledek v OOM:
+.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real `
+    --omap-template "cesta\k\ISOM_template.omap" --out sandbox\generator-poc\output
 ```
 
 Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
@@ -51,7 +58,9 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_veg.png` | multi-class maska vegetace (hodnoty 0-4, vizuálně tmavá — je to GT, ne náhled) |
 | `mask_water.png` | binární maska bažin |
 | `mask_rock.png` | binární maska balvanů |
-| `meta.json` | seed, parametry, legenda tříd |
+| `contours.geojson` | **vektor** vrstevnic (LineString + ISOM symbol 101/102; CRS S-JTSK pro real) |
+| `map.omap` | OpenOrienteering Mapper mapa (jen s `--omap-template`; vrstevnice 101/102) |
+| `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack
 
