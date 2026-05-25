@@ -74,6 +74,7 @@ sandbox/               # UC1: isolated experiments, one folder each
                        #     + dmr.py: real terrain from ČÚZK DMR 5G (--terrain real, Option 2)
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods
+GLOSSARY.md            # project terminology
 TODO.md / DONE.md      # work tracking
 DIARY.md               # session index
 ```
@@ -83,6 +84,7 @@ DIARY.md               # session index
 Working documents are in Czech (per the global conventions):
 
 - [docs/architecture.md](docs/architecture.md) — canonical UC DAG & layering
+- [GLOSSARY.md](GLOSSARY.md) — project terminology
 - [IDEAS.md](IDEAS.md) — design brainstorm
 - [RESEARCH.md](RESEARCH.md) — survey of tools / methods / sources
 - [DIARY.md](DIARY.md) — session log (detail in `docs/diary/`)

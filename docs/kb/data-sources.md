@@ -115,7 +115,7 @@ korpus cesty (B) = nutné oslovit jednotlivé vydavatele (kluby), ne scrapovat p
 
 - ČÚZK otevřená data — <https://ags.cuzk.gov.cz/opendata/>
 - ČÚZK Geoportál — <https://geoportal.cuzk.gov.cz/>
-- DMR 5G metadata — <https://geoportal.cuzk.cz/Default.aspx?mode=TextMeta&side=vyskopis&metadataID=CZ-CUZK-DMR5G-V>
+- DMR 5G metadata — <https://geoportal.cuzk.gov.cz/Default.aspx?mode=TextMeta&side=vyskopis&metadataID=CZ-CUZK-DMR5G-V>
 - Technická zpráva DMP OK (obrazová korelace, 1/2026) — <https://geoportal.cuzk.gov.cz/Dokumenty/TECHNICKA_ZPRAVA_K_DMP_OK.pdf>
 - Technická zpráva DMR 4G/5G — <https://geoportal-orto.cuzk.cz/Dokumenty/TECHNICKA_ZPRAVA_DMR_4G_a_5G.pdf>
 - Podmínky poskytování dat ČÚZK — <https://cuzk.gov.cz/Predpisy/Podminky-poskytovani-prostor-dat-a-sitovych-sluzeb/Podminky-poskytovani-prostorovych-dat-CUZK.aspx>

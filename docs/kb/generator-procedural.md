@@ -110,8 +110,10 @@ tečkovaně. (`wat` = vodní prvky.)
 
 ### 4.5 Vrstevnice
 Pro každý práh `t ∈ {705, 710, …}` vykreslíme izolinii `elev = t` (obrys polygonu
-z marching squares), tloušťka 0,7 px, hlavní (`(t−700) mod 25 == 0`) 1,3 px,
-barva hnědá `#A05F1F`. **Disjunktní z principu.**
+z marching squares), tloušťka 1 px, hlavní (`(t−700) mod 25 == 0`) 3 px,
+barva hnědá `#A05F1F`. **Disjunktní z principu.** (Realizace Sez. 6: 1 px / hlavní
+3 px — PIL nemá antialiasing, tenčí poměr 2:1 px splýval; výraznější index navíc
+pomáhá UC5 odlišit třídy 101/102. Variaci tlouštěk pro diverzitu datasetu viz §8.2.)
 
 ### 4.6 Rýhy / erozní rýhy (`det` = detaily)
 `round(det*4)` kusů. Start ve strmé buňce (`slope > 0.4`), krátký sestup po spádnici
@@ -232,7 +234,8 @@ funkce generate(seed, params):
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
    - `mask_contours.png`, `mask_veg.png` (multi-class), `mask_water.png`,
-     `mask_rock.png`, `mask_symbols.png` (multi-class), … (cíle),
+     `mask_rock.png` (vše hotovo Sez. 4-6); `mask_symbols.png` (multi-class) až
+     s bodovými značkami §4.10 (zatím neimplementováno), … (cíle),
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
      (hotová detekční anotace ve stylu COCO/YOLO).
 2. **Objem a diverzita.** Kombinatorika 5 parametrů × seed ⇒ prakticky neomezený

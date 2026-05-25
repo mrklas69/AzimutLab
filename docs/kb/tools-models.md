@@ -40,6 +40,7 @@ vegetace gate jako Karttapullautin (viz `data-sources.md`).
 ## Stack
 
 - **PoC generátor** (Sez. 4): Python 3.14 + numpy + contourpy (marching squares) +
-  Pillow. Venv v kořeni repa (`.venv`). `scikit-image` vynechán (KISS + jistota wheelů na 3.14).
+  Pillow + pyproj (jen `--terrain real`, WGS84→S-JTSK). Venv v kořeni repa (`.venv`).
+  `scikit-image` vynechán (KISS + jistota wheelů na 3.14).
 - **Zděděno z Pic2Omap** (až bude konzument): numpy, opencv. ML: torch / smp /
   albumentations (odděleně, GPU box).

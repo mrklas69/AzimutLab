@@ -2,8 +2,8 @@
 
 **Status**: Deštník fáze B; první reálný kód (Sezení 4, 2026-05-23) — syntetický
 generátor (`sandbox/generator-poc/`) jako UC4-I/UC5 enabler-feeder. Kanonický popis UC DAGu a vrstvení.
-**Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, kód (zatím žádný)
-implementuje sem.
+**Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, implementace
+(`sandbox/generator-poc/`) z něj vychází.
 
 AzimutLab není jedna aplikace — je to **deštník nad pěti use-casy, které tvoří
 orientovaný graf závislostí (DAG), ne plochý seznam.** Tahle struktura určuje pořadí
