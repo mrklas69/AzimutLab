@@ -21,6 +21,10 @@ sandbox/**/data/
 # Cizí nástroje stažené lokálně (GPL binárky ~12 MB) — odkaz v tools-models.md
 lasertool/
 
+# Reálné mapy (páry picture+OMAP) — copyright třetích stran + velká binární data.
+# Lokální hold-out / reference, NE do veřejného gitu. Metadata (původ, licence) v KB.
+resources/
+
 # Cache stažených DMR 5G dlaždic (reálná ČÚZK data — nepatří do gitu)
 .dmr_cache/
 sandbox/**/.dmr_cache/
