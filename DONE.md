@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 15 (2026-05-25) — %AUDIT:CODE generator-poc + přemapování cesty 507→505
+- [x] **%AUDIT:CODE** (1072 LOC, 5 modulů + spec + GLOSSARY + sandbox README) — LOC práh
+      (≥500) padl podruhé po dvou přestavbách. Kód zdravý (DRY paleta, čistý dead-file stav);
+      hlavní nález = reziduum SLAP dluhu Sez. 13/14 (drift ISOM kódů přežil v komentářích).
+- [x] **D4(a) přemapování vedlejší cesty 507→505 Footpath** — verify-against-source proti
+      `template_classic.omap`: ISOM 505 Footpath JE čárkovaná → pravidelná čárka generátoru jí
+      odpovídá (Sez. 13 ji mylně zamítla „505 je plná"). Propsáno do 6 souborů: generator.py,
+      omap_export.py, sandbox README, GLOSSARY, spec (§4.9/§8/§9, 5 míst), TODO. Konstanta
+      `ISOM_FOOTPATH=505` teď sémanticky sedí (zrušilo K1 u kořene).
+- [x] **D1/D2/K2 rezidua driftu** — docstring `generate()` 112/113/115→109/110/111; komentář
+      „od nuly"→template-based; komentář z-orderu „505" po přemapování konzistentní.
+- [x] **K4 SLAP** — meta dict (45 řádků) vyčleněn z `generate()` do `_build_meta()`.
+- [x] **K3** — nepoužitý `template_sprint.omap` odstraněn (`git rm`; bez konzumenta v kódu).
+- [x] **Verify (čísly):** noise seed 1 = 65 objektů (baseline Sez. 14, jen 507→505), real seed 1
+      = 60 vrstevnic + 7 bodů (baseline Sez. 8–14). OMAP well-formed, vedlejší cesta id 112 (=505
+      v template, dřív id 114=507). **Vizuál v OOM potvrzen uživatelem (Test OK, 505 a 507).**
+
 ## Sezení 14 (2026-05-25) — OMAP věrné body (template-based) + SLAP úklid ISOM driftu
 - [x] **Uzavřena nezacommitovaná Sez. 13** — celá odpracovaná (kód+docs), ale nikdy
       necommitnutá (chybělo `%END`); dva commity (feat + docs) + push, procesní dluh splacen.
