@@ -33,6 +33,38 @@ Mapwright/Mapník (map-SW kolize), Mapárna/Cartouche (chtěné mezinárodní).
 
 ---
 
+## Realnost generátoru — dvoustupňová věrnost (zaměření desítek sezení, 2026-05-25)
+
+> **Názvosloví: vědomě bez písmen A/B** — ta jsou obsazená vztahem k Pic2Omap
+> (fáze B deštník → A monorepo). Tady jde o jinou osu: jak „reálná" je vyrobená mapa.
+
+Cíl programu: velký dataset párů (picture, OMAP) pro trénink modelů; mapy co nejvíc
+podobné reálným OB mapám. Generátor = feeder s GT zdarma (§0 spec). „Reálnost" má dvě
+osy, řešíme **dvoustupňově** (rozhodnuto 2026-05-25):
+
+### Stupeň 1 — kartografická věrnost (teď)
+Čistý render, kde každá vrstva **fyzikálně sedí na terén**. Akceptační „fyzikální gate":
+vrstva, co vypadá uměle, není dost vázaná na terén → **lepší vazba, ne zahození**
+(poučení z bažiny zahozené v Sez. 11). Liší se od **vegetace gate** (zelená/žlutá =
+zavřená, chce multi-echo LiDAR — `data-sources.md`); hydro+cesty fyzikální gate procházejí.
+
+Pořadí věrnostních vrstev (jeden zdroj pravdy = terénní pole `eb` / reálný DMR):
+1. **Cesty terénně vázané** (start, zvoleno) — §4.9 z přímého splajnu na Dijkstra
+   least-cost (§9): vede údolím/sedlem. Dotahuje rozdělanou vrstvu před otevřením nové.
+2. **Hydrologické jádro z flow accumulation (D8, §9)** — jedna dávka z jednoho pole:
+   toky (§4.8, nikdy neimpl.) → prameny (§4.10) → **jezera/rybníky = sink-fill deprese
+   (NOVÁ vrstva, ve spec chybí)** → bažiny (§4.4 znovu a lépe). Řeka pak konzistentní
+   s vrstevnicemi zdarma (izomorfní s vrstevnice ← elev).
+3. *(real-půlka)* ZABAGED cesty/vodstvo jako reálný protějšek — viz „Reálné cesty…" níže.
+
+### Stupeň 2 — věrnost skenu (až stupeň 1 stojí)
+Augmentace (§8.3, neimpl.) jako **samostatná vrstva** pipeline: CMYK misregistration,
+papír, JPEG, deformace sklad/sken → čistý render degraduje na „zablácený sken". Tím je
+pár (picture, OMAP) realistický pro UC4-III. Vrstvy se staví jednou (stupeň 1),
+realnost-artefaktu se přidá, nepřepisuje.
+
+---
+
 ## Nezralé nápady (k dozrání)
 
 - **UC3 jako první aplikace (ne UC4-III).** De-purple + de-crease potřebuje jen segmentaci

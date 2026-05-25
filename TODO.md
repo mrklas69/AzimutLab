@@ -13,8 +13,9 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
 - [~] Procedurální generátor OB map — **přestavba „znovu a lépe" (Sez. 11):** vrstvy stavíme po jedné s důrazem na vizuální věrnost. HOTOVO: vrstevnice (§4.5) + bodové symboly extrémů 112/113/115 (§4.10) + cesty (§4.9, Catmull-Rom, ISOM 503/505, `mask_paths.png`) + vektor 101/102 + `.omap` + reálný terén `--terrain real`. ZAHOZENO (vypadalo uměle, kazilo by domain gap): vegetace, paseky, bažiny, balvany.
-- [ ] Terénně vázané cesty (§9): Dijkstra least-cost (cena ~sklon) místo přímého splajnu — cesty pak vedou údolím, ne přes kopce. Nejbližší kandidát na vyšší věrnost (Sez. 11).
-- [ ] Přestavba dalších vrstev „lépe": vegetace / bažiny / vodní toky — věrnějším vzhledem než zahozená verze (Sez. 11 záměr „vrstevnice → cesty → …").
+- [!] **Terénně vázané cesty (§9): Dijkstra least-cost** (cena ~sklon) místo přímého splajnu — cesty pak vedou údolím, ne přes kopce. **Start věrnostního stupně 1 (zvoleno 2026-05-25, viz IDEAS „dvoustupňová věrnost").**
+- [ ] Hydrologické jádro z flow accumulation (D8, §9): toky (§4.8, nikdy neimpl.) → prameny (§4.10) → **jezera/rybníky = sink-fill deprese (NOVÁ vrstva, ve spec chybí)** → bažiny (§4.4 znovu a lépe). Jeden zdroj pravdy, dělat po cestách (stupeň 1).
+- [ ] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken" (CMYK misregistration, papír, JPEG, deformace) pro UC4-III. Až stupeň 1 stojí.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu

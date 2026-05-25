@@ -277,6 +277,10 @@ funkce generate(seed, params):
    objemu syntetiky + fine-tuning a validace na menší sadě reálných map**
    (zdroje: World of O, Mapový portál ČSOS, MapAnt, Routegadget — viz samostatný
    přehled). Reálné mapy slouží i jako hold-out pro měření skutečné generalizace.
+   **Dvoustupňová realnost (rozhodnuto 2026-05-25):** stupeň 1 = kartografická věrnost
+   (čistý render, vrstvy fyzikálně vázané na terén — „fyzikální gate"), stupeň 2 = věrnost
+   skenu (augmentace §8.3 jako samostatná vrstva). Roadmapa a pořadí věrnostních vrstev:
+   `IDEAS.md`. (Názvosloví bez A/B — ta patří vztahu k Pic2Omap.)
 5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`
    v `sandbox/generator-poc/` (modul `dmr.py`). Místo `fractal()` dosadí reálný ČÚZK
    DMR 5G přes ArcGIS ImageServer `exportImage` (float32 grid přímo, ne LAZ → žádný GDAL;
