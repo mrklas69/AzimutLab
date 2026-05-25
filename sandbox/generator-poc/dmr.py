@@ -33,12 +33,16 @@ _IMG_SERVER = "https://ags.cuzk.gov.cz/arcgis2/rest/services/dmr5g/ImageServer"
 _TF_WGS84_TO_SJTSK = Transformer.from_crs("EPSG:4326", "EPSG:5514", always_xy=True)
 
 
-def _build_bbox(lat: float, lon: float, gw: int, gh: int, tile_m: float):
+def build_bbox(lat: float, lon: float, gw: int, gh: int, tile_m: float):
     """Spočte bbox v S-JTSK (metry) tak, aby měl poměr stran jako mřížka gw×gh.
 
     Kratší strana (sever-jih, osa y) = `tile_m`; delší (východ-západ, osa x) se
     natáhne v poměru gw/gh. Tím je buňka výsledného gridu izotropní (čtvercová)
     a reálný terén se nezkreslí — viz rozhodnutí Sezení 5 (poměrový výsek).
+
+    Veřejná (Sez. 8): kromě sestavení requestu ji generator.py volá i pro
+    georeferencování vektorového exportu vrstevnic (grid → S-JTSK metry).
+    Vrací (xmin, ymin, xmax, ymax).
     """
     cx, cy = _TF_WGS84_TO_SJTSK.transform(lon, lat)   # střed v S-JTSK
     width_m = tile_m * (gw / gh)                       # delší strana (E-W)
@@ -78,7 +82,7 @@ def fetch_elevation_grid(
         arr = np.asarray(Image.open(cpath), dtype=np.float32)
     else:
         # cache miss — sestav request a stáhni
-        xmin, ymin, xmax, ymax = _build_bbox(lat, lon, gw, gh, tile_m)
+        xmin, ymin, xmax, ymax = build_bbox(lat, lon, gw, gh, tile_m)
         params = {
             "bbox": f"{xmin},{ymin},{xmax},{ymax}",
             "bboxSR": "5514",

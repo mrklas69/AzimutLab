@@ -3,7 +3,8 @@ generator.py — procedurální generátor výseku mapy pro orientační běh (M
 
 Implementuje řez specifikace docs/kb/generator-procedural.md:
   vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4, výplň + tečkovaný obrys)
-  + balvany (§4.11) + ground-truth masky (§8.1).
+  + balvany (§4.11) + ground-truth masky (§8.1) + vektorový export vrstevnic
+  (§9, GeoJSON s ISOM symboly 101/102; real = georef S-JTSK).
 
 Hlavní myšlenka (§0): mapa NENÍ sada nakreslených čar, ale vrstvy odvozené ze
 skalárních polí. Vrstevnice jsou izolinie spojitého výškového pole → z definice
@@ -22,27 +23,29 @@ import numpy as np
 from PIL import Image, ImageDraw
 import contourpy
 
+# Barevná paleta (§5) — jediný zdroj pravdy je palette.py (DRY). Sousední modul:
+# Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný
+# i když generator.py běží přímo i když ho importuje batch.py.
+from palette import C_YELLOW, C_GREEN1, C_GREEN2, C_GREEN3, C_BROWN, C_BLUE, C_BLACK
+
 # ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
 GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
 W, H = 672, 458          # výstupní plátno v pixelech
 CONTOUR_STEP = 5         # ekvidistance vrstevnic [m]
 CONTOUR_INDEX = 25       # zvýrazněná (hlavní) vrstevnice každých 25 m
 BASE_ELEV = 700          # bazální nadmořská výška [m] — jen pro terrain="noise"
+TILE_M = 1000.0          # reálný rozměr výseku [m] po kratší straně (S-J); delší se
+                         # dopočítá v poměru GW/GH. Sjednoceno s dmr.fetch (tile_m)
+                         # → georef vektoru sedí s výškopisem.
+
+# ISOM symboly vrstevnic (§4.5, ověřeno O-Map Wiki) — pro vektorový export (§9).
+# 103 Form line generátor zatím nedělá (rozšíření věrnosti).
+ISOM_CONTOUR = 101       # základní vrstevnice (Contour)
+ISOM_INDEX_CONTOUR = 102 # zvýrazněná každá pátá (Index contour)
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
 DEF_LAT, DEF_LON = 50.8214458, 14.6712747
-
-# ---------- Barevná paleta (§5, aproximace ISOM 2017-2 pro obrazovku) ----------
-# Pozn. (DRY): zatím natvrdo. Až generátor poroste, vytáhnout do jediného zdroje
-# pravdy (docs/kb/isom-issprom.md), ať se palety na více místech nerozejdou.
-C_YELLOW = (254, 202, 23)    # otevřená plocha (paseka)
-C_GREEN1 = (194, 232, 176)   # světle zelená — pomalý běh
-C_GREEN2 = (109, 199, 113)   # středně zelená — chůze
-C_GREEN3 = (45, 169, 79)     # tmavě zelená — těžko prostupné
-C_BROWN = (160, 95, 31)      # vrstevnice
-C_BLUE = (46, 194, 248)      # voda / bažina
-
 
 # =====================================================================
 #  Skalární pole (§2-3)
@@ -147,18 +150,62 @@ def _draw_dotted(draw: ImageDraw.ImageDraw, pts: list[tuple[float, float]],
         next_dot = d - seg              # zbytek (přesah) přenes do další úsečky
 
 
+def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
+                            out_path: Path) -> int:
+    """Zapíše vrstevnice jako GeoJSON FeatureCollection (vektor, §9). Vrací počet linií.
+
+    Klíčová myšlenka: vrstevnice z contourpy UŽ JSOU polylinie (ne pixely) — jen je
+    místo rasterizace do PNG zapíšeme jako vektor s ISOM symbolem. Žádná vektorizace
+    rastru (AutoTrace) tu netřeba; jdeme z přesného zdroje.
+
+    `features` = seznam (line, symbol_code); `line` je pole bodů (N×2) v souřadnicích
+    MŘÍŽKY (gx∈0..GW-1, gy∈0..GH-1, sever nahoře). `bbox`=(xmin,ymin,xmax,ymax) ve
+    world metrech → lineární přepočet mřížka→svět. Osa Y se PŘEVRACÍ: gy=0 je horní
+    řádek = sever = ymax. `crs_epsg` (real=5514) nebo None pro lokální metry (noise).
+    """
+    xmin, ymin, xmax, ymax = bbox
+    sx = (xmax - xmin) / (GW - 1)   # metrů na buňku mřížky, osa x
+    sy = (ymax - ymin) / (GH - 1)   # metrů na buňku mřížky, osa y
+    names = {ISOM_CONTOUR: "Contour", ISOM_INDEX_CONTOUR: "Index contour"}
+    geo_features = []
+    for line, code in features:
+        # mřížka → world metry; round na cm stačí (zdrojový grid je 2 m nativně)
+        coords = [[round(xmin + float(gx) * sx, 2), round(ymax - float(gy) * sy, 2)]
+                  for gx, gy in line]
+        if len(coords) < 2:          # degenerátní linie (0-1 bod) přeskoč
+            continue
+        geo_features.append({
+            "type": "Feature",
+            "properties": {"symbol": code, "symbol_name": names[code]},
+            "geometry": {"type": "LineString", "coordinates": coords},
+        })
+    fc: dict = {"type": "FeatureCollection", "features": geo_features}
+    # CRS member: GeoJSON-2008 rozšíření (mimo RFC 7946, ale OOM / QGIS / OCAD ho čtou)
+    # — u reálného terénu nese S-JTSK, ať mapa sedí na správné místo při importu.
+    if crs_epsg is not None:
+        fc["crs"] = {"type": "name",
+                     "properties": {"name": f"urn:ogc:def:crs:EPSG::{crs_epsg}"}}
+    out_path.write_text(json.dumps(fc, ensure_ascii=False), encoding="utf-8")
+    return len(geo_features)
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
 def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
              rock: float = 0.5, terrain: str = "noise",
-             lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
-    """Vygeneruje jednu instanci mapy + GT masky do `out_dir`. Vrací cestu k složce.
+             lat: float = DEF_LAT, lon: float = DEF_LON,
+             omap_template: str | None = None) -> Path:
+    """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
-    `terrain="noise"` (default) = fraktální šum (Option 1). `terrain="real"` =
-    reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu (Option 2, §8.5).
-    U reálného terénu se `rug` na výškopis neuplatní (terén je daný realitou) —
-    `vd`/`wat` (vegetace/bažiny) platí dál.
+    Vrací cestu k složce. `terrain="noise"` (default) = fraktální šum (Option 1).
+    `terrain="real"` = reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu
+    (Option 2, §8.5). U reálného terénu se `rug` na výškopis neuplatní (terén je
+    daný realitou) — `vd`/`wat` (vegetace/bažiny) platí dál.
+
+    Vedle rastru (rgb.png + GT masky) zapisuje `contours.geojson` — vrstevnice jako
+    vektorové linie s ISOM symbolem (101/102), georeferencované v S-JTSK pro real
+    terén (§9). To je „skutečný vektor", ne pixely: contourpy dává polylinie přímo.
     """
     # Pozn.: spec doporučuje PRNG mulberry32, ale požadavek je jen DETERMINISMUS
     # (stejný seed + parametry → stejná mapa), ne bitová shoda s JS referencí.
@@ -168,14 +215,21 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     # --- výškopis: reálný (DMR 5G) nebo syntetický šum ---
     if terrain == "real":
         # Lazy import: pyproj je závislost jen pro Option 2; Option 1 zůstává offline.
-        from dmr import fetch_elevation_grid
-        elev = fetch_elevation_grid(lat, lon, GW, GH)            # reálné metry (GH, GW), sever nahoře
+        from dmr import fetch_elevation_grid, build_bbox
+        elev = fetch_elevation_grid(lat, lon, GW, GH, tile_m=TILE_M)  # reálné metry (GH, GW), sever nahoře
         # normalizace do [0,1]: zbytek pipeline (bažiny přes prahy) počítá s hbase
         hbase = (elev - elev.min()) / (elev.max() - elev.min() + 1e-9)
+        # georef pro vektorový export: skutečný S-JTSK bbox výseku (stejný TILE_M jako fetch)
+        geo_bbox = build_bbox(lat, lon, GW, GH, TILE_M)
+        crs_epsg: int | None = 5514                              # S-JTSK / Křovák
     else:
         hbase = fractal(rng, 1.6 + rug * 2.6, 3 + round(rug * 2))  # výškopis (členitost = rug)
         vrange = 25 + rug * 90                                    # převýšení: víc členitosti → víc vrstevnic
         elev = BASE_ELEV + hbase * vrange                         # nadmořská výška [m]
+        # georef šumu: skutečné umístění neznáme → lokální metry od (0,0), stejná
+        # geometrie výseku jako real (TILE_M × poměr GW/GH). crs=None.
+        geo_bbox = (0.0, 0.0, TILE_M * (GW / GH), TILE_M)
+        crs_epsg = None
 
     # --- ostatní skalární pole (§2-3) — vždy syntetická (DMR nedává vegetaci) ---
     veg = fractal(rng, 3.2 + vd * 1.5, 3)                       # hustota porostu
@@ -192,7 +246,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     slope_px = _to_pixels(slope)
 
     # --- plátno + GT maska vegetace ---
-    rgb = np.full((H, W, 3), 255, dtype=np.uint8)   # bílá = průběžný les (§4.1)
+    rgb = np.full((H, W, 3), 255, dtype=np.uint8)   # bílá (palette: white) = průběžný les (§4.1)
     veg_mask = np.zeros((H, W), dtype=np.uint8)     # třídy: 0 les, 1-3 zeleň, 4 paseka
 
     # vegetace (§4.2): tři prahy, malujeme odspodu (světlá → tmavá), vyšší vd = víc zeleně
@@ -235,10 +289,12 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     cont = contourpy.contour_generator(z=elev, line_type=contourpy.LineType.Separate)
     lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
     hi = int(elev.max())
+    contour_features: list[tuple] = []   # (linie v souřadnicích mřížky, ISOM symbol) pro vektor §9
     for level in range(lo, hi + 1, CONTOUR_STEP):
         # hlavní vrstevnice na absolutních násobcích CONTOUR_INDEX (25 m) — platí
         # pro reálné výšky i pro šum (BASE_ELEV=700 je násobek 25, chování stejné)
         is_main = level % CONTOUR_INDEX == 0
+        symbol = ISOM_INDEX_CONTOUR if is_main else ISOM_CONTOUR   # 102 / 101 pro vektor
         # hlavní vrstevnice výrazně silnější (3 px vs 1 px). Reálně ~0,65 mm při
         # 1:10000 — mírně nad ISOM normou (0,5 mm), ale (a) PIL nemá antialiasing,
         # takže 2 px ještě splývá s normální, (b) jasnější odlišení index/normal
@@ -251,6 +307,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
             if len(pts) >= 2:
                 draw.line(pts, fill=C_BROWN, width=width)
                 cdraw.line(pts, fill=255, width=width)
+                contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
     # --- balvany (§4.11): černé tečky, hustěji ve strmém terénu ---
     # Fyzikální smysl (CLAUDE.md): skály/balvany jsou častější ve strmém členitém
@@ -266,7 +323,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         # přijetí roste se sklonem: ~0,25 v rovině → ~1,15 v nejstrmějším bodě
         if rng.random() < 0.25 + float(slope_px[by, bx]) * 0.9:
             box = [bx - BOULDER_R, by - BOULDER_R, bx + BOULDER_R, by + BOULDER_R]
-            draw.ellipse(box, fill=(0, 0, 0))       # balvan černě na mapu
+            draw.ellipse(box, fill=C_BLACK)         # balvan černě na mapu
             rdraw.ellipse(box, fill=255)            # stejná geometrie do GT masky
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
@@ -277,6 +334,16 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     Image.fromarray(veg_mask, mode="L").save(out / "mask_veg.png")          # třídy 0-4
     Image.fromarray((marsh * 255).astype(np.uint8), mode="L").save(out / "mask_water.png")
     rock_mask_img.save(out / "mask_rock.png")                               # balvany (GT)
+    # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
+    n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
+                                         out / "contours.geojson")
+    # volitelně .omap (template-based, Local CRS) — jen když uživatel dodá ISOM template
+    omap_info = None
+    if omap_template:
+        from omap_export import write_omap
+        n_omap = write_omap(contour_features, GW, GH, TILE_M * (GW / GH), TILE_M,
+                            omap_template, out / "map.omap")
+        omap_info = {"file": "map.omap", "n_objects": n_omap, "template": str(omap_template)}
     meta = {
         "seed": seed,
         "params": {"rug": rug, "vd": vd, "wat": wat, "rock": rock},
@@ -292,6 +359,15 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         "scale": "1:10000",
         "contour_step_m": CONTOUR_STEP,
         "contour_index_m": CONTOUR_INDEX,
+        # vektorový export vrstevnic (§9): formát, CRS, počet linií, ISOM symboly
+        "contours_vector": {
+            "file": "contours.geojson",
+            "crs": ("EPSG:5514" if crs_epsg else "local_m"),
+            "n_lines": n_contours,
+            "symbols": {"101": "Contour", "102": "Index contour"},
+        },
+        # .omap export (jen když --omap-template); jinak klíč chybí
+        **({"omap": omap_info} if omap_info else {}),
         "veg_classes": {
             "0": "les/bílá", "1": "světle zelená", "2": "středně zelená",
             "3": "tmavě zelená", "4": "paseka/žlutá",
@@ -313,9 +389,12 @@ def main() -> None:
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--out", default="output", help="výstupní složka")
+    p.add_argument("--omap-template", default=None,
+                   help="cesta k ISOM .omap template → zapíše i map.omap (vrstevnice 101/102, Local CRS)")
     args = p.parse_args()
     out = generate(args.seed, args.rug, args.vd, args.wat, args.out,
-                   rock=args.rock, terrain=args.terrain, lat=args.lat, lon=args.lon)
+                   rock=args.rock, terrain=args.terrain, lat=args.lat, lon=args.lon,
+                   omap_template=args.omap_template)
     print(f"Hotovo -> {out.resolve()}")
 
 

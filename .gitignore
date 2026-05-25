@@ -18,6 +18,9 @@ sandbox/**/data/
 *.laz
 *.las
 
+# Cizí nástroje stažené lokálně (GPL binárky ~12 MB) — odkaz v tools-models.md
+lasertool/
+
 # Cache stažených DMR 5G dlaždic (reálná ČÚZK data — nepatří do gitu)
 .dmr_cache/
 sandbox/**/.dmr_cache/
