@@ -104,10 +104,25 @@ hold-out / fine-tuning pro UC5, reálné skeny pro UC3.
 autor a vydavatel = koho oslovit o svolení), ne jako sklízitelný dataset. Reálný
 korpus cesty (B) = nutné oslovit jednotlivé vydavatele (kluby), ne scrapovat portál.
 
-## Lokální reálné mapy — `resources/` (≈8 párů picture+OMAP, smíšený původ)
+## Lokální reálné mapy — `resources/` (6 párů picture+OMAP, smíšený původ)
 
-Lokální sada ≈8 nezávislých párů **(picture, OMAP)** reálných OB map — datová cesta (B),
-komplement k ČÚZK geodatům. **Mimo git** (`.gitignore: resources/`); zde jen metadata.
+Lokální sada **6 reálných OB map** jako páry **(`.png` + `.omap` + `.pgw` georef)** — datová
+cesta (B), komplement k ČÚZK geodatům. **Mimo git** (`.gitignore: resources/`); zde jen metadata.
+(2 výchozí ukázky OpenOrienteering Mapperu — `forest sample`, `complete map` — rozpoznány
+přes georef a vyřazeny, ať neznečistí hold-out.)
+
+| Mapa | Měřítko | Georef | Pozn. |
+|------|---------|--------|-------|
+| Soví vrch | 1:10 000 | S-JTSK ✓ | les, sev. Čechy |
+| Bedřichovka | 1:10 000 | pgw | les |
+| Blatná | 1:7 500 | pgw | |
+| Slovanka2016 | 1:15 000 | pgw | |
+| Velbloud | 1:15 000 | bez pgw | les 1:15k |
+| SampleMap | 1:15 000 | pgw | reálná navzdory jménu |
+
+`.omap` jsou plain XML (čitelné). Georef v **S-JTSK** (ověřeno Soví vrch) = přiložitelné na
+DMR 5G (EPSG:5514) → spárování mapa↔terén. Měřítka 7,5–15 k (generátor dělá 1:10 000;
+pro kalibraci cest nejbližší Soví vrch / Bedřichovka).
 
 **Původ a práva (smíšené):**
 - **Vlastní** (vytvořené/aktualizované uživatelem) → držitel práv = uživatel; smí i trénink.
@@ -116,7 +131,7 @@ komplement k ČÚZK geodatům. **Mimo git** (`.gitignore: resources/`); zde jen 
   odvozeniny) až se svolením autora/klubu (stejná gate jako ČSOS portál výše).
 
 **Povolené použití:**
-- ✅ **Lokální reference / hold-out / kalibrace** (čtení, měření, vizuální srovnání) — všech ≈8,
+- ✅ **Lokální reference / hold-out / kalibrace** (čtení, měření, vizuální srovnání) — všech 6,
   bez ohledu na původ (nešíří se). Hned využitelné: kalibrace vedení cest vůči terénu
   (Dijkstra cena — IDEAS „dvoustupňová věrnost"), validace generalizace modelu (§8.4 spec).
 - ⚠️ **Trénink modelu** — jen vlastní mapy; klubové potřebují svolení.

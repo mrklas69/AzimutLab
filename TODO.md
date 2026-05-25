@@ -5,7 +5,7 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
-- [ ] `resources/`: nakopírovat ≈8 reálných párů (picture, OMAP) + rozlišit původ vlastní (`own/`) vs klubové (`club/`) kvůli čistotě tréninkového setu; reference/hold-out smí všechny
+- [~] `resources/`: 6 reálných párů (picture, OMAP) nakopírováno (2 OOM dema vyřazena); zbývá rozlišit původ vlastní (`own/`) vs klubové (`club/`) kvůli čistotě tréninkového setu (reference/hold-out smí všechny)
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
 
 ## UC2 — Data konektory (enabler, průzkum)
