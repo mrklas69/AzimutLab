@@ -14,7 +14,6 @@ Pozn. k souřadnicím: vstup je WGS84 (lat/lon), ČÚZK pracuje v S-JTSK Křová
 (EPSG:5514) — proto převod přes pyproj. S-JTSK má v ArcGIS matematickou orientaci,
 souřadnice ČR jsou záporné (x ≈ -700 tis., y ≈ -965 tis.).
 """
-from __future__ import annotations
 
 import io
 import urllib.parse

@@ -10,7 +10,6 @@ kde žijí konkrétní RGB hodnoty mapové palety:
 Díky tomu se palety na více místech nemůžou tiše rozejít (princip DRY /
 jediný zdroj pravdy z CLAUDE.md). Změna odstínu = změna jen zde.
 """
-from __future__ import annotations  # type hinty bez nutnosti uvozovek (PEP 563)
 
 from typing import NamedTuple
 

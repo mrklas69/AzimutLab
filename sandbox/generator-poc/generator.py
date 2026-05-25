@@ -12,7 +12,6 @@ se nikdy nekříží a nikdy nekončí ve vzduchu. Vegetace a bažiny jsou praho
 šumové masky. Protože si všechny vrstvy počítáme sami, máme ke každé mapě
 ground-truth zdarma — každá vrstva je zároveň segmentační maska.
 """
-from __future__ import annotations  # type hinty bez nutnosti uvozovek (PEP 563)
 
 import argparse
 import json
@@ -24,9 +23,9 @@ from PIL import Image, ImageDraw
 import contourpy
 
 # Barevná paleta (§5) — jediný zdroj pravdy je palette.py (DRY). Sousední modul:
-# Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný
-# i když generator.py běží přímo i když ho importuje batch.py.
-from palette import C_YELLOW, C_GREEN1, C_GREEN2, C_GREEN3, C_BROWN, C_BLUE, C_BLACK
+# Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
+# ať generator.py běží přímo, nebo ho importuje batch.py.
+from palette import C_WHITE, C_YELLOW, C_GREEN1, C_GREEN2, C_GREEN3, C_BROWN, C_BLUE, C_BLACK
 
 # ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
 GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
@@ -37,6 +36,7 @@ BASE_ELEV = 700          # bazální nadmořská výška [m] — jen pro terrain
 TILE_M = 1000.0          # reálný rozměr výseku [m] po kratší straně (S-J); delší se
                          # dopočítá v poměru GW/GH. Sjednoceno s dmr.fetch (tile_m)
                          # → georef vektoru sedí s výškopisem.
+WORLD_W_M = TILE_M * (GW / GH)  # delší strana výseku (E-W) [m] — jedna pravda pro geo_bbox i .omap
 
 # ISOM symboly vrstevnic (§4.5, ověřeno O-Map Wiki) — pro vektorový export (§9).
 # 103 Form line generátor zatím nedělá (rozšíření věrnosti).
@@ -228,7 +228,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         elev = BASE_ELEV + hbase * vrange                         # nadmořská výška [m]
         # georef šumu: skutečné umístění neznáme → lokální metry od (0,0), stejná
         # geometrie výseku jako real (TILE_M × poměr GW/GH). crs=None.
-        geo_bbox = (0.0, 0.0, TILE_M * (GW / GH), TILE_M)
+        geo_bbox = (0.0, 0.0, WORLD_W_M, TILE_M)
         crs_epsg = None
 
     # --- ostatní skalární pole (§2-3) — vždy syntetická (DMR nedává vegetaci) ---
@@ -246,7 +246,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     slope_px = _to_pixels(slope)
 
     # --- plátno + GT maska vegetace ---
-    rgb = np.full((H, W, 3), 255, dtype=np.uint8)   # bílá (palette: white) = průběžný les (§4.1)
+    rgb = np.full((H, W, 3), C_WHITE, dtype=np.uint8)   # bílá (palette: white) = průběžný les (§4.1)
     veg_mask = np.zeros((H, W), dtype=np.uint8)     # třídy: 0 les, 1-3 zeleň, 4 paseka
 
     # vegetace (§4.2): tři prahy, malujeme odspodu (světlá → tmavá), vyšší vd = víc zeleně
@@ -341,7 +341,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     omap_info = None
     if omap_template:
         from omap_export import write_omap
-        n_omap = write_omap(contour_features, GW, GH, TILE_M * (GW / GH), TILE_M,
+        n_omap = write_omap(contour_features, GW, GH, WORLD_W_M, TILE_M,
                             omap_template, out / "map.omap")
         omap_info = {"file": "map.omap", "n_objects": n_omap, "template": str(omap_template)}
     meta = {

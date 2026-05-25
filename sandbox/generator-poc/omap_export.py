@@ -17,7 +17,6 @@ Souřadnice vycentrujeme na (0,0). Osa y v paper-space roste DOLŮ — stejně j
 souřadnice mřížky (gy=0 = horní řádek = sever), takže žádný extra Y-flip není potřeba
 (ověřeno proti konvenci Pic2Omap db2omap: pixel 0 nahoře → nejmenší map_y).
 """
-from __future__ import annotations
 
 import re
 from pathlib import Path

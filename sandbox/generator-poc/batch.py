@@ -12,7 +12,6 @@ Dva režimy přes --terrain:
 trénovací sadu pro UC5 — každá instance = mapa + GT masky (viz spec §8). Reálná
 sada zmenšuje domain gap (skutečná geometrie terénu z více míst ČR).
 """
-from __future__ import annotations
 
 import argparse
 import json
