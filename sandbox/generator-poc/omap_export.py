@@ -10,9 +10,9 @@ Zisk oproti od-nuly:
     (line_symbol) — místo dřívějšího jednotného zjednodušeného kruhu;
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
-Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 503/507, body 109/110/111);
+Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 503/505, body 109/110/111);
 barvy/symboly/georef/view přebíráme z template beze změny. Symbol id parsujeme z template
-podle ISOM kódu (robustní vůči re-uložení template v OOM — id NEjsou pořadová: 503→110, 507→114).
+podle ISOM kódu (robustní vůči re-uložení template v OOM — id NEjsou pořadová: 503→110, 505→112).
 
 Georef: template má Local CRS (paper-space), scale 1:10000. Object coords jsou v µm na
 PAPÍŘE; 1 m terénu = (1e6/scale) µm. Vycentrováno na (0,0), bez Y-flip (paper y i grid gy
@@ -28,7 +28,7 @@ from pathlib import Path
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
-USED_CODES = ("101", "102", "503", "507", "109", "110", "111")
+USED_CODES = ("101", "102", "503", "505", "109", "110", "111")
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 ROTATABLE_CODES = frozenset({"110"})
 
@@ -36,7 +36,7 @@ ROTATABLE_CODES = frozenset({"110"})
 def _parse_symbol_ids(template_xml: str) -> dict[str, int]:
     """Mapování ISOM kód → symbol id z <symbols> template (přesná shoda kódu: 101 ≠ 101.1).
 
-    Id v OOM nejsou pořadová ani rovna kódu (503 má id 110, 507 id 114), proto se musí číst
+    Id v OOM nejsou pořadová ani rovna kódu (503 má id 110, 505 id 112), proto se musí číst
     ze souboru, ne hádat. `setdefault` drží první výskyt (kód je v template unikátní).
     """
     ids: dict[str, int] = {}
@@ -55,7 +55,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     """Zapíše vrstevnice + cesty + body do `.omap` vložením objektů do uživatelova template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
-    [(curve grid, code 503/507)] — obojí v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1).
+    [(curve grid, code 503/505)] — obojí v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1).
     `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale` = jmenovatel měřítka
     (10000, shodné s georef template). Návrat: {"contours", "paths", "points", "objects"}.
     """

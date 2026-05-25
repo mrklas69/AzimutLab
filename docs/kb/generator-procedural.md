@@ -145,9 +145,9 @@ pro pramen** (4.10).
 pozice na okraji. Hlavní cesta plná (1,5 px), vedlejší čárkovaná. Vedení vázané na
 terén — viz §9.
 **Realizace Sez. 11:** hlavní = plná černá (2 px, ISOM **503 Road**), vedlejší =
-čárkovaná (ISOM **507 Less distinct small footpath**, Sez. 13 oprava z 505); helpery
+čárkovaná (ISOM **505 Footpath**, Sez. 15 — 505 je v ISOM čárkovaná, návrat z 507); helpery
 `_catmull_rom` (uniform splajn, krajní body zdvojené) + `_draw_dashed` (čárkování po
-délce oblouku). GT do `mask_paths.png` (multi-class 1=503 / 2=507). Z-order: po
+délce oblouku). GT do `mask_paths.png` (multi-class 1=503 / 2=505). Z-order: po
 vrstevnicích, před bodovými symboly.
 **✅ Terénně vázané vedení (Sez. 13):** přímý splajn s jitterem nahrazen **Dijkstra
 least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrchol.
@@ -179,7 +179,7 @@ Z-order: nad vrstevnicemi (§4.5), pod balvany (§4.11). GT do `mask_symbols.png
 > **ISOM kódy — pozor (Sez. 13):** používáme **ISOM 2017-2 Rev 6 (2024)** číslování
 > 109/110/111. Staré ISOM 2017 mělo pro tytéž symboly 112/113/115 (Rev 6 přečíslovalo
 > a v 112+ jsou teď Pit / Broken ground / Prominent landform). Ověřeno proti oficiálnímu
-> OOM symbol setu `ISOM 2017-2_10000.omap`. Cesty: 503 Road, 507 Less distinct small footpath.
+> OOM symbol setu `ISOM 2017-2_10000.omap`. Cesty: 503 Road, 505 Footpath (vedlejší čárkovaná, Sez. 15).
 
 ### 4.11 Balvany a skalní stupně (`rock`)
 - Balvany: `round(rock*120)` černých teček, přijetí s pravděpodobností
@@ -266,7 +266,7 @@ funkce generate(seed, params):
 1. **Ground-truth zdarma.** Při vykreslování každé vrstvy ji zároveň renderuj do
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
-   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=507, Sez. 11/13);
+   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=505, Sez. 11/15);
      `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10).
      Masky `mask_veg/water/rock` byly se svými vrstvami zahozeny (Sez. 11, viz §4),
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
@@ -326,7 +326,7 @@ funkce generate(seed, params):
     noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
     ne z pixelů. 103 Form line generátor zatím nedělá.
   - **✅ `.omap` export (Sez. 8, přepsán Sez. 13, template-based Sez. 14):** `omap_export.py`
-    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/507) +
+    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/505) +
     body (109/110/111)**, Local CRS, paper-space (1 m → `1e6/scale` µm, vycentrováno, bez
     Y-flip). NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
     **Vývoj přístupu:** Sez. 8 template-based (cizí `.omap`) → Sez. 13 **od nuly** (kvůli

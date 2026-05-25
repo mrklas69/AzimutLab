@@ -8,7 +8,7 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 - **bodové symboly extrémů** — malé uzavřené vrstevnice → ISOM **109/110/111**
   (kopeček / protáhlý kopeček / prohlubeň; ISOM 2017-2 Rev 6, Sez. 13), generalizace (§4.10),
 - **cesty** — terénně vázané **Dijkstra least-cost** (§9, Sez. 13), hlavní plná (ISOM **503**) /
-  vedlejší čárkovaná (ISOM **507**); cesty traverzují svah, nešplhají přes vrcholy,
+  vedlejší čárkovaná (ISOM **505 Footpath**); cesty traverzují svah, nešplhají přes vrcholy,
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).
@@ -58,10 +58,10 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 |--------|-------|
 | `rgb.png` | finální mapa (vstup modelu) |
 | `mask_contours.png` | binární maska vrstevnic |
-| `mask_paths.png` | multi-class maska cest (1=503 hlavní / 2=507 vedlejší; GT, ne náhled) |
+| `mask_paths.png` | multi-class maska cest (1=503 hlavní / 2=505 vedlejší; GT, ne náhled) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `contours.geojson` | **vektor** vrstevnic (LineString + ISOM symbol 101/102; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 503/507 + body 109/110/111, plná ISOM knihovna) |
+| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 503/505 + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack

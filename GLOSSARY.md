@@ -31,7 +31,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
   **503 Road** (zpevněná, plná čára) … **505 Footpath** (pěšina, čárkovaná) … **507 Less
   distinct small footpath** (méně zřetelná). Generátor dělá dvě třídy: hlavní plná (503) /
-  vedlejší čárkovaná (**507**, Sez. 13), vedení terénně vázané Dijkstra least-cost (§9).
+  vedlejší čárkovaná (**505 Footpath**, Sez. 15 — 505 je v ISOM čárkovaná; dřív mylně 507),
+  vedení terénně vázané Dijkstra least-cost (§9).
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 

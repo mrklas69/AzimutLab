@@ -68,12 +68,14 @@ SYM_NAME = {ISOM_SMALL_KNOLL: "Small knoll", ISOM_ELONGATED_KNOLL: "Small elonga
             ISOM_SMALL_DEPRESSION: "Small depression"}
 
 # Cesty (§4.9, ověřeno O-Map Wiki) — dvě třídy pro PoC: hlavní zpevněná (plná čára)
-# a vedlejší nezřetelná pěšina (čárkovaná). ISOM škála 502–507 je jemnější
-# (sjízdnost/zřetelnost), tady stačí binární hlavní/vedlejší — laditelné rozšíření.
-# Mapování kód↔kresba (Sez. 13): plná → 503 Road, čárkovaná → 507 Less distinct small
-# path. (NE 505 Footpath — ta je v ISOM PLNÁ tenká, neodpovídala by čárkované kresbě.)
+# a vedlejší pěšina (čárkovaná). ISOM škála 502–507 je jemnější (sjízdnost/zřetelnost),
+# tady stačí binární hlavní/vedlejší — laditelné rozšíření.
+# Mapování kód↔kresba (Sez. 15, oprava z 507): plná → 503 Road, pravidelná čárka →
+# 505 Footpath. ISOM 505 Footpath JE kreslená čárkovaně → pravidelná čárka generátoru
+# jí odpovídá. (Sez. 13 zde mylně volila 507 s argumentem „505 je plná" — 505 čárkovaná
+# je; 507 Less distinct small footpath je řidší/nezřetelná, tu generátor zatím nedělá.)
 ISOM_ROAD = 503               # hlavní cesta → plná černá čára
-ISOM_FOOTPATH = 507           # vedlejší pěšina (nezřetelná) → čárkovaná černá
+ISOM_FOOTPATH = 505           # vedlejší pěšina (Footpath) → čárkovaná černá
 PATH_CLASS_MAIN = 1           # třída hlavní cesty v mask_paths.png
 PATH_CLASS_MINOR = 2          # třída vedlejší pěšiny v mask_paths.png
 PATH_MAIN_W = 2               # tloušťka hlavní cesty [px] (≈ 1,5 px dle §4.9, PIL bere int)
@@ -96,7 +98,7 @@ PATH_REPULSION = 60.0         # přičtená cena hrany v okolí už nakreslené 
 PATH_REPULSION_R = 4          # poloměr odpuzování [buňky mřížky]
 PATH_SIMPLIFY = 7             # zředění least-cost trasy: každý N-tý uzel → kontrolní body Catmull-Rom
 PATH_EDGE_FRAC = (0.15, 0.85) # rozsah náhodného konce cesty na okraji mřížky (jako dřív)
-PATH_NAME = {ISOM_ROAD: "Road", ISOM_FOOTPATH: "Less distinct small path"}
+PATH_NAME = {ISOM_ROAD: "Road", ISOM_FOOTPATH: "Footpath"}
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
@@ -416,6 +418,63 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         mdraw.arc(box, 0, 180, fill=cls, width=2)
 
 
+def _build_meta(seed: int, rug: float, det: float, terrain: str,
+                lat: float, lon: float, elev: np.ndarray, crs_epsg: int | None,
+                n_contours: int, n_paths: int, paths_info: list[dict],
+                point_symbols: list[dict], omap_info: dict) -> dict:
+    """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
+
+    Vyčleněno z generate() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
+    sestavení metadat jsou dvě úrovně abstrakce. Vysoký počet parametrů je daň za to, že
+    meta agreguje výstupy všech vrstev — alternativou byl 45řádkový inline dict v generate().
+    """
+    return {
+        "seed": seed,
+        "params": {"rug": rug, "det": det},
+        # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
+        "terrain": ({"source": "noise"} if terrain != "real" else {
+            "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
+            "elev_min_m": round(float(elev.min()), 2),
+            "elev_max_m": round(float(elev.max()), 2),
+            "licence": "CC BY 4.0 (ČÚZK)",
+        }),
+        "grid": [GW, GH],
+        "canvas": [W, H],
+        "scale": "1:10000",
+        "contour_step_m": CONTOUR_STEP,
+        "contour_index_m": CONTOUR_INDEX,
+        # vektorový export vrstevnic (§9): formát, CRS, počet linií, ISOM symboly
+        "contours_vector": {
+            "file": "contours.geojson",
+            "crs": ("EPSG:5514" if crs_epsg else "local_m"),
+            "n_lines": n_contours,
+            "symbols": {"101": "Contour", "102": "Index contour"},
+        },
+        # cesty (§4.9): počet, GT maska, ISOM symboly + třídy masky
+        "paths": {
+            "count": n_paths,
+            "mask": "mask_paths.png",
+            "symbols": {"503": "Road (hlavní, plná)", "505": "Footpath (vedlejší, čárkovaná)"},
+            "classes": {"0": "pozadí", "1": "503 Road", "2": "505 Footpath"},
+            "routing": "dijkstra_least_cost",   # terénně vázané vedení (§9): cena ~ sklon hrany
+            "items": paths_info,
+        },
+        # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
+        # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
+        # GT maska = mask_symbols.png (třídy viz symbol_classes).
+        "point_symbols": [
+            {"symbol": ps["symbol"], "symbol_name": SYM_NAME[ps["symbol"]],
+             "grid": [round(ps["gx"], 2), round(ps["gy"], 2)],
+             "px": [round(ps["gx"] / (GW - 1) * W, 1), round(ps["gy"] / (GH - 1) * H, 1)]}
+            for ps in point_symbols
+        ],
+        "symbol_classes": {"0": "pozadí", "1": "109 Small knoll",
+                           "2": "110 Small elongated knoll", "3": "111 Small depression"},
+        # .omap export (§9): vrstevnice + cesty + body, template-based (vlastní čistý ISOM template)
+        "omap": omap_info,
+    }
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
@@ -433,7 +492,7 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     (§4.10). `rug` řídí členitost terénu (jen noise), `det` počet cest.
 
     Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
-    (§4.10): kopeček 112/113, prohlubeň 115 — místo prstence se kreslí značka a GT
+    (§4.10): kopeček 109/110, prohlubeň 111 — místo prstence se kreslí značka a GT
     se zapíše do `mask_symbols.png` + seznam `point_symbols` v meta.json.
 
     Vedle rastru (rgb.png + GT masky) zapisuje `contours.geojson` — vrstevnice jako
@@ -568,51 +627,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = {
-        "seed": seed,
-        "params": {"rug": rug, "det": det},
-        # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
-        "terrain": ({"source": "noise"} if terrain != "real" else {
-            "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
-            "elev_min_m": round(float(elev.min()), 2),
-            "elev_max_m": round(float(elev.max()), 2),
-            "licence": "CC BY 4.0 (ČÚZK)",
-        }),
-        "grid": [GW, GH],
-        "canvas": [W, H],
-        "scale": "1:10000",
-        "contour_step_m": CONTOUR_STEP,
-        "contour_index_m": CONTOUR_INDEX,
-        # vektorový export vrstevnic (§9): formát, CRS, počet linií, ISOM symboly
-        "contours_vector": {
-            "file": "contours.geojson",
-            "crs": ("EPSG:5514" if crs_epsg else "local_m"),
-            "n_lines": n_contours,
-            "symbols": {"101": "Contour", "102": "Index contour"},
-        },
-        # cesty (§4.9): počet, GT maska, ISOM symboly + třídy masky
-        "paths": {
-            "count": n_paths,
-            "mask": "mask_paths.png",
-            "symbols": {"503": "Road (hlavní, plná)", "507": "Less distinct small path (vedlejší, čárkovaná)"},
-            "classes": {"0": "pozadí", "1": "503 Road", "2": "507 Less distinct small path"},
-            "routing": "dijkstra_least_cost",   # terénně vázané vedení (§9): cena ~ sklon hrany
-            "items": paths_info,
-        },
-        # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
-        # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
-        # GT maska = mask_symbols.png (třídy viz symbol_classes).
-        "point_symbols": [
-            {"symbol": ps["symbol"], "symbol_name": SYM_NAME[ps["symbol"]],
-             "grid": [round(ps["gx"], 2), round(ps["gy"], 2)],
-             "px": [round(ps["gx"] / (GW - 1) * W, 1), round(ps["gy"] / (GH - 1) * H, 1)]}
-            for ps in point_symbols
-        ],
-        "symbol_classes": {"0": "pozadí", "1": "109 Small knoll",
-                           "2": "110 Small elongated knoll", "3": "111 Small depression"},
-        # .omap export (§9): vrstevnice + cesty + body, vlastní ISOM sada (od nuly)
-        "omap": omap_info,
-    }
+    meta = _build_meta(seed, rug, det, terrain, lat, lon, elev, crs_epsg,
+                       n_contours, n_paths, paths_info, point_symbols, omap_info)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
