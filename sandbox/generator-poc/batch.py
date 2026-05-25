@@ -2,11 +2,11 @@
 batch.py — dávkové generování mini datasetu + náhledová mozaika.
 
 Dva režimy přes --terrain:
-  - noise (default): fraktální šum, parametry (rug, vd, wat) losuje master-PRNG.
+  - noise (default): fraktální šum, parametry (rug, det) losuje master-PRNG.
     Celá sada je reprodukovatelná z dvojice (--seed0, --n).
   - real: reálný ČÚZK DMR 5G terén z různých lokalit ČR (CZ_LOCATIONS). Hlavní
-    variace je LOKALITA (rug se u reálného terénu neuplatní); losují se jen
-    vegetace/bažiny/balvany (vd, wat, rock). Sada je daná dvojicí (--seed0, --n).
+    variace je LOKALITA (rug se u reálného terénu neuplatní); losuje se jen
+    hustota detailů (det = počet cest). Sada je daná dvojicí (--seed0, --n).
 
 Účel: ověřit, že generátor produkuje rozmanité mapy (ne one-off), a vyrobit
 trénovací sadu pro UC5 — každá instance = mapa + GT masky (viz spec §8). Reálná
@@ -67,8 +67,8 @@ def build_montage(dirs: list[Path], out_path: Path, cols: int = 4,
         x0, y0 = pad + c * (tw + pad), pad + r * (th + pad)
         canvas.paste(thumb, (x0, y0))
         if labels:
-            # popisek: bílý podklad (mapa je převážně světlá, ale balvany jsou černé
-            # tečky → bez podkladu by text místy splynul) + černý text vlevo nahoře
+            # popisek: bílý podklad (mapa je převážně světlá, ale cesty jsou černé
+            # čáry → bez podkladu by text místy splynul) + černý text vlevo nahoře
             tx, ty = x0 + 3, y0 + 3
             bb = draw.textbbox((tx, ty), labels[i], font=font)
             draw.rectangle([bb[0] - 2, bb[1] - 1, bb[2] + 2, bb[3] + 1], fill=(255, 255, 255))
@@ -103,26 +103,24 @@ def main() -> None:
         inst_dir = out / f"{i:03d}"
         if real:
             # Reálný terén: hlavní variace je LOKALITA; rug se neuplatní (terén je daný
-            # realitou). Losujeme jen vegetaci/bažiny/balvany. Lokality cyklíme,
-            # když n > počet lokalit (stejné místo, jiná vegetace).
+            # realitou). Losujeme jen hustotu detailů (det = počet cest). Lokality
+            # cyklíme, když n > počet lokalit (stejné místo, jiný počet cest).
             name, lat, lon = CZ_LOCATIONS[i % len(CZ_LOCATIONS)]
-            vd, wat, rock = (float(x) for x in master.random(3))
-            generate(seed, 0.0, vd, wat, str(inst_dir),
-                     rock=rock, terrain="real", lat=lat, lon=lon)
+            det = float(master.random())
+            generate(seed, 0.0, det, str(inst_dir), terrain="real", lat=lat, lon=lon)
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
-                "location": name, "lat": lat, "lon": lon,
-                "vd": round(vd, 3), "wat": round(wat, 3), "rock": round(rock, 3),
+                "location": name, "lat": lat, "lon": lon, "det": round(det, 3),
             })
             labels.append(name)
         else:
-            # Noise sada beze změny (bitově reprodukovatelná): losujeme rug/vd/wat,
-            # rock zůstává na defaultu generate() — pořadí losování se nesmí posunout.
-            rug, vd, wat = (float(x) for x in master.random(3))   # tři parametry z [0,1)
-            generate(seed, rug, vd, wat, str(inst_dir))
+            # Noise sada: losujeme rug (členitost terénu) a det (počet cest).
+            # Sada je reprodukovatelná z dvojice (seed0, n).
+            rug, det = (float(x) for x in master.random(2))   # dva parametry z [0,1)
+            generate(seed, rug, det, str(inst_dir))
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
-                "rug": round(rug, 3), "vd": round(vd, 3), "wat": round(wat, 3),
+                "rug": round(rug, 3), "det": round(det, 3),
             })
         dirs.append(inst_dir)
 

@@ -1,22 +1,26 @@
 """
-generator.py — procedurální generátor výseku mapy pro orientační běh (MVP).
+generator.py — procedurální generátor výseku mapy pro orientační běh.
 
 Implementuje řez specifikace docs/kb/generator-procedural.md:
-  vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4, výplň + tečkovaný obrys)
-  + balvany (§4.11) + bodové symboly lokálních extrémů (§4.10, knoll/depression
-  z malých uzavřených vrstevnic) + ground-truth masky (§8.1) + vektorový export
-  vrstevnic (§9, GeoJSON s ISOM symboly 101/102; real = georef S-JTSK).
+  vrstevnice (§4.5) + bodové symboly lokálních extrémů (§4.10, knoll/depression
+  z malých uzavřených vrstevnic) + cesty (§4.9, Catmull-Rom splajn) + ground-truth
+  masky (§8.1) + vektorový export vrstevnic (§9, GeoJSON s ISOM symboly 101/102;
+  real = georef S-JTSK).
 
 Hlavní myšlenka (§0): mapa NENÍ sada nakreslených čar, ale vrstvy odvozené ze
-skalárních polí. Vrstevnice jsou izolinie spojitého výškového pole → z definice
-se nikdy nekříží a nikdy nekončí ve vzduchu. Vegetace a bažiny jsou prahované
-šumové masky. Protože si všechny vrstvy počítáme sami, máme ke každé mapě
-ground-truth zdarma — každá vrstva je zároveň segmentační maska.
+skalárního pole. Vrstevnice jsou izolinie spojitého výškového pole → z definice
+se nikdy nekříží a nikdy nekončí ve vzduchu. Protože si vrstvy počítáme sami,
+máme ke každé mapě ground-truth zdarma — každá vrstva je zároveň segmentační maska.
+
+Stav (Sezení 11): generátor přestavujeme „znovu a lépe" — vrstvu po vrstvě, s
+důrazem na vizuální věrnost. Dřívější plošné vrstvy (vegetace, paseky, bažiny,
+balvany) byly vědomě zahozeny (vypadaly uměle → kazily by domain gap feederu pro
+UC5); historie je v gitu (commit Sezení 10). Stavíme: vrstevnice → cesty → ...
 """
 
 import argparse
 import json
-import math  # math.hypot pro délku segmentu při tečkování (§4.4)
+import math  # math.hypot pro délku segmentu při čárkování cest (§4.9)
 from pathlib import Path
 
 import numpy as np
@@ -25,8 +29,9 @@ import contourpy
 
 # Barevná paleta (§5) — jediný zdroj pravdy je palette.py (DRY). Sousední modul:
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
-# ať generator.py běží přímo, nebo ho importuje batch.py.
-from palette import C_WHITE, C_YELLOW, C_GREEN1, C_GREEN2, C_GREEN3, C_BROWN, C_BLUE, C_BLACK
+# ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
+# tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
+from palette import C_WHITE, C_BROWN, C_BLACK
 
 # ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
 GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
@@ -57,6 +62,19 @@ SYMBOL_R = 3                  # základní poloměr bodového symbolu [px]
 SYM_CLASS = {ISOM_SMALL_KNOLL: 1, ISOM_ELONGATED_KNOLL: 2, ISOM_SMALL_DEPRESSION: 3}
 SYM_NAME = {ISOM_SMALL_KNOLL: "Small knoll", ISOM_ELONGATED_KNOLL: "Elongated knoll",
             ISOM_SMALL_DEPRESSION: "Small depression"}
+
+# Cesty (§4.9, ověřeno O-Map Wiki) — dvě třídy pro PoC: hlavní zpevněná (plná čára)
+# a vedlejší pěšina (čárkovaná). ISOM škála 502–507 je jemnější (sjízdnost/zřetelnost),
+# tady stačí binární hlavní/vedlejší — laditelné rozšíření.
+ISOM_ROAD = 503               # hlavní cesta → plná černá čára
+ISOM_FOOTPATH = 505           # vedlejší pěšina → čárkovaná černá
+PATH_CLASS_MAIN = 1           # třída hlavní cesty v mask_paths.png
+PATH_CLASS_MINOR = 2          # třída vedlejší pěšiny v mask_paths.png
+PATH_MAIN_W = 2               # tloušťka hlavní cesty [px] (≈ 1,5 px dle §4.9, PIL bere int)
+PATH_MINOR_W = 1              # tloušťka vedlejší pěšiny [px]
+PATH_WAYPOINTS = 5            # počet kontrolních bodů cesty (2 krajní + vnitřní)
+PATH_JITTER_PX = 55.0         # rozptyl kolmého vychýlení vnitřních waypointů [px]
+PATH_NAME = {ISOM_ROAD: "Road", ISOM_FOOTPATH: "Footpath"}
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
@@ -112,57 +130,75 @@ def fractal(rng: np.random.Generator, base_scale: float, octaves: int) -> np.nda
     return (out - out.min()) / (out.max() - out.min() + 1e-9)
 
 
-def box_blur(field: np.ndarray, radius: int = 2) -> np.ndarray:
-    """Jednoduchý box blur (průměr v okně (2r+1)²).
+# =====================================================================
+#  Kreslicí helpery
+# =====================================================================
+def _catmull_rom(pts: list[tuple[float, float]], samples: int = 18) -> list[tuple[float, float]]:
+    """Uniform Catmull-Rom splajn přes kontrolní body `pts` → hustá hladká polyčára.
 
-    Použito 2× na `hbase` → vyhlazený výškopis `eb`, ze kterého počítáme sklon.
-    `np.pad(..., mode="edge")` rozšíří okraje opakováním krajních hodnot, ať se
-    okno nedostane mimo pole.
+    Catmull-Rom prokládá body hladkou křivkou, která jimi VŠEMI prochází (na rozdíl
+    od Bézieru). Pro každou čtveřici sousedních bodů (p0,p1,p2,p3) generuje úsek
+    mezi p1 a p2; tečna v p1/p2 je dána směrem (p2−p0)/(p3−p1). Krajní body
+    zdvojíme (clamp), aby splajn prošel i prvním a posledním waypointem.
+    `samples` = počet vzorků na úsek (víc = hladší).
     """
-    k = 2 * radius + 1
-    padded = np.pad(field, radius, mode="edge")
-    acc = np.zeros_like(field)
-    for dy in range(k):
-        for dx in range(k):
-            acc += padded[dy:dy + field.shape[0], dx:dx + field.shape[1]]
-    return acc / (k * k)
+    if len(pts) < 3:
+        return list(pts)   # na splajn je potřeba aspoň 3 body, jinak vrať přímku
+    P = [pts[0]] + list(pts) + [pts[-1]]   # zdvojení krajních pro tečny na koncích
+    out: list[tuple[float, float]] = []
+    # iterujeme čtveřice (i..i+3); úsek se kreslí mezi prostředními dvěma (p1,p2)
+    for i in range(len(P) - 3):
+        p0, p1, p2, p3 = P[i], P[i + 1], P[i + 2], P[i + 3]
+        for s in range(samples):
+            t = s / samples
+            t2, t3 = t * t, t * t * t
+            # bazická matice Catmull-Rom (tension 0,5) zvlášť pro x a y
+            x = 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t
+                       + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2
+                       + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3)
+            y = 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t
+                       + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2
+                       + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+            out.append((x, y))
+    out.append(pts[-1])   # dokresli poslední bod (smyčka končí na t<1 posledního úseku)
+    return out
 
 
-def _to_pixels(field: np.ndarray) -> np.ndarray:
-    """Bilineárně roztáhne pole z mřížky (GH, GW) na plátno (H, W).
+def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                 pts: list[tuple[float, float]], color: tuple, cls: int,
+                 dash: float = 7.0, gap: float = 4.0, width: int = 1) -> None:
+    """Vykreslí čárkovanou linii podél polyčáry `pts` na mapu i do GT masky.
 
-    Mód "F" = 32bitový float obraz; PIL umí takto převzorkovat spojitou hodnotu
-    (ne jen 0-255), takže prahování na pixelech sedí s mřížkou.
-    """
-    im = Image.fromarray(field.astype(np.float32), mode="F").resize((W, H), Image.BILINEAR)
-    return np.asarray(im, dtype=np.float32)
-
-
-def _draw_dotted(draw: ImageDraw.ImageDraw, pts: list[tuple[float, float]],
-                 color: tuple, spacing: float = 5.0, radius: int = 1) -> None:
-    """Vykreslí tečkovanou linii podél polyčáry `pts` (seznam bodů (x, y)).
-
-    PIL nemá nativní čárkovanou čáru, takže tečky klademe ručně: jdeme po
-    polyčáře a každých `spacing` px položíme vyplněný kroužek o poloměru `radius`.
-    Vzorkujeme podle DÉLKY OBLOUKU (arc length), ne podle indexu bodů — tečky
-    jsou tak rovnoměrné bez ohledu na to, jak hustě za sebou body polyčáry leží.
+    PIL nemá nativní čárkovanou čáru. Jdeme po polyčáře a podle DÉLKY OBLOUKU
+    střídáme čárku (`dash`) a mezeru (`gap`) — vzor je tak rovnoměrný bez ohledu
+    na hustotu bodů splajnu. `pos` = celková ujetá vzdálenost; fáze ve vzoru
+    (`pos % pattern`) určí, jestli jsme v čárce, nebo v mezeře. Kreslí se zároveň
+    barvou `color` na mapu (`draw`) a hodnotou třídy `cls` do masky (`mdraw`).
     """
     if len(pts) < 2:
         return
-    next_dot = 0.0  # zbývající vzdálenost do položení další tečky (přenáší se mezi segmenty)
+    pattern = dash + gap
+    pos = 0.0
     # zip(pts, pts[1:]) iteruje dvojice sousedních bodů = jednotlivé úsečky polyčáry
     for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
-        dx, dy = x1 - x0, y1 - y0
-        seg = math.hypot(dx, dy)        # délka úsečky
+        seg = math.hypot(x1 - x0, y1 - y0)
         if seg == 0.0:
             continue
-        d = next_dot
-        while d <= seg:                 # kladď tečky, dokud se vejdou do úsečky
-            t = d / seg                 # parametr 0..1 podél úsečky
-            cx, cy = x0 + dx * t, y0 + dy * t
-            draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=color)
-            d += spacing
-        next_dot = d - seg              # zbytek (přesah) přenes do další úsečky
+        d = 0.0
+        while d < seg:
+            phase = pos % pattern
+            in_dash = phase < dash
+            # zbývající délka aktuální fáze (čárky nebo mezery)
+            remain = (dash - phase) if in_dash else (pattern - phase)
+            step = min(remain, seg - d)
+            if in_dash:
+                t0, t1 = d / seg, (d + step) / seg
+                ax, ay = x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0
+                bx, by = x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1
+                draw.line([ax, ay, bx, by], fill=color, width=width)
+                mdraw.line([ax, ay, bx, by], fill=cls, width=width)
+            d += step
+            pos += step
 
 
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
@@ -220,7 +256,7 @@ def _classify_loop(line: np.ndarray, level: float, elev: np.ndarray,
     """Rozhodne, zda uzavřená malá smyčka vrstevnice je bodový extrém (§4.10).
 
     Vrací záznam symbolu `{symbol, gx, gy, horiz}` (souřadnice mřížky), nebo None,
-    pokud se má `line` kreslit jako normální vrstevnice. Metoda dle TODO: uzavřenost
+    pokud se má `line` kreslit jako normální vrstevnice. Metoda: uzavřenost
     + plocha pod ISOM prahem + výška uvnitř smyčky vs úroveň vrstevnice.
     """
     # uzavřenost: contourpy vrací vnitřní smyčky s prvním bodem == poslední. Linie
@@ -277,8 +313,8 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
-def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
-             rock: float = 0.5, terrain: str = "noise",
+def generate(seed: int, rug: float, det: float, out_dir: str,
+             terrain: str = "noise",
              lat: float = DEF_LAT, lon: float = DEF_LON,
              omap_template: str | None = None) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
@@ -286,7 +322,10 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     Vrací cestu k složce. `terrain="noise"` (default) = fraktální šum (Option 1).
     `terrain="real"` = reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu
     (Option 2, §8.5). U reálného terénu se `rug` na výškopis neuplatní (terén je
-    daný realitou) — `vd`/`wat` (vegetace/bažiny) platí dál.
+    daný realitou).
+
+    Vrstvy (z-order): vrstevnice (§4.5) → cesty (§4.9) → bodové symboly extrémů
+    (§4.10). `rug` řídí členitost terénu (jen noise), `det` počet cest.
 
     Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
     (§4.10): kopeček 112/113, prohlubeň 115 — místo prstence se kreslí značka a GT
@@ -296,9 +335,8 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     vektorové linie s ISOM symbolem (101/102), georeferencované v S-JTSK pro real
     terén (§9). To je „skutečný vektor", ne pixely: contourpy dává polylinie přímo.
     """
-    # Pozn.: spec doporučuje PRNG mulberry32, ale požadavek je jen DETERMINISMUS
-    # (stejný seed + parametry → stejná mapa), ne bitová shoda s JS referencí.
-    # Proto volíme jednodušší a korektní numpy generátor (PCG64).
+    # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
+    # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
     rng = np.random.default_rng(seed)
 
     # --- výškopis: reálný (DMR 5G) nebo syntetický šum ---
@@ -306,8 +344,6 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         # Lazy import: pyproj je závislost jen pro Option 2; Option 1 zůstává offline.
         from dmr import fetch_elevation_grid, build_bbox
         elev = fetch_elevation_grid(lat, lon, GW, GH, tile_m=TILE_M)  # reálné metry (GH, GW), sever nahoře
-        # normalizace do [0,1]: zbytek pipeline (bažiny přes prahy) počítá s hbase
-        hbase = (elev - elev.min()) / (elev.max() - elev.min() + 1e-9)
         # georef pro vektorový export: skutečný S-JTSK bbox výseku (stejný TILE_M jako fetch)
         geo_bbox = build_bbox(lat, lon, GW, GH, TILE_M)
         crs_epsg: int | None = 5514                              # S-JTSK / Křovák
@@ -320,60 +356,14 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         geo_bbox = (0.0, 0.0, WORLD_W_M, TILE_M)
         crs_epsg = None
 
-    # --- ostatní skalární pole (§2-3) — vždy syntetická (DMR nedává vegetaci) ---
-    veg = fractal(rng, 3.2 + vd * 1.5, 3)                       # hustota porostu
-    clear = fractal(rng, 2.4, 2)                                # paseky / otevřené plochy
-    eb = box_blur(box_blur(hbase))                              # vyhlazený výškopis pro sklon
-    gy, gx = np.gradient(eb)                                    # centrální diference (§3)
-    slope = np.sqrt(gx ** 2 + gy ** 2)
-    slope = slope / (slope.max() + 1e-9)                        # sklon normalizovaný do [0,1]
-
-    # --- převzorkování polí na pixely (pro plošné vrstvy) ---
-    veg_px = _to_pixels(veg)
-    clear_px = _to_pixels(clear)
-    hbase_px = _to_pixels(hbase)
-    slope_px = _to_pixels(slope)
-
-    # --- plátno + GT maska vegetace ---
-    rgb = np.full((H, W, 3), C_WHITE, dtype=np.uint8)   # bílá (palette: white) = průběžný les (§4.1)
-    veg_mask = np.zeros((H, W), dtype=np.uint8)     # třídy: 0 les, 1-3 zeleň, 4 paseka
-
-    # vegetace (§4.2): tři prahy, malujeme odspodu (světlá → tmavá), vyšší vd = víc zeleně
-    a = float(np.clip(0.82 - vd * 0.5, 0.0, 1.0))
-    b = a + 0.13
-    c = a + 0.23
-    for thr, color, cls in [(a, C_GREEN1, 1), (b, C_GREEN2, 2), (c, C_GREEN3, 3)]:
-        m = veg_px >= thr
-        rgb[m] = color
-        veg_mask[m] = cls
-
-    # paseky (§4.3): otevřená plocha žlutě
-    clear_thr = 0.70 + vd * 0.22
-    open_m = clear_px >= clear_thr
-    rgb[open_m] = C_YELLOW
-    veg_mask[open_m] = 4
-
-    # bažina / mokřad (§4.4): nízko (malá výška) a ploše (malý sklon)
-    marsh = (hbase_px < (0.10 + wat * 0.16)) & (slope_px < 0.16)
-    hatch = np.zeros((H, W), dtype=bool)
-    hatch[::4, :] = True                            # vodorovná šrafa: každý 4. řádek pixelů
-    rgb[marsh & hatch] = C_BLUE
-
-    # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
+    # --- plátno: bílá = průběžný les (§4.1) ---
+    rgb = np.full((H, W, 3), C_WHITE, dtype=np.uint8)
     img = Image.fromarray(rgb, mode="RGB")
     draw = ImageDraw.Draw(img)
+
+    # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
     cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic
     cdraw = ImageDraw.Draw(cmask_img)
-
-    # obrys bažin (§4.4): izolinie binární masky bažin na úrovni 0,5. Maska je
-    # už v pixelech (H, W) → contourpy vrací rovnou pixelové souřadnice (žádný
-    # přepočet mřížka→plátno), takže obrys přesně kopíruje vyplněnou oblast.
-    # Kreslíme PŘED vrstevnicemi (z-order §4: bažina 4.4 leží pod vrstevnicemi 4.5).
-    marsh_cont = contourpy.contour_generator(
-        z=marsh.astype(np.float32), line_type=contourpy.LineType.Separate)
-    for line in marsh_cont.lines(0.5):
-        _draw_dotted(draw, [(float(x), float(y)) for x, y in line], C_BLUE)
-
     # LineType.Separate → .lines(level) vrátí prostý seznam polí bodů (N×2) v souřadnicích mřížky
     cont = contourpy.contour_generator(z=elev, line_type=contourpy.LineType.Separate)
     lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
@@ -391,8 +381,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         # hlavní vrstevnice výrazně silnější (3 px vs 1 px). Reálně ~0,65 mm při
         # 1:10000 — mírně nad ISOM normou (0,5 mm), ale (a) PIL nemá antialiasing,
         # takže 2 px ještě splývá s normální, (b) jasnější odlišení index/normal
-        # pomáhá i modelu (UC5) tyto dvě třídy rozlišit. Spec §8.2 počítá s variací
-        # tlouštěk čar pro diverzitu datasetu, takže je to v intencích metodiky.
+        # pomáhá i modelu (UC5) tyto dvě třídy rozlišit.
         width = 3 if is_main else 1
         for line in cont.lines(level):
             # generalizace (§4.10): malá uzavřená smyčka = lokální extrém → bodový
@@ -409,38 +398,64 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
-    # bodové symboly lokálních extrémů (§4.10): malé kopečky/prohlubně příliš malé
-    # na vrstevnici. Kreslí se PO vrstevnicích, PŘED balvany (z-order §4.10 < §4.11).
+    # --- cesty (§4.9): waypointy od okraje k okraji + Catmull-Rom splajn ---
+    # Procedurální (plausible-random): cesta jde napříč mapou s vnitřním jitterem.
+    # Terén zatím NErespektuje (přímý splajn) — terénně vázané vedení (Dijkstra §9)
+    # je vědomé budoucí rozšíření. Hlavní cesta plná (ISOM 503), vedlejší čárkovaná
+    # (ISOM 505). Kreslí se PO vrstevnicích, PŘED bodovými symboly (z-order).
+    path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
+    pdraw = ImageDraw.Draw(path_mask_img)
+    n_paths = 1 + round(det * 1.6)
+    paths_info: list[dict] = []
+    for k in range(n_paths):
+        horizontal = bool(rng.integers(0, 2))       # orientace: vodorovná (L→P) nebo svislá (H→D)
+        waypoints: list[tuple[float, float]] = []
+        if horizontal:
+            # baseline lineárně mezi náhodným y na levém a pravém okraji + kolmý jitter uvnitř
+            y0 = float(rng.uniform(0.15, 0.85)) * H
+            y1 = float(rng.uniform(0.15, 0.85)) * H
+            for j in range(PATH_WAYPOINTS):
+                f = j / (PATH_WAYPOINTS - 1)
+                x = f * (W - 1)
+                y = y0 + (y1 - y0) * f
+                if 0 < j < PATH_WAYPOINTS - 1:       # jen vnitřní body vychylujeme
+                    y += float(rng.uniform(-1, 1)) * PATH_JITTER_PX
+                    x += float(rng.uniform(-1, 1)) * PATH_JITTER_PX * 0.5
+                waypoints.append((x, y))
+        else:
+            x0 = float(rng.uniform(0.15, 0.85)) * W
+            x1 = float(rng.uniform(0.15, 0.85)) * W
+            for j in range(PATH_WAYPOINTS):
+                f = j / (PATH_WAYPOINTS - 1)
+                y = f * (H - 1)
+                x = x0 + (x1 - x0) * f
+                if 0 < j < PATH_WAYPOINTS - 1:
+                    x += float(rng.uniform(-1, 1)) * PATH_JITTER_PX
+                    y += float(rng.uniform(-1, 1)) * PATH_JITTER_PX * 0.5
+                waypoints.append((x, y))
+        curve = _catmull_rom(waypoints)
+        if k == 0:                                   # první = hlavní cesta (plná čára)
+            draw.line(curve, fill=C_BLACK, width=PATH_MAIN_W)
+            pdraw.line(curve, fill=PATH_CLASS_MAIN, width=PATH_MAIN_W)
+            symbol = ISOM_ROAD
+        else:                                        # ostatní = vedlejší pěšiny (čárkované)
+            _draw_dashed(draw, pdraw, curve, C_BLACK, PATH_CLASS_MINOR, width=PATH_MINOR_W)
+            symbol = ISOM_FOOTPATH
+        paths_info.append({"symbol": symbol, "symbol_name": PATH_NAME[symbol],
+                           "orientation": "H" if horizontal else "V"})
+
+    # --- bodové symboly lokálních extrémů (§4.10): kreslí se NAHORU (po cestách) ---
     sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
     sdraw = ImageDraw.Draw(sym_mask_img)
     for ps in point_symbols:
         _draw_point_symbol(draw, sdraw, ps)
-
-    # --- balvany (§4.11): černé tečky, hustěji ve strmém terénu ---
-    # Fyzikální smysl (CLAUDE.md): skály/balvany jsou častější ve strmém členitém
-    # terénu. Proto bodový proces vážený sklonem — nikoli rovnoměrný posyp.
-    # Kreslíme NAHORU (z-order §4.11 nad plošnými vrstvami i vrstevnicemi).
-    rock_mask_img = Image.new("L", (W, H), 0)       # GT maska balvanů (§8.1)
-    rdraw = ImageDraw.Draw(rock_mask_img)
-    n_boulders = round(rock * 120)                  # počet pokusů o balvan (§4.11)
-    BOULDER_R = 2                                   # poloměr tečky balvanu [px]
-    for _ in range(n_boulders):
-        bx = int(rng.integers(0, W))                # náhodná pozice na plátně
-        by = int(rng.integers(0, H))
-        # přijetí roste se sklonem: ~0,25 v rovině → ~1,15 v nejstrmějším bodě
-        if rng.random() < 0.25 + float(slope_px[by, bx]) * 0.9:
-            box = [bx - BOULDER_R, by - BOULDER_R, bx + BOULDER_R, by + BOULDER_R]
-            draw.ellipse(box, fill=C_BLACK)         # balvan černě na mapu
-            rdraw.ellipse(box, fill=255)            # stejná geometrie do GT masky
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     img.save(out / "rgb.png")
     cmask_img.save(out / "mask_contours.png")
-    Image.fromarray(veg_mask, mode="L").save(out / "mask_veg.png")          # třídy 0-4
-    Image.fromarray((marsh * 255).astype(np.uint8), mode="L").save(out / "mask_water.png")
-    rock_mask_img.save(out / "mask_rock.png")                               # balvany (GT)
+    path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
@@ -454,7 +469,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         omap_info = {"file": "map.omap", "n_objects": n_omap, "template": str(omap_template)}
     meta = {
         "seed": seed,
-        "params": {"rug": rug, "vd": vd, "wat": wat, "rock": rock},
+        "params": {"rug": rug, "det": det},
         # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
         "terrain": ({"source": "noise"} if terrain != "real" else {
             "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
@@ -474,6 +489,14 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
             "n_lines": n_contours,
             "symbols": {"101": "Contour", "102": "Index contour"},
         },
+        # cesty (§4.9): počet, GT maska, ISOM symboly + třídy masky
+        "paths": {
+            "count": n_paths,
+            "mask": "mask_paths.png",
+            "symbols": {"503": "Road (hlavní, plná)", "505": "Footpath (vedlejší, čárkovaná)"},
+            "classes": {"0": "pozadí", "1": "503 Road", "2": "505 Footpath"},
+            "items": paths_info,
+        },
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -487,22 +510,16 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
                            "2": "113 Elongated knoll", "3": "115 Small depression"},
         # .omap export (jen když --omap-template); jinak klíč chybí
         **({"omap": omap_info} if omap_info else {}),
-        "veg_classes": {
-            "0": "les/bílá", "1": "světle zelená", "2": "středně zelená",
-            "3": "tmavě zelená", "4": "paseka/žlutá",
-        },
     }
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Procedurální generátor výseku OB mapy (MVP).")
+    p = argparse.ArgumentParser(description="Procedurální generátor výseku OB mapy.")
     p.add_argument("--seed", type=int, default=1, help="seed PRNG (determinismus)")
-    p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1")
-    p.add_argument("--vd", type=float, default=0.5, help="hustota vegetace 0-1")
-    p.add_argument("--wat", type=float, default=0.4, help="vodní prvky / velikost bažin 0-1")
-    p.add_argument("--rock", type=float, default=0.5, help="skály a balvany 0-1")
+    p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1 (jen --terrain noise)")
+    p.add_argument("--det", type=float, default=0.5, help="hustota detailů 0-1 (počet cest)")
     p.add_argument("--terrain", choices=["noise", "real"], default="noise",
                    help="noise = fraktální šum (default), real = ČÚZK DMR 5G (§8.5)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
@@ -511,8 +528,8 @@ def main() -> None:
     p.add_argument("--omap-template", default=None,
                    help="cesta k ISOM .omap template → zapíše i map.omap (vrstevnice 101/102, Local CRS)")
     args = p.parse_args()
-    out = generate(args.seed, args.rug, args.vd, args.wat, args.out,
-                   rock=args.rock, terrain=args.terrain, lat=args.lat, lon=args.lon,
+    out = generate(args.seed, args.rug, args.det, args.out,
+                   terrain=args.terrain, lat=args.lat, lon=args.lon,
                    omap_template=args.omap_template)
     print(f"Hotovo -> {out.resolve()}")
 
