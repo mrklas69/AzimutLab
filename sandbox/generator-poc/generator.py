@@ -3,8 +3,9 @@ generator.py — procedurální generátor výseku mapy pro orientační běh (M
 
 Implementuje řez specifikace docs/kb/generator-procedural.md:
   vrstevnice (§4.5) + vegetace (§4.2-4.3) + bažiny (§4.4, výplň + tečkovaný obrys)
-  + balvany (§4.11) + ground-truth masky (§8.1) + vektorový export vrstevnic
-  (§9, GeoJSON s ISOM symboly 101/102; real = georef S-JTSK).
+  + balvany (§4.11) + bodové symboly lokálních extrémů (§4.10, knoll/depression
+  z malých uzavřených vrstevnic) + ground-truth masky (§8.1) + vektorový export
+  vrstevnic (§9, GeoJSON s ISOM symboly 101/102; real = georef S-JTSK).
 
 Hlavní myšlenka (§0): mapa NENÍ sada nakreslených čar, ale vrstvy odvozené ze
 skalárních polí. Vrstevnice jsou izolinie spojitého výškového pole → z definice
@@ -42,6 +43,20 @@ WORLD_W_M = TILE_M * (GW / GH)  # delší strana výseku (E-W) [m] — jedna pra
 # 103 Form line generátor zatím nedělá (rozšíření věrnosti).
 ISOM_CONTOUR = 101       # základní vrstevnice (Contour)
 ISOM_INDEX_CONTOUR = 102 # zvýrazněná každá pátá (Index contour)
+
+# Bodové symboly lokálních extrémů (§4.10) — generalizace malých uzavřených
+# vrstevnic. V ISOM se příliš malý kopeček/prohlubeň nekreslí prstencem vrstevnice,
+# ale bodovou značkou. Detekce: uzavřená smyčka + plocha pod prahem + výška uvnitř.
+ISOM_SMALL_KNOLL = 112        # lokální max, zhruba kulatý → hnědá tečka
+ISOM_ELONGATED_KNOLL = 113    # lokální max, protáhlý → hnědá elipsa
+ISOM_SMALL_DEPRESSION = 115   # lokální min → hnědý oblouk „⌣"
+KNOLL_MAX_AREA_M2 = 600.0     # plocha smyčky pod tímto prahem → bodový symbol (laděno vizuálně)
+KNOLL_ELONGATED_RATIO = 2.5   # poměr stran bbox smyčky nad tímto → 113 místo 112
+SYMBOL_R = 3                  # základní poloměr bodového symbolu [px]
+# ISOM kód → třída v GT masce mask_symbols.png (0 = pozadí) + lidský název
+SYM_CLASS = {ISOM_SMALL_KNOLL: 1, ISOM_ELONGATED_KNOLL: 2, ISOM_SMALL_DEPRESSION: 3}
+SYM_NAME = {ISOM_SMALL_KNOLL: "Small knoll", ISOM_ELONGATED_KNOLL: "Elongated knoll",
+            ISOM_SMALL_DEPRESSION: "Small depression"}
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
@@ -189,6 +204,76 @@ def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | 
     return len(geo_features)
 
 
+def _polygon_area(pts: np.ndarray) -> float:
+    """Plocha uzavřeného polygonu (shoelace), absolutní, v jednotkách vstupu na druhou.
+
+    Shoelace (Gaussova) formule: 0,5·|Σ (xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|. `np.roll(.., -1)`
+    posune pole o jeden prvek (cyklicky) → spáruje sousední vrcholy. Uzavřený
+    prstenec z contourpy má první bod == poslední; duplicitní hrana má nulovou plochu.
+    """
+    x, y = pts[:, 0], pts[:, 1]
+    return 0.5 * abs(float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1))))
+
+
+def _classify_loop(line: np.ndarray, level: float, elev: np.ndarray,
+                   cell_w_m: float, cell_h_m: float) -> dict | None:
+    """Rozhodne, zda uzavřená malá smyčka vrstevnice je bodový extrém (§4.10).
+
+    Vrací záznam symbolu `{symbol, gx, gy, horiz}` (souřadnice mřížky), nebo None,
+    pokud se má `line` kreslit jako normální vrstevnice. Metoda dle TODO: uzavřenost
+    + plocha pod ISOM prahem + výška uvnitř smyčky vs úroveň vrstevnice.
+    """
+    # uzavřenost: contourpy vrací vnitřní smyčky s prvním bodem == poslední. Linie
+    # dotýkající se okraje plátna mají různé konce → nejsou smyčka → normální vrstevnice.
+    if not np.allclose(line[0], line[-1]):
+        return None
+    # plocha smyčky shoelace (souřadnice mřížky) → m² přes velikost buňky
+    area_m2 = _polygon_area(line) * cell_w_m * cell_h_m
+    if area_m2 >= KNOLL_MAX_AREA_M2:
+        return None                            # dost velká → kreslit jako vrstevnici
+    # centroid (průměr vrcholů stačí pro malou ~konvexní smyčku); výška v nejbližší buňce
+    cx, cy = float(line[:, 0].mean()), float(line[:, 1].mean())
+    ix = int(np.clip(round(cx), 0, GW - 1))    # gx = sloupec, gy = řádek
+    iy = int(np.clip(round(cy), 0, GH - 1))
+    if float(elev[iy, ix]) > level:
+        # lokální maximum → kopeček. Protáhlý? poměr stran bounding boxu smyčky
+        w = float(line[:, 0].max() - line[:, 0].min())
+        h = float(line[:, 1].max() - line[:, 1].min())
+        if max(w, h) / (min(w, h) + 1e-9) >= KNOLL_ELONGATED_RATIO:
+            return {"symbol": ISOM_ELONGATED_KNOLL, "gx": cx, "gy": cy, "horiz": w >= h}
+        return {"symbol": ISOM_SMALL_KNOLL, "gx": cx, "gy": cy, "horiz": True}
+    return {"symbol": ISOM_SMALL_DEPRESSION, "gx": cx, "gy": cy, "horiz": True}   # lokální min
+
+
+def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                       ps: dict) -> None:
+    """Nakreslí jeden bodový symbol extrému na mapu (`draw`) i do GT masky (`mdraw`).
+
+    Maska dostává místo barvy ID třídy (SYM_CLASS) — z mask_symbols.png je tak rovnou
+    multi-class segmentační GT. Mřížka → pixely stejným přepočtem jako vrstevnice.
+    """
+    px = ps["gx"] / (GW - 1) * W
+    py = ps["gy"] / (GH - 1) * H
+    code = ps["symbol"]
+    cls = SYM_CLASS[code]
+    r = SYMBOL_R
+    if code == ISOM_SMALL_KNOLL:
+        box = [px - r, py - r, px + r, py + r]          # hnědá vyplněná tečka
+        draw.ellipse(box, fill=C_BROWN)
+        mdraw.ellipse(box, fill=cls)
+    elif code == ISOM_ELONGATED_KNOLL:
+        # protáhlá elipsa podél delší osy smyčky (vodorovně, nebo svisle)
+        box = ([px - 2 * r, py - r, px + 2 * r, py + r] if ps["horiz"]
+               else [px - r, py - 2 * r, px + r, py + 2 * r])
+        draw.ellipse(box, fill=C_BROWN)
+        mdraw.ellipse(box, fill=cls)
+    else:  # ISOM_SMALL_DEPRESSION — hnědý oblouk „⌣" otevřený nahoru (spodní půlkruh)
+        box = [px - r, py - r, px + r, py + r]
+        # PIL arc: úhly po směru hodin od 3 hodin; 0..180 = spodní půlkruh (y roste dolů)
+        draw.arc(box, 0, 180, fill=C_BROWN, width=2)
+        mdraw.arc(box, 0, 180, fill=cls, width=2)
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
@@ -202,6 +287,10 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     `terrain="real"` = reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu
     (Option 2, §8.5). U reálného terénu se `rug` na výškopis neuplatní (terén je
     daný realitou) — `vd`/`wat` (vegetace/bažiny) platí dál.
+
+    Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
+    (§4.10): kopeček 112/113, prohlubeň 115 — místo prstence se kreslí značka a GT
+    se zapíše do `mask_symbols.png` + seznam `point_symbols` v meta.json.
 
     Vedle rastru (rgb.png + GT masky) zapisuje `contours.geojson` — vrstevnice jako
     vektorové linie s ISOM symbolem (101/102), georeferencované v S-JTSK pro real
@@ -290,6 +379,10 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     lo = int(np.ceil(elev.min() / CONTOUR_STEP) * CONTOUR_STEP)
     hi = int(elev.max())
     contour_features: list[tuple] = []   # (linie v souřadnicích mřížky, ISOM symbol) pro vektor §9
+    point_symbols: list[dict] = []       # bodové symboly extrémů (§4.10) z malých smyček
+    # velikost buňky mřížky v metrech — pro práh plochy malé smyčky (knoll/depression)
+    cell_w_m = WORLD_W_M / (GW - 1)
+    cell_h_m = TILE_M / (GH - 1)
     for level in range(lo, hi + 1, CONTOUR_STEP):
         # hlavní vrstevnice na absolutních násobcích CONTOUR_INDEX (25 m) — platí
         # pro reálné výšky i pro šum (BASE_ELEV=700 je násobek 25, chování stejné)
@@ -302,12 +395,26 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
         # tlouštěk čar pro diverzitu datasetu, takže je to v intencích metodiky.
         width = 3 if is_main else 1
         for line in cont.lines(level):
+            # generalizace (§4.10): malá uzavřená smyčka = lokální extrém → bodový
+            # symbol místo vrstevnice. Nekreslí se jako linie (vypadne i z masky
+            # vrstevnic a vektoru) — kreslí se až po vrstevnicích, viz níže.
+            ps = _classify_loop(line, level, elev, cell_w_m, cell_h_m)
+            if ps is not None:
+                point_symbols.append(ps)
+                continue
             # přepočet souřadnic mřížky (x∈0..GW-1, y∈0..GH-1) na pixely plátna
             pts = [(float(x) / (GW - 1) * W, float(y) / (GH - 1) * H) for x, y in line]
             if len(pts) >= 2:
                 draw.line(pts, fill=C_BROWN, width=width)
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
+
+    # bodové symboly lokálních extrémů (§4.10): malé kopečky/prohlubně příliš malé
+    # na vrstevnici. Kreslí se PO vrstevnicích, PŘED balvany (z-order §4.10 < §4.11).
+    sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
+    sdraw = ImageDraw.Draw(sym_mask_img)
+    for ps in point_symbols:
+        _draw_point_symbol(draw, sdraw, ps)
 
     # --- balvany (§4.11): černé tečky, hustěji ve strmém terénu ---
     # Fyzikální smysl (CLAUDE.md): skály/balvany jsou častější ve strmém členitém
@@ -334,6 +441,7 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
     Image.fromarray(veg_mask, mode="L").save(out / "mask_veg.png")          # třídy 0-4
     Image.fromarray((marsh * 255).astype(np.uint8), mode="L").save(out / "mask_water.png")
     rock_mask_img.save(out / "mask_rock.png")                               # balvany (GT)
+    sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
@@ -366,6 +474,17 @@ def generate(seed: int, rug: float, vd: float, wat: float, out_dir: str,
             "n_lines": n_contours,
             "symbols": {"101": "Contour", "102": "Index contour"},
         },
+        # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
+        # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
+        # GT maska = mask_symbols.png (třídy viz symbol_classes).
+        "point_symbols": [
+            {"symbol": ps["symbol"], "symbol_name": SYM_NAME[ps["symbol"]],
+             "grid": [round(ps["gx"], 2), round(ps["gy"], 2)],
+             "px": [round(ps["gx"] / (GW - 1) * W, 1), round(ps["gy"] / (GH - 1) * H, 1)]}
+            for ps in point_symbols
+        ],
+        "symbol_classes": {"0": "pozadí", "1": "112 Small knoll",
+                           "2": "113 Elongated knoll", "3": "115 Small depression"},
         # .omap export (jen když --omap-template); jinak klíč chybí
         **({"omap": omap_info} if omap_info else {}),
         "veg_classes": {
