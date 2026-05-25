@@ -114,6 +114,8 @@ z marching squares), tloušťka 1 px, hlavní (`(t−700) mod 25 == 0`) 3 px,
 barva hnědá `#A05F1F`. **Disjunktní z principu.** (Realizace Sez. 6: 1 px / hlavní
 3 px — PIL nemá antialiasing, tenčí poměr 2:1 px splýval; výraznější index navíc
 pomáhá UC5 odlišit třídy 101/102. Variaci tlouštěk pro diverzitu datasetu viz §8.2.)
+Malá uzavřená smyčka (lokální extrém pod prahem plochy) se negeneralizuje jako
+prstenec, ale jako bodový symbol — viz §4.10 (realizace Sez. 10).
 
 ### 4.6 Rýhy / erozní rýhy (`det` = detaily)
 `round(det*4)` kusů. Start ve strmé buňce (`slope > 0.4`), krátký sestup po spádnici
@@ -147,6 +149,17 @@ Vzorkování buněk rejection samplingem podle predikátu:
 
 Počty: pramen `round(det*3)`, posed `round(det*2)`, vývrat `round(det*10)`,
 strom `round(det*5)`.
+
+**Bodové symboly z generalizace vrstevnic (terénní, nezávislé na `det`).**
+Malá uzavřená vrstevnice = lokální extrém příliš malý na čitelný prstenec → kreslí
+se bodovým symbolem (ISOM kartografická generalizace). Detekce: smyčka uzavřená
+(první bod ≈ poslední) + plocha pod prahem (~600 m², laděno) + výška centroidu vs
+úroveň vrstevnice. Lokální max → **112 Small knoll** (hnědá tečka), protáhlý
+(poměr stran bbox > 2,5) → **113 Elongated knoll** (hnědá elipsa); lokální min →
+**115 Small depression** (hnědý oblouk „⌣"). **116 Pit vynechán** — je to jiná
+feature class (umělá/erozní díra), z výškového pole neodlišitelný od 115.
+Z-order: nad vrstevnicemi (§4.5), pod balvany (§4.11). GT do `mask_symbols.png`
+(multi-class) + seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10.)
 
 ### 4.11 Balvany a skalní stupně (`rock`)
 - Balvany: `round(rock*120)` černých teček, přijetí s pravděpodobností
@@ -234,8 +247,9 @@ funkce generate(seed, params):
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
    - `mask_contours.png`, `mask_veg.png` (multi-class), `mask_water.png`,
-     `mask_rock.png` (vše hotovo Sez. 4-6); `mask_symbols.png` (multi-class) až
-     s bodovými značkami §4.10 (zatím neimplementováno), … (cíle),
+     `mask_rock.png` (vše hotovo Sez. 4-6); `mask_symbols.png` (multi-class:
+     knoll/depression z generalizace §4.10, hotovo Sez. 10 — det-řízené značky
+     pramen/posed/vývrat/strom zatím chybí), … (cíle),
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
      (hotová detekční anotace ve stylu COCO/YOLO).
 2. **Objem a diverzita.** Kombinatorika 5 parametrů × seed ⇒ prakticky neomezený

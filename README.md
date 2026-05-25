@@ -4,10 +4,10 @@ A lab for cartography & orienteering map intelligence — tools, experiments, an
 knowledgebase. **Not one application: a set of them**, sharing a common understanding
 of what an orienteering map *is*.
 
-**Status: phase B (umbrella). First real code (sessions 4-6): a procedural synthetic-map
+**Status: phase B (umbrella). First real code (since session 4): a procedural synthetic-map
 generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth (contours,
-vegetation, marsh with dotted outline, slope-weighted boulders); also draws real terrain from
-ČÚZK DMR 5G (`--terrain real`).**
+vegetation, marsh with dotted outline, slope-weighted boulders, knoll/depression point symbols);
+also draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports contours to GeoJSON/`.omap`.**
 
 ## What this is
 

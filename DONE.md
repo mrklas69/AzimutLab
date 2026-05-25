@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 10 (2026-05-25) — Bodové symboly lokálních extrémů (§4.10)
+- [x] **Generalizace malých izolinií → bodové symboly** (`generator.py`): uzavřená malá
+      smyčka vrstevnice = lokální extrém → bodový symbol místo prstence (ISOM generalizace).
+      Detekce dle TODO: uzavřenost + plocha shoelace pod prahem (`KNOLL_MAX_AREA_M2`=600 m²)
+      + výška centroidu vs úroveň. Lok. max → **112 Small knoll** (hnědá tečka) / **113
+      Elongated knoll** (poměr stran bbox > 2,5, hnědá elipsa); lok. min → **115 Small
+      depression** (hnědý oblouk „⌣"). **116 Pit vědomě vynechán** — jiná feature class,
+      z výškopisu neodlišitelný od 115 (oponováno TODO „všechny 4").
+- [x] **`mask_symbols.png`** (multi-class GT) — konečně implementuje §8.1 (Sez. 9 D5 ji
+      značila jako neimplementovanou). Třídy 1=112 / 2=113 / 3=115. + `point_symbols`
+      v `meta.json` (detekční anotace COCO/YOLO styl: symbol, název, pozice mřížka i px).
+- [x] Verify (čísly, ne vírou): zákon zachování `linie + symboly` drží na obou terénech
+      (noise 63=56+7, real 67=60+7). **Real 67 = bitově shodné s baseline Sez. 8/9** —
+      jen 7 linií se přesunulo na symboly. Maska: všech 7/7 symbolů má nenulovou třídu
+      u středu; vizuál zvětšených výřezů potvrdil tvary 112/113/115 + spojitost okolních
+      vrstevnic. 116/204 vynechány záměrně.
+
 ## Sezení 9 (2026-05-25) — %AUDIT:CODE + %AUDIT:DOCS (foundations úklid)
 - [x] **%AUDIT:CODE** nad `sandbox/generator-poc/` (5 modulů, ~750 LOC; práh padl 8 sez/500 LOC).
       Hlavní závěr: mrtvého kódu skoro není (`%END` cleanup funguje). Opraveno: **R1** `C_WHITE`

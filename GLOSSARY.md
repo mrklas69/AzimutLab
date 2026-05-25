@@ -17,6 +17,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   čára pro snazší čtení. ISOM symbol **102**. V generátoru každých 25 m.
 - **Form line** — pomocná vrstevnice mezi základními. ISOM **103**. Generátor zatím nedělá.
 - **Ekvidistance** — svislý rozestup vrstevnic (v projektu 5 m).
+- **Kopeček** (knoll) — malá vyvýšenina; je-li menší než zobrazitelná vrstevnicí, kreslí
+  se bodovým symbolem. ISOM **112** (Small knoll, kulatý) / **113** (Elongated knoll,
+  protáhlý). Generátor je odvozuje z malých uzavřených vrstevnic (lokální max, Sez. 10).
+- **Prohlubeň** (depression) — malá terénní sníženina. ISOM **115** (Small depression,
+  hnědý oblouk „⌣"). Generátor z malých uzavřených vrstevnic (lokální min). 116 Pit
+  (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný z výškopisu).
+- **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru:
+  příliš malý kopeček/prohlubeň se nekreslí prstencem vrstevnice, ale bodovou značkou (§4.10).
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
