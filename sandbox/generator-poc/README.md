@@ -5,16 +5,17 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 [`docs/kb/generator-procedural.md`](../../docs/kb/generator-procedural.md):
 
 - **vrstevnice** — izolinie výškového pole (§4.5), hlavní zvýrazněné (3 px),
-- **bodové symboly extrémů** — malé uzavřené vrstevnice → ISOM 112/113/115
-  (kopeček / protáhlý kopeček / prohlubeň), kartografická generalizace (§4.10),
-- **cesty** — Catmull-Rom splajn napříč mapou, hlavní plná (ISOM 503) / vedlejší
-  čárkovaná (ISOM 505) (§4.9),
+- **bodové symboly extrémů** — malé uzavřené vrstevnice → ISOM **109/110/111**
+  (kopeček / protáhlý kopeček / prohlubeň; ISOM 2017-2 Rev 6, Sez. 13), generalizace (§4.10),
+- **cesty** — terénně vázané **Dijkstra least-cost** (§9, Sez. 13), hlavní plná (ISOM **503**) /
+  vedlejší čárkovaná (ISOM **507**); cesty traverzují svah, nešplhají přes vrcholy,
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).
-- **vektor vrstevnic** — `contours.geojson` (ISOM **101/102** linie, georef S-JTSK pro
-  real terén) a volitelně `map.omap` přes `--omap-template` (§9; `omap_export.py`).
-  Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
+- **vektor** — `contours.geojson` (ISOM **101/102** linie, georef S-JTSK pro real terén) a
+  `map.omap` (vždy; §9; `omap_export.py`). OMAP je **template-based** nad vlastním čistým ISOM
+  2017-2 template `template_classic.omap` → věrná geometrie bodů (110 elipsa, 111 oblouk) + plná
+  symbolová knihovna. Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
 
 **Přestavba (Sezení 11):** generátor stavíme „znovu a lépe", vrstvu po vrstvě, s
 důrazem na vizuální věrnost. Plošné vrstvy (vegetace, paseky, bažiny, balvany) byly
@@ -38,11 +39,9 @@ obchází sparse-GT past z Pic2Omap.
 # Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Děčínsko, §8.5):
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out sandbox\generator-poc\output
 # jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
-
-# + vektorový .omap (vrstevnice 101/102) přes ISOM template — otevři výsledek v OOM:
-.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real `
-    --omap-template "cesta\k\ISOM_template.omap" --out sandbox\generator-poc\output
 ```
+
+Každý běh píše i `map.omap` (template-based nad `template_classic.omap` — otevři v OOM).
 
 Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 
@@ -59,10 +58,10 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 |--------|-------|
 | `rgb.png` | finální mapa (vstup modelu) |
 | `mask_contours.png` | binární maska vrstevnic |
-| `mask_paths.png` | multi-class maska cest (1=503 hlavní / 2=505 vedlejší; GT, ne náhled) |
-| `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=112 / 2=113 / 3=115) |
+| `mask_paths.png` | multi-class maska cest (1=503 hlavní / 2=507 vedlejší; GT, ne náhled) |
+| `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `contours.geojson` | **vektor** vrstevnic (LineString + ISOM symbol 101/102; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (jen s `--omap-template`; vrstevnice 101/102) |
+| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 503/507 + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack

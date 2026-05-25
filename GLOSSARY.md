@@ -19,17 +19,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Form line** — pomocná vrstevnice mezi základními. ISOM **103**. Generátor zatím nedělá.
 - **Ekvidistance** — svislý rozestup vrstevnic (v projektu 5 m).
 - **Kopeček** (knoll) — malá vyvýšenina; je-li menší než zobrazitelná vrstevnicí, kreslí
-  se bodovým symbolem. ISOM **112** (Small knoll, kulatý) / **113** (Elongated knoll,
+  se bodovým symbolem. ISOM **109** (Small knoll, kulatý) / **110** (Small elongated knoll,
   protáhlý). Generátor je odvozuje z malých uzavřených vrstevnic (lokální max, Sez. 10).
-- **Prohlubeň** (depression) — malá terénní sníženina. ISOM **115** (Small depression,
-  hnědý oblouk „⌣"). Generátor z malých uzavřených vrstevnic (lokální min). 116 Pit
-  (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný z výškopisu).
+  (Kódy dle ISOM 2017-2 Rev 6 — staré 2017 mělo 112/113, viz pozn. u ISOM.)
+- **Prohlubeň** (depression) — malá terénní sníženina. ISOM **111** (Small depression,
+  hnědý oblouk „⌣"; staré 2017 = 115). Generátor z malých uzavřených vrstevnic (lokální
+  min). **112 Pit** (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný
+  z výškopisu).
 - **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru:
   příliš malý kopeček/prohlubeň se nekreslí prstencem vrstevnice, ale bodovou značkou (§4.10).
 - **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
-  **503 Road** (zpevněná, plná čára) … **505 Footpath** (pěšina, čárkovaná) … 507 (méně
-  zřetelná). Generátor dělá dvě třídy: hlavní plná (503) / vedlejší čárkovaná (505),
-  procedurálně Catmull-Rom splajnem napříč mapou (§4.9, Sez. 11).
+  **503 Road** (zpevněná, plná čára) … **505 Footpath** (pěšina, čárkovaná) … **507 Less
+  distinct small footpath** (méně zřetelná). Generátor dělá dvě třídy: hlavní plná (503) /
+  vedlejší čárkovaná (**507**, Sez. 13), vedení terénně vázané Dijkstra least-cost (§9).
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
@@ -54,7 +56,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **WGS84** (EPSG:4326) — globální zeměpisné souřadnice (lat/lon). Vstup `--lat/--lon`,
   přepočet na S-JTSK přes `pyproj`.
 - **WMS / WMTS / WFS / WCS / ATOM** — OGC přístupové protokoly ČÚZK (prohlížecí rastr /
-  dlaždice / vektor / rastr-výškopis / předpřipravené open-data jednotky).
+  dlaždice / vektor / rastr-výškopis / předpřipravené open-data jednotky). Pro generátor
+  je klíčový **WFS** (vektor) — WMS vrací jen obrázek (z něj by se data musela segmentovat).
+- **INSPIRE** — směrnice EU pro harmonizovaná geodata; ČÚZK publikuje témata jako služby.
+  Relevantní: **TN** (Transport Networks — dopravní sítě) pro reálné cesty, **HY**
+  (Hydrography — vodstvo) pro reálnou vodu. Data-driven zdroj pro UC4-II (viz IDEAS).
 - **georef** (georeferencování) — přiřazení world souřadnic geometrii. `contours.geojson`
   je u `--terrain real` georeferencován v S-JTSK.
 

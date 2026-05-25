@@ -145,9 +145,10 @@ pro pramen** (4.10).
 pozice na okraji. Hlavní cesta plná (1,5 px), vedlejší čárkovaná. Vedení vázané na
 terén — viz §9.
 **Realizace Sez. 11:** hlavní = plná černá (2 px, ISOM **503 Road**), vedlejší =
-čárkovaná (ISOM **505 Footpath**); helpery `_catmull_rom` (uniform splajn, krajní
-body zdvojené) + `_draw_dashed` (čárkování po délce oblouku). GT do `mask_paths.png`
-(multi-class 1=503 / 2=505). Z-order: po vrstevnicích, před bodovými symboly.
+čárkovaná (ISOM **507 Less distinct small footpath**, Sez. 13 oprava z 505); helpery
+`_catmull_rom` (uniform splajn, krajní body zdvojené) + `_draw_dashed` (čárkování po
+délce oblouku). GT do `mask_paths.png` (multi-class 1=503 / 2=507). Z-order: po
+vrstevnicích, před bodovými symboly.
 **✅ Terénně vázané vedení (Sez. 13):** přímý splajn s jitterem nahrazen **Dijkstra
 least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrchol.
 
@@ -265,7 +266,7 @@ funkce generate(seed, params):
 1. **Ground-truth zdarma.** Při vykreslování každé vrstvy ji zároveň renderuj do
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
-   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=505, Sez. 11);
+   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=507, Sez. 11/13);
      `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10).
      Masky `mask_veg/water/rock` byly se svými vrstvami zahozeny (Sez. 11, viz §4),
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
@@ -324,18 +325,21 @@ funkce generate(seed, params):
     georeferencované v **S-JTSK (EPSG:5514)** pro `--terrain real` (lokální metry pro
     noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
     ne z pixelů. 103 Form line generátor zatím nedělá.
-  - **✅ `.omap` export (Sez. 8, přepsán Sez. 13):** `omap_export.py` (volá se vždy)
-    zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/507) + body (109/110/111)**,
-    Local CRS, paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). NEduplikuje
-    Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií). **Vývoj přístupu
-    (Sez. 13):** template-based (cizí `.omap`) → **od nuly** (vlastní čistá ISOM sada,
-    odstranilo dědění bordelu — 101.1 LIDAR, 503 Minor road, cizí podklady). Bodové
-    symboly jsou zatím **zjednodušený kruh**. **→ TODO:** přepnout na template-based
-    z `resources/template_classic.omap` (vlastní čistý ISOM 2017-2 template vyrobený
-    v OOM) → zdědí věrnou geometrii bodů (110 elipsa, 111 oblouk) + přesun template do
-    `sandbox/` (verzované, mimo gitignored `resources/`).
-    Verify: OOM 0.9.6 headless nejde (jen `windows` plugin) → kontrola = otevřít ručně
-    (self-check: XML well-formed + počet objektů + rozsah).
+  - **✅ `.omap` export (Sez. 8, přepsán Sez. 13, template-based Sez. 14):** `omap_export.py`
+    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/507) +
+    body (109/110/111)**, Local CRS, paper-space (1 m → `1e6/scale` µm, vycentrováno, bez
+    Y-flip). NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
+    **Vývoj přístupu:** Sez. 8 template-based (cizí `.omap`) → Sez. 13 **od nuly** (kvůli
+    dědění bordelu z cizích souborů — 101.1 LIDAR, 503 Minor road, cizí podklady) → **Sez. 14
+    zpět template-based, ale nad VLASTNÍM čistým template** `sandbox/generator-poc/template_classic.omap`
+    (ISOM 2017-2, 169 symbolů / 35 barev, prázdné `<objects>`/`<templates>` — vyrobil uživatel
+    v OOM). Skládáme jen `<objects>`; barvy/symboly/georef přebíráme z template. Zisk:
+    **věrná geometrie bodů** (109 kruh, 110 elipsa `area_symbol`, 111 oblouk „⌣" `line_symbol`
+    — místo dřívějšího jednotného kruhu) + plná ISOM knihovna jako reálná mapa z OOM (menší
+    domain gap). Symbol id se parsují z template podle ISOM kódu (id nejsou pořadová: 503→110,
+    507→114). Bodové symboly mají `rotation=0` (sever; orientaci protáhlosti 110 generátor
+    zatím neukládá). `--omap-template` flag zrušen (Sez. 13). Verify: OOM headless nejde
+    (jen `windows` plugin) → self-check (XML well-formed, počet objektů, symbol id) + vizuál v OOM.
 
 ---
 

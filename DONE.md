@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 14 (2026-05-25) — OMAP věrné body (template-based) + SLAP úklid ISOM driftu
+- [x] **Uzavřena nezacommitovaná Sez. 13** — celá odpracovaná (kód+docs), ale nikdy
+      necommitnutá (chybělo `%END`); dva commity (feat + docs) + push, procesní dluh splacen.
+- [x] **OMAP export přepnut na template-based** (`omap_export.py`): z od-nuly (Sez. 13) zpět na
+      template-based, ale nad VLASTNÍM čistým template `sandbox/generator-poc/template_classic.omap`
+      (ISOM 2017-2, 169 symbolů / 35 barev, prázdné objekty). Skládáme jen `<objects>`; symbol id
+      parsujeme z template podle ISOM kódu (id nejsou pořadová: 503→110, 507→114). `rotation=0` u 110.
+- [x] **Věrná geometrie bodů** — 109 kruh / 110 elipsa (`area_symbol`) / 111 oblouk „⌣"
+      (`line_symbol`) zděděné z template místo dřívějšího jednotného kruhu.
+- [x] **Templaty přesunuty** `template_classic.omap` + `template_sprint.omap` do `sandbox/generator-poc/`
+      (verzované, sebeobsažné; originály v gitignored `resources/` ponechány — uživatelova data).
+- [x] **Refresh `output/map.omap`** — 169 symbolů (plná ISOM) + 65 objektů; k vizuálnímu verify v OOM.
+- [x] **SLAP úklid ISOM driftu** (dluh Sez. 13): GLOSSARY (kopeček 112/113→109/110, prohlubeň
+      115→111, 116→112 Pit, cesta 505→507), spec §4.9/§8.1 (cesty 505→507), sandbox README
+      (kódy + zrušený `--omap-template` + Dijkstra), README status box.
+- [x] **INSPIRE TN/HY větev → IDEAS** (UC2→UC4-II): reálné cesty + voda jako vektor, oponováno
+      WMS→WFS, real-only, dedikované příští sezení. + GLOSSARY termín INSPIRE.
+
 ## Sezení 13 (2026-05-25) — Terénní cesty (Dijkstra) + OMAP přestavba + oprava zastaralých ISOM kódů
 - [x] **Terénně vázané cesty (§9, Dijkstra least-cost)** (`generator.py`): `_dijkstra_path`
       (8-soused, `heapq`, bez scipy) nahradil přímý splajn — cesty traverzují svah, nešplhají

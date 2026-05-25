@@ -89,3 +89,19 @@ realnost-artefaktu se přidá, nepřepisuje.
   to samostatný enabler, ne přílepek k §4.9. Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka
   (izomorfní s tím, jak je řešený výškopis noise/real). Pozn.: „ze ZM5" je omyl — ZM5 je zrušený
   rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
+
+- **Reálné cesty + vodstvo z INSPIRE (UC2 → UC4-II, navrženo Sez. 14).** Uživatel navrhl dosadit
+  reálné cesty z **INSPIRE Transport Networks (TN)** a vodu z **INSPIRE Hydrography (HY)** jako
+  vektorovou vrstvu → ISOM symboly (502-507 / 301-305) + GT maska (rozhodnuto: vektor, ne podklad).
+  **Past (oponováno):** navržené URL byly **WMS** (`WMS_INSPIRE_TN/HY`) = rastr (obrázek), z něj by
+  se vektor musel segmentovat — ztrátový UC4-III problém. Správně **WFS** (`WFS_INSPIRE_TN/HY`, GML
+  vektor) nebo INSPIRE download. Izomorfní s lekcí ZM5-rastr/ZABAGED-vektor (výše).
+  - **Vztah k ZABAGED úvaze (výše):** TN je harmonizovaná EU verze téhož, co ZABAGED Polohopis
+    (komunikace) — dva zdroje téhož; rozhodnout, který (ZABAGED nativní vs INSPIRE harmonizovaný).
+  - **Vztah k procedurální větvi:** INSPIRE HY voda je **data-driven alternativa** k plánovanému
+    procedurálnímu **D8 hydro jádru** (toky/jezera/bažiny z výškopisu, stupeň 1). Nemíchat: proc =
+    noise-půlka, INSPIRE = real-půlka.
+  - **Cena/podmínky:** nový WFS konektor (první reálný UC2 konektor — dosud „research only"),
+    GML parsing, mapování kategorií → ISOM (ne 1:1), **real-only** (georef S-JTSK), licence INSPIRE
+    ČÚZK ověřit do KB. **Foundations:** velký kus → dedikované příští sezení, ne přílepek (rozhodnuto
+    Sez. 14: zatím jen zápis sem, UC2 konektor samostatně).

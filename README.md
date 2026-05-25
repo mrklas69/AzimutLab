@@ -10,7 +10,8 @@ generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-tr
 least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
 109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
 domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports contours+paths+points
-to GeoJSON/`.omap`.**
+to GeoJSON and to `.omap` — template-based on a clean self-made ISOM 2017-2 template (session 14),
+inheriting faithful point geometry (110 ellipse, 111 arc) + the full symbol library.**
 
 ## What this is
 
@@ -75,6 +76,7 @@ docs/
 sandbox/               # UC1: isolated experiments, one folder each
   generator-poc/       #   first code: procedural OB-map generator (contours + paths + extremum symbols + masks)
                        #     + dmr.py: real terrain from ČÚZK DMR 5G (--terrain real, Option 2)
+                       #     + template_classic/sprint.omap: clean ISOM/ISSprOM templates for .omap export
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods
 GLOSSARY.md            # project terminology
