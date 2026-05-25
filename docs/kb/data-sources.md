@@ -104,6 +104,26 @@ hold-out / fine-tuning pro UC5, reálné skeny pro UC3.
 autor a vydavatel = koho oslovit o svolení), ne jako sklízitelný dataset. Reálný
 korpus cesty (B) = nutné oslovit jednotlivé vydavatele (kluby), ne scrapovat portál.
 
+## Lokální reálné mapy — `resources/` (≈8 párů picture+OMAP, smíšený původ)
+
+Lokální sada ≈8 nezávislých párů **(picture, OMAP)** reálných OB map — datová cesta (B),
+komplement k ČÚZK geodatům. **Mimo git** (`.gitignore: resources/`); zde jen metadata.
+
+**Původ a práva (smíšené):**
+- **Vlastní** (vytvořené/aktualizované uživatelem) → držitel práv = uživatel; smí i trénink.
+- **Klubové (koupené)** → „koupené" = licence k tisku/závodu, **ne autorská práva**; ta drží
+  kartograf/vydavatel. Konzervativně **jen lokální reference/hold-out**; trénink (= šíření
+  odvozeniny) až se svolením autora/klubu (stejná gate jako ČSOS portál výše).
+
+**Povolené použití:**
+- ✅ **Lokální reference / hold-out / kalibrace** (čtení, měření, vizuální srovnání) — všech ≈8,
+  bez ohledu na původ (nešíří se). Hned využitelné: kalibrace vedení cest vůči terénu
+  (Dijkstra cena — IDEAS „dvoustupňová věrnost"), validace generalizace modelu (§8.4 spec).
+- ⚠️ **Trénink modelu** — jen vlastní mapy; klubové potřebují svolení.
+
+**Rozlišit původ:** v `resources/` oddělit vlastní vs klubové (`own/` + `club/` nebo
+`resources/MANIFEST.md` se seznamem map + původ + licence), ať je tréninkový set čistý (TODO).
+
 ## Další zdroje (neprozkoumáno)
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
