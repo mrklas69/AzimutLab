@@ -7,8 +7,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 
 - **OB** — orientační běh; sportovní disciplína navigace v terénu podle mapy.
 - **ISOM** (International Specification for Orienteering Maps) — norma pro klasické
-  lesní OB mapy (verze 2017-2). Symboly, barvy, priority. Cílová sémantika projektu.
-  Detail: `docs/kb/isom-issprom.md`.
+  lesní OB mapy (**verze 2017-2, nejnovější — Rev 6 z 2024**, příští až ISOM2030). Symboly,
+  barvy, priority. Cílová sémantika projektu. Detail: `docs/kb/isom-issprom.md`. Pozor: Rev 6
+  **přečíslovalo bodové symboly** (109/110/111 vs staré 2017 112/113/115 — Sez. 13).
 - **ISSprOM** — sesterská norma pro sprintové / městské mapy (2019-2). Stejný kód ≠
   stejný symbol napříč ISOM/ISSprOM (např. budovy black vs gray).
 - **Vrstevnice** (contour) — izolinie výškového pole, spojnice bodů stejné nadmořské

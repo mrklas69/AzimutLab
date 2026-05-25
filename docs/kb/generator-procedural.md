@@ -141,15 +141,15 @@ hustot ⇒ geometricky konzistentní.
 pro pramen** (4.10).
 
 ### 4.9 Cesty
-`1 + round(det*1.6)` cest. Waypointy od jednoho okraje k druhému (vodorovně/svisle)
-s vnitřním jitterem, Catmull-Rom splajn. Hlavní cesta plná (1,5 px), vedlejší
-čárkovaná. (Volitelně lze waypointy vázat na terén — viz §9.)
+`1 + round(det*1.6)` cest, konce na protilehlých okrajích (vodorovně/svisle), náhodná
+pozice na okraji. Hlavní cesta plná (1,5 px), vedlejší čárkovaná. Vedení vázané na
+terén — viz §9.
 **Realizace Sez. 11:** hlavní = plná černá (2 px, ISOM **503 Road**), vedlejší =
 čárkovaná (ISOM **505 Footpath**); helpery `_catmull_rom` (uniform splajn, krajní
 body zdvojené) + `_draw_dashed` (čárkování po délce oblouku). GT do `mask_paths.png`
-(multi-class 1=503 / 2=505). Z-order: po vrstevnicích, před bodovými symboly. Terén
-zatím **nerespektuje** (přímý splajn kříží kopce) — terénně vázané vedení (Dijkstra
-least-cost) je §9, vědomě odloženo (nejbližší kandidát na vyšší věrnost).
+(multi-class 1=503 / 2=505). Z-order: po vrstevnicích, před bodovými symboly.
+**✅ Terénně vázané vedení (Sez. 13):** přímý splajn s jitterem nahrazen **Dijkstra
+least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrchol.
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
@@ -168,12 +168,17 @@ strom `round(det*5)`.
 Malá uzavřená vrstevnice = lokální extrém příliš malý na čitelný prstenec → kreslí
 se bodovým symbolem (ISOM kartografická generalizace). Detekce: smyčka uzavřená
 (první bod ≈ poslední) + plocha pod prahem (~600 m², laděno) + výška centroidu vs
-úroveň vrstevnice. Lokální max → **112 Small knoll** (hnědá tečka), protáhlý
-(poměr stran bbox > 2,5) → **113 Elongated knoll** (hnědá elipsa); lokální min →
-**115 Small depression** (hnědý oblouk „⌣"). **116 Pit vynechán** — je to jiná
-feature class (umělá/erozní díra), z výškového pole neodlišitelný od 115.
+úroveň vrstevnice. Lokální max → **109 Small knoll** (hnědá tečka), protáhlý
+(poměr stran bbox > 2,5) → **110 Small elongated knoll** (hnědá elipsa); lokální min →
+**111 Small depression** (hnědý oblouk „⌣"). **112 Pit vynechán** — je to jiná
+feature class (umělá/erozní díra), z výškového pole neodlišitelný od 111.
 Z-order: nad vrstevnicemi (§4.5), pod balvany (§4.11). GT do `mask_symbols.png`
 (multi-class) + seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10.)
+
+> **ISOM kódy — pozor (Sez. 13):** používáme **ISOM 2017-2 Rev 6 (2024)** číslování
+> 109/110/111. Staré ISOM 2017 mělo pro tytéž symboly 112/113/115 (Rev 6 přečíslovalo
+> a v 112+ jsou teď Pit / Broken ground / Prominent landform). Ověřeno proti oficiálnímu
+> OOM symbol setu `ISOM 2017-2_10000.omap`. Cesty: 503 Road, 507 Less distinct small footpath.
 
 ### 4.11 Balvany a skalní stupně (`rock`)
 - Balvany: `round(rock*120)` černých teček, přijetí s pravděpodobností
@@ -303,6 +308,14 @@ funkce generate(seed, params):
 - **Terénně vázané cesty** (vylepšení §4.9): místo přímého splajnu veď cestu
   least-cost path algoritmem (Dijkstra) s cenou rostoucí se sklonem — cesty pak
   traverzují svahy místo aby šly přes vrcholy.
+  - **✅ Implementováno (Sez. 13):** `generator.py` `_dijkstra_path` — 8-sousedství
+    na mřížce, čistý `heapq` (žádný scipy). **Cena hrany = horizontální vzdálenost [m]
+    + `PATH_SLOPE_PENALTY`·|Δvýška| [m]** (zvolen model „sklon hrany" Δh, ne izotropní
+    slope buňky): pohyb podél vrstevnice levný, stoupání drahé → traverz. Konce na
+    protilehlých okrajích; surová 8-směrová trasa se zředí (`PATH_SIMPLIFY`) a vyhladí
+    `_catmull_rom`. Deterministická (tie-break počítadlem). Funguje pro noise i real
+    (na reálném DMR cesty vedou skutečnými sedly/údolími). „Vede údolím" v plném smyslu
+    (preferuje údolnice) přijde až s hydro jádrem (toky = údolnice); teď jen vazba na sklon.
 - **Výstup do vektoru**: pokud potřebuješ OCD/OMAP, exportuj jednotlivé vrstvy jako
   GeoJSON/SHP a konvertuj (OpenOrienteering Mapper umí import GDAL vektorů; OCAD má
   XML skripty). Vrstevnice jdou exportovat přímo z marching squares jako polylinie.
@@ -311,13 +324,18 @@ funkce generate(seed, params):
     georeferencované v **S-JTSK (EPSG:5514)** pro `--terrain real` (lokální metry pro
     noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
     ne z pixelů. 103 Form line generátor zatím nedělá.
-  - **✅ `.omap` export (Sez. 8):** `omap_export.py` + `generator.py --omap-template <path>`
-    zapíše `map.omap` — **template-based** (vezme funkční ISOM `.omap`, nahradí jen
-    `<objects>`), Local CRS, paper-space transform (1 m → `1e6/scale` µm, vycentrováno,
-    bez Y-flip). Symbol id se čte z template (101/102). NEduplikuje Pic2Omap `db2omap`
-    (ten jde z rastru přes .pgw/cv2; my z přesných polylinií) — sdílíme jen FORMÁT.
-    Verify: OOM 0.9.6 má jen `windows` platform plugin → headless nejde, finální
-    kontrola = otevřít v OOM ručně (self-check: XML well-formed + počet objektů + rozsah).
+  - **✅ `.omap` export (Sez. 8, přepsán Sez. 13):** `omap_export.py` (volá se vždy)
+    zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/507) + body (109/110/111)**,
+    Local CRS, paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). NEduplikuje
+    Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií). **Vývoj přístupu
+    (Sez. 13):** template-based (cizí `.omap`) → **od nuly** (vlastní čistá ISOM sada,
+    odstranilo dědění bordelu — 101.1 LIDAR, 503 Minor road, cizí podklady). Bodové
+    symboly jsou zatím **zjednodušený kruh**. **→ TODO:** přepnout na template-based
+    z `resources/template_classic.omap` (vlastní čistý ISOM 2017-2 template vyrobený
+    v OOM) → zdědí věrnou geometrii bodů (110 elipsa, 111 oblouk) + přesun template do
+    `sandbox/` (verzované, mimo gitignored `resources/`).
+    Verify: OOM 0.9.6 headless nejde (jen `windows` plugin) → kontrola = otevřít ručně
+    (self-check: XML well-formed + počet objektů + rozsah).
 
 ---
 

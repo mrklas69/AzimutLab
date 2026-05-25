@@ -6,10 +6,11 @@ of what an orienteering map *is*.
 
 **Status: phase B (umbrella). First real code (since session 4): a procedural synthetic-map
 generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth. Being rebuilt
-"better, layer by layer" (session 11): currently contours + paths (§4.9, Catmull-Rom) +
-knoll/depression point symbols; vegetation/marsh/boulders were dropped (looked artificial → would
-hurt the feeder's domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports
-contours to GeoJSON/`.omap`.**
+"better, layer by layer" (session 11): currently contours + terrain-aware paths (§9, Dijkstra
+least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
+109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
+domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports contours+paths+points
+to GeoJSON/`.omap`.**
 
 ## What this is
 

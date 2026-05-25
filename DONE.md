@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 13 (2026-05-25) — Terénní cesty (Dijkstra) + OMAP přestavba + oprava zastaralých ISOM kódů
+- [x] **Terénně vázané cesty (§9, Dijkstra least-cost)** (`generator.py`): `_dijkstra_path`
+      (8-soused, `heapq`, bez scipy) nahradil přímý splajn — cesty traverzují svah, nešplhají
+      přes vrcholy. Cena = vzdálenost × (1 + LIN·sklon + SQ·sklon²) + **tvrdý strop 50 %**
+      (hrana strmější zakázána, fallback). Cesty drženy v souř. mřížky (zdroj pro render i export).
+- [x] **Odpuzování cest (#2)** — `_add_repulsion` zvyšuje cenu kolem nakreslené cesty → další
+      cesta nesplyne (least-cost mezi blízkými konci by jinak dal jednu trasu).
+- [x] **Oprava cesty přes sráz (#3)** — diagnostika `_diag_paths.py` ukázala max sklon 0.85
+      (lineární penalty + repulsion). Kvadrát + strop → max sklon cest ≤ 0.49, průměr 3–6 %.
+- [x] **Zastaralé ISOM kódy bodů opraveny (#1 nález):** 112/113/115 → **109/110/111**
+      (Small knoll / Small elongated knoll / Small depression) dle ISOM 2017-2 Rev 6 (2024).
+      Ověřeno proti oficiálnímu OOM `ISOM 2017-2_10000.omap`. Promítnuto: kód, meta, spec §4.10.
+- [x] **OMAP export přepsán od nuly** (`omap_export.py`): z template-based (cizí `.omap`) na
+      vlastní čistou ISOM sadu — `<colors>` (Brown/Black) + `<symbols>` (7) + objekty
+      vrstevnice (101/102) + cesty (503/507) + body (109/110/111). Odstranilo dědění bordelu
+      (101.1 LIDAR, 503 Minor road, cizí podklady). `--omap-template` zrušen (OMAP vždy).
+- [x] **ISOM verze ověřena** (IOF): 2017-2 je nejnovější (Rev 6 2024, příští až ISOM2030).
+- [x] **template_classic/sprint** — uživatel vyrobil v OOM vlastní čisté ISOM/ISSprOM templaty,
+      vybrán/přejmenován `template_classic.omap` (1:10000) + `template_sprint.omap` (1:4000).
+
 ## Sezení 12 (2026-05-25) — Recovery zastaralého klonu + fetch-check + vize dvoustupňové věrnosti
 - [x] **Recovery:** lokální klon byl 20 commitů za origin (founding vs Sez. 11) — `%BEGIN`
       běžel na zastaralém stavu, UC2 odpracován redundantně. Záloha do branche
