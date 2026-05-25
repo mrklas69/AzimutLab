@@ -87,6 +87,14 @@ Použitá pole:
 
 Pořadí níže je zároveň pořadím vykreslování (z-order, odspodu nahoru).
 
+> **Stav implementace (Sezení 11):** `generator.py` po vědomém řezu dělá jen
+> **§4.5 vrstevnice + §4.9 cesty + §4.10 bodové symboly extrémů** (+ vektor §9).
+> Plošné vrstvy §4.2-4.4 (vegetace, paseky, bažiny) a §4.11 (balvany) byly
+> **zahozeny** — vypadaly uměle a kazily by domain gap feederu pro UC5. Metodika
+> níže zůstává platná pro přestavbu „znovu a lépe" (vrstvu po vrstvě, s důrazem
+> na vizuální věrnost); historie v gitu (commit Sez. 10). §4.6-4.8 a §4.12-4.13
+> nebyly nikdy implementovány.
+
 ### 4.1 Podklad
 Celé plátno bílé `#FFFFFF` (= běžně průběžný les).
 
@@ -136,6 +144,12 @@ pro pramen** (4.10).
 `1 + round(det*1.6)` cest. Waypointy od jednoho okraje k druhému (vodorovně/svisle)
 s vnitřním jitterem, Catmull-Rom splajn. Hlavní cesta plná (1,5 px), vedlejší
 čárkovaná. (Volitelně lze waypointy vázat na terén — viz §9.)
+**Realizace Sez. 11:** hlavní = plná černá (2 px, ISOM **503 Road**), vedlejší =
+čárkovaná (ISOM **505 Footpath**); helpery `_catmull_rom` (uniform splajn, krajní
+body zdvojené) + `_draw_dashed` (čárkování po délce oblouku). GT do `mask_paths.png`
+(multi-class 1=503 / 2=505). Z-order: po vrstevnicích, před bodovými symboly. Terén
+zatím **nerespektuje** (přímý splajn kříží kopce) — terénně vázané vedení (Dijkstra
+least-cost) je §9, vědomě odloženo (nejbližší kandidát na vyšší věrnost).
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
@@ -246,10 +260,9 @@ funkce generate(seed, params):
 1. **Ground-truth zdarma.** Při vykreslování každé vrstvy ji zároveň renderuj do
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
-   - `mask_contours.png`, `mask_veg.png` (multi-class), `mask_water.png`,
-     `mask_rock.png` (vše hotovo Sez. 4-6); `mask_symbols.png` (multi-class:
-     knoll/depression z generalizace §4.10, hotovo Sez. 10 — det-řízené značky
-     pramen/posed/vývrat/strom zatím chybí), … (cíle),
+   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=505, Sez. 11);
+     `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10).
+     Masky `mask_veg/water/rock` byly se svými vrstvami zahozeny (Sez. 11, viz §4),
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
      (hotová detekční anotace ve stylu COCO/YOLO).
 2. **Objem a diverzita.** Kombinatorika 5 parametrů × seed ⇒ prakticky neomezený

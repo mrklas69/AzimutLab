@@ -5,9 +5,11 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella). First real code (since session 4): a procedural synthetic-map
-generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth (contours,
-vegetation, marsh with dotted outline, slope-weighted boulders, knoll/depression point symbols);
-also draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports contours to GeoJSON/`.omap`.**
+generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth. Being rebuilt
+"better, layer by layer" (session 11): currently contours + paths (§4.9, Catmull-Rom) +
+knoll/depression point symbols; vegetation/marsh/boulders were dropped (looked artificial → would
+hurt the feeder's domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports
+contours to GeoJSON/`.omap`.**
 
 ## What this is
 
@@ -70,7 +72,7 @@ docs/
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
     generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
 sandbox/               # UC1: isolated experiments, one folder each
-  generator-poc/       #   first code: procedural OB-map generator (contours/veg/marsh/boulders + masks)
+  generator-poc/       #   first code: procedural OB-map generator (contours + paths + extremum symbols + masks)
                        #     + dmr.py: real terrain from ČÚZK DMR 5G (--terrain real, Option 2)
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods

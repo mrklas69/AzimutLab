@@ -12,9 +12,9 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
-- [~] Procedurální generátor OB map — MVP (Sez. 4) + reálný terén `--terrain real` (Sez. 5) + věrnost: index contours / tečkovaný obrys bažin / balvany (Sez. 6) + reálný batch dataset z lokalit ČR (Sez. 7) + DRY paleta `palette.py` + vektor vrstevnic GeoJSON 101/102 + `.omap` export (Sez. 8) + bodové symboly extrémů 112/113/115 + `mask_symbols.png` (Sez. 10)
-- [!] Cesty (§4.9): Catmull-Rom splajn, příp. terénně vázané (Dijkstra §9) — DO brzy (Sez. 10: stale práh, rozhodnuto realizovat, ne odkládat)
-- [ ] Batch noise sada: variace `--rock` i v noise větvi (zatím jen real — noise zachován bitově reprodukovatelný, viz Sez. 7)
+- [~] Procedurální generátor OB map — **přestavba „znovu a lépe" (Sez. 11):** vrstvy stavíme po jedné s důrazem na vizuální věrnost. HOTOVO: vrstevnice (§4.5) + bodové symboly extrémů 112/113/115 (§4.10) + cesty (§4.9, Catmull-Rom, ISOM 503/505, `mask_paths.png`) + vektor 101/102 + `.omap` + reálný terén `--terrain real`. ZAHOZENO (vypadalo uměle, kazilo by domain gap): vegetace, paseky, bažiny, balvany.
+- [ ] Terénně vázané cesty (§9): Dijkstra least-cost (cena ~sklon) místo přímého splajnu — cesty pak vedou údolím, ne přes kopce. Nejbližší kandidát na vyšší věrnost (Sez. 11).
+- [ ] Přestavba dalších vrstev „lépe": vegetace / bažiny / vodní toky — věrnějším vzhledem než zahozená verze (Sez. 11 záměr „vrstevnice → cesty → …").
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu

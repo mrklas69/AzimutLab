@@ -25,6 +25,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný z výškopisu).
 - **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru:
   příliš malý kopeček/prohlubeň se nekreslí prstencem vrstevnice, ale bodovou značkou (§4.10).
+- **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
+  **503 Road** (zpevněná, plná čára) … **505 Footpath** (pěšina, čárkovaná) … 507 (méně
+  zřetelná). Generátor dělá dvě třídy: hlavní plná (503) / vedlejší čárkovaná (505),
+  procedurálně Catmull-Rom splajnem napříč mapou (§4.9, Sez. 11).
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
@@ -93,6 +97,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **contourpy** — Python knihovna marching squares; generátor z ní bere vrstevnice jako
   polylinie.
 - **marching squares** — algoritmus pro izolinie skalárního pole na mřížce.
+- **Catmull-Rom splajn** — interpolační křivka procházející všemi kontrolními body
+  (hladká; tečna v bodě ~ směr sousedů). Generátor jím kreslí cesty (§4.9); krajní
+  body zdvojuje (clamp), aby prošel i konci. Helper `_catmull_rom`.
 - **pyproj** — transformace souřadnic (WGS84 ↔ S-JTSK); závislost jen pro `--terrain real`.
 - **`.omap` / `.ocd`** — XML/binární formáty OB map (OOM / OCAD). Generátor umí `.omap`
   export (template-based, `omap_export.py`).

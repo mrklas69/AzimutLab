@@ -48,3 +48,12 @@ Mapwright/Mapník (map-SW kolize), Mapárna/Cartouche (chtěné mezinárodní).
   procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
   **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
   sparse-GT past. Reálný terén (ČÚZK DMR 5G) dosazen přes `--terrain real` (§8.5, hotovo Sez. 5).
+- **Reálné cesty/komunikace ze ZABAGED (UC2 → UC4-II).** U `--terrain real` by generátor mohl
+  vzít skutečnou síť cest ze **ZABAGED Polohopis** (WFS, vektor komunikací, CC BY 4.0) místo
+  procedurálního splajnu — vysoká věrnost (cesta vede údolím, sedí na reálný terén), přesná GT
+  z vektoru. Cena: nový WFS konektor (UC2 práce, pozor na změnu URL 2/2026), funguje **jen pro
+  real** (noise nemá souřadnice), hybrid se zbytkem syntetiky, mapování ZABAGED kategorie →
+  ISOM 502-507 není 1:1 (správní třída vs zřetelnost/sjízdnost). Vědomě odloženo (Sez. 11): je
+  to samostatný enabler, ne přílepek k §4.9. Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka
+  (izomorfní s tím, jak je řešený výškopis noise/real). Pozn.: „ze ZM5" je omyl — ZM5 je zrušený
+  rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
