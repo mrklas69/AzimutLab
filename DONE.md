@@ -13,7 +13,7 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       (`line_symbol`) zděděné z template místo dřívějšího jednotného kruhu.
 - [x] **Templaty přesunuty** `template_classic.omap` + `template_sprint.omap` do `sandbox/generator-poc/`
       (verzované, sebeobsažné; originály v gitignored `resources/` ponechány — uživatelova data).
-- [x] **Refresh `output/map.omap`** — 169 symbolů (plná ISOM) + 65 objektů; k vizuálnímu verify v OOM.
+- [x] **Refresh `output/map.omap`** — 169 symbolů (plná ISOM) + 65 objektů; **vizuál v OOM potvrzen uživatelem (Test OK)** — 110 elipsa / 111 oblouk sedí.
 - [x] **SLAP úklid ISOM driftu** (dluh Sez. 13): GLOSSARY (kopeček 112/113→109/110, prohlubeň
       115→111, 116→112 Pit, cesta 505→507), spec §4.9/§8.1 (cesty 505→507), sandbox README
       (kódy + zrušený `--omap-template` + Dijkstra), README status box.
