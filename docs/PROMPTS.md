@@ -3,6 +3,11 @@
 Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 
 ## %BEGIN — start sezení
+0. **Sync s remote — PRVNÍ, před načtením kontextu.** `git fetch` + porovnej `HEAD`
+   s `origin/main`. Je-li lokální pozadu, srovnej se (reset/pull) **před** jakoukoli
+   prací — jinak sezení běží na zastaralém stavu. (Stalo se 2026-05-25: klon byl
+   20 commitů pozadu → redundantní sezení odhalené až při pushi v %END.)
+   Pozor: `git status` „clean" ≠ up-to-date.
 1. Načti kontext: README.md, `docs/architecture.md`, TODO.md, DIARY.md +
    poslední 1–2 diáře (docs/diary/), IDEAS.md dle potřeby.
 2. Audit cadence check (prahy z globálního CLAUDE.md) — spočítej od posledního
