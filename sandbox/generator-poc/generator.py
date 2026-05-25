@@ -562,8 +562,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
-    # .omap export (§9): vrstevnice + cesty + bodové symboly jako vlastní čistá ISOM mapa,
-    # skládaná OD NULY (bez template — Sez. 13). Local CRS / paper-space.
+    # .omap export (§9): vrstevnice + cesty + bodové symboly vložené do uživatelova čistého
+    # ISOM 2017-2 template (template_classic.omap — věrná geometrie bodů, Sez. 14). Local CRS.
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
