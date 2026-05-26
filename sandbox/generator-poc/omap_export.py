@@ -28,9 +28,11 @@ from pathlib import Path
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
-# Cesty: proc větev dělá 503/505; reálná (ZABAGED WFS, Sez. 16) i 502/504/506 — všechny
-# musí být v template (čistá ISOM 2017-2 je obsahuje: 502→108, 504→111, 506→113).
-USED_CODES = ("101", "102", "502", "503", "504", "505", "506", "109", "110", "111")
+# Cesty: proc větev dělá 503/505; reálná (ZABAGED WFS, Sez. 16) i 502/504/506. Voda (Sez. 17):
+# toky 304/305/306 (liniové) + plocha 301.1 (plošný symbol — kombinovaný 301 s břehem je
+# type 16, nepřiřaditelný objektu). Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
+USED_CODES = ("101", "102", "502", "503", "504", "505", "506",
+              "304", "305", "306", "301.1", "109", "110", "111")
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 ROTATABLE_CODES = frozenset({"110"})
 
@@ -51,15 +53,17 @@ def _parse_symbol_ids(template_xml: str) -> dict[str, int]:
 
 
 def write_omap(contour_features: list[tuple], path_features: list[tuple],
-               point_symbols: list[dict], gw: int, gh: int,
+               point_symbols: list[dict], water_features: list[tuple], gw: int, gh: int,
                world_w_m: float, world_h_m: float, scale: float,
                out_path: str | Path) -> dict:
-    """Zapíše vrstevnice + cesty + body do `.omap` vložením objektů do uživatelova template.
+    """Zapíše vrstevnice + cesty + vodu + body do `.omap` vložením objektů do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
-    [(curve grid, code 503/505)] — obojí v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1).
-    `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale` = jmenovatel měřítka
-    (10000, shodné s georef template). Návrat: {"contours", "paths", "points", "objects"}.
+    [(curve grid, code 503/505)], `water_features` = [(line/ring grid, code 304/305/306/301.1)]
+    — vše v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1); voda i plochy jdou jako liniové
+    objekty (type 1), OOM je vyplní podle typu symbolu. `point_symbols` = [{symbol, gx, gy}]
+    (ISOM 109/110/111). `scale` = jmenovatel měřítka. Návrat: {"contours", "paths", "water",
+    "points", "objects"}.
     """
     out_path = Path(out_path)
     template_xml = TEMPLATE_PATH.read_text(encoding="utf-8")
@@ -84,8 +88,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                 f'<coords count="{len(coords)}">{coord_str}</coords></object>')
 
     objs: list[str] = []
-    n_contours = n_paths = n_points = 0
-    # vrstevnice + cesty = liniové objekty (type 1)
+    n_contours = n_paths = n_water = n_points = 0
+    # vrstevnice + cesty + voda = liniové objekty (type 1; plochy vody OOM vyplní dle symbolu)
     for line, code in contour_features:
         o = line_object(line, str(code))
         if o:
@@ -94,6 +98,10 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = line_object(curve, str(code))
         if o:
             objs.append(o); n_paths += 1
+    for geom, code in water_features:
+        o = line_object(geom, str(code))
+        if o:
+            objs.append(o); n_water += 1
     # bodové symboly extrémů = bodové objekty (type 0, 1 souřadnice); 110 rotatable → rotation
     for ps in point_symbols:
         code = str(ps["symbol"])
@@ -110,5 +118,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         raise ValueError('Template nemá očekávaný prázdný <objects count="0"> blok')
 
     out_path.write_text(doc, encoding="utf-8")
-    return {"contours": n_contours, "paths": n_paths, "points": n_points,
-            "objects": len(objs)}
+    return {"contours": n_contours, "paths": n_paths, "water": n_water,
+            "points": n_points, "objects": len(objs)}

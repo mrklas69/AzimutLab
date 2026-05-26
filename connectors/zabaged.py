@@ -34,6 +34,13 @@ _WFS_SERVER = "https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServ
 # (Silnice/Ulice jsou v lese vzácné, ale patří do sítě, kde výsek zasáhne okraj obce.)
 LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Ulice")
 
+# Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
+# linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
+# (Zdroj_podzemních_vod) se NEtáhne: ve výsecích OB map je vzácný (ověřeno — v demo
+# výřezu 0, nejbližší PS 1,9 km) a 312 Spring je real-only bez náhrady (rozhodnuto Sez. 17).
+WATER_LINE_LAYERS = ("Vodní_tok",)
+WATER_AREA_LAYERS = ("Vodní_plocha",)
+
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
                  cache_dir: Path) -> dict:
@@ -104,6 +111,40 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_water(lat: float, lon: float, gw: int, gh: int,
+                tile_m: float = 1000.0,
+                cache_dir: str | Path | None = None) -> tuple[list[dict], list[dict]]:
+    """Vrátí reálnou vodu pro výsek (lat, lon): (line_feats, area_feats).
+
+    `line_feats` = vodní toky (Vodní_tok): [{"layer", "props", "lines": [[(x,y)..]]}]
+    `area_feats` = vodní plochy (Vodní_plocha): [{"layer", "props", "rings": [[(x,y)..]]}]
+    — `rings` jsou vnější obrysy ploch (díry ignorujeme; malé rybníky je nemají).
+    Mapování na ISOM (map_water_to_isom) se dělá výš, po verify atributů (Sez. 17).
+
+    Tentýž výsek jako dmr/cesty (sdílený build_bbox) → voda sedne na terén i k cestám.
+    Izomorfní s fetch_paths; oddělené linie/plochy, protože render i ISOM symbol se liší.
+    """
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    line_feats: list[dict] = []
+    area_feats: list[dict] = []
+    for layer in WATER_LINE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                line_feats.append({"layer": layer, "props": feat.get("properties", {}),
+                                   "lines": lines})
+    for layer in WATER_AREA_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                area_feats.append({"layer": layer, "props": feat.get("properties", {}),
+                                   "rings": rings})
+    return line_feats, area_feats
+
+
 def map_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -130,6 +171,34 @@ def map_to_isom(layer: str, props: dict) -> int:
     return 503   # fallback (neočekávaná vrstva) → viditelná plná čára
 
 
+def map_water_to_isom(layer: str, props: dict) -> int | None:
+    """Mapuje ZABAGED vodní prvek na ISOM 2017-2 kód (int), nebo None = nekreslit.
+
+    Klíč = FYZICKÝ stav (zřetelnost/charakter), ne správní třída — ISOM logika. Ověřeno
+    proti reálným datům (verify-against-source, Sez. 17) na výřezu Svitávky:
+      Vodní_tok podzemní (typtoku_k=004)   → None  (není na povrchu vidět → nekreslit)
+      Vodní_tok občasný (vydattok_p)        → 306 Minor/seasonal water channel (čárkovaný)
+      Vodní_tok stálý, pojmenovaný (hlavní) → 304 Crossable watercourse (silnější linie)
+      Vodní_tok stálý, bezejmenný (přítok)  → 305 Small crossable watercourse (tenčí linie)
+      Vodní_plocha                           → 301 Uncrossable body of water (výplň + břeh)
+
+    Hierarchie 304/305 podle pojmenovanosti toku (generalizovatelné — pojmenovaný tok je
+    v ZABAGED evidovaný/významnější; ne hardcode konkrétní řeky). Vrací holý ISOM kód
+    (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
+    """
+    if layer == "Vodní_tok":
+        if props.get("typtoku_k") == "004":       # podzemní tok → na povrchu neviditelný
+            return None
+        if props.get("vydattok_p") == "občasný":  # občasný (vysychající) tok
+            return 306
+        if props.get("jmeno"):                    # pojmenovaný stálý tok = hlavní
+            return 304
+        return 305                                 # bezejmenný stálý přítok
+    if layer == "Vodní_plocha":
+        return 301
+    return None
+
+
 def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
     """Rozbalí GeoJSON geometrii na seznam polylinií [(x,y), ...] (S-JTSK metry).
 
@@ -141,6 +210,22 @@ def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
         return [[(float(x), float(y)) for x, y, *_ in coords]] if coords else []
     if gtype == "MultiLineString":
         return [[(float(x), float(y)) for x, y, *_ in part] for part in coords if part]
+    return []
+
+
+def _geom_to_polygons(geom: dict) -> list[list[tuple[float, float]]]:
+    """Rozbalí GeoJSON plochu na seznam vnějších prstenců [(x,y), ...] (S-JTSK metry).
+
+    Vodní plochy ZABAGED jsou Polygon nebo MultiPolygon. Bereme jen vnější prstenec
+    (coords[0]) každého polygonu; vnitřní díry (ostrovy) zatím ignorujeme — malé
+    rybníky/tůně je nemají. Linie/bod se ignorují.
+    """
+    gtype = geom.get("type")
+    coords = geom.get("coordinates")
+    if gtype == "Polygon":
+        return [[(float(x), float(y)) for x, y, *_ in coords[0]]] if coords else []
+    if gtype == "MultiPolygon":
+        return [[(float(x), float(y)) for x, y, *_ in poly[0]] for poly in coords if poly]
     return []
 
 

@@ -42,7 +42,7 @@ if str(_CONNECTORS_DIR) not in sys.path:
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE
 
 # ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
 GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
@@ -123,8 +123,31 @@ PATH_REPULSION_R = 4          # poloměr odpuzování [buňky mřížky]
 PATH_SIMPLIFY = 7             # zředění least-cost trasy: každý N-tý uzel → kontrolní body Catmull-Rom
 PATH_EDGE_FRAC = (0.15, 0.85) # rozsah náhodného konce cesty na okraji mřížky (jako dřív)
 
+# Voda (§4.x hydrografie) — ISOM 2017-2 (ověřeno proti template_classic.omap). Zatím jen
+# reálná půlka (ZABAGED Polohopis WFS, Sez. 17, izomorfní s reálnými cestami): toky (linie)
+# + plochy (polygon). Procedurální hydro jádro (D8) = budoucí noise-půlka. Mapování
+# ZABAGED→ISOM viz zabaged.map_water_to_isom. Barva = modrá (C_BLUE z palety).
+ISOM_CROSSABLE_WATERCOURSE = 304   # stálý pojmenovaný tok (hlavní) → plná modrá silnější
+ISOM_SMALL_WATERCOURSE = 305       # stálý bezejmenný přítok → plná modrá tenčí
+ISOM_SEASONAL_CHANNEL = 306        # občasný tok → čárkovaná modrá
+ISOM_UNCROSSABLE_WATER = 301       # vodní plocha (rybník/tůň) → modrá výplň + břehová linie
+WATER_NAME = {ISOM_CROSSABLE_WATERCOURSE: "Crossable watercourse",
+              ISOM_SMALL_WATERCOURSE: "Small crossable watercourse",
+              ISOM_SEASONAL_CHANNEL: "Minor/seasonal water channel",
+              ISOM_UNCROSSABLE_WATER: "Uncrossable body of water"}
+# ISOM kód → třída v mask_water.png (0 = pozadí). Toky 1-3, plocha 4.
+WATER_CLASS = {ISOM_CROSSABLE_WATERCOURSE: 1, ISOM_SMALL_WATERCOURSE: 2,
+               ISOM_SEASONAL_CHANNEL: 3, ISOM_UNCROSSABLE_WATER: 4}
+# Render styl vodních LINIÍ: (mode, width [px], (dash, gap) | None). Izomorfní s PATH_STYLE.
+WATER_LINE_STYLE = {
+    ISOM_CROSSABLE_WATERCOURSE: ("solid", 2, None),       # hlavní tok plný silnější
+    ISOM_SMALL_WATERCOURSE:     ("solid", 1, None),       # přítok plný tenčí
+    ISOM_SEASONAL_CHANNEL:      ("dashed", 1, (6.0, 4.0)),# občasný čárkovaný
+}
+
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
-# Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
+# Soví vrch (Lužické hory, povodí Svitávky) — vlastní terénně mapovaná oblast uživatele
+# (proto výchozí lokalita; zná tu ground-truth). Členitý terén vhodný pro OB.
 DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 
 # =====================================================================
@@ -332,29 +355,56 @@ def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
             pos += step
 
 
-def _draw_path(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
-               curve_px: list[tuple[float, float]], code: int) -> None:
-    """Nakreslí jednu cestu na mapu i do GT masky podle ISOM render stylu (PATH_STYLE).
+def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                      curve_px: list[tuple[float, float]], color: tuple,
+                      mode: str, width: int, dash: tuple | None, cls: int) -> None:
+    """Generický liniový symbol na mapu (`draw`) + třída do GT masky (`mdraw`).
 
-    Sjednocuje render procedurálních i reálných cest (izomorfismus): `solid` = plná,
-    `dashed` = čárkovaná (dle dash/gap stylu), `casing` = dvě černé hrany se světlou
-    výplní (502 Wide road — PoC aproximace silnice „na šířku"; věrná dvojitá linie na
-    skutečnou šířku je rozšíření). Maska dostává třídu PATH_CLASS místo barvy.
+    Jediná kreslicí logika pro VŠECHNY liniové symboly (izomorfismus / DRY): cesty
+    (černá, PATH_STYLE) i vodní toky (modrá, WATER_LINE_STYLE) přes ni jdou stejně,
+    liší se jen `color`/`mode`/`dash`. `solid` = plná, `dashed` = čárkovaná (dle
+    dash/gap), `casing` = silná barva + tenčí bílá výplň (jen silnice 502 — PoC
+    aproximace dvojité linie „na šířku"). Maska dostává `cls` místo barvy.
     """
     if len(curve_px) < 2:
         return
-    mode, width, dash = PATH_STYLE[code]
-    cls = PATH_CLASS[code]
     if mode == "solid":
-        draw.line(curve_px, fill=C_BLACK, width=width)
-        pdraw.line(curve_px, fill=cls, width=width)
+        draw.line(curve_px, fill=color, width=width)
+        mdraw.line(curve_px, fill=cls, width=width)
     elif mode == "dashed":
         d, g = dash
-        _draw_dashed(draw, pdraw, curve_px, C_BLACK, cls, dash=d, gap=g, width=width)
-    else:  # casing: silná černá, přes ni tenčí bílá → dojem dvou paralelních hran
-        draw.line(curve_px, fill=C_BLACK, width=width)
+        _draw_dashed(draw, mdraw, curve_px, color, cls, dash=d, gap=g, width=width)
+    else:  # casing: silná barva, přes ni tenčí bílá → dojem dvou paralelních hran
+        draw.line(curve_px, fill=color, width=width)
         draw.line(curve_px, fill=C_WHITE, width=max(1, width - 2))
-        pdraw.line(curve_px, fill=cls, width=width)   # maska = plná šířka silnice
+        mdraw.line(curve_px, fill=cls, width=width)
+
+
+def _draw_path(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
+               curve_px: list[tuple[float, float]], code: int) -> None:
+    """Cesta (černá) dle ISOM render stylu (PATH_STYLE) — tenký wrapper nad _draw_line_symbol."""
+    mode, width, dash = PATH_STYLE[code]
+    _draw_line_symbol(draw, pdraw, curve_px, C_BLACK, mode, width, dash, PATH_CLASS[code])
+
+
+def _draw_water_line(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
+                     curve_px: list[tuple[float, float]], code: int) -> None:
+    """Vodní tok (modrá) dle WATER_LINE_STYLE — wrapper nad _draw_line_symbol (izomorfní s cestou)."""
+    mode, width, dash = WATER_LINE_STYLE[code]
+    _draw_line_symbol(draw, wdraw, curve_px, C_BLUE, mode, width, dash, WATER_CLASS[code])
+
+
+def _draw_water_area(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
+                     ring_px: list[tuple[float, float]], code: int) -> None:
+    """Vodní plocha (ISOM 301): modrá výplň + černá břehová linie na mapu + třída do masky.
+
+    PIL polygon vyplní uzavřený prstenec; `outline` dá břehovou linii (ISOM 301 = výplň
+    s bank line). Maska dostane plnou výplň třídou WATER_CLASS (plošná GT, ne jen obrys).
+    """
+    if len(ring_px) < 3:
+        return
+    draw.polygon(ring_px, fill=C_BLUE, outline=C_BLACK)
+    wdraw.polygon(ring_px, fill=WATER_CLASS[code])   # maska = plná šířka silnice
 
 
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
@@ -467,9 +517,9 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                lat: float, lon: float, elev: np.ndarray, crs_epsg: int | None,
+                water_mode: str, lat: float, lon: float, elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
-                point_symbols: list[dict], omap_info: dict) -> dict:
+                point_symbols: list[dict], water_info: list[dict], omap_info: dict) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
     Vyčleněno z generate() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
@@ -479,6 +529,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     # cesty: legendu symbolů/tříd stavíme dynamicky ze SKUTEČNĚ použitých ISOM kódů
     # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
     used_path_codes = sorted({p["symbol"] for p in paths_info})
+    used_water_codes = sorted({w["symbol"] for w in water_info})
     return {
         "seed": seed,
         "params": {"rug": rug, "det": det},
@@ -514,6 +565,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             # reálné cesty = ČÚZK open data → atribuce povinná (CC BY 4.0)
             **({"licence": "CC BY 4.0 (ČÚZK ZABAGED)"} if paths_mode == "real" else {}),
         },
+        # voda (hydrografie): toky + plochy ze ZABAGED WFS (real-půlka, Sez. 17). Sekce
+        # jen když water_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"water": {
+            "count": len(water_info),
+            "mask": "mask_water.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): WATER_NAME[c] for c in used_water_codes},
+            "classes": {"0": "pozadí",
+                        **{str(WATER_CLASS[c]): f"{c} {WATER_NAME[c]}" for c in used_water_codes}},
+            "items": water_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if water_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -605,11 +668,61 @@ def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
     return path_features, paths_info
 
 
+def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list, list]:
+    """Reálná voda (real-půlka hydrografie, Sez. 17): toky + plochy ze ZABAGED WFS.
+
+    Mirror _generate_real_paths: stáhne vodu (zabaged.fetch_water), mapuje na ISOM
+    (map_water_to_isom; None = podzemní tok → přeskočit), transformuje S-JTSK → grid
+    (Y-flip, sever = ymax) → px a kreslí (toky linie 304/305/306, plochy polygon 301).
+    Tentýž výsek jako DMR/cesty (sdílený build_bbox) → voda sedne na terén. Reálné linie
+    jsou hladké (vektor z reality) → žádný splajn. Vrací (line_features, area_features,
+    water_info) v souřadnicích MŘÍŽKY (zdroj pro vektor/OMAP).
+    """
+    from zabaged import fetch_water, map_water_to_isom
+    xmin, ymin, xmax, ymax = geo_bbox
+    line_feats, area_feats = fetch_water(lat, lon, GW, GH, TILE_M)
+
+    def to_grid(x: float, y: float) -> tuple[float, float]:
+        return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
+
+    line_features: list[tuple] = []
+    area_features: list[tuple] = []
+    water_info: list[dict] = []
+    for f in line_feats:
+        code = map_water_to_isom(f["layer"], f["props"])
+        if code is None:                       # podzemní tok → nekreslit
+            continue
+        for line in f["lines"]:
+            grid = [to_grid(x, y) for x, y in line]
+            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            if len(px) < 2:
+                continue
+            _draw_water_line(draw, wdraw, px, code)
+            line_features.append((grid, code))
+            water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "line",
+                               "layer": f["layer"], "name": f["props"].get("jmeno")})
+    for f in area_feats:
+        code = map_water_to_isom(f["layer"], f["props"])
+        if code is None:
+            continue
+        for ring in f["rings"]:
+            grid = [to_grid(x, y) for x, y in ring]
+            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            _draw_water_area(draw, wdraw, px, code)
+            area_features.append((grid, code))
+            water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "area",
+                               "layer": f["layer"]})
+    return line_features, area_features, water_info
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
 def generate(seed: int, rug: float, det: float, out_dir: str,
-             terrain: str = "noise", paths: str = "proc",
+             terrain: str = "noise", paths: str = "proc", water: str = "off",
              lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
@@ -636,6 +749,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     """
     if paths == "real" and terrain != "real":
         raise ValueError("--paths real vyžaduje --terrain real (reálné cesty potřebují "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if water == "real" and terrain != "real":
+        raise ValueError("--water real vyžaduje --terrain real (reálná voda potřebuje "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
@@ -700,8 +816,21 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
+    # --- voda (hydrografie): reálná ze ZABAGED WFS (real-půlka, Sez. 17) ---
+    # Kreslí se PO vrstevnicích, PŘED cestami (z-order): modré toky/plochy leží na hnědém
+    # terénu, černé cesty (mosty/lávky) je překryjí nahoře. Jen --water real (proc D8 = příště).
+    water_line_features: list[tuple] = []
+    water_area_features: list[tuple] = []
+    water_info: list[dict] = []
+    water_mask_img: Image.Image | None = None
+    if water == "real":
+        water_mask_img = Image.new("L", (W, H), 0)      # GT maska vody (§8.1), multi-class
+        wdraw = ImageDraw.Draw(water_mask_img)
+        water_line_features, water_area_features, water_info = _generate_real_water(
+            draw, wdraw, lat, lon, geo_bbox)
+
     # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
-    # Kreslí se PO vrstevnicích, PŘED bodovými symboly (z-order). Obě větve sdílí render
+    # Kreslí se PO vodě, PŘED bodovými symboly (z-order). Obě větve sdílí render
     # (_draw_path) i GT masku — liší se jen zdrojem geometrie (proc Dijkstra / real WFS).
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
     pdraw = ImageDraw.Draw(path_mask_img)
@@ -725,17 +854,24 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     cmask_img.save(out / "mask_contours.png")
     path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
+    if water_mask_img is not None:
+        water_mask_img.save(out / "mask_water.png")                         # voda (GT, multi-class)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
-    # .omap export (§9): vrstevnice + cesty + bodové symboly vložené do uživatelova čistého
-    # ISOM 2017-2 template (template_classic.omap — věrná geometrie bodů, Sez. 14). Local CRS.
+    # .omap export (§9): vrstevnice + cesty + voda + body do uživatelova čistého ISOM 2017-2
+    # template (template_classic.omap, Sez. 14). Vodní toky 304/305/306 = liniové objekty;
+    # plochy → 301.1 (plošný symbol, jistě přiřaditelný objektu; kombinovaný 301 s břehem
+    # je rozšíření). Vše type-1 objekt (OOM rozlišuje linie/plochu podle typu symbolu).
+    water_omap_features = ([(g, c) for g, c in water_line_features]
+                           + [(g, "301.1") for g, _ in water_area_features])
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
-                             GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
+                             water_omap_features, GW, GH, WORLD_W_M, TILE_M, MAP_SCALE,
+                             out / "map.omap")
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, lat, lon, elev, crs_epsg,
-                       n_contours, n_paths, paths_info, point_symbols, omap_info)
+    meta = _build_meta(seed, rug, det, terrain, paths, water, lat, lon, elev, crs_epsg,
+                       n_contours, n_paths, paths_info, point_symbols, water_info, omap_info)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
@@ -750,12 +886,15 @@ def main() -> None:
     p.add_argument("--paths", choices=["proc", "real"], default="proc",
                    help="proc = procedurální Dijkstra (default), real = ČÚZK ZABAGED WFS "
                         "(vyžaduje --terrain real)")
+    p.add_argument("--water", choices=["off", "real"], default="off",
+                   help="off = bez vody (default), real = ČÚZK ZABAGED WFS toky+plochy "
+                        "(vyžaduje --terrain real; proc hydro D8 = budoucí)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
-    out = generate(args.seed, args.rug, args.det, args.out,
-                   terrain=args.terrain, paths=args.paths, lat=args.lat, lon=args.lon)
+    out = generate(args.seed, args.rug, args.det, args.out, terrain=args.terrain,
+                   paths=args.paths, water=args.water, lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
 
