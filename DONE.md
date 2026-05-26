@@ -2,6 +2,34 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 22 (2026-05-26) — Displacement L2 (implementace) + nález pravoúhlost budov
+- [x] **Kartografická generalizace Úroveň 2 — displacement** (`generator.py`): odsazení budov od pevné
+      sítě (cesty+toky=kotva) a od sebe na ISOM min. mezeru 0,4 mm (`DISPLACE_GAP_PX`≈1,83 px).
+      `resolve_displacement` — greedy kolmé odsazení od nejbližší linie (mezera k OKRAJI, nese půl
+      render-šířky `_line_half_width_px`), budova↔budova symetricky (každá půl), akumulovaný posun
+      clampovaný na strop `MAX_DISPLACE_PX`≈3,67 px (0,8 mm). Budova = tuhé těleso → translace celého ringu.
+- [x] **Inverze kontroly LOKÁLNÍ jen pro budovy** (nález proti odhadu Sez. 21 „největší skrytý náklad"):
+      rastrový z-order kreslí budovy POSLEDNÍ → pevná síť (voda+cesty) hotová → žádný přepis `generate()`.
+      Split `_generate_real_buildings` → `_collect_real_buildings` (fetch→map→L1, bez kresby) +
+      `_resolve_and_draw_buildings` (displacement→kresba→grid pro OMAP). `_fixed_network_px` (cesty+toky
+      → px linie + half_width). Tolerance WFS obaluje jen SBĚR; resolve+draw běží na sebraném.
+- [x] **GT konzistence:** posun na px geometrii → render + `mask_buildings.png` + OMAP z téže geometrie
+      (jako L1, px→grid inverze). Posunutá maska JE správná GT (UC5 čte mapu, ne realitu).
+- [x] **Datová korekce zadání „1–2 iterace" → 8** (verify-against-source vyvrátil vlastní odhad):
+      `diagnose_displacement.py` rozšířen o měření PŘED i PO displacementu (`_measure` ×2, import
+      `resolve_displacement`). Při 2 iteracích budova↔budova **regreduje** (14→16 v Č. Švýcarsku — odsazení
+      od cest tlačí budovy k sobě); plató od ~6 (bb zpět na baseline, dořešen slepený pár) → `DISPLACE_ITERATIONS=8`.
+- [x] **Verify (čísly):** proc baseline seed 1 = **65 obj drží** (displacement se proc netýká,
+      behavior-preserving). Real (Č. Švýcarsko, plná realita) = 99 budov / 57 cest / 16 vody / 55 vrstevnic,
+      OMAP **232 obj**, běh 5,2 s. Kolize: budova↔síť 14→**1** (Č. ráj 2→**0**), budova↔budova neutrální
+      (14→14) / +1 (6→7), dotyk/překryv 1→**0**. **Vizuál (před/po výřez): budovy odsazené kolmo od cest,
+      pevná síť netknutá** — efekt decentní, kartograficky správně. Zbytkový trade-off (strop) přiznán.
+- [x] **Censure! (AI — fokus bez vizuální návratnosti):** displacement je „neviditelná" generalizace
+      (posun = minimum čitelnosti 0,4 mm) — měl jsem to říct při VOLBĚ fokusu (L2 = měřitelný, ne vizuální
+      skok, na rozdíl od L1 tvaru). Lekce: u volby fokusu odhadnout i vizuální návratnost.
+- [x] **Nález → příští fokus (uživatel): pravoúhlost budov** (L1 tvar) — lidská obydlí ≈ 99 % obdélníky,
+      na mapě splňuje sotva polovina. Orthogonalizace footprintu, nezávislé na L2. → TODO `[!]`.
+
 ## Sezení 20 (2026-05-26) — batch.py → reálné vrstvy (P1) + zrušení dělení resources
 - [x] **`batch.py` → plná realita** (P1 nález %AUDIT:CODE Sez. 19): reálná sada (`--terrain real`) teď
       kreslí reálné cesty/vodu/budovy ze ZABAGED (Sez. 16-18), ne jen terén + **procedurální** cesty.

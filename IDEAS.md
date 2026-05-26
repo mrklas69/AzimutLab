@@ -103,19 +103,23 @@ GT zůstává konzistentní (maska z téže generalizované geometrie).
 
 - **Úroveň 1 → DONE (Sez. 18):** min. velikost budovy 0,5 mm (`_enforce_min_size`), zjednodušení
   obrysu Douglas-Peucker (`_simplify_polyline`, 0,3 mm passage), tloušťka 505 → 2 px. Levné, foundational.
-- **Úroveň 2 — displacement (→ TODO, `%THINK` Sez. 21):** odsazení budov od cest a mezi sebou na min.
-  mezeru 0,4 mm (1,83 px). Řeší kolizi budov s cestami (uživatelův bod ze Sez. 18).
-  - **Krok 0 změřen** (`diagnose_displacement.py`, Sez. 21): Č. Švýcarsko ~28/99 budov v kolizi
-    (14 budova↔cesta dolní mez „k ose" + 14 budova↔budova), Č. ráj ~6/22. **Dominuje budova↔cesta;
-    shluky budov ~0** (dotyk/překryv 1/0 párů — budovy lemují cesty v údolí, nelepí se na sebe).
-    → reálný jev (ne záclona), ale **lehký nástroj stačí** (ne NP-hard relaxace shluků).
-  - **Zúžený algoritmus** (datově odůvodněný): **greedy kolmé odsazení budovy od nejbližší pevné
-    linie** (cesty + voda = kotva, rozhodnuto Sez. 21), budova↔budova symetricky, **malý strop posunu**
-    (velký posun = horší než kolize), **1–2 iterace** na sekundární kolize. Pořadí: L1 (min-size) → L2.
-  - **GT konzistence (tvrdý požadavek):** posun na geometrii → render + `mask_buildings.png` + OMAP
-    z téže posunuté geometrie (jako L1). UC5 čte MAPU, ne realitu → posunutá maska je správná GT.
-  - **Pipeline (skrytý náklad):** inverze kontroly u real vrstev — dnes `_generate_real_*` kreslí
-    inline; L2 vyžaduje fázi *sběr geometrie všech vrstev → resolve_displacement → draw*.
+- **Úroveň 1b — pravoúhlost budov (→ TODO `[!]`, fokus Sez. 23):** lidská obydlí ≈ 99 % obdélníky;
+  reálné ZABAGED footprinty mají šikmé/zaoblené hrany a Douglas-Peucker je nenarovná na pravé úhly →
+  na mapě je pravoúhlá sotva polovina (nález uživatele Sez. 22). Orthogonalizace TVARU: dominantní osa
+  budovy + snap hran na násobky 90°, příp. min-area bounding rectangle u malých. **Nezávislé na L2**
+  (displacement translatuje tuhý ring, tvar neřeší). Metoda k probrání (uživatelovy noty).
+- **Úroveň 2 — displacement → DONE (Sez. 22):** odsazení budov od pevné sítě (cesty+toky=kotva) a od
+  sebe na ISOM 0,4 mm (≈1,83 px). `resolve_displacement` — greedy kolmé odsazení (mezera k OKRAJI),
+  budova↔budova symetricky, strop 0,8 mm, 8 iterací. Budova = tuhé těleso → translace celého ringu.
+  - **Krok 0 (Sez. 21):** Č. Švýcarsko ~28/99 v kolizi, dominuje budova↔cesta, shluky budov ~0
+    → greedy stačí (ne NP-hard relaxace). **Pořadí: L1 (tvar) → L2 (poloha).**
+  - **Inverze kontroly = LOKÁLNÍ** (Sez. 22 nález proti odhadu Sez. 21): z-order kreslí budovy poslední
+    → pevná síť hotová → split jen budov (`_collect_real_buildings`+`_resolve_and_draw_buildings`),
+    žádný přepis `generate()`.
+  - **GT konzistence:** posun na px geometrii → render + maska + OMAP z téže geometrie (jako L1).
+  - **Datová korekce „1–2 iterace" → 8** (Sez. 22): při 2 budova↔budova regresuje (14→16, odsazení od
+    cest tlačí budovy k sobě); plató od ~6. Verify `diagnose_displacement.py` (před/po): síť 14→1, dotyk 1→0.
+  - **Zbytkové (odloženo):** vodní plochy do kotvy (zatím jen toky, shoda s krokem 0); ladění stropu.
 
 ## OOM draw order = priorita barev (Sez. 18, zafixováno)
 

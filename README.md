@@ -13,7 +13,8 @@ domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and — si
 ČÚZK ZABAGED Polohopis WFS (`--paths real`, ISOM 502-506), — since session 17 — real water from the same
 `zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301), and — since session 18 —
 real buildings (`--buildings real`, ISOM 521) with level-1 cartographic generalization (min. size + Douglas-Peucker
-outline). `zabaged.py` (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+points
+outline) and — since session 22 — level-2 displacement (buildings nudged off the fixed road/water network to the
+ISOM 0,4 mm minimum gap; `resolve_displacement`). `zabaged.py` (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library.**

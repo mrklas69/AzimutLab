@@ -31,7 +31,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (§4.10); (2) **min. velikost** — budova pod ISOM 0,5 mm se kreslí na minimum (`_enforce_min_size`,
   Sez. 18); (3) **zjednodušení obrysu** — Douglas-Peucker (`_simplify_polyline`, detail pod 0,3 mm
   passage se zhrubí). Rozměry ze spec přes `PX_PER_MM` (≈4,58 px/mm při 1:10000). **Úroveň 2 =
-  displacement** (odsazení kolidujících objektů, např. budova↔cesta na 0,4 mm) — odloženo (IDEAS).
+  displacement** (viz níže). Pořadí: L1 (tvar) → L2 (poloha).
+- **Displacement (Úroveň 2 generalizace)** — odsazení kolidujících objektů na ISOM min. čitelnou
+  mezeru 0,4 mm (≈1,83 px); poloha mírně ustoupí ve prospěch čitelnosti. Generátor (Sez. 22,
+  `resolve_displacement`): budovy se kolmo odsadí od pevné sítě (cesty+toky = kotva) a symetricky
+  od sebe; budova = tuhé těleso → translace celého ringu (netvaruje se), strop 0,8 mm, 8 iterací.
 - **Douglas-Peucker** — algoritmus zjednodušení polylinie: zředí vrcholy pod toleranci, zachová
   významné (rohy). Generátor jím generalizuje obrys budov (`_simplify_polyline`, Sez. 18).
 - **Draw order / priorita barev** — pořadí vykreslování vrstev v OOM. Určuje ho **pořadí (priorita)
