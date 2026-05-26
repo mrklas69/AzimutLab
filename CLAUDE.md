@@ -25,5 +25,8 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 ## Klíčové soubory (orientace; plný rozpis README „Repository layout")
 - `docs/architecture.md` — kanonický UC DAG, vrstvení, vztah k Pic2Omap (SSoT modelu).
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
+- `connectors/` — UC2 konektory reálných geodat (`dmr.py` výškopis, `zabaged.py` cesty);
+  vytaženo ze sandboxu (Sez. 16), sourozenci sdílí `dmr.build_bbox`. Sys.path skripty, ne balík.
 - `sandbox/` — izolované experimenty (každý vlastní složka + README).
-- Žádný produkční Python balík zatím (přijde s přechodem na monorepo, fáze A).
+- `connectors/` = první sdílená kódová složka mimo sandbox (krok k fázi A) — pořád ale **ne
+  produkční balík** (ten přijde s přechodem na monorepo, fáze A).

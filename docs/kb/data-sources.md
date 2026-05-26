@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace, Sez. 16)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -73,9 +73,27 @@ i lokální `lasertool` (viz `tools-models.md`) vegetaci zvládly. Vědomě **od
 tvorby map z reálných podkladů**; teď je cíl generovat realisticky vyhlížející mapy (vektor
 vrstevnic z DMR 5G, gate netřeba). Až přijde konzument, prověřit zdroj + licenci znovu.
 
+### ZABAGED komunikace — WFS konektor (POUŽITO, Sez. 16)
+První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do generátoru
+(real-půlka §4.9, izomorfní s `dmr.py` výškopisem). Ověřeno proti zdroji (verify-against-source):
+- **Endpoint:** `https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServer/WFSServer`
+  (ArcGIS WFS 2.0.0; **tatáž doména `ags.cuzk.gov.cz` jako DMR 5G ImageServer** → jedna infrastruktura).
+- **Výhoda: vrací GeoJSON přímo** (`outputFormat=GEOJSON`) → žádný GML parsing (původní obava z IDEAS
+  padla). Izomorfní s `contours.geojson`.
+- **CRS:** S-JTSK (EPSG:5514), shoda s DMR. Axis order odpovědi = **[x, y] = [easting, northing]**
+  (ověřeno: x ≈ -714 tis, y ≈ -964 tis pro Děčínsko) → žádný axis swap.
+- **Feature typy komunikací:** `Cesta` (atributy `typcesty_k`, `povrch_k`), `Pěšina` (`TYPUSKOM_K`),
+  `Silnice__dálnice` (`typsil_k`), `Ulice`, `Turistická_trasa`. Posledně jmenovaná **vynechána**
+  (vede po existující cestě → duplikace sítě).
+- **Mapování → ISOM** (fyzický stav = ISOM logika sjízdnosti, ne 1:1): Silnice/Ulice → 502 Wide road;
+  Cesta zpevněná (`povrch_k` Z/T) → 503 Road, nezpevněná (None) → 504 Vehicle track; Pěšina
+  udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná → 506 Small footpath. (Viz `zabaged.map_to_isom`.)
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED) — atribuce povinná, uložena v `meta.json` (`paths.licence`).
+- **Limit:** WFS 10 000 features/request — pro výsek ~1,5×1 km bohatě stačí (Děčínsko = 58 linií).
+
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).
-  Při psaní konektoru ověřit aktuální GetCapabilities URL, nespoléhat na staré odkazy.
+  Reálná data ale jedou z `ags.cuzk.gov.cz` (ArcGIS) — ověřeno funkční pro DMR i ZABAGED (Sez. 16).
 - LAZ je komprimovaný point cloud / formát výškopisu — pro vrstevnice bude potřeba pipeline
   (LAZ → DMR → vrstevnice), nikoli jen stažení. Detaily až u prvního konektoru.
 - DMR 5G vznikl ze skenování **2009–2013** (dokončeno 2016) — pro restaurované/staré mapy

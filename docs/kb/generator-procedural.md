@@ -151,6 +151,12 @@ délce oblouku). GT do `mask_paths.png` (multi-class 1=503 / 2=505). Z-order: po
 vrstevnicích, před bodovými symboly.
 **✅ Terénně vázané vedení (Sez. 13):** přímý splajn s jitterem nahrazen **Dijkstra
 least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrchol.
+**✅ Reálné cesty (Sez. 16, real-půlka):** `--paths real` nahradí procedurální Dijkstra
+**reálnými komunikacemi z ČÚZK ZABAGED Polohopis WFS** (`zabaged.py`, viz `data-sources.md`).
+Vyžaduje `--terrain real` — sdílí výsek s DMR vrstevnicemi (`dmr.build_bbox`) → cesty sednou
+na terén. Plná ISOM hierarchie **502-506** (silnice / cesta zpevněná / vozová / pěšina) dle
+typu a povrchu (mapování `zabaged.map_to_isom`). Izomorfní s výškopisem: noise↔proc cesty,
+real↔ZABAGED cesty. (Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka — viz IDEAS.)
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
@@ -288,7 +294,8 @@ funkce generate(seed, params):
    skenu (augmentace §8.3 jako samostatná vrstva). Roadmapa a pořadí věrnostních vrstev:
    `IDEAS.md`. (Názvosloví bez A/B — ta patří vztahu k Pic2Omap.)
 5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`
-   v `sandbox/generator-poc/` (modul `dmr.py`). Místo `fractal()` dosadí reálný ČÚZK
+   (generátor v `sandbox/generator-poc/`, konektor `connectors/dmr.py` od Sez. 16). Místo
+   `fractal()` dosadí reálný ČÚZK
    DMR 5G přes ArcGIS ImageServer `exportImage` (float32 grid přímo, ne LAZ → žádný GDAL;
    WGS84→S-JTSK přes pyproj, poměrový výsek pro izotropní buňku). Vrstevnice pak nejsou
    „věrohodné", ale skutečné; model se učí na reálné geometrii terénu. Vegetace/bažiny
@@ -317,6 +324,14 @@ funkce generate(seed, params):
     `_catmull_rom`. Deterministická (tie-break počítadlem). Funguje pro noise i real
     (na reálném DMR cesty vedou skutečnými sedly/údolími). „Vede údolím" v plném smyslu
     (preferuje údolnice) přijde až s hydro jádrem (toky = údolnice); teď jen vazba na sklon.
+- **Reálné cesty místo procedurálních** (real-půlka, Sez. 16): `--paths real` vezme skutečnou
+  síť komunikací z **ČÚZK ZABAGED Polohopis WFS** (vektor, GeoJSON) pro tentýž výsek jako DMR.
+  - **✅ Implementováno:** `zabaged.py` (sourozenec `dmr.py`) — WFS 2.0.0 GetFeature s BBOX, cache
+    `.zabaged_cache/`. Linie v S-JTSK → grid inverzí georef vrstevnic (Y-flip). Mapování ZABAGED
+    kategorií → ISOM 502-506 (`map_to_isom`); render sjednocen s proc přes `_draw_path`/`PATH_STYLE`.
+    Detaily endpointu/mapování/licence: `data-sources.md` „ZABAGED komunikace — WFS konektor".
+    Pozn.: 502 Wide road kreslen PoC casingem (dvě hrany + výplň), ne věrnou dvojitou linií na
+    šířku; rozlišení 505/506 dle udržovanosti pěšiny. Voda z INSPIRE HY zatím neimpl. (IDEAS).
 - **Výstup do vektoru**: pokud potřebuješ OCD/OMAP, exportuj jednotlivé vrstvy jako
   GeoJSON/SHP a konvertuj (OpenOrienteering Mapper umí import GDAL vektorů; OCAD má
   XML skripty). Vrstevnice jdou exportovat přímo z marching squares jako polylinie.

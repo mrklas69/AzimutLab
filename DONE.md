@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 16 (2026-05-26) — Reálné cesty ze ZABAGED WFS (první UC2 konektor)
+- [x] **`zabaged.py`** (nový, první reálný UC2 konektor) — reálné komunikace z ČÚZK ZABAGED
+      Polohopis WFS 2.0.0 (`ags.cuzk.gov.cz`, **tatáž doména jako DMR**). Sourozenec `dmr.py`
+      (NE kopie: dmr=rastr/výškopis, zabaged=vektor/cesty), sdílí `build_bbox` → bezešvost na terén.
+      **GeoJSON output přímo** (obava IDEAS z GML parsingu padla), cache `.zabaged_cache/`.
+- [x] **Verify-against-source před mapováním** (`_diagnostics`): axis order [x,y]=[easting,northing]
+      ověřen na reálných souřadnicích; reálné hodnoty atributů (Cesta `povrch_k` Z/T/None,
+      `typcesty_k`; Pěšina `TYPUSKOM_K`; Silnice `typsil_k`) → mapování psáno na datech, ne hádané.
+- [x] **Mapování ZABAGED → ISOM** (`map_to_isom`, fyzický stav = ISOM logika): Silnice/Ulice →
+      502 Wide road; Cesta zpevněná → 503 Road, nezpevněná → 504 Vehicle track; Pěšina udržovaná →
+      505 Footpath, neudržovaná → 506 Small footpath. Turistická_trasa vynechána (duplikace sítě).
+- [x] **`generator.py` `--paths proc|real`** (real ⇒ terrain real, validace ValueError). Render
+      sjednocen `_draw_path` + `PATH_STYLE`/`PATH_CLASS` (DRY, izomorfismus proc↔real; casing pro
+      502, dashed dle stylu). Proc/real cesty vyčleněny do `_generate_proc_paths`/`_generate_real_paths`
+      (SLAP). Inverze S-JTSK→grid (Y-flip, sdílí georef vrstevnic). `_build_meta` +`paths_mode`
+      (symbols/classes/licence dynamicky dle použitých kódů).
+- [x] **`omap_export.py`** `USED_CODES` +502/504/506 (v template existují: id 108/111/113).
+- [x] **Rozhodnutí: ZABAGED nativní, ne INSPIRE TN** — bohatší kategorizace komunikací pro les,
+      tatáž ags doména, GeoJSON. INSPIRE TN = zbytečná harmonizovaná abstrakce téhož.
+- [x] **Verify (čísly):** proc baseline seed 1 = 65 objektů (56+2+7) = baseline Sez. 14/15 →
+      proc nezměněna. Validace flagu selhala správně. Real = 58 cest (502/503/504/506), OMAP 125
+      obj. **Vizuál: cesty sedí na terén** (silnice v údolích, pěšiny traverzují svahy, Y-flip OK).
+- [x] **KB/spec/README SLAP:** `data-sources.md` sekce „ZABAGED komunikace — WFS konektor"
+      (endpoint, mapování, licence CC BY 4.0), spec §4.9/§9 (real-půlka), sandbox README,
+      `.gitignore` +`.zabaged_cache/`.
+
 ## Sezení 15 (2026-05-25) — %AUDIT:CODE generator-poc + přemapování cesty 507→505
 - [x] **%AUDIT:CODE** (1072 LOC, 5 modulů + spec + GLOSSARY + sandbox README) — LOC práh
       (≥500) padl podruhé po dvou přestavbách. Kód zdravý (DRY paleta, čistý dead-file stav);

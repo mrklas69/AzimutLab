@@ -9,9 +9,11 @@ generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-tr
 "better, layer by layer" (session 11): currently contours + terrain-aware paths (§9, Dijkstra
 least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
 109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
-domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and exports contours+paths+points
-to GeoJSON and to `.omap` — template-based on a clean self-made ISOM 2017-2 template (session 14),
-inheriting faithful point geometry (110 ellipse, 111 arc) + the full symbol library.**
+domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and — since session 16 — real paths from
+ČÚZK ZABAGED Polohopis WFS (`--paths real`, ISOM 502-506; the first real UC2 connector, `zabaged.py`,
+sibling of `dmr.py`). Exports contours+paths+points to GeoJSON and to `.omap` — template-based on a
+clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
+111 arc) + the full symbol library.**
 
 ## What this is
 
@@ -42,7 +44,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 | UC | Name | Scope | Status |
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
-| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ☐ research only |
+| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ◐ first connectors live (DMR 5G terrain, ZABAGED paths) |
 | UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
@@ -73,10 +75,13 @@ docs/
     isom-issprom.md    #   symbol semantics, spec links
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
     generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
+connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
+  dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths (WFS, GeoJSON); --paths real
 sandbox/               # UC1: isolated experiments, one folder each
   generator-poc/       #   first code: procedural OB-map generator (contours + paths + extremum symbols + masks)
-                       #     + dmr.py: real terrain from ČÚZK DMR 5G (--terrain real, Option 2)
-                       #     + template_classic/sprint.omap: clean ISOM/ISSprOM templates for .omap export
+                       #     consumes connectors/ for real terrain & paths; adds them to sys.path
+                       #     + template_classic.omap: clean ISOM 2017-2 template for .omap export
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods
 GLOSSARY.md            # project terminology

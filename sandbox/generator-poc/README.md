@@ -7,8 +7,12 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 - **vrstevnice** — izolinie výškového pole (§4.5), hlavní zvýrazněné (3 px),
 - **bodové symboly extrémů** — malé uzavřené vrstevnice → ISOM **109/110/111**
   (kopeček / protáhlý kopeček / prohlubeň; ISOM 2017-2 Rev 6, Sez. 13), generalizace (§4.10),
-- **cesty** — terénně vázané **Dijkstra least-cost** (§9, Sez. 13), hlavní plná (ISOM **503**) /
-  vedlejší čárkovaná (ISOM **505 Footpath**); cesty traverzují svah, nešplhají přes vrcholy,
+- **cesty** — dvě větve (`--paths`):
+  - `proc` (default) — procedurální **Dijkstra least-cost** (§9, Sez. 13), hlavní plná (ISOM
+    **503**) / vedlejší čárkovaná (ISOM **505**); cesty traverzují svah, nešplhají přes vrcholy,
+  - `real` — **reálné komunikace z ČÚZK ZABAGED WFS** (real-půlka §4.9, Sez. 16; `zabaged.py`),
+    mapované na plnou ISOM hierarchii **502-506** (silnice/cesta zpevněná/vozová/pěšina) podle
+    typu a povrchu. Vyžaduje `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).
@@ -39,6 +43,10 @@ obchází sparse-GT past z Pic2Omap.
 # Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Děčínsko, §8.5):
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out sandbox\generator-poc\output
 # jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
+
+# reálné cesty z ČÚZK ZABAGED WFS (real-půlka; vyžaduje --terrain real):
+.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --paths real --out sandbox\generator-poc\output
+# komunikace pro výsek se cachují do .zabaged_cache/
 ```
 
 Každý běh píše i `map.omap` (template-based nad `template_classic.omap` — otevři v OOM).
@@ -58,18 +66,21 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 |--------|-------|
 | `rgb.png` | finální mapa (vstup modelu) |
 | `mask_contours.png` | binární maska vrstevnic |
-| `mask_paths.png` | multi-class maska cest (1=503 hlavní / 2=505 vedlejší; GT, ne náhled) |
+| `mask_paths.png` | multi-class maska cest (1=503 / 2=505 / 3=502 / 4=504 / 5=506; proc dělá 1+2, real 2-6 dle dat) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `contours.geojson` | **vektor** vrstevnic (LineString + ISOM symbol 101/102; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 503/505 + body 109/110/111, plná ISOM knihovna) |
+| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 502-506 + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack
 
-Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen `--terrain real`,
-WGS84→S-JTSK). Venv v kořeni repa (`.venv`).
+Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen real terén/cesty,
+WGS84→S-JTSK). Venv v kořeni repa (`.venv`). Konektory reálných dat žijí v **`connectors/`**
+v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace — sourozenci, sdílejí `dmr.build_bbox`);
+generátor si jejich složku přidá na `sys.path` (Sez. 16, vytaženo ze sandboxu).
 
-Reálný terén = ČÚZK DMR 5G open data, **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).
+Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (cesty), obojí open data
+**CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).
 
 ## Determinismus
 

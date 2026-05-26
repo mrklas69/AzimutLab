@@ -80,19 +80,22 @@ realnost-artefaktu se přidá, nepřepisuje.
   procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
   **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
   sparse-GT past. Reálný terén (ČÚZK DMR 5G) dosazen přes `--terrain real` (§8.5, hotovo Sez. 5).
-- **Reálné cesty/komunikace ze ZABAGED (UC2 → UC4-II).** U `--terrain real` by generátor mohl
-  vzít skutečnou síť cest ze **ZABAGED Polohopis** (WFS, vektor komunikací, CC BY 4.0) místo
-  procedurálního splajnu — vysoká věrnost (cesta vede údolím, sedí na reálný terén), přesná GT
-  z vektoru. Cena: nový WFS konektor (UC2 práce, pozor na změnu URL 2/2026), funguje **jen pro
-  real** (noise nemá souřadnice), hybrid se zbytkem syntetiky, mapování ZABAGED kategorie →
-  ISOM 502-507 není 1:1 (správní třída vs zřetelnost/sjízdnost). Vědomě odloženo (Sez. 11): je
-  to samostatný enabler, ne přílepek k §4.9. Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka
-  (izomorfní s tím, jak je řešený výškopis noise/real). Pozn.: „ze ZM5" je omyl — ZM5 je zrušený
-  rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
+- **Reálné cesty/komunikace ze ZABAGED (UC2 → UC4-II). → DONE (Sez. 16).** Realizováno: `zabaged.py`
+  (WFS, GeoJSON), `--paths real`, mapování ZABAGED→ISOM 502-506. Vše, co tato úvaha předpovídala,
+  sedlo: vysoká věrnost (cesty vedou údolími na reálném terénu), přesná GT z vektoru, real-only,
+  mapování ne 1:1 (povrch/udržovanost → sjízdnost). Detail: `data-sources.md` + spec §4.9/§9.
+  Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka (izomorfní s výškopisem noise/real).
+  Pozn.: „ze ZM5" byl omyl — ZM5 je zrušený rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
+  **Voda zůstává:** ZABAGED Polohopis obsahuje i vodstvo → reálná voda jde stejným konektorem
+  (rozšířit o vodní feature typy → ISOM 301-305), data-driven protějšek proc hydro jádra (D8).
 
 - **Reálné cesty + vodstvo z INSPIRE (UC2 → UC4-II, navrženo Sez. 14).** Uživatel navrhl dosadit
   reálné cesty z **INSPIRE Transport Networks (TN)** a vodu z **INSPIRE Hydrography (HY)** jako
   vektorovou vrstvu → ISOM symboly (502-507 / 301-305) + GT maska (rozhodnuto: vektor, ne podklad).
+  > **Aktualizace (Sez. 16): cesty realizovány přes ZABAGED nativní, NE INSPIRE TN** (viz bod výše).
+  > Důvod: ZABAGED má bohatší kategorizaci komunikací pro les + tatáž `ags.cuzk.gov.cz` doména jako
+  > DMR + GeoJSON output. INSPIRE TN = harmonizovaná EU verze téhož → zbytečná abstrakce. **INSPIRE HY
+  > voda zůstává jako alternativa k ZABAGED vodstvu** — rozhodnout, který zdroj při reálné vodě (níže).
   **Past (oponováno):** navržené URL byly **WMS** (`WMS_INSPIRE_TN/HY`) = rastr (obrázek), z něj by
   se vektor musel segmentovat — ztrátový UC4-III problém. Správně **WFS** (`WFS_INSPIRE_TN/HY`, GML
   vektor) nebo INSPIRE download. Izomorfní s lekcí ZM5-rastr/ZABAGED-vektor (výše).

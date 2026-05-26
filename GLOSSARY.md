@@ -29,10 +29,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru:
   příliš malý kopeček/prohlubeň se nekreslí prstencem vrstevnice, ale bodovou značkou (§4.10).
 - **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
-  **503 Road** (zpevněná, plná čára) … **505 Footpath** (pěšina, čárkovaná) … **507 Less
-  distinct small footpath** (méně zřetelná). Generátor dělá dvě třídy: hlavní plná (503) /
-  vedlejší čárkovaná (**505 Footpath**, Sez. 15 — 505 je v ISOM čárkovaná; dřív mylně 507),
-  vedení terénně vázané Dijkstra least-cost (§9).
+  **502 Wide road** (silnice) · **503 Road** (zpevněná, plná čára) · **504 Vehicle track**
+  (vozová, nezpevněná, čárkovaná) · **505 Footpath** (pěšina, čárkovaná) · **506 Small footpath**
+  (malá/neudržovaná). Generátor má dvě větve (`--paths`): **proc** = procedurální Dijkstra
+  least-cost (§9), hlavní 503 / vedlejší 505; **real** = reálné komunikace ze ZABAGED WFS
+  (Sez. 16), plná hierarchie 502-506 dle povrchu/udržovanosti.
+- **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
+  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace). Izomorfní:
+  `--terrain noise|real` ↔ `--paths proc|real`. Nemíchat zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
