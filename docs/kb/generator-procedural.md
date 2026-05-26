@@ -139,6 +139,14 @@ hustot ⇒ geometricky konzistentní.
 (skok do nejnižšího osmi-souseda) až na okraj / do lokálního minima. Toky kratší než
 14 kroků se zahodí. Vykreslení vyhlazenou křivkou modře. **Počátek toku se uloží
 pro pramen** (4.10).
+**✅ Reálná voda (Sez. 17, real-půlka):** `--water real` vezme skutečnou hydrografii z **ČÚZK
+ZABAGED Polohopis WFS** (`zabaged.fetch_water`, týž konektor jako cesty) pro tentýž výsek jako
+DMR. Vyžaduje `--terrain real`. **Vodní_tok** → ISOM **304** (pojmenovaný stálý) / **305**
+(bezejmenný stálý) / **306** (občasný, čárkovaný); podzemní toky se nekreslí. **Vodní_plocha** →
+**301** (modrá výplň + břeh). Pramen **312 Spring** se táhne ze `Zdroj_podzemních_vod` (v demo
+výřezu žádný → vynechán). Modrá `C_BLUE`, GT `mask_water.png`. Z-order: po vrstevnicích, před
+cestami. Procedurální §4.8 (proc voda) = noise-půlka; hydro jádro D8 budoucí (viz IDEAS). Detaily
+mapování/licence: `data-sources.md` „ZABAGED vodstvo — WFS konektor".
 
 ### 4.9 Cesty
 `1 + round(det*1.6)` cest, konce na protilehlých okrajích (vodorovně/svisle), náhodná

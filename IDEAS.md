@@ -86,8 +86,10 @@ realnost-artefaktu se přidá, nepřepisuje.
   mapování ne 1:1 (povrch/udržovanost → sjízdnost). Detail: `data-sources.md` + spec §4.9/§9.
   Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka (izomorfní s výškopisem noise/real).
   Pozn.: „ze ZM5" byl omyl — ZM5 je zrušený rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
-  **Voda zůstává:** ZABAGED Polohopis obsahuje i vodstvo → reálná voda jde stejným konektorem
-  (rozšířit o vodní feature typy → ISOM 301-305), data-driven protějšek proc hydro jádra (D8).
+  **Voda → DONE (Sez. 17).** Realizováno týmž konektorem (`fetch_water`): `Vodní_tok` →
+  toky ISOM 304/305/306 (dle stálý/občasný/pojmenovaný; podzemní skip), `Vodní_plocha` → 301.
+  **Pramen 312 vynechán** — `Zdroj_podzemních_vod` 0 ve výřezu (nevymýšlet, co v datech není).
+  Proc hydro jádro D8 = DROP (budoucí noise-půlka, nemíchat osy). Detail: `data-sources.md`.
 
 - **Reálné cesty + vodstvo z INSPIRE (UC2 → UC4-II, navrženo Sez. 14).** Uživatel navrhl dosadit
   reálné cesty z **INSPIRE Transport Networks (TN)** a vodu z **INSPIRE Hydrography (HY)** jako
@@ -95,7 +97,7 @@ realnost-artefaktu se přidá, nepřepisuje.
   > **Aktualizace (Sez. 16): cesty realizovány přes ZABAGED nativní, NE INSPIRE TN** (viz bod výše).
   > Důvod: ZABAGED má bohatší kategorizaci komunikací pro les + tatáž `ags.cuzk.gov.cz` doména jako
   > DMR + GeoJSON output. INSPIRE TN = harmonizovaná EU verze téhož → zbytečná abstrakce. **INSPIRE HY
-  > voda zůstává jako alternativa k ZABAGED vodstvu** — rozhodnout, který zdroj při reálné vodě (níže).
+  > voda: rozhodnuto Sez. 17 = ZABAGED nativní** (jako cesty), ne INSPIRE HY (zbytečná harmonizovaná abstrakce).
   **Past (oponováno):** navržené URL byly **WMS** (`WMS_INSPIRE_TN/HY`) = rastr (obrázek), z něj by
   se vektor musel segmentovat — ztrátový UC4-III problém. Správně **WFS** (`WFS_INSPIRE_TN/HY`, GML
   vektor) nebo INSPIRE download. Izomorfní s lekcí ZM5-rastr/ZABAGED-vektor (výše).

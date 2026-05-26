@@ -16,6 +16,10 @@ viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.
 - **Pic2Omap je sourozenec, ne kopie.** Dokud jsme deštník (fáze B), Pic2Omap
   žije ve vlastním repu — neduplikuj jeho kód sem; odkazuj. Absorpce (fáze A)
   je vědomý budoucí krok, ne tichý drift.
+- **Vizuál ukazuj proaktivně.** Po každém renderu / změně vzhledu sám ukaž výstup
+  (`rgb.png` přes Read), neptej se „chceš vidět?". Uživatel je rozhodující článek
+  vizuálního verify (oko = source, doplněk verify-against-source). Proč/detail:
+  paměť `always-show-visual-output`.
 
 ## %THINK — doménové rozšíření
 U map/CV/generování zvaž: ISOM↔ISSprOM spec rozdíly, paper-space vs world georef,
@@ -25,7 +29,7 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 ## Klíčové soubory (orientace; plný rozpis README „Repository layout")
 - `docs/architecture.md` — kanonický UC DAG, vrstvení, vztah k Pic2Omap (SSoT modelu).
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
-- `connectors/` — UC2 konektory reálných geodat (`dmr.py` výškopis, `zabaged.py` cesty);
+- `connectors/` — UC2 konektory reálných geodat (`dmr.py` výškopis, `zabaged.py` cesty+voda);
   vytaženo ze sandboxu (Sez. 16), sourozenci sdílí `dmr.build_bbox`. Sys.path skripty, ne balík.
 - `sandbox/` — izolované experimenty (každý vlastní složka + README).
 - `connectors/` = první sdílená kódová složka mimo sandbox (krok k fázi A) — pořád ale **ne

@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace, Sez. 16)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -90,6 +90,18 @@ První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do gen
   udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná → 506 Small footpath. (Viz `zabaged.map_to_isom`.)
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED) — atribuce povinná, uložena v `meta.json` (`paths.licence`).
 - **Limit:** WFS 10 000 features/request — pro výsek ~1,5×1 km bohatě stačí (Děčínsko = 58 linií).
+
+### ZABAGED vodstvo — WFS konektor (POUŽITO, Sez. 17)
+Rozšíření téhož konektoru o hydrografii (real-půlka, `fetch_water` / `map_water_to_isom`). Stejný
+endpoint / CRS / GeoJSON / axis [x,y] jako komunikace. Ověřeno proti zdroji na výřezu Soví vrchu:
+- **Feature typy:** `Vodní_tok` (toky; `vydattok_p` stálý/občasný, `typtoku_k` 004=podzemní, `jmeno`),
+  `Vodní_plocha` (plochy; `STOJVODA`, `TYP_VP_P`). Pramen `Zdroj_podzemních_vod` (`typzdroj_k`
+  PS=pramen / VR=studna,vrt) — ve výřezu 0 (nejbližší PS 1,9 km) → nekreslen.
+- **Mapování → ISOM** (fyzický stav, ne 1:1): podzemní tok (`typtoku_k=004`) → nekreslit; občasný →
+  306 Minor/seasonal water channel; pojmenovaný stálý → 304 Crossable watercourse; bezejmenný stálý →
+  305 Small crossable watercourse; plocha → 301 Uncrossable body of water. (Viz `zabaged.map_water_to_isom`.)
+- **Pozn. ISOM:** pramen = **312 Spring** (ne 313 = Prominent water feature — verify-against-source catch, Sez. 17).
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `water.licence`. Soví vrch = 16 toků + 2 plochy.
 
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).

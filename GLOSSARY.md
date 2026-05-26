@@ -34,9 +34,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (malá/neudržovaná). Generátor má dvě větve (`--paths`): **proc** = procedurální Dijkstra
   least-cost (§9), hlavní 503 / vedlejší 505; **real** = reálné komunikace ze ZABAGED WFS
   (Sez. 16), plná hierarchie 502-506 dle povrchu/udržovanosti.
+- **Vodní tok / vodní plocha** (hydrografie) — voda na OB mapě, modrá. Toky ISOM **304**
+  Crossable watercourse (hlavní, pojmenovaný) / **305** Small crossable watercourse (přítok) /
+  **306** Minor/seasonal water channel (občasný, čárkovaný); plochy **301** Uncrossable body
+  of water (výplň + břehová linie). **312 Spring** (pramen — pozor, ne 313 = Prominent water
+  feature). Generátor `--water real` (Sez. 17): reálná půlka ze ZABAGED `Vodní_tok`/`Vodní_plocha`;
+  podzemní toky (`typtoku_k=004`) se nekreslí. Procedurální voda (hydro jádro D8) = budoucí noise-půlka.
 - **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
-  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace). Izomorfní:
-  `--terrain noise|real` ↔ `--paths proc|real`. Nemíchat zdroje napříč osou.
+  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda). Izomorfní:
+  `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real`. Nemíchat zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 

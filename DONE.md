@@ -2,6 +2,37 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 17 (2026-05-26) — %CALIBRATE úklid (1. svého druhu) + reálná voda ze ZABAGED WFS
+- [x] **%CALIBRATE (1. meta-audit projektu)** + IDEAS/TODO pruning — oba prahy poprvé
+      (grep diáře: nikdy neproběhly). Schváleno vše: **D1** projektový `settings.local.json`
+      ~45→9 wildcardů (redundantní `git -C`, holé echo-stringy, jednorázové `Start-Process`);
+      **D2** dvě `[x]` položky z TODO odmazány (už v DONE); **D3** `always-show-visual-output`
+      povýšen do `CLAUDE.md` (tvrdé pravidlo); **D4** `MEMORY.md` index doplněn; **K1** TODO
+      UC2 rámování přepsáno (2 konektory žijí); **K2** PROMPTS cadence pozn. opravena +
+      ukotvena; **K3** globální `settings.local.json` `sed` one-offs smazány. Cadence reset Sez. 17.
+- [x] **`connectors/zabaged.py` +voda** (real-půlka hydrografie): `fetch_water` (toky+plochy),
+      `map_water_to_isom` (podzemní→None, občasný→306, pojmenovaný→304, bezejmenný→305,
+      plocha→301), `_geom_to_polygons` (outer rings). Verify-against-source: GetCapabilities
+      → `Vodní_tok`/`Vodní_plocha`/`Zdroj_podzemních_vod`; diagnostika atributů na Soví vrchu.
+- [x] **Verify-against-source catch 312≠313:** uživatel řekl „313 pramen", template (ISOM
+      2017-2 Rev 6) má **312 = Spring** (313 = Prominent water feature). Pramen nakonec
+      **vynechán** — `Zdroj_podzemních_vod` 0 ve výřezu (nejbližší PS 1,9 km), nevymýšlet.
+- [x] **`generator.py` `--water off|real`** (real⇒terrain real, validace). **DRY refaktor
+      `_draw_line_symbol`** — jediná kreslicí logika pro cesty (černá) i vodu (modrá);
+      `_draw_path`/`_draw_water_line` = tenké wrappery. `_draw_water_area` (polygon výplň+břeh),
+      `_generate_real_water` (S-JTSK→grid Y-flip, mirror real-cest), `mask_water.png`, meta
+      sekce „water" (dynamicky). Z-order: vrstevnice → voda → cesty → body. `C_BLUE` už v paletě.
+- [x] **`omap_export.py`** `USED_CODES` +304/305/306/301.1, `write_omap` +`water_features`
+      (vše type-1 objekt; plocha jako 301.1 — kombinovaný 301 je type 16, nepřiřaditelný).
+- [x] **Output konsolidován** → jediný `Soví vrch/` (= uživatelova vlastní terénně mapovaná
+      oblast; gitignored), scratch `output*` smazány. Opraven komentář lokality (Děčínsko →
+      Soví vrch, Lužické hory). Paměť `user-field-mapper-sovi-vrch`.
+- [x] **Verify (čísly):** proc baseline seed 1 = **65 objektů** (56+2+7) = baseline Sez. 14/15
+      → `_draw_line_symbol` refaktor behavior-preserving. Real (terrain+paths+water): OMAP 141
+      obj (60 vrstevnic + 58 cest + **16 vody** + 7 bodů). Voda = 14 toků + 2 plochy. **Vizuál:
+      Svitávka v centrálním údolí, přítoky v bočních, 2 rybníky — vše sedne na terén; uživatel
+      potvrdil „Voda super! Kudos!".**
+
 ## Sezení 16 (2026-05-26) — Reálné cesty ze ZABAGED WFS (první UC2 konektor)
 - [x] **`zabaged.py`** (nový, první reálný UC2 konektor) — reálné komunikace z ČÚZK ZABAGED
       Polohopis WFS 2.0.0 (`ags.cuzk.gov.cz`, **tatáž doména jako DMR**). Sourozenec `dmr.py`

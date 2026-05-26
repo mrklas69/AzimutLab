@@ -13,8 +13,9 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 2. Audit cadence check (prahy z globálního CLAUDE.md) — spočítej od posledního
    výskytu auditu v diáři: %AUDIT:CODE ≥8 sez / ≥500 LOC, %AUDIT:DOCS ≥10,
    IDEAS/TODO pruning ≥12, %CALIBRATE ≥15. Práh překročen o ≥2 → první bod sezení.
-   (Pozn.: dokud jsme deštník bez kódu, %AUDIT:CODE prakticky neaktivní —
-   sleduj hlavně %AUDIT:DOCS a KB konzistenci.)
+   (Pozn.: cadence počítej od posledního výskytu daného auditu v diáři — od založení,
+   pokud žádný (%CALIBRATE/pruning poprvé Sez. 17). %AUDIT:CODE reálně spouští LOC
+   práh ≥500, ne počet sezení — `generator-poc/` + `connectors/` už mají kód.)
 3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP.
 4. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
