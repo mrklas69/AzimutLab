@@ -32,8 +32,9 @@ reálných map, kde anotaci nemáme.
 ## 1. Souřadný systém a měřítko
 
 - Výpočetní mřížka: `GW × GH` buněk (referenčně 170 × 116; poměr ≈ 1,466).
-- Výstupní plátno: `W × H` px (referenčně 672 × 458). Mapování buňka → pixel:
-  `px = gx / GW * W`, `py = gy / GH * H`.
+- Výstupní plátno: `W × H` px (referenčně 672 × 458). Mapování buňka → pixel
+  (krajní buňka na krajní pixel): `px = gx / (GW−1) * W`, `py = gy / (GH−1) * H`
+  (implementace `_grid_to_px`).
 - Měřítko: 1:10 000 (1 mm mapy = 10 m terénu). Ekvidistance vrstevnic 5 m,
   hlavní (zvýrazněná) vrstevnice každá pátá (po 25 m).
 - Indexování pole: row-major, `index(x, y) = y * GW + x`.
@@ -207,8 +208,9 @@ se bodovým symbolem (ISOM kartografická generalizace). Detekce: smyčka uzavř
 (poměr stran bbox > 2,5) → **110 Small elongated knoll** (hnědá elipsa); lokální min →
 **111 Small depression** (hnědý oblouk „⌣"). **112 Pit vynechán** — je to jiná
 feature class (umělá/erozní díra), z výškového pole neodlišitelný od 111.
-Z-order: nad vrstevnicemi (§4.5), pod balvany (§4.11). GT do `mask_symbols.png`
-(multi-class) + seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10.)
+Rastr z-order (Sez. 18): hned po vrstevnicích (§4.5) = POD vodou/cestami/budovami (hnědý
+terénní detail, černé komunikace ho překryjí). GT do `mask_symbols.png` (multi-class) +
+seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10, z-order opraven Sez. 18.)
 
 > **ISOM kódy — pozor (Sez. 13):** používáme **ISOM 2017-2 Rev 6 (2024)** číslování
 > 109/110/111. Staré ISOM 2017 mělo pro tytéž symboly 112/113/115 (Rev 6 přečíslovalo
@@ -300,9 +302,11 @@ funkce generate(seed, params):
 1. **Ground-truth zdarma.** Při vykreslování každé vrstvy ji zároveň renderuj do
    samostatného kanálu/masky. Výstup jedné instance:
    - `rgb.png` — finální mapa (vstup modelu),
-   - `mask_contours.png`; `mask_paths.png` (multi-class 1=503 / 2=505, Sez. 11/15);
-     `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10).
-     Masky `mask_veg/water/rock` byly se svými vrstvami zahozeny (Sez. 11, viz §4),
+   - `mask_contours.png`; `mask_paths.png` (multi-class, proc 1=503 / 2=505, real +502/504/506,
+     Sez. 11/15); `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10);
+     `mask_water.png` (multi-class toky/plocha, jen `--water real`, Sez. 17); `mask_buildings.png`
+     (jen `--buildings real`, Sez. 18). Masky `mask_veg/rock` byly se svými vrstvami zahozeny
+     (Sez. 11, viz §4); `mask_water` se vrátila Sez. 17 jako reálná (ZABAGED), ne procedurální,
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
      (hotová detekční anotace ve stylu COCO/YOLO).
 2. **Objem a diverzita.** Kombinatorika 5 parametrů × seed ⇒ prakticky neomezený
@@ -345,9 +349,12 @@ funkce generate(seed, params):
   least-cost path algoritmem (Dijkstra) s cenou rostoucí se sklonem — cesty pak
   traverzují svahy místo aby šly přes vrcholy.
   - **✅ Implementováno (Sez. 13):** `generator.py` `_dijkstra_path` — 8-sousedství
-    na mřížce, čistý `heapq` (žádný scipy). **Cena hrany = horizontální vzdálenost [m]
-    + `PATH_SLOPE_PENALTY`·|Δvýška| [m]** (zvolen model „sklon hrany" Δh, ne izotropní
-    slope buňky): pohyb podél vrstevnice levný, stoupání drahé → traverz. Konce na
+    na mřížce, čistý `heapq` (žádný scipy). **Cena hrany = vzdálenost [m] × (1 +
+    `PATH_SLOPE_LIN`·sklon + `PATH_SLOPE_SQ`·sklon²)** + odpuzování od už nakreslených cest;
+    sklon = |Δvýška|/vzdálenost (model „sklon hrany", ne izotropní slope buňky). Kvadratický
+    člen tvrdě trestá srázy (Sez. 13 #3: čistě lineární nechával krátký sráz levnější než
+    objížďku), hrana strmější než `PATH_MAX_SLOPE` (50 %) je zakázaná (tvrdý strop, fallback).
+    Pohyb podél vrstevnice levný, stoupání drahé → traverz. Konce na
     protilehlých okrajích; surová 8-směrová trasa se zředí (`PATH_SIMPLIFY`) a vyhladí
     `_catmull_rom`. Deterministická (tie-break počítadlem). Funguje pro noise i real
     (na reálném DMR cesty vedou skutečnými sedly/údolími). „Vede údolím" v plném smyslu
@@ -369,9 +376,11 @@ funkce generate(seed, params):
     noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
     ne z pixelů. 103 Form line generátor zatím nedělá.
   - **✅ `.omap` export (Sez. 8, přepsán Sez. 13, template-based Sez. 14):** `omap_export.py`
-    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (503/505) +
-    body (109/110/111)**, Local CRS, paper-space (1 m → `1e6/scale` µm, vycentrováno, bez
-    Y-flip). NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
+    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (502-506) + vodou
+    (toky 304/305/306 + plocha 301.1) + budovami (521) + body (109/110/111)**, Local CRS,
+    paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). Plošné symboly (301.1, 521)
+    se exportují jako UZAVŘENÝ path s close flagem 18, jinak je OOM nevyplní (Sez. 18).
+    NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
     **Vývoj přístupu:** Sez. 8 template-based (cizí `.omap`) → Sez. 13 **od nuly** (kvůli
     dědění bordelu z cizích souborů — 101.1 LIDAR, 503 Minor road, cizí podklady) → **Sez. 14
     zpět template-based, ale nad VLASTNÍM čistým template** `sandbox/generator-poc/template_classic.omap`
@@ -380,7 +389,7 @@ funkce generate(seed, params):
     **věrná geometrie bodů** (109 kruh, 110 elipsa `area_symbol`, 111 oblouk „⌣" `line_symbol`
     — místo dřívějšího jednotného kruhu) + plná ISOM knihovna jako reálná mapa z OOM (menší
     domain gap). Symbol id se parsují z template podle ISOM kódu (id nejsou pořadová: 503→110,
-    507→114). Bodové symboly mají `rotation=0` (sever; orientaci protáhlosti 110 generátor
+    505→112). Bodové symboly mají `rotation=0` (sever; orientaci protáhlosti 110 generátor
     zatím neukládá). `--omap-template` flag zrušen (Sez. 13). Verify: OOM headless nejde
     (jen `windows` plugin) → self-check (XML well-formed, počet objektů, symbol id) + vizuál v OOM.
 

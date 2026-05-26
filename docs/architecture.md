@@ -1,7 +1,8 @@
 # Architektura — AzimutLab
 
 **Status**: Deštník fáze B; první reálný kód (Sezení 4, 2026-05-23) — syntetický
-generátor (`sandbox/generator-poc/`) jako UC4-I/UC5 enabler-feeder. Kanonický popis UC DAGu a vrstvení.
+generátor (`sandbox/generator-poc/`) jako UC4-I/UC5 enabler-feeder; UC2 konektory reálných
+geodat (`connectors/`, Sez. 16–18) běží. Kanonický popis UC DAGu a vrstvení.
 **Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, implementace
 (`sandbox/generator-poc/`) z něj vychází.
 
@@ -52,7 +53,10 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 ČÚZK ZABAGED/ZTM, geoportál. Najít vhodné mapové portály/podklady/databáze.
 - Krmí UC4-II (inspirované souřadnicemi) a UC4-III (georef podklady).
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
-- MVP fáze = *průzkum* (survey + licence), ne ještě běžící konektory.
+- Od průzkumu k běžícím konektorům (Sez. 16–18): **`connectors/`** = první sdílená kódová
+  složka mimo sandbox (drobný krok B→A). `dmr.py` (DMR 5G výškopis, ArcGIS ImageServer),
+  `zabaged.py` (ZABAGED Polohopis WFS: cesty + voda + budovy). Sourozenci, sdílí `build_bbox`.
+  Generátor (UC4-I) je první konzument (`--terrain/--paths/--water/--buildings real`).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

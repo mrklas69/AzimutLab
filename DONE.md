@@ -30,7 +30,7 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       OOM** (budova pod tratěmi 7 → vedlejší efekt pod vrstevnicí 6), ne bug. **Závěr: color-table draw
       order = uživatelova OOM doména** (Colors okno), ne úkol generátoru; export referencuje symboly přes
       ISOM kód → funguje s jakýmkoli ISOM 2017-2 template.
-- [x] **`template_classic.omap`** přepsán uživatelem na čerstvý ISOM 2017-2 (New Map → Save; 180 symbolů,
+- [x] **`template_classic.omap`** přepsán uživatelem na čerstvý ISOM 2017-2 (New Map → Save; 169 symbolů,
       35 barev). 301.1 je v sadě standardně. Export i generate ověřeny (proc 65 / real 246 drží).
 - [x] **Censure! → paměť `isom-spec-before-render`:** ISOM spec (rozměry, generalizace, draw order
       z template) studovat PŘED renderem nové vrstvy, ne reaktivně po feedbacku.

@@ -67,7 +67,7 @@ Tři **nekonkurenční** zdroje pro modelovou větev (rozlišeno Sez. 4):
 **Recept (sim-to-real):** předtrénink na (C) + fine-tuning/validace na (B); reálný terén
 z (A) dosazený do (C) místo šumu (spec §8.5, **hotovo Sez. 5** — `--terrain real`, ČÚZK
 DMR 5G přes ArcGIS ImageServer). Realizace (C): metoda `docs/kb/generator-procedural.md`,
-PoC `sandbox/generator-poc/` (Sez. 4-8). Od **Sez. 8** generátor vedle rastru+masek zapisuje
+PoC `sandbox/generator-poc/` (od Sez. 4, živé). Od **Sez. 8** generátor vedle rastru+masek zapisuje
 i **vektor vrstevnic** (`contours.geojson`, ISOM 101/102, georef S-JTSK pro real, §9) —
 krok od UC5-feedru (rastr) k UC4 OCD/OMAP výstupu; přímo z contourpy polylinií, ne
 vektorizací rastru.

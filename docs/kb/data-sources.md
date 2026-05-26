@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -102,6 +102,19 @@ endpoint / CRS / GeoJSON / axis [x,y] jako komunikace. Ověřeno proti zdroji na
   305 Small crossable watercourse; plocha → 301 Uncrossable body of water. (Viz `zabaged.map_water_to_isom`.)
 - **Pozn. ISOM:** pramen = **312 Spring** (ne 313 = Prominent water feature — verify-against-source catch, Sez. 17).
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `water.licence`. Soví vrch = 16 toků + 2 plochy.
+
+### ZABAGED budovy — WFS konektor (POUŽITO, Sez. 18)
+Rozšíření téhož konektoru o stavby (real-půlka, `fetch_buildings` / `map_building_to_isom`). Stejný
+endpoint / CRS / GeoJSON / axis [x,y] jako komunikace a vodstvo; izomorfní s vodní PLOCHOU. Ověřeno
+proti zdroji na výřezu Soví vrchu:
+- **Feature typy:** `Budova_jednotlivá_nebo_blok_budov__plocha_` (plochy; `druhbud`, `jmeno`). Bodová
+  vrstva `_bod_` ve výřezu prázdná (0 features) → netáhne se (jako pramen `Zdroj_podzemních_vod`).
+  Soví vrch = 105 ploch (`druhbud` = „budova blíže neurčená" 104× + „vodojem zemní" 1×; `jmeno` None).
+- **Mapování → ISOM:** `Budova_..._plocha_` (jakýkoli `druhbud`, vč. vodojemu) → **521 Building**
+  (plošný černý symbol, výplň + obrys). Bez rozlišení podle `druhbud` (KISS; rozhodnutí uživatele-mapéra).
+- **Kartografická generalizace (Úroveň 1, Sez. 18):** min. velikost 0,5 mm + zjednodušení obrysu
+  Douglas-Peucker (0,3 mm) z ISOM rozměrů (`template_classic.omap` × `PX_PER_MM`). Detail: spec §4.9b.
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `buildings.licence`.
 
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).

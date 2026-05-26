@@ -10,10 +10,11 @@ generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-tr
 least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
 109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
 domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and — since session 16 — real paths from
-ČÚZK ZABAGED Polohopis WFS (`--paths real`, ISOM 502-506) and — since session 17 — real water from the same
-`zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301). `zabaged.py` (sibling
-of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+points to `.omap` (contours also to
-GeoJSON) — template-based on a
+ČÚZK ZABAGED Polohopis WFS (`--paths real`, ISOM 502-506), — since session 17 — real water from the same
+`zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301), and — since session 18 —
+real buildings (`--buildings real`, ISOM 521) with level-1 cartographic generalization (min. size + Douglas-Peucker
+outline). `zabaged.py` (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+points
+to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library.**
 
@@ -46,7 +47,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 | UC | Name | Scope | Status |
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
-| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ◐ first connectors live (DMR 5G terrain, ZABAGED paths + water) |
+| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ◐ first connectors live (DMR 5G terrain, ZABAGED paths + water + buildings) |
 | UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
