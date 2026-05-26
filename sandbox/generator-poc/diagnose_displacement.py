@@ -5,7 +5,8 @@ Verify nástroj L2 (verify-against-source): kolik párů budova↔cesta a budova
 padne pod ISOM minimální čitelnou mezeru 0,4 mm (≈ 1,83 px) na reálných lokalitách.
 - KROK 0 (Sez. 21): rozhodl „enabler, nebo záclona?" PŘED návrhem algoritmu — naměřeno
   ~28/99 budov v kolizi (Č. Švýcarsko), dominuje budova↔cesta, shluky budov ~0.
-- Po implementaci displacementu: spustit znovu → kolize mají klesnout (důkaz, ne dojem).
+- Po implementaci L2 (Sez. 22): měří kolize PŘED i PO displacementu (G.resolve_displacement)
+  v jednom běhu → přímý důkaz poklesu kolizí (ne dojem).
 
 Znovupoužívá PRODUKČNÍ transformace generátoru (_sjtsk_to_grid, _grid_to_px,
 _generalize_building) i konektor (fetch_*) → měří přesně tu geometrii, kterou render
@@ -92,15 +93,60 @@ def _to_px_rings(feats, geo_bbox, generalize):
 
 
 def _to_px_lines(feats, geo_bbox, code_fn):
+    """Feature linie → [(px polylinie, ISOM kód)]. Kód nese půl šířky pro resolve (k OKRAJI)."""
     out = []
     for f in feats:
-        if code_fn(f["layer"], f["props"]) is None:
+        code = code_fn(f["layer"], f["props"])
+        if code is None:
             continue
         for line in f["lines"]:
             px = [G._grid_to_px(*G._sjtsk_to_grid(x, y, geo_bbox)) for x, y in line]
             if len(px) >= 2:
-                out.append(px)
+                out.append((px, code))
     return out
+
+
+def _measure(bld_rings, fixed_polylines):
+    """Změří kolize budova↔síť (k OSE linie) a budova↔budova pro dané px ringy + linie.
+
+    Vrací slovník s histogramy, počty kolizí (<GAP_PX) a dotyků. Volá se 2× (před/po
+    displacementu) → stejná metoda dá srovnatelná čísla. `fixed_polylines` = jen geometrie
+    (vzdálenost k OSE; caveat měření = dolní mez, viz hlavička), bez šířky.
+    """
+    bld = [(b, _edges(b, True), _bbox(b)) for b in bld_rings]
+    fixed = [(pl, _edges(pl, False), _bbox(pl)) for pl in fixed_polylines]
+    bc, bc_hit = [], 0
+    for b, eb, bb in bld:                       # budova ↔ pevná síť (k ose)
+        dmin = float("inf")
+        for pl, ep, pb in fixed:
+            if _bbox_far(bb, pb, 5.0):
+                continue
+            dmin = min(dmin, _poly_poly_dist(b, pl, eb, ep))
+        if dmin < float("inf"):
+            bc.append(dmin)
+            if dmin < GAP_PX:
+                bc_hit += 1
+    bb_d, bb_hit = [], set()                    # budova ↔ budova
+    for i in range(len(bld)):
+        for j in range(i + 1, len(bld)):
+            if _bbox_far(bld[i][2], bld[j][2], 5.0):
+                continue
+            d = _poly_poly_dist(bld[i][0], bld[j][0], bld[i][1], bld[j][1])
+            bb_d.append(d)
+            if d < GAP_PX:
+                bb_hit.add(i)
+                bb_hit.add(j)
+    return {"n": len(bld), "bc": bc, "bc_hit": bc_hit, "bb_d": bb_d,
+            "bb_hit": len(bb_hit), "touch": sum(1 for d in bb_d if d < 0.3)}
+
+
+def _print_measure(tag, m):
+    labels = [f"[0,{1.0})", f"[1,{GAP_PX})", f"[{GAP_PX},3)", "[3,5)", "[5,∞)"]
+    print(f"  [{tag}] budova↔síť (k ose): hist {dict(zip(labels, _histogram(m['bc'])))}")
+    print(f"     → budov s kolizí <{GAP_PX}px: {m['bc_hit']}/{m['n']}")
+    print(f"  [{tag}] budova↔budova: hist {dict(zip(labels, _histogram(m['bb_d'])))}")
+    print(f"     → budov v kolizní dvojici <{GAP_PX}px: {m['bb_hit']}/{m['n']}"
+          f" · dotyk/překryv (<0,3px): {m['touch']} párů")
 
 
 def diagnose(name, lat, lon):
@@ -111,44 +157,17 @@ def diagnose(name, lat, lon):
     paths = _to_px_lines(fetch_paths(lat, lon, G.GW, G.GH, G.TILE_M), geo_bbox, map_to_isom)
     wl, wa = fetch_water(lat, lon, G.GW, G.GH, G.TILE_M)
     water_lines = _to_px_lines(wl, geo_bbox, map_water_to_isom)
-    fixed = [(pl, _edges(pl, False), _bbox(pl)) for pl in paths + water_lines]   # pevná síť
-    bld = [(b, _edges(b, True), _bbox(b)) for b in buildings]
+    fixed_polylines = [px for px, _ in paths + water_lines]               # k ose (měření)
+    fixed_resolve = [(px, G._line_half_width_px(code)) for px, code in paths + water_lines]  # k okraji (resolve)
 
     print(f"\n=== {name} ({lat}, {lon}) ===")
-    print(f"  budovy (po L1): {len(bld)} · cesty+voda linie (pevné): {len(fixed)}")
+    print(f"  budovy (po L1): {len(buildings)} · cesty+voda linie (pevné): {len(fixed_polylines)}")
+    print(f"  GAP_PX (0,4 mm) = {GAP_PX} · strop posunu = {G.MAX_DISPLACE_PX}px ({G.DISPLACE_ITERATIONS} iter.)")
 
-    # Budova ↔ pevná síť (cesty + vodní linie): vzdálenost obrysu budovy k OSE linie.
-    bc, bc_hit = [], 0
-    for b, eb, bb in bld:
-        dmin = float("inf")
-        for pl, ep, pb in fixed:
-            if _bbox_far(bb, pb, 5.0):
-                continue
-            dmin = min(dmin, _poly_poly_dist(b, pl, eb, ep))
-        if dmin < float("inf"):
-            bc.append(dmin)
-            if dmin < GAP_PX:
-                bc_hit += 1
-
-    # Budova ↔ budova: nejmenší mezera mezi dvojicemi.
-    bb_d, bb_hit = [], set()
-    for i in range(len(bld)):
-        for j in range(i + 1, len(bld)):
-            if _bbox_far(bld[i][2], bld[j][2], 5.0):
-                continue
-            d = _poly_poly_dist(bld[i][0], bld[j][0], bld[i][1], bld[j][1])
-            bb_d.append(d)
-            if d < GAP_PX:
-                bb_hit.add(i)
-                bb_hit.add(j)
-
-    labels = [f"[0,{1.0})", f"[1,{GAP_PX})", f"[{GAP_PX},3)", "[3,5)", "[5,∞)"]
-    print(f"  GAP_PX (0,4 mm) = {GAP_PX}")
-    print(f"  budova↔síť (k ose): hist {dict(zip(labels, _histogram(bc)))}")
-    print(f"     → budov s kolizí <{GAP_PX}px: {bc_hit}/{len(bld)}")
-    print(f"  budova↔budova: hist {dict(zip(labels, _histogram(bb_d)))}")
-    print(f"     → budov v kolizní dvojici <{GAP_PX}px: {len(bb_hit)}/{len(bld)}"
-          f" · dotyk/překryv (<0,3px): {sum(1 for d in bb_d if d < 0.3)} párů")
+    # PŘED displacementem (krok 0, Sez. 21) vs PO (L2, Sez. 22) — verify pokles kolizí.
+    _print_measure("PŘED", _measure(buildings, fixed_polylines))
+    moved = G.resolve_displacement(buildings, fixed_resolve)
+    _print_measure("PO", _measure(moved, fixed_polylines))
 
 
 if __name__ == "__main__":
