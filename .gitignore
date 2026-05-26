@@ -11,9 +11,12 @@ output_*/
 sandbox/**/output/
 sandbox/**/output_*/
 sandbox/**/data/
-# Soví vrch — jediný kanonický output reálné mapy (Lužické hory; regenerovatelný, Sez. 17)
+# Kanonické outputy reálných map (regenerovatelné): Soví vrch (Lužické hory, Sez. 17),
+# Nová louka (Jizerské hory, Sez. 23)
 Soví vrch/
 sandbox/**/Soví vrch/
+Nová louka/
+sandbox/**/Nová louka/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
 *.tif

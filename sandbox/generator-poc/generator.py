@@ -42,19 +42,51 @@ if str(_CONNECTORS_DIR) not in sys.path:
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD
 
-# ---------- Rozměry mřížky a plátna, měřítko (§1) ----------
-GW, GH = 170, 116        # výpočetní mřížka v buňkách: šířka × výška (poměr ≈ 1,466)
-W, H = 672, 458          # výstupní plátno v pixelech
+# ---------- Rozměry výseku, mřížky a plátna, měřítko (§1) ----------
+# Velikost výseku je PARAMETR (lokalita + rozměry → cíl synthesize_pseudorealistic_map);
+# grid/plátno/svět se z ní odvodí (_apply_extent). Rozlišení (PX_PER_MM, M_PER_CELL) a
+# měřítko jsou JEDNA PRAVDA — drží konstantní, takže mm-odvozené prahy (MIN_BUILDING_PX,
+# DISPLACE_* …) platí nezávisle na velikosti výseku (0,5 mm na papíře je 0,5 mm vždy).
+MAP_SCALE = 10000        # měřítko mapy 1:MAP_SCALE — paper-space přepočet v .omap exportu (§9)
+PX_PER_MM = 4.5855       # cílová hustota rastru na papíře [px/mm] (historicky 672 px / 146,55 mm)
+M_PER_CELL = 1000.0 / 116  # rozteč výpočetní mřížky [m/buňku] (historicky 116 buněk na 1 km S-J)
 CONTOUR_STEP = 5         # ekvidistance vrstevnic [m]
 CONTOUR_INDEX = 25       # zvýrazněná (hlavní) vrstevnice každých 25 m
 BASE_ELEV = 700          # bazální nadmořská výška [m] — jen pro terrain="noise"
-TILE_M = 1000.0          # reálný rozměr výseku [m] po kratší straně (S-J); delší se
-                         # dopočítá v poměru GW/GH. Sjednoceno s dmr.fetch (tile_m)
-                         # → georef vektoru sedí s výškopisem.
-WORLD_W_M = TILE_M * (GW / GH)  # delší strana výseku (E-W) [m] — jedna pravda pro geo_bbox i .omap
-MAP_SCALE = 10000        # měřítko mapy 1:MAP_SCALE — paper-space přepočet v .omap exportu (§9)
+DEF_WIDTH_KM = 1.4655    # default šířka výseku E-W [km] = historický baseline (170:116 na 1 km S-J)
+DEF_HEIGHT_KM = 1.0      # default výška výseku S-J [km]
+
+# Rozměrové globály (grid GW×GH buněk, plátno W×H px, svět WORLD_W_M×TILE_M metrů) NASTAVÍ
+# _apply_extent z velikosti výseku — deklarace zde jen pro čitelnost; reálné hodnoty přiřadí
+# volání níže (default) nebo main() (z --width-km/--height-km).
+GW = GH = W = H = 0
+TILE_M = WORLD_W_M = 0.0
+
+
+def _apply_extent(w_km: float, h_km: float) -> None:
+    """Odvodí rozměrové globály z velikosti výseku [km] při konstantním rozlišení.
+
+    `w_km` = východ-západ (osa x), `h_km` = sever-jih (osa y). WORLD_W_M/TILE_M jsou metry
+    světa, W/H pixely plátna (PX_PER_MM × papír), GW/GH buňky mřížky (M_PER_CELL). TILE_M =
+    S-J strana — jméno zděděné connectory (dmr/zabaged build_bbox: tile_m = osa y, delší se
+    dopočítá v poměru GW/GH). Rozlišení se nemění → PX_PER_MM a mm-prahy zůstávají platné.
+    """
+    global GW, GH, W, H, TILE_M, WORLD_W_M
+    TILE_M = h_km * 1000.0                           # kratší strana (S-J) [m] — pro connectory
+    GH = round(TILE_M / M_PER_CELL)
+    GW = round(w_km * 1000.0 / M_PER_CELL)
+    # E-W šířku odvozuji z poměru gridu (TILE_M·GW/GH), NE přímo z w_km — sjednoceno s
+    # dmr/zabaged build_bbox (tytéž GW/GH), jinak by zaokrouhlení mřížky rozešlo reálnou
+    # geometrii a omap georef. Jedna pravda pro geo_bbox (noise i real) i .omap.
+    WORLD_W_M = TILE_M * (GW / GH)
+    px_per_m = PX_PER_MM * 1000.0 / MAP_SCALE        # px rastru na metr terénu (měřítko fixní)
+    W = round(WORLD_W_M * px_per_m)
+    H = round(TILE_M * px_per_m)
+
+
+_apply_extent(DEF_WIDTH_KM, DEF_HEIGHT_KM)   # inicializace globálů na default výsek
 
 # ISOM symboly vrstevnic (§4.5, ověřeno O-Map Wiki) — pro vektorový export (§9).
 # 103 Form line generátor zatím nedělá (rozšíření věrnosti).
@@ -100,10 +132,10 @@ PATH_CLASS = {ISOM_ROAD: 1, ISOM_FOOTPATH: 2,
 # 503/504 = 525 µm ≈ 2,40 px, 505 = 375 µm ≈ 1,72 px, 506 = 270 µm ≈ 1,24 px (Sez. 18 verify).
 # PIL bez antialiasingu → celočíselné šířky. (502 casing = PoC aproximace šířky silnice.)
 PATH_STYLE = {
-    ISOM_WIDE_ROAD:      ("casing", 4, None),         # dvě černé hrany se světlou výplní (PoC aprox. silnice na šířku)
+    ISOM_WIDE_ROAD:      ("casing", 3, None),         # černé okraje + hnědá výplň (ISOM 502: 300µm fill + 2×140µm border ≈ 580µm ≈ 3px)
     ISOM_ROAD:           ("solid", 2, None),          # 525 µm ≈ 2,4 px
     ISOM_VEHICLE_TRACK:  ("dashed", 2, (10.0, 4.0)),  # 525 µm ≈ 2,4 px; vozová: delší čárka
-    ISOM_FOOTPATH:       ("dashed", 2, (7.0, 4.0)),   # 375 µm ≈ 1,7 px → 2 px (Sez. 18: bylo 1, pod ISOM)
+    ISOM_FOOTPATH:       ("dashed", 1, (7.0, 4.0)),   # 250 µm ≈ 1,15 px → 1 px (template-věrné; Sez. 23 oprava driftu „375µm/2px" ze Sez. 18)
     ISOM_SMALL_FOOTPATH: ("dashed", 1, (4.0, 4.0)),   # 270 µm ≈ 1,2 px → 1 px; kratší/jemnější čárka
 }
 # Terénně vázané vedení (§9): cesta = least-cost trasa mřížkou (Dijkstra), ne přímý
@@ -159,8 +191,7 @@ BUILDING_CLASS = {ISOM_BUILDING: 1}
 # Kartografická generalizace (Sez. 18): reálná OB mapa NENÍ syrová geometrie — kartograf
 # vynucuje minimální dimenze a zjednodušuje obrysy. Syrová data by zvětšila domain gap
 # feederu (UC5 se učí číst GENERALIZOVANOU mapu). Rozměry z ISOM (template_classic.omap,
-# papírové mm). PX_PER_MM = px plátna na 1 mm papíru při MAP_SCALE — jeden zdroj převodu.
-PX_PER_MM = W / (WORLD_W_M / MAP_SCALE * 1000.0)   # ≈ 4,58 px/mm (= 672 / 146,55 mm)
+# papírové mm); převod přes PX_PER_MM (jedna pravda, definováno výše u rozměrů výseku).
 # ISOM 521: „Minimum area 0,5 × 0,5 mm" → budova pod minimem se kreslí na minimum.
 MIN_BUILDING_PX = round(0.5 * PX_PER_MM)           # ≈ 2 px (min. strana budovy)
 # Zjednodušení obrysu (Douglas-Peucker): detail menší než cca rozlišení mapy kartograf
@@ -190,7 +221,7 @@ def _line_half_width_px(code: int) -> float:
     """Půl render-šířky liniového symbolu [px] (cesta nebo vodní tok) — pro mezeru k OKRAJI.
 
     DRY: displacement (mezera budova↔OKRAJ linie) i verify (diagnose_displacement.py) sdílí
-    týž zdroj render šířky (PATH_STYLE / WATER_LINE_STYLE). 502 casing má width 4 → half 2.
+    týž zdroj render šířky (PATH_STYLE / WATER_LINE_STYLE). 502 casing má width 3 → half 1,5.
     """
     if code in PATH_STYLE:
         return PATH_STYLE[code][1] / 2.0
@@ -435,8 +466,8 @@ def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     Jediná kreslicí logika pro VŠECHNY liniové symboly (izomorfismus / DRY): cesty
     (černá, PATH_STYLE) i vodní toky (modrá, WATER_LINE_STYLE) přes ni jdou stejně,
     liší se jen `color`/`mode`/`dash`. `solid` = plná, `dashed` = čárkovaná (dle
-    dash/gap), `casing` = silná barva + tenčí bílá výplň (jen silnice 502 — PoC
-    aproximace dvojité linie „na šířku"). Maska dostává `cls` místo barvy.
+    dash/gap), `casing` = černé okraje + tenčí HNĚDÁ výplň (jen silnice 502 — ISOM
+    Wide road = hnědý pás s černými hranami, template color 11/14). Maska dostává `cls`.
     """
     if len(curve_px) < 2:
         return
@@ -446,9 +477,9 @@ def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     elif mode == "dashed":
         d, g = dash
         _draw_dashed(draw, mdraw, curve_px, color, cls, dash=d, gap=g, width=width)
-    else:  # casing: silná barva, přes ni tenčí bílá → dojem dvou paralelních hran
+    else:  # casing: silná černá, přes ni tenčí HNĚDÁ → hnědý pás s černými okraji (ISOM 502)
         draw.line(curve_px, fill=color, width=width)
-        draw.line(curve_px, fill=C_WHITE, width=max(1, width - 2))
+        draw.line(curve_px, fill=C_ROAD, width=max(1, width - 2))
         mdraw.line(curve_px, fill=cls, width=width)
 
 
@@ -1318,8 +1349,13 @@ def main() -> None:
                         "(vyžaduje --terrain real)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
+    p.add_argument("--width-km", type=float, default=DEF_WIDTH_KM,
+                   help=f"šířka výseku E-W [km] (default {DEF_WIDTH_KM} = baseline)")
+    p.add_argument("--height-km", type=float, default=DEF_HEIGHT_KM,
+                   help=f"výška výseku S-J [km] (default {DEF_HEIGHT_KM} = baseline)")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
+    _apply_extent(args.width_km, args.height_km)   # velikost výseku → rozměrové globály před generováním
     out = generate(args.seed, args.rug, args.det, args.out, terrain=args.terrain,
                    paths=args.paths, water=args.water, buildings=args.buildings,
                    lat=args.lat, lon=args.lon)

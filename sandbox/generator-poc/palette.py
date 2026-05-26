@@ -41,6 +41,7 @@ PALETTE: dict[str, Swatch] = {
     "green2": Swatch((109, 199, 113), "středně zelená — chůze"),
     "green3": Swatch((45, 169, 79),   "tmavě zelená — těžko prostupné"),
     "brown":  Swatch((160, 95, 31),   "vrstevnice, rýhy"),
+    "road":   Swatch((232, 167, 116), "silnice 502 — výplň (ISOM Upper brown 50%)"),
     "blue":   Swatch((46, 194, 248),  "voda, mokřad"),
     "black":  Swatch((0, 0, 0),       "skály, cesty, stavby"),
     "purple": Swatch((196, 0, 172),   "trať (purpurová) — §4.13, zatím neimplementováno"),
@@ -48,7 +49,7 @@ PALETTE: dict[str, Swatch] = {
 
 # ---------- Pohodlné pojmenované konstanty ----------
 # Odvozené z PALETTE (žádná druhá kopie hodnot!) — umožní v generator.py psát
-# `C_YELLOW` místo `PALETTE["yellow"].rgb`. Všech 9 pro izomorfismus: i barvy,
+# `C_YELLOW` místo `PALETTE["yellow"].rgb`. Všech 10 pro izomorfismus: i barvy,
 # které generátor zatím nekreslí (purpurová trať), tu jsou připravené.
 C_WHITE  = PALETTE["white"].rgb
 C_YELLOW = PALETTE["yellow"].rgb
@@ -56,6 +57,7 @@ C_GREEN1 = PALETTE["green1"].rgb
 C_GREEN2 = PALETTE["green2"].rgb
 C_GREEN3 = PALETTE["green3"].rgb
 C_BROWN  = PALETTE["brown"].rgb
+C_ROAD   = PALETTE["road"].rgb
 C_BLUE   = PALETTE["blue"].rgb
 C_BLACK  = PALETTE["black"].rgb
 C_PURPLE = PALETTE["purple"].rgb

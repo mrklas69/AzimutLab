@@ -32,7 +32,10 @@ _WFS_SERVER = "https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServ
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
 # zpravidla PO existující cestě/pěšině → duplikovala by liniovou síť (rozhodnuto Sez. 16).
 # (Silnice/Ulice jsou v lese vzácné, ale patří do sítě, kde výsek zasáhne okraj obce.)
-PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Ulice")
+# Silnice_neevidovaná = účelové/lesní asfaltky mimo silniční evidenci — v lese ČASTÉ a pro
+# OB klíčové (Sez. 23: chyběla páteřní asfaltka Bedřichov→Nová louka). Most/Silnice_ve_výstavbě
+# zatím vynecháno (most = bodový objekt, ne linie; výstavba ve výsecích vzácná).
+PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
 
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
@@ -184,7 +187,8 @@ def map_to_isom(layer: str, props: dict) -> int:
     ISOM. Ověřeno proti reálným datům (verify-against-source, Sez. 16): `povrch_k`
     Z/T = zpevněná, None = nezpevněná; `TYPUSKOM_K` 026 = udržovaná pěšina, jinak
     neudržovaná. Mapovací tabulka:
-      Silnice/Ulice     → 502 Wide road     (zpevněná, autodoprava)
+      Silnice/Ulice     → 502 Wide road     (evidovaná, ≥5 m, autodoprava)
+      Silnice neevid.   → 503 Road          (účelová/lesní asfaltka, zpevněná <5 m)
       Cesta zpevněná    → 503 Road          (sjízdná autem)
       Cesta nezpevněná  → 504 Vehicle track (vozová, jen pomalu sjízdná)
       Pěšina udržovaná  → 505 Footpath
@@ -196,6 +200,8 @@ def map_to_isom(layer: str, props: dict) -> int:
     """
     if layer in ("Silnice__dálnice", "Ulice"):
         return 502
+    if layer == "Silnice_neevidovaná":
+        return 503   # neevidovaná účelová/lesní asfaltka (zpevněná, <5 m) → Road, ne 502
     if layer == "Cesta":
         return 503 if props.get("povrch_k") in ("Z", "T") else 504
     if layer == "Pěšina":
