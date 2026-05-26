@@ -41,6 +41,12 @@ LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Ulice")
 WATER_LINE_LAYERS = ("Vodní_tok",)
 WATER_AREA_LAYERS = ("Vodní_plocha",)
 
+# Budovy/stavby (Sez. 18, real-půlka). ZABAGED dělí budovy na bodovou a plošnou vrstvu;
+# bodová (`_bod_`) je v lesních OB výsecích prázdná (ověřeno — 0 features na Sovím vrchu),
+# proto se táhne jen plošná (izomorfní s Vodní_plocha). Pramen-like vynechání bodové
+# vrstvy = „nevymýšlet, co v datech není" (jako Zdroj_podzemních_vod, Sez. 17).
+BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",)
+
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
                  cache_dir: Path) -> dict:
@@ -145,6 +151,32 @@ def fetch_water(lat: float, lon: float, gw: int, gh: int,
     return line_feats, area_feats
 
 
+def fetch_buildings(lat: float, lon: float, gw: int, gh: int,
+                    tile_m: float = 1000.0,
+                    cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné budovy pro výsek (lat, lon) jako seznam plošných features.
+
+    Každý prvek: {"layer", "props": atributy ZABAGED, "rings": [[(x,y)..]]} — `rings`
+    jsou vnější obrysy budov v S-JTSK metrech (MultiPolygon rozbalen). Bodová vrstva
+    budov se netáhne (v lesních výsecích prázdná, viz BUILDING_AREA_LAYERS). Mapování
+    na ISOM (map_building_to_isom) se dělá výš, po verify atributů (Sez. 18).
+
+    Izomorfní s area-půlkou fetch_water (plochy mají rings, ne lines). Tentýž výsek
+    (sdílený build_bbox) → budovy sednou na terén i k cestám/vodě.
+    """
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in BUILDING_AREA_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
+    return out
+
+
 def map_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -196,6 +228,23 @@ def map_water_to_isom(layer: str, props: dict) -> int | None:
         return 305                                 # bezejmenný stálý přítok
     if layer == "Vodní_plocha":
         return 301
+    return None
+
+
+def map_building_to_isom(layer: str, props: dict) -> int | None:
+    """Mapuje ZABAGED budovu na ISOM 2017-2 kód (int), nebo None = nekreslit.
+
+    Ověřeno proti reálným datům (verify-against-source, Sez. 18) na výřezu Soví vrch:
+    `druhbud` = „budova blíže neurčená" (104×) / „vodojem zemní" (1×); `jmeno` None.
+    Vodojem zemní mapuje uživatel (terénní mapér Soví vrchu) také na 521 — v rastru se
+    chová jako malá budova (rozhodnutí Sez. 18). Mapování:
+      Budova_..._plocha_ (jakýkoli druhbud) → 521 Building (plošný černý symbol)
+
+    Bez rozlišení podle `druhbud` (KISS — jen jeden druh na výřezu navíc). Vrací holý
+    ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
+    """
+    if layer == "Budova_jednotlivá_nebo_blok_budov__plocha_":
+        return 521
     return None
 
 

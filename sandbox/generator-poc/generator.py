@@ -96,13 +96,15 @@ PATH_NAME = {ISOM_WIDE_ROAD: "Wide road", ISOM_ROAD: "Road", ISOM_VEHICLE_TRACK:
 PATH_CLASS = {ISOM_ROAD: 1, ISOM_FOOTPATH: 2,
               ISOM_WIDE_ROAD: 3, ISOM_VEHICLE_TRACK: 4, ISOM_SMALL_FOOTPATH: 5}
 # ISOM kód → render styl: (mode, width [px], (dash, gap) | None). mode ∈ solid/dashed/casing.
-# Tloušťky/čárkování laděné vizuálně (PIL bez antialiasingu → celočíselné šířky).
+# Šířky odvozené z ISOM rozměrů v template_classic.omap (papírové µm × PX_PER_MM ≈ 4,58):
+# 503/504 = 525 µm ≈ 2,40 px, 505 = 375 µm ≈ 1,72 px, 506 = 270 µm ≈ 1,24 px (Sez. 18 verify).
+# PIL bez antialiasingu → celočíselné šířky. (502 casing = PoC aproximace šířky silnice.)
 PATH_STYLE = {
     ISOM_WIDE_ROAD:      ("casing", 4, None),         # dvě černé hrany se světlou výplní (PoC aprox. silnice na šířku)
-    ISOM_ROAD:           ("solid", 2, None),          # plná (≈ 1,5 px dle §4.9, PIL bere int)
-    ISOM_VEHICLE_TRACK:  ("dashed", 2, (10.0, 4.0)),  # vozová: delší čárka, silnější
-    ISOM_FOOTPATH:       ("dashed", 1, (7.0, 4.0)),   # pěšina: standardní čárka
-    ISOM_SMALL_FOOTPATH: ("dashed", 1, (4.0, 4.0)),   # malá pěšina: kratší/jemnější čárka
+    ISOM_ROAD:           ("solid", 2, None),          # 525 µm ≈ 2,4 px
+    ISOM_VEHICLE_TRACK:  ("dashed", 2, (10.0, 4.0)),  # 525 µm ≈ 2,4 px; vozová: delší čárka
+    ISOM_FOOTPATH:       ("dashed", 2, (7.0, 4.0)),   # 375 µm ≈ 1,7 px → 2 px (Sez. 18: bylo 1, pod ISOM)
+    ISOM_SMALL_FOOTPATH: ("dashed", 1, (4.0, 4.0)),   # 270 µm ≈ 1,2 px → 1 px; kratší/jemnější čárka
 }
 # Terénně vázané vedení (§9): cesta = least-cost trasa mřížkou (Dijkstra), ne přímý
 # splajn. Cena hrany = horizontální vzdálenost [m] + PATH_SLOPE_PENALTY·|Δvýška| [m]
@@ -144,6 +146,27 @@ WATER_LINE_STYLE = {
     ISOM_SMALL_WATERCOURSE:     ("solid", 1, None),       # přítok plný tenčí
     ISOM_SEASONAL_CHANNEL:      ("dashed", 1, (6.0, 4.0)),# občasný čárkovaný
 }
+
+# Budovy/stavby (Sez. 18, real-půlka, izomorfní s vodní PLOCHOU 301): ZABAGED
+# Budova_..._plocha_ → ISOM 521 Building = plošný černý symbol (výplň + obrys). Jen reálná
+# půlka (ZABAGED WFS); bodová vrstva budov je v lesních výsecích prázdná → jen plochy.
+# Mapování ZABAGED→ISOM viz zabaged.map_building_to_isom. Barva = černá (C_BLACK z palety).
+ISOM_BUILDING = 521                # plošná budova → černá výplň + obrysová linie
+BUILDING_NAME = {ISOM_BUILDING: "Building"}
+# ISOM kód → třída v mask_buildings.png (0 = pozadí). Jediná třída (1).
+BUILDING_CLASS = {ISOM_BUILDING: 1}
+
+# Kartografická generalizace (Sez. 18): reálná OB mapa NENÍ syrová geometrie — kartograf
+# vynucuje minimální dimenze a zjednodušuje obrysy. Syrová data by zvětšila domain gap
+# feederu (UC5 se učí číst GENERALIZOVANOU mapu). Rozměry z ISOM (template_classic.omap,
+# papírové mm). PX_PER_MM = px plátna na 1 mm papíru při MAP_SCALE — jeden zdroj převodu.
+PX_PER_MM = W / (WORLD_W_M / MAP_SCALE * 1000.0)   # ≈ 4,58 px/mm (= 672 / 146,55 mm)
+# ISOM 521: „Minimum area 0,5 × 0,5 mm" → budova pod minimem se kreslí na minimum.
+MIN_BUILDING_PX = round(0.5 * PX_PER_MM)           # ≈ 2 px (min. strana budovy)
+# Zjednodušení obrysu (Douglas-Peucker): detail menší než cca rozlišení mapy kartograf
+# zhrubí. Práh = ISOM minimální průchod budovou 0,3 mm (template 521: „Passages … minimum
+# width of 0,3 mm") → jemnější výstupek/zub není rozlišitelný. (Sez. 18: 0,7 px bylo opatrné.)
+BUILDING_SIMPLIFY_PX = round(0.3 * PX_PER_MM, 1)    # ≈ 1,4 px (0,3 mm na mapě)
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Soví vrch (Lužické hory, povodí Svitávky) — vlastní terénně mapovaná oblast uživatele
@@ -394,17 +417,31 @@ def _draw_water_line(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     _draw_line_symbol(draw, wdraw, curve_px, C_BLUE, mode, width, dash, WATER_CLASS[code])
 
 
-def _draw_water_area(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
-                     ring_px: list[tuple[float, float]], code: int) -> None:
-    """Vodní plocha (ISOM 301): modrá výplň + černá břehová linie na mapu + třída do masky.
+def _draw_area_symbol(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
+                      ring_px: list[tuple[float, float]],
+                      fill: tuple, outline: tuple, mask_class: int) -> None:
+    """Plošný ISOM symbol: barevná výplň + obrysová linie na mapu + třída do GT masky.
 
-    PIL polygon vyplní uzavřený prstenec; `outline` dá břehovou linii (ISOM 301 = výplň
-    s bank line). Maska dostane plnou výplň třídou WATER_CLASS (plošná GT, ne jen obrys).
-    """
+    Sjednocuje plochy stejně, jako _draw_line_symbol sjednotil linie (Sez. 17): vodní
+    plocha (modrá) i budova (černá) jsou týž tvar lišící se jen barvou. PIL polygon
+    vyplní uzavřený prstenec, `outline` dá obrys (břeh/zeď). Maska dostane PLNOU výplň
+    třídou (plošná GT, ne jen obrys)."""
     if len(ring_px) < 3:
         return
-    draw.polygon(ring_px, fill=C_BLUE, outline=C_BLACK)
-    wdraw.polygon(ring_px, fill=WATER_CLASS[code])   # maska = plná šířka silnice
+    draw.polygon(ring_px, fill=fill, outline=outline)
+    adraw.polygon(ring_px, fill=mask_class)
+
+
+def _draw_water_area(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
+                     ring_px: list[tuple[float, float]], code: int) -> None:
+    """Vodní plocha (ISOM 301): modrá výplň + černý břeh — wrapper nad _draw_area_symbol."""
+    _draw_area_symbol(draw, wdraw, ring_px, C_BLUE, C_BLACK, WATER_CLASS[code])
+
+
+def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                        ring_px: list[tuple[float, float]], code: int) -> None:
+    """Budova (ISOM 521): plná černá výplň + černý obrys — wrapper nad _draw_area_symbol."""
+    _draw_area_symbol(draw, bdraw, ring_px, C_BLACK, C_BLACK, BUILDING_CLASS[code])
 
 
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
@@ -517,9 +554,11 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                water_mode: str, lat: float, lon: float, elev: np.ndarray, crs_epsg: int | None,
+                water_mode: str, buildings_mode: str, lat: float, lon: float,
+                elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
-                point_symbols: list[dict], water_info: list[dict], omap_info: dict) -> dict:
+                point_symbols: list[dict], water_info: list[dict],
+                building_info: list[dict], omap_info: dict) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
     Vyčleněno z generate() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
@@ -530,6 +569,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
     used_path_codes = sorted({p["symbol"] for p in paths_info})
     used_water_codes = sorted({w["symbol"] for w in water_info})
+    used_building_codes = sorted({b["symbol"] for b in building_info})
     return {
         "seed": seed,
         "params": {"rug": rug, "det": det},
@@ -577,6 +617,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": water_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if water_mode == "real" else {}),
+        # budovy/stavby (real-půlka, Sez. 18): plochy ze ZABAGED WFS → ISOM 521. Sekce
+        # jen když buildings_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"buildings": {
+            "count": len(building_info),
+            "mask": "mask_buildings.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): BUILDING_NAME[c] for c in used_building_codes},
+            "classes": {"0": "pozadí",
+                        **{str(BUILDING_CLASS[c]): f"{c} {BUILDING_NAME[c]}" for c in used_building_codes}},
+            "items": building_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if buildings_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -718,12 +770,102 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     return line_features, area_features, water_info
 
 
+def _simplify_polyline(pts: list[tuple[float, float]], tol: float) -> list[tuple[float, float]]:
+    """Douglas-Peucker: zředí vrcholy polylinie pod toleranci `tol` [px], zachová rohy.
+
+    Generalizace obrysu (Sez. 18): reálný obrys budovy nese detaily pod rozlišením mapy,
+    kartograf je zhrubí. Rekurzivní DP — najde nejvzdálenější vrchol od úsečky konec-konec;
+    pod tolerancí zahodí mezilehlé. Funguje i na uzavřený prstenec (první=poslední vrchol).
+    """
+    if len(pts) < 3:
+        return list(pts)
+    (x0, y0), (x1, y1) = pts[0], pts[-1]
+    dx, dy = x1 - x0, y1 - y0
+    seg2 = dx * dx + dy * dy
+    dmax, idx = 0.0, 0
+    for i in range(1, len(pts) - 1):
+        px_, py_ = pts[i]
+        if seg2 == 0.0:                      # degenerovaná úsečka (uzavřený prstenec) → vzdálenost k bodu
+            d = ((px_ - x0) ** 2 + (py_ - y0) ** 2) ** 0.5
+        else:
+            t = max(0.0, min(1.0, ((px_ - x0) * dx + (py_ - y0) * dy) / seg2))
+            d = ((px_ - (x0 + t * dx)) ** 2 + (py_ - (y0 + t * dy)) ** 2) ** 0.5
+        if d > dmax:
+            dmax, idx = d, i
+    if dmax <= tol:
+        return [pts[0], pts[-1]]
+    return _simplify_polyline(pts[:idx + 1], tol)[:-1] + _simplify_polyline(pts[idx:], tol)
+
+
+def _enforce_min_size(ring_px: list[tuple[float, float]], min_px: float) -> list[tuple[float, float]]:
+    """ISOM 521 „Minimum area 0,5 × 0,5 mm": budova pod minimem → obdélník min. rozměrů.
+
+    Generalizace (Sez. 18): pod minimální dimenzí by symbol nebyl čitelný, proto se každý
+    rozměr bbox naklampuje na `min_px` (velký rozměr u protáhlé budovy zůstane). Tvar malé
+    budovy se nahradí osově orientovaným obdélníkem na jejím středu (reálné malé budovy jsou
+    zhruba čtvercové → ztráta tvaru je akceptovatelná, tak generalizuje i kartograf).
+    """
+    xs = [p[0] for p in ring_px]
+    ys = [p[1] for p in ring_px]
+    w, h = max(xs) - min(xs), max(ys) - min(ys)
+    if w >= min_px and h >= min_px:
+        return ring_px
+    cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+    hw, hh = max(w, min_px) / 2, max(h, min_px) / 2
+    return [(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)]
+
+
+def _generalize_building(ring_px: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """ISOM generalizace budovy: zjednodušení obrysu → vynucení minimální velikosti (Sez. 18)."""
+    return _enforce_min_size(_simplify_polyline(ring_px, BUILDING_SIMPLIFY_PX), MIN_BUILDING_PX)
+
+
+def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné budovy (real-půlka, Sez. 18): plochy ze ZABAGED WFS → ISOM 521 Building.
+
+    Mirror area-půlky _generate_real_water: stáhne budovy (zabaged.fetch_buildings),
+    mapuje na ISOM (map_building_to_isom; None = přeskočit), transformuje S-JTSK → grid
+    (Y-flip, sever = ymax) → px a kreslí plošným symbolem. Tentýž výsek jako DMR/cesty/voda
+    (sdílený build_bbox) → budovy sednou na terén. Vrací (area_features [(grid, code)],
+    building_info) v souřadnicích MŘÍŽKY (zdroj pro OMAP).
+    """
+    from zabaged import fetch_buildings, map_building_to_isom
+    xmin, ymin, xmax, ymax = geo_bbox
+    feats = fetch_buildings(lat, lon, GW, GH, TILE_M)
+
+    def to_grid(x: float, y: float) -> tuple[float, float]:
+        return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
+
+    area_features: list[tuple] = []
+    building_info: list[dict] = []
+    for f in feats:
+        code = map_building_to_isom(f["layer"], f["props"])
+        if code is None:
+            continue
+        for ring in f["rings"]:
+            grid = [to_grid(x, y) for x, y in ring]
+            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            # ISOM generalizace (Sez. 18): zjednodušení obrysu + min. velikost. Pracuje
+            # v px (papír = kde jsou ISOM rozměry definované); grid pro OMAP odvodíme ZPĚT
+            # z generalizovaného px → render i .omap sdílí touž geometrii (conceptual integrity).
+            px = _generalize_building(px)
+            grid = [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in px]
+            _draw_building_area(draw, bdraw, px, code)
+            area_features.append((grid, code))
+            building_info.append({"symbol": code, "symbol_name": BUILDING_NAME[code],
+                                  "kind": "area", "layer": f["layer"]})
+    return area_features, building_info
+
+
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
 def generate(seed: int, rug: float, det: float, out_dir: str,
              terrain: str = "noise", paths: str = "proc", water: str = "off",
-             lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
+             buildings: str = "off", lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
     Vrací cestu k složce. `terrain="noise"` (default) = fraktální šum (Option 1).
@@ -736,8 +878,12 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     — reálné cesty mají S-JTSK souřadnice a párují se přes sdílený výsek; noise výsek
     je v lokálních metrech bez georef → spárovat nelze.
 
-    Vrstvy (z-order): vrstevnice (§4.5) → cesty (§4.9) → bodové symboly extrémů
-    (§4.10). `rug` řídí členitost terénu (jen noise), `det` počet proc cest.
+    `buildings="real"` = reálné budovy/stavby ze ZABAGED WFS (real-půlka, ISOM 521);
+    také VYŽADUJE `terrain="real"` (stejný georef důvod jako cesty/voda).
+
+    Vrstvy (z-order dle ISOM draw order z template_classic.omap): vrstevnice (§4.5) →
+    bodové symboly extrémů (§4.10) → voda → cesty (§4.9) → budovy (521 navrch). `rug` řídí
+    členitost terénu (jen noise), `det` počet proc cest.
 
     Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
     (§4.10): kopeček 109/110, prohlubeň 111 — místo prstence se kreslí značka a GT
@@ -752,6 +898,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if water == "real" and terrain != "real":
         raise ValueError("--water real vyžaduje --terrain real (reálná voda potřebuje "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if buildings == "real" and terrain != "real":
+        raise ValueError("--buildings real vyžaduje --terrain real (reálné budovy potřebují "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
@@ -816,9 +965,18 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
+    # --- bodové symboly lokálních extrémů (§4.10): hnědé kopečky/prohlubně ---
+    # Z-order dle ISOM (template_classic.omap, draw order): 109/110/111 jsou HNED po
+    # vrstevnicích, tj. POD vodou/cestami/budovami (hnědý terénní detail, černé komunikace
+    # ho překryjí). Sez. 18: opraveno (dřív chybně navrchu → hnědé body přes hlavní cesty).
+    sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
+    sdraw = ImageDraw.Draw(sym_mask_img)
+    for ps in point_symbols:
+        _draw_point_symbol(draw, sdraw, ps)
+
     # --- voda (hydrografie): reálná ze ZABAGED WFS (real-půlka, Sez. 17) ---
-    # Kreslí se PO vrstevnicích, PŘED cestami (z-order): modré toky/plochy leží na hnědém
-    # terénu, černé cesty (mosty/lávky) je překryjí nahoře. Jen --water real (proc D8 = příště).
+    # Kreslí se PO vrstevnicích/bodech, PŘED cestami (z-order dle template): modré toky/
+    # plochy leží na hnědém terénu, černé cesty/budovy je překryjí nahoře. Jen --water real.
     water_line_features: list[tuple] = []
     water_area_features: list[tuple] = []
     water_info: list[dict] = []
@@ -830,8 +988,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
             draw, wdraw, lat, lon, geo_bbox)
 
     # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
-    # Kreslí se PO vodě, PŘED bodovými symboly (z-order). Obě větve sdílí render
-    # (_draw_path) i GT masku — liší se jen zdrojem geometrie (proc Dijkstra / real WFS).
+    # Kreslí se PO vodě, PŘED budovami (z-order dle template: 502-506 pod 521). Obě větve
+    # sdílí render (_draw_path) i GT masku — liší se jen zdrojem geometrie (proc/real).
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
     pdraw = ImageDraw.Draw(path_mask_img)
     if paths == "real":
@@ -841,11 +999,17 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                                                          cell_w_m, cell_h_m, det)
     n_paths = len(paths_info)
 
-    # --- bodové symboly lokálních extrémů (§4.10): kreslí se NAHORU (po cestách) ---
-    sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
-    sdraw = ImageDraw.Draw(sym_mask_img)
-    for ps in point_symbols:
-        _draw_point_symbol(draw, sdraw, ps)
+    # --- budovy/stavby (§4.x): reálné ze ZABAGED WFS (real-půlka, Sez. 18) ---
+    # Kreslí se ÚPLNĚ NAVRCH (z-order dle template: 521 je poslední symbol = nejvyšší
+    # priorita; černá plocha budovy překryje vše pod sebou). Jen --buildings real.
+    building_area_features: list[tuple] = []
+    building_info: list[dict] = []
+    building_mask_img: Image.Image | None = None
+    if buildings == "real":
+        building_mask_img = Image.new("L", (W, H), 0)   # GT maska budov (§8.1)
+        bdraw = ImageDraw.Draw(building_mask_img)
+        building_area_features, building_info = _generate_real_buildings(
+            draw, bdraw, lat, lon, geo_bbox)
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
@@ -856,6 +1020,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
     if water_mask_img is not None:
         water_mask_img.save(out / "mask_water.png")                         # voda (GT, multi-class)
+    if building_mask_img is not None:
+        building_mask_img.save(out / "mask_buildings.png")                  # budovy (GT)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
@@ -865,13 +1031,16 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     # je rozšíření). Vše type-1 objekt (OOM rozlišuje linie/plochu podle typu symbolu).
     water_omap_features = ([(g, c) for g, c in water_line_features]
                            + [(g, "301.1") for g, _ in water_area_features])
+    # budovy = plošný symbol 521 (area, type-4 v template) → uzavřený prstenec, OOM vyplní
+    building_omap_features = [(g, "521") for g, _ in building_area_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
-                             water_omap_features, GW, GH, WORLD_W_M, TILE_M, MAP_SCALE,
-                             out / "map.omap")
+                             water_omap_features, building_omap_features,
+                             GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, water, lat, lon, elev, crs_epsg,
-                       n_contours, n_paths, paths_info, point_symbols, water_info, omap_info)
+    meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, lat, lon, elev,
+                       crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
+                       building_info, omap_info)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
@@ -889,12 +1058,16 @@ def main() -> None:
     p.add_argument("--water", choices=["off", "real"], default="off",
                    help="off = bez vody (default), real = ČÚZK ZABAGED WFS toky+plochy "
                         "(vyžaduje --terrain real; proc hydro D8 = budoucí)")
+    p.add_argument("--buildings", choices=["off", "real"], default="off",
+                   help="off = bez budov (default), real = ČÚZK ZABAGED WFS plochy → ISOM 521 "
+                        "(vyžaduje --terrain real)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
     out = generate(args.seed, args.rug, args.det, args.out, terrain=args.terrain,
-                   paths=args.paths, water=args.water, lat=args.lat, lon=args.lon)
+                   paths=args.paths, water=args.water, buildings=args.buildings,
+                   lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
 
