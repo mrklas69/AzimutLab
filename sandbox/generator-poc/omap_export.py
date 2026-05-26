@@ -10,9 +10,10 @@ Zisk oproti od-nuly:
     (line_symbol) — místo dřívějšího jednotného zjednodušeného kruhu;
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
-Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 503/505, body 109/110/111);
-barvy/symboly/georef/view přebíráme z template beze změny. Symbol id parsujeme z template
-podle ISOM kódu (robustní vůči re-uložení template v OOM — id NEjsou pořadová: 503→110, 505→112).
+Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 502-506, voda 304/305/306 + plocha
+301.1, budovy 521, body 109/110/111); barvy/symboly/georef/view přebíráme z template beze
+změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení template
+v OOM — id NEjsou pořadová: 503→110, 505→112).
 
 Georef: template má Local CRS (paper-space), scale 1:10000. Object coords jsou v µm na
 PAPÍŘE; 1 m terénu = (1e6/scale) µm. Vycentrováno na (0,0), bez Y-flip (paper y i grid gy
@@ -24,7 +25,8 @@ NEduplikuje Pic2Omap `db2omap` (ten jde z rastru přes .pgw/cv2; my z přesných
 import re
 from pathlib import Path
 
-# Čistý ISOM 2017-2 template (vyrobil uživatel v OOM, Sez. 13). Sebeobsažný v sandbox/.
+# Čistý ISOM 2017-2 template (vyrobil uživatel v OOM: Sez. 14, naposled přepsán Sez. 18).
+# Sebeobsažný v sandbox/.
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
@@ -68,7 +70,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     """Zapíše vrstevnice + cesty + vodu + budovy + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
-    [(curve grid, code 503/505)], `water_features` = [(line/ring grid, code 304/305/306/301.1)],
+    [(curve grid, code 502-506)] (proc dělá 503/505, reálná větev plnou hierarchii),
+    `water_features` = [(line/ring grid, code 304/305/306/301.1)],
     `building_features` = [(ring grid, code 521)] — vše v souřadnicích MŘÍŽKY (gx∈0..gw-1,
     gy∈0..gh-1); voda i budovy jdou jako liniové objekty (type 1), OOM je vyplní podle typu
     symbolu (plošný 301/521). `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale`

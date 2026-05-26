@@ -32,7 +32,8 @@ _IMG_SERVER = "https://ags.cuzk.gov.cz/arcgis2/rest/services/dmr5g/ImageServer"
 _TF_WGS84_TO_SJTSK = Transformer.from_crs("EPSG:4326", "EPSG:5514", always_xy=True)
 
 
-def build_bbox(lat: float, lon: float, gw: int, gh: int, tile_m: float):
+def build_bbox(lat: float, lon: float, gw: int, gh: int,
+               tile_m: float) -> tuple[float, float, float, float]:
     """Spočte bbox v S-JTSK (metry) tak, aby měl poměr stran jako mřížka gw×gh.
 
     Kratší strana (sever-jih, osa y) = `tile_m`; delší (východ-západ, osa x) se

@@ -173,6 +173,25 @@ BUILDING_SIMPLIFY_PX = round(0.3 * PX_PER_MM, 1)    # ≈ 1,4 px (0,3 mm na map�
 # (proto výchozí lokalita; zná tu ground-truth). Členitý terén vhodný pro OB.
 DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 
+
+# ---------- Souřadnicové přepočty (DRY: jeden zdroj pro grid↔px↔S-JTSK) ----------
+# Tři vrstvy souřadnic: MŘÍŽKA (gx∈0..GW-1, gy∈0..GH-1, sever = gy 0), PIXEL plátna
+# a S-JTSK metry (reálná data). Přepočty se dřív opakovaly v každé render funkci
+# (proc/real cesty, voda, budovy, body, vrstevnice) → vytaženo sem (Sez. 19, DRY).
+def _grid_to_px(gx: float, gy: float) -> tuple[float, float]:
+    """Souřadnice mřížky → pixel plátna (lineárně, bez Y-flipu: gy 0 = sever = y 0)."""
+    return (gx / (GW - 1) * W, gy / (GH - 1) * H)
+
+
+def _sjtsk_to_grid(x: float, y: float, bbox: tuple) -> tuple[float, float]:
+    """S-JTSK metry → souřadnice mřížky (inverze georef vektoru). Y-flip: sever = ymax = gy 0.
+
+    `bbox` = (xmin, ymin, xmax, ymax). Sdílí reálné cesty/voda/budovy (Sez. 16-18) — výsek
+    je tentýž jako u DMR vrstevnic (sdílený build_bbox), takže vše sedne na terén bezešvě.
+    """
+    xmin, ymin, xmax, ymax = bbox
+    return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
+
 # =====================================================================
 #  Skalární pole (§2-3)
 # =====================================================================
@@ -531,8 +550,7 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     Maska dostává místo barvy ID třídy (SYM_CLASS) — z mask_symbols.png je tak rovnou
     multi-class segmentační GT. Mřížka → pixely stejným přepočtem jako vrstevnice.
     """
-    px = ps["gx"] / (GW - 1) * W
-    py = ps["gy"] / (GH - 1) * H
+    px, py = _grid_to_px(ps["gx"], ps["gy"])
     code = ps["symbol"]
     cls = SYM_CLASS[code]
     r = SYMBOL_R
@@ -582,7 +600,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
         }),
         "grid": [GW, GH],
         "canvas": [W, H],
-        "scale": "1:10000",
+        "scale": f"1:{MAP_SCALE}",
         "contour_step_m": CONTOUR_STEP,
         "contour_index_m": CONTOUR_INDEX,
         # vektorový export vrstevnic (§9): formát, CRS, počet linií, ISOM symboly
@@ -635,7 +653,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
         "point_symbols": [
             {"symbol": ps["symbol"], "symbol_name": SYM_NAME[ps["symbol"]],
              "grid": [round(ps["gx"], 2), round(ps["gy"], 2)],
-             "px": [round(ps["gx"] / (GW - 1) * W, 1), round(ps["gy"] / (GH - 1) * H, 1)]}
+             "px": [round(c, 1) for c in _grid_to_px(ps["gx"], ps["gy"])]}
             for ps in point_symbols
         ],
         "symbol_classes": {"0": "pozadí", "1": "109 Small knoll",
@@ -681,7 +699,7 @@ def _generate_proc_paths(rng: np.random.Generator, elev: np.ndarray,
         if ctrl[-1] != cells[-1]:
             ctrl.append(cells[-1])
         curve_grid = _catmull_rom([(float(gx), float(gy)) for gx, gy in ctrl])
-        curve_px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in curve_grid]
+        curve_px = [_grid_to_px(gx, gy) for gx, gy in curve_grid]
         code = ISOM_ROAD if k == 0 else ISOM_FOOTPATH    # hlavní plná / vedlejší čárkovaná
         _draw_path(draw, pdraw, curve_px, code)
         path_features.append((curve_grid, code))
@@ -701,16 +719,14 @@ def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
     na terén. Vrací (path_features grid, paths_info).
     """
     from zabaged import fetch_paths, map_to_isom
-    xmin, ymin, xmax, ymax = geo_bbox
     feats = fetch_paths(lat, lon, GW, GH, TILE_M)
     paths_info: list[dict] = []
     path_features: list[tuple] = []
     for f in feats:
         code = map_to_isom(f["layer"], f["props"])
         for line in f["lines"]:
-            curve_grid = [((x - xmin) / (xmax - xmin) * (GW - 1),
-                           (ymax - y) / (ymax - ymin) * (GH - 1)) for x, y in line]
-            curve_px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in curve_grid]
+            curve_grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            curve_px = [_grid_to_px(gx, gy) for gx, gy in curve_grid]
             if len(curve_px) < 2:
                 continue
             _draw_path(draw, pdraw, curve_px, code)
@@ -732,12 +748,7 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     water_info) v souřadnicích MŘÍŽKY (zdroj pro vektor/OMAP).
     """
     from zabaged import fetch_water, map_water_to_isom
-    xmin, ymin, xmax, ymax = geo_bbox
     line_feats, area_feats = fetch_water(lat, lon, GW, GH, TILE_M)
-
-    def to_grid(x: float, y: float) -> tuple[float, float]:
-        return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
-
     line_features: list[tuple] = []
     area_features: list[tuple] = []
     water_info: list[dict] = []
@@ -746,8 +757,8 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
         if code is None:                       # podzemní tok → nekreslit
             continue
         for line in f["lines"]:
-            grid = [to_grid(x, y) for x, y in line]
-            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
             if len(px) < 2:
                 continue
             _draw_water_line(draw, wdraw, px, code)
@@ -759,8 +770,8 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
         if code is None:
             continue
         for ring in f["rings"]:
-            grid = [to_grid(x, y) for x, y in ring]
-            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
             if len(px) < 3:
                 continue
             _draw_water_area(draw, wdraw, px, code)
@@ -831,12 +842,7 @@ def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDr
     building_info) v souřadnicích MŘÍŽKY (zdroj pro OMAP).
     """
     from zabaged import fetch_buildings, map_building_to_isom
-    xmin, ymin, xmax, ymax = geo_bbox
     feats = fetch_buildings(lat, lon, GW, GH, TILE_M)
-
-    def to_grid(x: float, y: float) -> tuple[float, float]:
-        return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
-
     area_features: list[tuple] = []
     building_info: list[dict] = []
     for f in feats:
@@ -844,15 +850,15 @@ def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDr
         if code is None:
             continue
         for ring in f["rings"]:
-            grid = [to_grid(x, y) for x, y in ring]
-            px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in grid]
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
             if len(px) < 3:
                 continue
             # ISOM generalizace (Sez. 18): zjednodušení obrysu + min. velikost. Pracuje
             # v px (papír = kde jsou ISOM rozměry definované); grid pro OMAP odvodíme ZPĚT
             # z generalizovaného px → render i .omap sdílí touž geometrii (conceptual integrity).
             px = _generalize_building(px)
-            grid = [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in px]
+            grid = [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in px]   # px → grid (inverze _grid_to_px)
             _draw_building_area(draw, bdraw, px, code)
             area_features.append((grid, code))
             building_info.append({"symbol": code, "symbol_name": BUILDING_NAME[code],
@@ -881,9 +887,12 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     `buildings="real"` = reálné budovy/stavby ze ZABAGED WFS (real-půlka, ISOM 521);
     také VYŽADUJE `terrain="real"` (stejný georef důvod jako cesty/voda).
 
-    Vrstvy (z-order dle ISOM draw order z template_classic.omap): vrstevnice (§4.5) →
-    bodové symboly extrémů (§4.10) → voda → cesty (§4.9) → budovy (521 navrch). `rug` řídí
-    členitost terénu (jen noise), `det` počet proc cest.
+    Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → bodové symboly extrémů
+    (§4.10) → voda → cesty (§4.9) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
+    čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
+    OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
+    naopak POD hnědou vrstevnicí), patří do OOM Colors okna = uživatelova doména, ne rastr.
+    `rug` řídí členitost terénu (jen noise), `det` počet proc cest.
 
     Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
     (§4.10): kopeček 109/110, prohlubeň 111 — místo prstence se kreslí značka a GT
@@ -959,24 +968,24 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                 point_symbols.append(ps)
                 continue
             # přepočet souřadnic mřížky (x∈0..GW-1, y∈0..GH-1) na pixely plátna
-            pts = [(float(x) / (GW - 1) * W, float(y) / (GH - 1) * H) for x, y in line]
+            pts = [_grid_to_px(float(x), float(y)) for x, y in line]
             if len(pts) >= 2:
                 draw.line(pts, fill=C_BROWN, width=width)
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
     # --- bodové symboly lokálních extrémů (§4.10): hnědé kopečky/prohlubně ---
-    # Z-order dle ISOM (template_classic.omap, draw order): 109/110/111 jsou HNED po
-    # vrstevnicích, tj. POD vodou/cestami/budovami (hnědý terénní detail, černé komunikace
-    # ho překryjí). Sez. 18: opraveno (dřív chybně navrchu → hnědé body přes hlavní cesty).
+    # Rastr z-order: hned po vrstevnicích = POD vodou/cestami/budovami (hnědý terénní detail,
+    # černé komunikace ho přirozeně překryjí — tak ho vidí oko na reálné mapě). Sez. 18:
+    # opraveno (dřív chybně navrchu → hnědé body přes hlavní cesty).
     sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
     sdraw = ImageDraw.Draw(sym_mask_img)
     for ps in point_symbols:
         _draw_point_symbol(draw, sdraw, ps)
 
     # --- voda (hydrografie): reálná ze ZABAGED WFS (real-půlka, Sez. 17) ---
-    # Kreslí se PO vrstevnicích/bodech, PŘED cestami (z-order dle template): modré toky/
-    # plochy leží na hnědém terénu, černé cesty/budovy je překryjí nahoře. Jen --water real.
+    # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém
+    # terénu, černé cesty/budovy je překryjí nahoře (čitelnost feederu). Jen --water real.
     water_line_features: list[tuple] = []
     water_area_features: list[tuple] = []
     water_info: list[dict] = []
@@ -988,8 +997,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
             draw, wdraw, lat, lon, geo_bbox)
 
     # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
-    # Kreslí se PO vodě, PŘED budovami (z-order dle template: 502-506 pod 521). Obě větve
-    # sdílí render (_draw_path) i GT masku — liší se jen zdrojem geometrie (proc/real).
+    # Rastr z-order: PO vodě, PŘED budovami. Obě větve sdílí render (_draw_path) i GT masku
+    # — liší se jen zdrojem geometrie (proc/real).
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
     pdraw = ImageDraw.Draw(path_mask_img)
     if paths == "real":
@@ -1000,8 +1009,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     n_paths = len(paths_info)
 
     # --- budovy/stavby (§4.x): reálné ze ZABAGED WFS (real-půlka, Sez. 18) ---
-    # Kreslí se ÚPLNĚ NAVRCH (z-order dle template: 521 je poslední symbol = nejvyšší
-    # priorita; černá plocha budovy překryje vše pod sebou). Jen --buildings real.
+    # Rastr z-order: ÚPLNĚ NAVRCH — černá plocha budovy překryje vše pod sebou (vizuálně
+    # dominantní blok). Pozor: v OOM color orderu je to naopak (521 priorita 8, pod cestami
+    # i vrstevnicí) — rastr feederu a OOM separace jsou dvě roviny (Sez. 18). Jen --buildings real.
     building_area_features: list[tuple] = []
     building_info: list[dict] = []
     building_mask_img: Image.Image | None = None

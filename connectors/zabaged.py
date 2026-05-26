@@ -32,7 +32,7 @@ _WFS_SERVER = "https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServ
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
 # zpravidla PO existující cestě/pěšině → duplikovala by liniovou síť (rozhodnuto Sez. 16).
 # (Silnice/Ulice jsou v lese vzácné, ale patří do sítě, kde výsek zasáhne okraj obce.)
-LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Ulice")
+PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Ulice")
 
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
@@ -106,7 +106,7 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
     out: list[dict] = []
-    for layer in LAYERS:
+    for layer in PATH_LAYERS:
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
             geom = feat.get("geometry") or {}
@@ -289,7 +289,7 @@ def _diagnostics(lat: float, lon: float) -> None:
     feats = fetch_paths(lat, lon, GW, GH, TILE_M)
     print(f"Celkem features: {len(feats)}\n")
     by_layer: Counter = Counter(f["layer"] for f in feats)
-    for layer in LAYERS:
+    for layer in PATH_LAYERS:
         layer_feats = [f for f in feats if f["layer"] == layer]
         print(f"=== {layer}: {by_layer[layer]} features ===")
         if not layer_feats:
