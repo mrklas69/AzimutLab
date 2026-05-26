@@ -82,12 +82,16 @@ První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do gen
   padla). Izomorfní s `contours.geojson`.
 - **CRS:** S-JTSK (EPSG:5514), shoda s DMR. Axis order odpovědi = **[x, y] = [easting, northing]**
   (ověřeno: x ≈ -714 tis, y ≈ -964 tis pro Děčínsko) → žádný axis swap.
-- **Feature typy komunikací:** `Cesta` (atributy `typcesty_k`, `povrch_k`), `Pěšina` (`TYPUSKOM_K`),
-  `Silnice__dálnice` (`typsil_k`), `Ulice`, `Turistická_trasa`. Posledně jmenovaná **vynechána**
-  (vede po existující cestě → duplikace sítě).
+- **Feature typy komunikací (`PATH_LAYERS`):** `Cesta` (atributy `typcesty_k`, `povrch_k`), `Pěšina`
+  (`TYPUSKOM_K`), `Silnice__dálnice` (`typsil_k`), **`Silnice_neevidovaná`** (účelové/lesní asfaltky mimo
+  silniční evidenci — doplněno Sez. 23), `Ulice`. `Turistická_trasa` **vynechána** (vede po existující
+  cestě → duplikace sítě). **Princip (Sez. 23, uživatel): stahovat VŠECHNY relevantní vrstvy, ne vybrané**
+  — `Silnice_neevidovaná` původně chyběla → páteřní asfaltka Bedřichov→Nová louka na mapě úplně chyběla.
+  Příští doplnění z GetCapabilities: el. vedení (ISOM 516), `Most`, `Silnice_ve_výstavbě`.
 - **Mapování → ISOM** (fyzický stav = ISOM logika sjízdnosti, ne 1:1): Silnice/Ulice → 502 Wide road;
-  Cesta zpevněná (`povrch_k` Z/T) → 503 Road, nezpevněná (None) → 504 Vehicle track; Pěšina
-  udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná → 506 Small footpath. (Viz `zabaged.map_to_isom`.)
+  Silnice_neevidovaná → 503 Road (zpevněná účelová <5 m); Cesta zpevněná (`povrch_k` Z/T) → 503 Road,
+  nezpevněná (None) → 504 Vehicle track; Pěšina udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná
+  → 506 Small footpath. (Viz `zabaged.map_to_isom`.)
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED) — atribuce povinná, uložena v `meta.json` (`paths.licence`).
 - **Limit:** WFS 10 000 features/request — pro výsek ~1,5×1 km bohatě stačí (Děčínsko = 58 linií).
 

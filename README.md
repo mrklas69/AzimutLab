@@ -17,7 +17,11 @@ outline) and — since session 22 — level-2 displacement (buildings nudged off
 ISOM 0,4 mm minimum gap; `resolve_displacement`). `zabaged.py` (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
-111 arc) + the full symbol library.**
+111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
+any location & aspect ratio; resolution held constant) and `zabaged.py` fetches the full relevant set of ZABAGED
+layers, not a curated subset (e.g. `Silnice_neevidovaná` — unregistered/forest asphalt roads, previously missing) —
+the real branch is conceptually a *map predictor* (`synthesize_pseudorealistic_map`): projection of available
+geodata now, AI prediction of missing symbols from similar localities later (UC5).**
 
 ## What this is
 

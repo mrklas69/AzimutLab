@@ -242,6 +242,7 @@ kontroly kroužky (poslední dvojitý = cíl), spojnice. Číslování vpravo na
 | Středně zelená | chůze | `#6DC771` | 55/0/65/0 |
 | Tmavě zelená | těžko prostupné | `#2DA94F` | 100/0/80/0 |
 | Hnědá | vrstevnice, rýhy | `#A05F1F` | 0/56/100/18 |
+| Hnědá silniční | výplň silnice 502 | `#E8A774` | 0/28/50/9 (Upper brown 50%) |
 | Modrá | voda, mokřad | `#2EC2F8` | 90/0/0/0 |
 | Černá | skály, cesty, stavby | `#000000` | 0/0/0/100 |
 | Purpurová | trať | `#C400AC` | 0/100/0/0 (Purple) |
@@ -365,8 +366,12 @@ funkce generate(seed, params):
     `.zabaged_cache/`. Linie v S-JTSK → grid inverzí georef vrstevnic (Y-flip). Mapování ZABAGED
     kategorií → ISOM 502-506 (`map_to_isom`); render sjednocen s proc přes `_draw_path`/`PATH_STYLE`.
     Detaily endpointu/mapování/licence: `data-sources.md` „ZABAGED komunikace — WFS konektor".
-    Pozn.: 502 Wide road kreslen PoC casingem (dvě hrany + výplň), ne věrnou dvojitou linií na
-    šířku; rozlišení 505/506 dle udržovanosti pěšiny. Voda z INSPIRE HY zatím neimpl. (IDEAS).
+    Vrstvy (`PATH_LAYERS`, Sez. 23 doplněno): `Silnice__dálnice`/`Ulice`→502, **`Silnice_neevidovaná`**
+    (účelové/lesní asfaltky)→503, `Cesta` zpevněná→503 / nezpevněná→504, `Pěšina`→505/506. Pozn.: 502
+    Wide road kreslen `casing` s **hnědou výplní** (`C_ROAD` = Upper brown 50%) + černé okraje (Sez. 23,
+    dřív bílá výplň = neviditelná); 503 a 504 jsou v ISOM stejně tlusté (350 µm, liší se plná/čárkovaná);
+    505 šířka 1 px (template 250 µm). **Princip (Sez. 23): stáhnout VŠECHNY relevantní vrstvy, ne vybrané**
+    — selektivní `PATH_LAYERS` vynechal `Silnice_neevidovaná` → páteřní asfaltka úplně chyběla na mapě.
 - **Výstup do vektoru**: pokud potřebuješ OCD/OMAP, exportuj jednotlivé vrstvy jako
   GeoJSON/SHP a konvertuj (OpenOrienteering Mapper umí import GDAL vektorů; OCAD má
   XML skripty). Vrstevnice jdou exportovat přímo z marching squares jako polylinie.

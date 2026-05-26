@@ -45,11 +45,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   draw order z template → color-table je doména editace v OOM, ne generátoru (Sez. 18). Pozn.:
   OOM ISOM 2017-2 sada má budovu 521 na prioritě 8 (pod vrstevnicí 6 — záměr: budova pod tratěmi).
 - **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
-  **502 Wide road** (silnice) · **503 Road** (zpevněná, plná čára) · **504 Vehicle track**
-  (vozová, nezpevněná, čárkovaná) · **505 Footpath** (pěšina, čárkovaná) · **506 Small footpath**
-  (malá/neudržovaná). Generátor má dvě větve (`--paths`): **proc** = procedurální Dijkstra
-  least-cost (§9), hlavní 503 / vedlejší 505; **real** = reálné komunikace ze ZABAGED WFS
-  (Sez. 16), plná hierarchie 502-506 dle povrchu/udržovanosti.
+  **502 Wide road** (silnice — hnědý pás s černými okraji, render `casing` s `C_ROAD` výplní; pozor:
+  502 a 503 jsou v ISOM templatu STEJNĚ tlusté, liší se plná/čárkovaná) · **503 Road** (zpevněná,
+  plná černá 2 px) · **504 Vehicle track** (vozová, nezpevněná, čárkovaná 2 px) · **505 Footpath**
+  (pěšina, čárkovaná **1 px** — template 250 µm, Sez. 23) · **506 Small footpath** (malá/neudržovaná).
+  Generátor má dvě větve (`--paths`): **proc** = procedurální Dijkstra least-cost (§9), hlavní 503 /
+  vedlejší 505; **real** = reálné komunikace ze ZABAGED WFS (Sez. 16), plná hierarchie 502-506 dle
+  povrchu/udržovanosti. Vrstvy: `Silnice__dálnice`/`Ulice`→502, **`Silnice_neevidovaná`** (účelové/lesní
+  asfaltky, Sez. 23)→503, `Cesta` zpevněná→503 / nezpevněná→504, `Pěšina`→505/506.
 - **Vodní tok / vodní plocha** (hydrografie) — voda na OB mapě, modrá. Toky ISOM **304**
   Crossable watercourse (hlavní, pojmenovaný) / **305** Small crossable watercourse (přítok) /
   **306** Minor/seasonal water channel (občasný, čárkovaný); plochy **301** Uncrossable body
@@ -106,6 +109,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Pravidlo: enabler před aplikací („foundations before curtains").
 - **Feeder / enabler-feeder** — generátor (UC4-I) coby zdroj trénovacích dat pro UC5;
   „krmí" model. Reframe Sez. 4: ne konečný produkt, ale enabler.
+- **Prediktor mapy / `synthesize_pseudorealistic_map`** — reframe real-větve generátoru (Sez. 23):
+  pro konkrétní lokalitu (souřadnice + rozměry) vyrobit mapu. Cílové API
+  `synthesize_pseudorealistic_map(n, e, w_km, h_km)`. Opačná tvář k noise-feederu. Detail: IDEAS.
+- **Projekce vs predikce** — dvě fáze prediktoru mapy. *Projekce* = deterministický převod dostupných
+  geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
+  v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +
+  licencí). Nezaměňovat: dnešní `--terrain real` je **projekce**, ne predikce.
+- **Pseudorealistic map** — výstup prediktoru: mapa, která *vypadá* realisticky, ale není skutečné
+  terénní mapování (syntéza projekce + AI predikce). Pojmenování poctivě přiznává umělost (Sez. 23).
 - **Deštník / fáze B→A** — AzimutLab je teď meta-vrstva (fáze B, deštník) nad sourozeneckým
   Pic2Omap; cíl je monorepo (fáze A), které Pic2Omap absorbuje, až vznikne sdílené jádro.
 - **Pic2Omap** — sourozenecký projekt (raster OB mapa → vektor `.omap`); UC4-III. Žije ve

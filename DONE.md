@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 23 (2026-05-26) — Parametrizace výseku + reframe `synthesize_pseudorealistic_map` + úplnější/věrnější cesty
+- [x] **Parametrizace výseku** (`generator.py`): velikost z konstant → argumenty `--width-km`/`--height-km`
+      (š×v; souřadnice `--lat/--lon`). Otočená závislost: `PX_PER_MM` + `M_PER_CELL` (rozlišení) = jedna pravda,
+      `W/H/GW/GH/TILE_M/WORLD_W_M` odvozeny v `_apply_extent(w_km,h_km)`. Rozlišení drží konstantní → mm-prahy
+      (`MIN_BUILDING_PX`, `DISPLACE_*`) platí pro libovolnou velikost. Default = baseline (zpětná kompat).
+      `WORLD_W_M` sjednoceno na `TILE_M·GW/GH` (jako `build_bbox`) — georef-konzistence (verify-against-source úlovek).
+      Testy: Soví vrch 3,3 km², Nová louka 7,25 km² portrait, refresh 5×4 km (20 km²). proc baseline **65 drží**.
+- [x] **Reframe „prediktor mapy" + název API** (`%THINK`): real-větev = `synthesize_pseudorealistic_map(n,e,w_km,h_km)`
+      — dvoufázový (projekce DMR+ZABAGED → AI predikce chybějících symbolů z podobných lokalit, UC5 blokováno
+      korpusem+licencí). Název zvolen proti `GetPredictedMap`/`GenerateProceduralMap` (kolize „procedural" s feederem).
+      Zatím vize (IDEAS) + první enabler (parametrizace); přejmenování `generate()` = samostatný příští refaktor.
+- [x] **502 Wide road — hnědá výplň** (`generator.py`, `palette.py`): casing měl bílou výplň → na bílém podkladu
+      neviditelný. Template `color 11` = „Upper brown 50%" → `C_ROAD` (232,167,116) + černé okraje, width 4→3 (580 µm).
+- [x] **505 Footpath 2→1 px** (template 250 µm; opraven drift „375µm/2px" ze Sez. 18, verify-against-source).
+- [x] **Chybějící vrstva `Silnice_neevidovaná` → 503** (`zabaged.py`): účelové/lesní asfaltky (vč. páteřní
+      Bedřichov→Nová louka) byly mimo `PATH_LAYERS` → na mapě úplně chyběly. Přidána + mapování → 503 Road
+      (zpevněná <5 m). Odhaleno řetězcem ověření z uživatelova GeoJSON (bbox→cache→WFS limit→GetCapabilities).
+      Princip „všechna data z geoportálu" → paměť; příště el. vedení 516, Most.
+- [x] **Censure! (AI) ×2 + verify-against-source:** (a) posun lokality Soví vrch přes metriku `elev_min` místo
+      záměru (vrch vypadl z výseku — data ukázala NoData jen 0,21 km, posunul jsem 2,2); (b) „silnice jsou v datech"
+      bez ověření fetch řetězce (chyběla celá vrstva). Lekce → paměti `verify-data-not-assume`, `geoportal-data-completeness`.
+
 ## Sezení 22 (2026-05-26) — Displacement L2 (implementace) + nález pravoúhlost budov
 - [x] **Kartografická generalizace Úroveň 2 — displacement** (`generator.py`): odsazení budov od pevné
       sítě (cesty+toky=kotva) a od sebe na ISOM min. mezeru 0,4 mm (`DISPLACE_GAP_PX`≈1,83 px).

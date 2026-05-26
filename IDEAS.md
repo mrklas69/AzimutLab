@@ -65,6 +65,25 @@ realnost-artefaktu se přidá, nepřepisuje.
 
 ---
 
+## `synthesize_pseudorealistic_map` — generátor jako prediktor mapy (Sez. 23, %THINK)
+
+Reframe real-větve: z „feeder" na **prediktor mapy** pro konkrétní lokalitu. Cílové API
+**`synthesize_pseudorealistic_map(n, e, w_km, h_km)`** — „synthesize" = skládá 2 zdroje;
+„pseudorealistic" = vypadá real, není skutečné mapování; snake_case (Python). Zamítnuto
+`GetPredictedMap` (`Get` = existující mapa) a `GenerateProceduralMap` („procedural" je rezervováno
+pro noise-feeder, kolize s `generator-procedural.md`). Dvoufázový (A2 uživatele):
+- **(1) projekce** podkladů — DMR→vrstevnice, ZABAGED→ISOM cesty/voda/budovy. *Máme*
+  (deterministický převod, ne predikce) = dnešní real-větev.
+- **(2) AI predikce** chybějících symbolů (vegetace/průchodnost — co v geodatech NENÍ, vegetace
+  gate zavřená) z **podobných lokalit** (retrieval-augmented prior) = UC5. **Blokátor: korpus +
+  licence** (ČSOS gate zavřená, Sez. 8) — bez zmapovaných map jako GT nelze učit.
+
+Cíl A3: co nejrealističtěji vyhlížející mapa. Noise-větev zůstává procedurální feeder (nemíchat osy).
+**Foundations:** predikce zralá jako VIZE, ne kód; pod ní musí stát parametrizace (DONE Sez. 23) +
+korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predikce" neříká převodu).
+
+---
+
 ## Nezralé nápady (k dozrání)
 
 - **UC3 jako první aplikace (ne UC4-III).** De-purple + de-crease potřebuje jen segmentaci
