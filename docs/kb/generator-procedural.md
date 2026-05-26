@@ -166,6 +166,26 @@ na terén. Plná ISOM hierarchie **502-506** (silnice / cesta zpevněná / vozov
 typu a povrchu (mapování `zabaged.map_to_isom`). Izomorfní s výškopisem: noise↔proc cesty,
 real↔ZABAGED cesty. (Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka — viz IDEAS.)
 
+### 4.9b Budovy / stavby (real-půlka, Sez. 18)
+**✅ Reálné budovy:** `--buildings real` vezme `Budova_jednotlivá_nebo_blok_budov__plocha_` ze
+ZABAGED Polohopis WFS (`zabaged.fetch_buildings`, týž konektor jako cesty/voda) pro tentýž výsek
+→ ISOM **521 Building** (plošný černý symbol, výplň + obrys; `map_building_to_isom`). Bodová vrstva
+budov je v lesních výsecích prázdná → netáhne se (jako pramen 312). Render `_draw_area_symbol`
+(sdílený s vodní plochou 301 — voda modrá, budova černá). GT `mask_buildings.png`. Vyžaduje
+`--terrain real`. Z-order: úplně navrch (po cestách). Izomorfní s vodou/cestami (real-půlka).
+
+**Kartografická generalizace (Úroveň 1, Sez. 18):** reálná geometrie se před renderem generalizuje
+(reálná OB mapa NENÍ syrová). Rozměry z ISOM (`template_classic.omap`, papírové mm × `PX_PER_MM`
+≈ 4,58): (a) **min. velikost** budovy 0,5 × 0,5 mm (`_enforce_min_size`); (b) **zjednodušení obrysu**
+Douglas-Peucker (`_simplify_polyline`, tolerance = ISOM průchod 0,3 mm). Generalizace pracuje v px,
+grid pro `.omap` se odvozuje ZPĚT z generalizovaného px (conceptual integrity render ↔ vektor).
+**Úroveň 2 = displacement** (odsazení budov od cest/sebe na min. 0,4 mm) — odloženo (IDEAS, `%THINK`).
+
+**Pozn. — OOM draw order:** vykreslovací pořadí v OOM určuje **priorita barev** (ne pořadí
+objektů/symbolů v `.omap`); export jen referencuje symboly přes ISOM kód a zdědí color-table
+template. Plošné symboly (301.1, 521) potřebují v `.omap` UZAVŘENÝ path (close flag 18), jinak
+je OOM nevyplní (`omap_export.area_object`, Sez. 18). Detail: GLOSSARY „Draw order / priorita barev".
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 

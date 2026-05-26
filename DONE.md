@@ -2,6 +2,42 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 18 (2026-05-26) — Reálné budovy (ZABAGED→521) + kartografická generalizace L1 + OOM draw order
+- [x] **`connectors/zabaged.py` +budovy** (real-půlka, izomorfní s vodní plochou): `BUILDING_AREA_LAYERS`,
+      `fetch_buildings` (mirror area-půlky `fetch_water`), `map_building_to_isom` (→ 521). Verify-against-source:
+      diagnostika `Budova_..._plocha_` na Soví vrchu → **105 ploch**, bodová vrstva `_bod_` prázdná
+      (netáhne se, jako pramen 312), `druhbud` budova/vodojem → obojí 521 (rozhodnutí uživatele-mapéra).
+- [x] **`generator.py` `--buildings off|real`** (real⇒terrain real, validace). **DRY refaktor**
+      `_draw_water_area` → generický `_draw_area_symbol` + wrappery (voda modrá / budova černá —
+      jako `_draw_line_symbol` u linií, Sez. 17). `_generate_real_buildings`, `mask_buildings.png`,
+      meta sekce „buildings". Z-order opraven dle ISOM draw orderu: vrstevnice → **body** → voda →
+      cesty → budovy (body extrémů 109/110/111 byly chybně navrch, přesunuty pod cesty).
+- [x] **Kartografická generalizace Úroveň 1** (na kartografický feedback uživatele). Verify-against-source
+      z `template_classic.omap` (ISOM 521 popis: min. plocha 0,5×0,5 mm, mezera 0,4 mm, průchod 0,3 mm),
+      `PX_PER_MM ≈ 4,58`: (a) **min. velikost budovy** `_enforce_min_size` (floor 0,5 mm); (b) **zjednodušení
+      obrysu** Douglas-Peucker `_simplify_polyline` (tolerance 0,3 mm passage); (c) **tloušťka 505** 1→2 px
+      (ISOM 375 µm). **Conceptual integrity:** generalizace v px → grid pro OMAP odvozen zpět (render i `.omap`
+      sdílí geometrii). Displacement (Úroveň 2, kolize budov-cest) → odloženo do IDEAS + `%THINK`.
+- [x] **`omap_export.py` area close-flag fix** — OOM vyplní plošný symbol jen u UZAVŘENÉHO path; flagless
+      export se nevyplnil (uživatel „neviděl budovy ani vodní plochu"). Verify-against-source: OOM po otevření
+      sám doplnil flag **18** (hole point 16 + close point 2). `area_object` ho generuje (301.1 + 521).
+      `USED_CODES` +521, `build_features` parametr, návrat +`buildings`.
+- [x] **OOM draw order objasněn (verify-against-source, ne hádání):** draw order = **priorita barev**
+      (nižší = navrch; Purple overprint 0 = úplně navrch), NE pořadí symbolů/objektů ani rastrový z-order.
+      Uživatel dodal IOF zdroj (kap. 7 Colour order) + čerstvý ISOM 2017-2 template (New Map). **Výměna
+      template draw order nezměnila** — OOM ISOM 2017-2 sada má vrstevnice na Brown 100% (priorita 6),
+      **budovu 521 na „Black below purple" (8) = pod vrstevnicí**, 502 na 11/14 (vespod). To je **záměr
+      OOM** (budova pod tratěmi 7 → vedlejší efekt pod vrstevnicí 6), ne bug. **Závěr: color-table draw
+      order = uživatelova OOM doména** (Colors okno), ne úkol generátoru; export referencuje symboly přes
+      ISOM kód → funguje s jakýmkoli ISOM 2017-2 template.
+- [x] **`template_classic.omap`** přepsán uživatelem na čerstvý ISOM 2017-2 (New Map → Save; 180 symbolů,
+      35 barev). 301.1 je v sadě standardně. Export i generate ověřeny (proc 65 / real 246 drží).
+- [x] **Censure! → paměť `isom-spec-before-render`:** ISOM spec (rozměry, generalizace, draw order
+      z template) studovat PŘED renderem nové vrstvy, ne reaktivně po feedbacku.
+- [x] **Verify (čísly):** proc baseline seed 1 = **65 obj** (behavior-preserving refaktory) · real
+      (terrain+paths+water+buildings) = **246 obj** (60 vrstevnic + 58 cest + 16 vody + **105 budov** + 7 bodů).
+      **Vizuál: budovy podél údolí Svitávky a cest, sedí na terén; obrysy po generalizaci čisté bloky.**
+
 ## Sezení 17 (2026-05-26) — %CALIBRATE úklid (1. svého druhu) + reálná voda ze ZABAGED WFS
 - [x] **%CALIBRATE (1. meta-audit projektu)** + IDEAS/TODO pruning — oba prahy poprvé
       (grep diáře: nikdy neproběhly). Schváleno vše: **D1** projektový `settings.local.json`

@@ -79,10 +79,10 @@ docs/
     generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths + water (WFS, GeoJSON); --paths/--water real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths + water + buildings (WFS, GeoJSON); --paths/--water/--buildings real
 sandbox/               # UC1: isolated experiments, one folder each
-  generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + extremum symbols + masks)
-                       #     consumes connectors/ for real terrain, paths & water; adds them to sys.path
+  generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + buildings + extremum symbols + masks)
+                       #     consumes connectors/ for real terrain, paths, water & buildings; adds them to sys.path
                        #     + template_classic.omap: clean ISOM 2017-2 template for .omap export
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods

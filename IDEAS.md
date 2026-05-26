@@ -90,6 +90,37 @@ realnost-artefaktu se přidá, nepřepisuje.
   toky ISOM 304/305/306 (dle stálý/občasný/pojmenovaný; podzemní skip), `Vodní_plocha` → 301.
   **Pramen 312 vynechán** — `Zdroj_podzemních_vod` 0 ve výřezu (nevymýšlet, co v datech není).
   Proc hydro jádro D8 = DROP (budoucí noise-půlka, nemíchat osy). Detail: `data-sources.md`.
+  **Budovy → DONE (Sez. 18).** Týž konektor (`fetch_buildings`): `Budova_..._plocha_` → ISOM **521**
+  (plošný černý symbol, izomorfní s vodní plochou 301). Bodová vrstva budov prázdná → netáhne se.
+  Vodojem → taky 521 (rozhodnutí uživatele-mapéra). Real-půlka kompletní pro cesty+voda+budovy.
+
+## Kartografická generalizace (Sez. 18)
+
+Reálná OB mapa NENÍ syrová geometrie — kartograf vynucuje minimální dimenze, zjednodušuje obrysy,
+odsazuje kolidující objekty (*displacement*). Syrová data zvětšují domain gap feederu (UC5 se učí
+číst GENERALIZOVANOU mapu). Rozměry ze spec (ISOM, `template_classic.omap`, papírové mm × `PX_PER_MM`).
+GT zůstává konzistentní (maska z téže generalizované geometrie).
+
+- **Úroveň 1 → DONE (Sez. 18):** min. velikost budovy 0,5 mm (`_enforce_min_size`), zjednodušení
+  obrysu Douglas-Peucker (`_simplify_polyline`, 0,3 mm passage), tloušťka 505 → 2 px. Levné, foundational.
+- **Úroveň 2 — displacement (→ TODO, `%THINK`):** odsazení budov od cest a mezi sebou na min. mezeru
+  0,4 mm (1,83 px). Klasický kartografický optimalizační problém (budova↔cesta↔budova), NP-hard-ish →
+  vlastní návrh, ne přílepek. Řeší kolizi budov s cestami (uživatelův bod ze Sez. 18).
+
+## OOM draw order = priorita barev (Sez. 18, zafixováno)
+
+Draw order v OpenOrienteering Mapper určuje **pořadí (priorita) BAREV**, ne pořadí symbolů/objektů
+ani rastrový z-order generátoru. Nižší priorita = navrch (Purple overprint = 0 = úplně navrch).
+Pořadí je závazně definované IOF (*Printing and Colour Definitions*, kap. 7 Colour order); krycí
+klony (*White over green*, *Black below brown*…) jsou jeho součást — neladí se ručně.
+
+- **Důsledek pro generátor:** `.omap` export referencuje symboly přes ISOM kód → zdědí draw order
+  template. **Color-table = uživatelova OOM doména** (Colors okno), ne úkol generátoru.
+- **OOM ISOM 2017-2 ≠ ideální IOF:** reálná sada má budovu 521 na „Black below purple" (priorita 8,
+  pod vrstevnicí 6) — záměr (budova pod tratěmi 7), vedlejší efekt = vrstevnice nad budovou. Chtít
+  budovy nad vrstevnice = vědomá odchylka od ISOM separace (uživatel v OOM).
+- **Anotační kanál uživatel → AI:** čísla kontrol **ISOM 704** v separátním `.omap` (ne v `map.omap`,
+  který se přepisuje); čtečka 704 → až bude první vstup (foundations — nestavět bez konzumenta).
 
 - **Reálné cesty + vodstvo z INSPIRE (UC2 → UC4-II, navrženo Sez. 14).** Uživatel navrhl dosadit
   reálné cesty z **INSPIRE Transport Networks (TN)** a vodu z **INSPIRE Hydrography (HY)** jako

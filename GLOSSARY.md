@@ -26,8 +26,20 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   hnědý oblouk „⌣"; staré 2017 = 115). Generátor z malých uzavřených vrstevnic (lokální
   min). **112 Pit** (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný
   z výškopisu).
-- **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru:
-  příliš malý kopeček/prohlubeň se nekreslí prstencem vrstevnice, ale bodovou značkou (§4.10).
+- **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy (reálná OB mapa NENÍ
+  syrová geometrie). V generátoru: (1) malý kopeček/prohlubeň → bodová značka místo prstence
+  (§4.10); (2) **min. velikost** — budova pod ISOM 0,5 mm se kreslí na minimum (`_enforce_min_size`,
+  Sez. 18); (3) **zjednodušení obrysu** — Douglas-Peucker (`_simplify_polyline`, detail pod 0,3 mm
+  passage se zhrubí). Rozměry ze spec přes `PX_PER_MM` (≈4,58 px/mm při 1:10000). **Úroveň 2 =
+  displacement** (odsazení kolidujících objektů, např. budova↔cesta na 0,4 mm) — odloženo (IDEAS).
+- **Douglas-Peucker** — algoritmus zjednodušení polylinie: zředí vrcholy pod toleranci, zachová
+  významné (rohy). Generátor jím generalizuje obrys budov (`_simplify_polyline`, Sez. 18).
+- **Draw order / priorita barev** — pořadí vykreslování vrstev v OOM. Určuje ho **pořadí (priorita)
+  BAREV** v mapě (nižší priorita = navrch; Purple overprint = 0 = úplně navrch), NE pořadí symbolů
+  ani objektů. Závazně definované IOF (*Printing and Colour Definitions*, kap. 7); krycí klony
+  (*White over green*, *Black below brown*…) jsou jeho součást. `.omap` export generátoru zdědí
+  draw order z template → color-table je doména editace v OOM, ne generátoru (Sez. 18). Pozn.:
+  OOM ISOM 2017-2 sada má budovu 521 na prioritě 8 (pod vrstevnicí 6 — záměr: budova pod tratěmi).
 - **Cesta / pěšina** — liniová komunikace. ISOM škála dle zřetelnosti/sjízdnosti:
   **502 Wide road** (silnice) · **503 Road** (zpevněná, plná čára) · **504 Vehicle track**
   (vozová, nezpevněná, čárkovaná) · **505 Footpath** (pěšina, čárkovaná) · **506 Small footpath**
@@ -40,9 +52,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   of water (výplň + břehová linie). **312 Spring** (pramen — pozor, ne 313 = Prominent water
   feature). Generátor `--water real` (Sez. 17): reálná půlka ze ZABAGED `Vodní_tok`/`Vodní_plocha`;
   podzemní toky (`typtoku_k=004`) se nekreslí. Procedurální voda (hydro jádro D8) = budoucí noise-půlka.
+- **Budova / stavba** — umělý objekt na OB mapě. ISOM **521 Building** (plošný černý symbol,
+  výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
+  `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem
+  taky 521). Render izomorfní s vodní plochou 301 (`_draw_area_symbol`), jen černá místo modré.
 - **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
-  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda). Izomorfní:
-  `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real`. Nemíchat zdroje napříč osou.
+  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda + budovy).
+  Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔ `--buildings off|real`.
+  Nemíchat zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
