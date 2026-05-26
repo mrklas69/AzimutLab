@@ -5,7 +5,6 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
-- [~] `resources/`: 6 reálných párů (picture, OMAP) nakopírováno (2 OOM dema vyřazena); zbývá rozlišit původ vlastní (`own/`) vs klubové (`club/`) kvůli čistotě tréninkového setu (reference/hold-out smí všechny)
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
 
 ## UC2 — Data konektory (enabler, průzkum)
@@ -17,7 +16,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
 - [ ] **Kartografická generalizace — Úroveň 2: displacement** (`%THINK` příště): odsazení budov od cest a mezi sebou na min. mezeru 0,4 mm (ISOM, ≈1,83 px). Kartografický optimalizační problém → řeší kolizi budov s cestami. Úroveň 1 (min. velikost, obrys) hotová Sez. 18.
 - [ ] *(odloženo, noise-půlka)* Hydrologické jádro z flow accumulation (D8, §9): toky (§4.8) → prameny (§4.10) → jezera/rybníky (sink-fill deprese) → bažiny. **Sez. 17: voda realizována reálně (ZABAGED), D8 = procedurální protějšek do budoucna (nemíchat osy).**
 - [ ] *(rozšíření cest/vody)* věrná dvojitá linie 502 Wide road (teď PoC casing), ladění 505/506, ořez reálných linií na bbox; (voda) „hranatý" malý rybník, věrný kombinovaný 301 s břehovou linií v OMAP (teď 301.1).
-- [ ] *(dataset, nález %AUDIT:CODE Sez. 19 — P1)* `batch.py` rozšířit o real vrstvy: reálná sada (`--terrain real`) teď dělá jen terén + **procedurální** cesty, nevyužívá `--paths/--water/--buildings real` (Sez. 16-18). Doplnit → bohatší UC5 dataset z reálných cest/vody/budov více lokalit ČR.
 - [ ] *(drobnost, nález %AUDIT:CODE Sez. 19 — P2)* OMAP export 110 Small elongated knoll: rastr respektuje orientaci `horiz`, ale `.omap` exportuje vždy `rotation="0"`. Předat orientaci protáhlosti do exportu (rastr↔omap konzistence).
 - [ ] *(anotace, až bude vstup)* čtečka čísel kontrol **ISOM 704** ze separátního anotačního `.omap` (kanál uživatel → AI: označí místo v OOM, generátor nepřepíše; já přečtu polohu/číslo). Workflow rozhodnut Sez. 18.
 - [ ] *(verify uživatelem v OOM)* `map.omap` po area close-flag fixu (Sez. 18): vyplní se budovy **521** i vodní plocha **301.1**? + pozn.: **draw order v OOM = priorita barev** (color-table), vědomá odchylka od ISOM separace (budovy nad vrstevnice) je úprava v OOM Colors okně — **doména uživatele, ne úkol generátoru** (Sez. 18).

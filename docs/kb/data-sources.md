@@ -168,19 +168,22 @@ DMR 5G (EPSG:5514) → spárování mapa↔terén. Měřítka 7,5–15 k (gener�
 pro kalibraci cest nejbližší Soví vrch / Bedřichovka).
 
 **Původ a práva (smíšené):**
-- **Vlastní** (vytvořené/aktualizované uživatelem) → držitel práv = uživatel; smí i trénink.
+- **Vlastní** (vytvořené/aktualizované uživatelem, zde Soví vrch) → držitel práv = uživatel.
 - **Klubové (koupené)** → „koupené" = licence k tisku/závodu, **ne autorská práva**; ta drží
-  kartograf/vydavatel. Konzervativně **jen lokální reference/hold-out**; trénink (= šíření
-  odvozeniny) až se svolením autora/klubu (stejná gate jako ČSOS portál výše).
+  kartograf/vydavatel.
 
 **Povolené použití:**
 - ✅ **Lokální reference / hold-out / kalibrace** (čtení, měření, vizuální srovnání) — všech 6,
-  bez ohledu na původ (nešíří se). Hned využitelné: kalibrace vedení cest vůči terénu
-  (Dijkstra cena — IDEAS „dvoustupňová věrnost"), validace generalizace modelu (§8.4 spec).
-- ⚠️ **Trénink modelu** — jen vlastní mapy; klubové potřebují svolení.
+  bez ohledu na původ (nešíří se, `resources/` je gitignored). Hned využitelné: kalibrace
+  vedení cest vůči terénu (Dijkstra cena — IDEAS „dvoustupňová věrnost"), validace generalizace
+  modelu (§8.4 spec); Soví vrch = autoritativní terénní ground-truth (mapováno uživatelem v terénu).
+- ℹ️ **Trénink UC5 se reálných map NETÝKÁ** — model se učí na našem **syntetickém** datasetu
+  z generátoru (free GT, reframe Sez. 4) → licence reálných map je pro trénink bezpředmětná.
+  (Šíření odvozeniny klubové mapy by svolení vyžadovalo — to ale neděláme.)
 
-**Rozlišit původ:** v `resources/` oddělit vlastní vs klubové (`own/` + `club/` nebo
-`resources/MANIFEST.md` se seznamem map + původ + licence), ať je tréninkový set čistý (TODO).
+**Pozn. (Sez. 20):** dřívější záměr dělit `resources/` na `own/`+`club/` kvůli „čistotě
+tréninkového setu" byl **zrušen** — trénink je syntetický, reálné mapy se neučí, takže dělení
+postrádá důvod. `resources/` zůstává plochý.
 
 ## Další zdroje (neprozkoumáno)
 

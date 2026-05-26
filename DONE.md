@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 20 (2026-05-26) — batch.py → reálné vrstvy (P1) + zrušení dělení resources
+- [x] **`batch.py` → plná realita** (P1 nález %AUDIT:CODE Sez. 19): reálná sada (`--terrain real`) teď
+      kreslí reálné cesty/vodu/budovy ze ZABAGED (Sez. 16-18), ne jen terén + **procedurální** cesty.
+      `--terrain real` automaticky zapne `paths/water/buildings=real` (KISS); `det` se u real přestal
+      losovat (cesty jdou ze ZABAGED → variace = lokalita); manifest po `generate()` čte skutečné počty
+      vrstev + chyby z `meta.json` (SSoT výsledku). Bohatší UC5 dataset z reálné geometrie více míst ČR.
+- [x] **`generator.py` tolerantní reálné vrstvy** — `generate(..., tolerant=False)` + helper `_try_layer`:
+      v dávkovém režimu selhání WFS/sítě jedné vrstvy ji vynechá (warning + `layer_errors` v `meta.json`)
+      místo pádu celé mapy; prázdná data (0 features) výjimku nevyhodí (rozlišení „nic v datech" vs „WFS
+      spadlo"). CLI single-mapy beze změny (default `False` = selže hlučně). Verify: proc baseline **65 obj
+      drží** (zpětně kompat.), real n=2 (Č.Švýcarsko 57/16/99, Č.ráj 26/1/22), tolerance doložena monkeypatchem.
+- [x] **`resources/ own vs club` ZRUŠENO (DROP)** — trénink UC5 = **syntetika** (reframe Sez. 4), reálné
+      mapy = jen verify/reference/hold-out → licenční dělení vlastní/klubové **bezpředmětné** (zpochybnil
+      uživatel: „model trénujeme na vygenerovaném datasetu"). Vrácena plochá struktura `resources/`.
+      Smazán **duplikát** `resources/template_classic.omap` (bit-identický; kanonická tracked kopie zůstává
+      v `sandbox/generator-poc/`, kde ji čte `omap_export.py` — `resources/` je gitignored). `data-sources.md`
+      conceptual-integrity oprava (trénink = syntetika, reálné mapy = verify; dělení zrušeno).
+
 ## Sezení 18 (2026-05-26) — Reálné budovy (ZABAGED→521) + kartografická generalizace L1 + OOM draw order
 - [x] **`connectors/zabaged.py` +budovy** (real-půlka, izomorfní s vodní plochou): `BUILDING_AREA_LAYERS`,
       `fetch_buildings` (mirror area-půlky `fetch_water`), `map_building_to_isom` (→ 521). Verify-against-source:
