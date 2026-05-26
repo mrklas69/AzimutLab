@@ -4,13 +4,16 @@ batch.py — dávkové generování mini datasetu + náhledová mozaika.
 Dva režimy přes --terrain:
   - noise (default): fraktální šum, parametry (rug, det) losuje master-PRNG.
     Celá sada je reprodukovatelná z dvojice (--seed0, --n).
-  - real: reálný ČÚZK DMR 5G terén z různých lokalit ČR (CZ_LOCATIONS). Hlavní
-    variace je LOKALITA (rug se u reálného terénu neuplatní); losuje se jen
-    hustota detailů (det = počet cest). Sada je daná dvojicí (--seed0, --n).
+  - real: PLNÁ REALITA — reálný ČÚZK DMR 5G terén + reálné cesty/voda/budovy ze
+    ZABAGED WFS (Sez. 16-18) z různých lokalit ČR (CZ_LOCATIONS). Hlavní (a jediná)
+    variace je LOKALITA: rug se u reálného terénu neuplatní a cesty jdou ze ZABAGED
+    (ne procedurálně z `det`). Sada je daná seznamem lokalit a dvojicí (--seed0, --n).
+    Robustnost: selhání WFS u jedné vrstvy/lokality ji jen vynechá (generate
+    tolerant=True), batch jede dál; manifest zaznamená skutečné počty + chyby.
 
 Účel: ověřit, že generátor produkuje rozmanité mapy (ne one-off), a vyrobit
 trénovací sadu pro UC5 — každá instance = mapa + GT masky (viz spec §8). Reálná
-sada zmenšuje domain gap (skutečná geometrie terénu z více míst ČR).
+sada zmenšuje domain gap (skutečná geometrie terénu, cest, vody i budov z více míst ČR).
 """
 
 import argparse
@@ -102,16 +105,29 @@ def main() -> None:
         seed = args.seed0 + i
         inst_dir = out / f"{i:03d}"
         if real:
-            # Reálný terén: hlavní variace je LOKALITA; rug se neuplatní (terén je daný
-            # realitou). Losujeme jen hustotu detailů (det = počet cest). Lokality
-            # cyklíme, když n > počet lokalit (stejné místo, jiný počet cest).
+            # Reálný terén = PLNÁ REALITA: terén + cesty + voda + budovy ze ZABAGED.
+            # Hlavní (a jediná) variace je LOKALITA; rug ani det se neuplatní (terén je
+            # daný realitou, cesty jdou ze ZABAGED ne z det). Lokality cyklíme, když
+            # n > počet lokalit. tolerant=True → selhavší WFS vrstvu vynech, neshazuj sadu.
             name, lat, lon = CZ_LOCATIONS[i % len(CZ_LOCATIONS)]
-            det = float(master.random())
-            generate(seed, 0.0, det, str(inst_dir), terrain="real", lat=lat, lon=lon)
-            manifest.append({
+            generate(seed, 0.0, 0.0, str(inst_dir), terrain="real",
+                     paths="real", water="real", buildings="real",
+                     lat=lat, lon=lon, tolerant=True)
+            # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
+            # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání WFS.
+            meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
+            entry = {
                 "id": i, "dir": f"{i:03d}", "seed": seed,
-                "location": name, "lat": lat, "lon": lon, "det": round(det, 3),
-            })
+                "location": name, "lat": lat, "lon": lon,
+                "layers": {
+                    "paths": meta["paths"]["count"],
+                    "water": meta.get("water", {}).get("count", 0),
+                    "buildings": meta.get("buildings", {}).get("count", 0),
+                },
+            }
+            if "layer_errors" in meta:
+                entry["layer_errors"] = meta["layer_errors"]
+            manifest.append(entry)
             labels.append(name)
         else:
             # Noise sada: losujeme rug (členitost terénu) a det (počet cest).

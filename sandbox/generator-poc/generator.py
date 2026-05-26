@@ -576,7 +576,8 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], water_info: list[dict],
-                building_info: list[dict], omap_info: dict) -> dict:
+                building_info: list[dict], omap_info: dict,
+                layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
     Vyčleněno z generate() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
@@ -660,6 +661,8 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                            "2": "110 Small elongated knoll", "3": "111 Small depression"},
         # .omap export (§9): vrstevnice + cesty + body, template-based (vlastní čistý ISOM template)
         "omap": omap_info,
+        # reálné vrstvy vynechané kvůli selhání WFS/sítě (jen tolerant režim, jinak prázdné/chybí)
+        **({"layer_errors": layer_errors} if layer_errors else {}),
     }
 
 
@@ -869,9 +872,30 @@ def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDr
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
+def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
+    """Zavolá kreslení reálné vrstvy `fn`; v tolerantním režimu pohltí selhání WFS/sítě.
+
+    `tolerant=False` (default, single-mapa CLI) = výjimka propadne ven: kdo žádá
+    `--water real`, má vědět, že ZABAGED spadl. `tolerant=True` (dávkový batch přes
+    mnoho lokalit) = vrstvu vynech, zaloguj varování, zapiš důvod do `errors` a vrať
+    `default` (prázdné struktury) → mapa se vyrobí z toho, co je. Pozor: prázdná data
+    (0 features v bboxu, jako pramen 312 ve Sově vrchu) výjimku NEvyhodí — `fn` vrátí
+    prázdné seznamy normálně; sem se dostane jen reálné selhání dotazu (HTTP/síť/parse).
+    """
+    try:
+        return fn()
+    except Exception as e:  # noqa: BLE001 — záměrně široké: izolace jedné vrstvy v dávce
+        if not tolerant:
+            raise
+        errors[label] = str(e)
+        print(f"  ⚠ vrstva '{label}' vynechána (ZABAGED/síť selhala): {e}", file=sys.stderr)
+        return default
+
+
 def generate(seed: int, rug: float, det: float, out_dir: str,
              terrain: str = "noise", paths: str = "proc", water: str = "off",
-             buildings: str = "off", lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
+             buildings: str = "off", lat: float = DEF_LAT, lon: float = DEF_LON,
+             tolerant: bool = False) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
     Vrací cestu k složce. `terrain="noise"` (default) = fraktální šum (Option 1).
@@ -886,6 +910,10 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
 
     `buildings="real"` = reálné budovy/stavby ze ZABAGED WFS (real-půlka, ISOM 521);
     také VYŽADUJE `terrain="real"` (stejný georef důvod jako cesty/voda).
+
+    `tolerant=True` (dávkový režim batch.py přes mnoho lokalit) = selhání WFS/sítě u jedné
+    reálné vrstvy ji vynechá místo pádu celé mapy; vynechané vrstvy se zapíšou do
+    `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → bodové symboly extrémů
     (§4.10) → voda → cesty (§4.9) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
@@ -983,6 +1011,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     for ps in point_symbols:
         _draw_point_symbol(draw, sdraw, ps)
 
+    # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Prázdné = vše OK.
+    layer_errors: dict[str, str] = {}
+
     # --- voda (hydrografie): reálná ze ZABAGED WFS (real-půlka, Sez. 17) ---
     # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém
     # terénu, černé cesty/budovy je překryjí nahoře (čitelnost feederu). Jen --water real.
@@ -993,8 +1024,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     if water == "real":
         water_mask_img = Image.new("L", (W, H), 0)      # GT maska vody (§8.1), multi-class
         wdraw = ImageDraw.Draw(water_mask_img)
-        water_line_features, water_area_features, water_info = _generate_real_water(
-            draw, wdraw, lat, lon, geo_bbox)
+        water_line_features, water_area_features, water_info = _try_layer(
+            "water", lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox),
+            ([], [], []), tolerant, layer_errors)
 
     # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
     # Rastr z-order: PO vodě, PŘED budovami. Obě větve sdílí render (_draw_path) i GT masku
@@ -1002,8 +1034,11 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
     pdraw = ImageDraw.Draw(path_mask_img)
     if paths == "real":
-        path_features, paths_info = _generate_real_paths(draw, pdraw, lat, lon, geo_bbox)
+        path_features, paths_info = _try_layer(
+            "paths", lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
     else:
+        # proc cesty (Dijkstra) jsou offline → žádné WFS selhání, tolerance se netýká
         path_features, paths_info = _generate_proc_paths(rng, elev, draw, pdraw,
                                                          cell_w_m, cell_h_m, det)
     n_paths = len(paths_info)
@@ -1018,8 +1053,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     if buildings == "real":
         building_mask_img = Image.new("L", (W, H), 0)   # GT maska budov (§8.1)
         bdraw = ImageDraw.Draw(building_mask_img)
-        building_area_features, building_info = _generate_real_buildings(
-            draw, bdraw, lat, lon, geo_bbox)
+        building_area_features, building_info = _try_layer(
+            "buildings", lambda: _generate_real_buildings(draw, bdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
@@ -1050,7 +1086,7 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, lat, lon, elev,
                        crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
-                       building_info, omap_info)
+                       building_info, omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
