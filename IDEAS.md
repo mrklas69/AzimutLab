@@ -103,9 +103,19 @@ GT zůstává konzistentní (maska z téže generalizované geometrie).
 
 - **Úroveň 1 → DONE (Sez. 18):** min. velikost budovy 0,5 mm (`_enforce_min_size`), zjednodušení
   obrysu Douglas-Peucker (`_simplify_polyline`, 0,3 mm passage), tloušťka 505 → 2 px. Levné, foundational.
-- **Úroveň 2 — displacement (→ TODO, `%THINK`):** odsazení budov od cest a mezi sebou na min. mezeru
-  0,4 mm (1,83 px). Klasický kartografický optimalizační problém (budova↔cesta↔budova), NP-hard-ish →
-  vlastní návrh, ne přílepek. Řeší kolizi budov s cestami (uživatelův bod ze Sez. 18).
+- **Úroveň 2 — displacement (→ TODO, `%THINK` Sez. 21):** odsazení budov od cest a mezi sebou na min.
+  mezeru 0,4 mm (1,83 px). Řeší kolizi budov s cestami (uživatelův bod ze Sez. 18).
+  - **Krok 0 změřen** (`diagnose_displacement.py`, Sez. 21): Č. Švýcarsko ~28/99 budov v kolizi
+    (14 budova↔cesta dolní mez „k ose" + 14 budova↔budova), Č. ráj ~6/22. **Dominuje budova↔cesta;
+    shluky budov ~0** (dotyk/překryv 1/0 párů — budovy lemují cesty v údolí, nelepí se na sebe).
+    → reálný jev (ne záclona), ale **lehký nástroj stačí** (ne NP-hard relaxace shluků).
+  - **Zúžený algoritmus** (datově odůvodněný): **greedy kolmé odsazení budovy od nejbližší pevné
+    linie** (cesty + voda = kotva, rozhodnuto Sez. 21), budova↔budova symetricky, **malý strop posunu**
+    (velký posun = horší než kolize), **1–2 iterace** na sekundární kolize. Pořadí: L1 (min-size) → L2.
+  - **GT konzistence (tvrdý požadavek):** posun na geometrii → render + `mask_buildings.png` + OMAP
+    z téže posunuté geometrie (jako L1). UC5 čte MAPU, ne realitu → posunutá maska je správná GT.
+  - **Pipeline (skrytý náklad):** inverze kontroly u real vrstev — dnes `_generate_real_*` kreslí
+    inline; L2 vyžaduje fázi *sběr geometrie všech vrstev → resolve_displacement → draw*.
 
 ## OOM draw order = priorita barev (Sez. 18, zafixováno)
 
