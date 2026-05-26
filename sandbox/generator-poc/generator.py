@@ -22,11 +22,21 @@ import argparse
 import heapq  # binární halda pro Dijkstra least-cost trasování cest (§9)
 import json
 import math  # math.hypot: délka segmentu při čárkování cest + vzdálenost sousedů v Dijkstra
+import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
 import contourpy
+
+# Konektory reálných dat (UC2 enabler) žijí ve sdíleném `connectors/` v kořeni LAB
+# (Sez. 16) — ne v sandboxu, protože nejsou specifické pro generátor (zrcadlí UC2 v DAGu).
+# Generátor je zatím jediný konzument; jejich složku přidáme na sys.path (fáze B, KISS —
+# produkční balík/instalace až s monorepem, fáze A). Lazy importy `dmr`/`zabaged` níže pak
+# fungují, ať generator.py běží přímo, nebo ho importuje batch.py.
+_CONNECTORS_DIR = Path(__file__).resolve().parent.parent.parent / "connectors"
+if str(_CONNECTORS_DIR) not in sys.path:
+    sys.path.insert(0, str(_CONNECTORS_DIR))
 
 # Barevná paleta (§5) — jediný zdroj pravdy je palette.py (DRY). Sousední modul:
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
@@ -67,19 +77,33 @@ SYM_CLASS = {ISOM_SMALL_KNOLL: 1, ISOM_ELONGATED_KNOLL: 2, ISOM_SMALL_DEPRESSION
 SYM_NAME = {ISOM_SMALL_KNOLL: "Small knoll", ISOM_ELONGATED_KNOLL: "Small elongated knoll",
             ISOM_SMALL_DEPRESSION: "Small depression"}
 
-# Cesty (§4.9, ověřeno O-Map Wiki) — dvě třídy pro PoC: hlavní zpevněná (plná čára)
-# a vedlejší pěšina (čárkovaná). ISOM škála 502–507 je jemnější (sjízdnost/zřetelnost),
-# tady stačí binární hlavní/vedlejší — laditelné rozšíření.
-# Mapování kód↔kresba (Sez. 15, oprava z 507): plná → 503 Road, pravidelná čárka →
-# 505 Footpath. ISOM 505 Footpath JE kreslená čárkovaně → pravidelná čárka generátoru
-# jí odpovídá. (Sez. 13 zde mylně volila 507 s argumentem „505 je plná" — 505 čárkovaná
-# je; 507 Less distinct small footpath je řidší/nezřetelná, tu generátor zatím nedělá.)
-ISOM_ROAD = 503               # hlavní cesta → plná černá čára
-ISOM_FOOTPATH = 505           # vedlejší pěšina (Footpath) → čárkovaná černá
-PATH_CLASS_MAIN = 1           # třída hlavní cesty v mask_paths.png
-PATH_CLASS_MINOR = 2          # třída vedlejší pěšiny v mask_paths.png
-PATH_MAIN_W = 2               # tloušťka hlavní cesty [px] (≈ 1,5 px dle §4.9, PIL bere int)
-PATH_MINOR_W = 1              # tloušťka vedlejší pěšiny [px]
+# Cesty (§4.9) — ISOM 2017-2 liniová hierarchie komunikací (ověřeno proti
+# template_classic.omap). Dvě větve sdílejí render i symboly (izomorfismus):
+#   --paths proc (default) = procedurální Dijkstra, jen 503/505 (hlavní/vedlejší);
+#   --paths real           = reálné komunikace ze ZABAGED WFS (real-půlka §4.9, Sez. 16),
+#                            plná hierarchie 502-506 dle ZABAGED→ISOM (viz zabaged.map_to_isom).
+# Mapování kód↔kresba (Sez. 15): plná → 503 Road, pravidelná čárka → 505 Footpath
+# (505 JE v ISOM čárkovaná; Sez. 13 zde mylně volila 507 s argumentem „505 je plná").
+ISOM_WIDE_ROAD = 502          # silnice/ulice (zpevněná, autodoprava) → dvojitá linie (casing)
+ISOM_ROAD = 503               # zpevněná cesta sjízdná autem → plná černá čára
+ISOM_VEHICLE_TRACK = 504      # vozová (nezpevněná) cesta → čárkovaná silnější
+ISOM_FOOTPATH = 505           # pěšina (udržovaná) → čárkovaná černá
+ISOM_SMALL_FOOTPATH = 506     # malá/neudržovaná pěšina → jemně čárkovaná
+PATH_NAME = {ISOM_WIDE_ROAD: "Wide road", ISOM_ROAD: "Road", ISOM_VEHICLE_TRACK: "Vehicle track",
+             ISOM_FOOTPATH: "Footpath", ISOM_SMALL_FOOTPATH: "Small footpath"}
+# ISOM kód → třída v mask_paths.png (0 = pozadí). 503=1 / 505=2 drží baseline proc
+# větve (Sez. 8-15); 502/504/506 přidává reálná větev (Sez. 16) → zpětně kompatibilní.
+PATH_CLASS = {ISOM_ROAD: 1, ISOM_FOOTPATH: 2,
+              ISOM_WIDE_ROAD: 3, ISOM_VEHICLE_TRACK: 4, ISOM_SMALL_FOOTPATH: 5}
+# ISOM kód → render styl: (mode, width [px], (dash, gap) | None). mode ∈ solid/dashed/casing.
+# Tloušťky/čárkování laděné vizuálně (PIL bez antialiasingu → celočíselné šířky).
+PATH_STYLE = {
+    ISOM_WIDE_ROAD:      ("casing", 4, None),         # dvě černé hrany se světlou výplní (PoC aprox. silnice na šířku)
+    ISOM_ROAD:           ("solid", 2, None),          # plná (≈ 1,5 px dle §4.9, PIL bere int)
+    ISOM_VEHICLE_TRACK:  ("dashed", 2, (10.0, 4.0)),  # vozová: delší čárka, silnější
+    ISOM_FOOTPATH:       ("dashed", 1, (7.0, 4.0)),   # pěšina: standardní čárka
+    ISOM_SMALL_FOOTPATH: ("dashed", 1, (4.0, 4.0)),   # malá pěšina: kratší/jemnější čárka
+}
 # Terénně vázané vedení (§9): cesta = least-cost trasa mřížkou (Dijkstra), ne přímý
 # splajn. Cena hrany = horizontální vzdálenost [m] + PATH_SLOPE_PENALTY·|Δvýška| [m]
 # → pohyb podél vrstevnice levný, stoupání drahé → cesta traverzuje svah, nešplhá
@@ -98,7 +122,6 @@ PATH_REPULSION = 60.0         # přičtená cena hrany v okolí už nakreslené 
 PATH_REPULSION_R = 4          # poloměr odpuzování [buňky mřížky]
 PATH_SIMPLIFY = 7             # zředění least-cost trasy: každý N-tý uzel → kontrolní body Catmull-Rom
 PATH_EDGE_FRAC = (0.15, 0.85) # rozsah náhodného konce cesty na okraji mřížky (jako dřív)
-PATH_NAME = {ISOM_ROAD: "Road", ISOM_FOOTPATH: "Footpath"}
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Okolí Děčínska / Českého Švýcarska — členitý pískovcový terén vhodný pro OB.
@@ -309,6 +332,31 @@ def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
             pos += step
 
 
+def _draw_path(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
+               curve_px: list[tuple[float, float]], code: int) -> None:
+    """Nakreslí jednu cestu na mapu i do GT masky podle ISOM render stylu (PATH_STYLE).
+
+    Sjednocuje render procedurálních i reálných cest (izomorfismus): `solid` = plná,
+    `dashed` = čárkovaná (dle dash/gap stylu), `casing` = dvě černé hrany se světlou
+    výplní (502 Wide road — PoC aproximace silnice „na šířku"; věrná dvojitá linie na
+    skutečnou šířku je rozšíření). Maska dostává třídu PATH_CLASS místo barvy.
+    """
+    if len(curve_px) < 2:
+        return
+    mode, width, dash = PATH_STYLE[code]
+    cls = PATH_CLASS[code]
+    if mode == "solid":
+        draw.line(curve_px, fill=C_BLACK, width=width)
+        pdraw.line(curve_px, fill=cls, width=width)
+    elif mode == "dashed":
+        d, g = dash
+        _draw_dashed(draw, pdraw, curve_px, C_BLACK, cls, dash=d, gap=g, width=width)
+    else:  # casing: silná černá, přes ni tenčí bílá → dojem dvou paralelních hran
+        draw.line(curve_px, fill=C_BLACK, width=width)
+        draw.line(curve_px, fill=C_WHITE, width=max(1, width - 2))
+        pdraw.line(curve_px, fill=cls, width=width)   # maska = plná šířka silnice
+
+
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
                             out_path: Path) -> int:
     """Zapíše vrstevnice jako GeoJSON FeatureCollection (vektor, §9). Vrací počet linií.
@@ -418,7 +466,7 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         mdraw.arc(box, 0, 180, fill=cls, width=2)
 
 
-def _build_meta(seed: int, rug: float, det: float, terrain: str,
+def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
                 lat: float, lon: float, elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], omap_info: dict) -> dict:
@@ -428,6 +476,9 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str,
     sestavení metadat jsou dvě úrovně abstrakce. Vysoký počet parametrů je daň za to, že
     meta agreguje výstupy všech vrstev — alternativou byl 45řádkový inline dict v generate().
     """
+    # cesty: legendu symbolů/tříd stavíme dynamicky ze SKUTEČNĚ použitých ISOM kódů
+    # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
+    used_path_codes = sorted({p["symbol"] for p in paths_info})
     return {
         "seed": seed,
         "params": {"rug": rug, "det": det},
@@ -450,14 +501,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str,
             "n_lines": n_contours,
             "symbols": {"101": "Contour", "102": "Index contour"},
         },
-        # cesty (§4.9): počet, GT maska, ISOM symboly + třídy masky
+        # cesty (§4.9): počet, GT maska, zdroj, ISOM symboly + třídy masky (dynamicky)
         "paths": {
             "count": n_paths,
             "mask": "mask_paths.png",
-            "symbols": {"503": "Road (hlavní, plná)", "505": "Footpath (vedlejší, čárkovaná)"},
-            "classes": {"0": "pozadí", "1": "503 Road", "2": "505 Footpath"},
-            "routing": "dijkstra_least_cost",   # terénně vázané vedení (§9): cena ~ sklon hrany
+            # proc = Dijkstra least-cost (§9, cena ~ sklon); real = reálné komunikace ZABAGED WFS
+            "source": ("cuzk_zabaged" if paths_mode == "real" else "procedural_dijkstra"),
+            "symbols": {str(c): PATH_NAME[c] for c in used_path_codes},
+            "classes": {"0": "pozadí",
+                        **{str(PATH_CLASS[c]): f"{c} {PATH_NAME[c]}" for c in used_path_codes}},
             "items": paths_info,
+            # reálné cesty = ČÚZK open data → atribuce povinná (CC BY 4.0)
+            **({"licence": "CC BY 4.0 (ČÚZK ZABAGED)"} if paths_mode == "real" else {}),
         },
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
@@ -476,10 +531,85 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str,
 
 
 # =====================================================================
+#  Cesty (§4.9): procedurální (Dijkstra) | reálné (ZABAGED WFS)
+# =====================================================================
+def _generate_proc_paths(rng: np.random.Generator, elev: np.ndarray,
+                         draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
+                         cell_w_m: float, cell_h_m: float, det: float) -> tuple[list, list]:
+    """Procedurální cesty (§4.9 + §9): Dijkstra least-cost trasa terénem + Catmull-Rom.
+
+    Konce na protilehlých okrajích; mezi nimi least-cost trasa s cenou ~ sklon (traverz,
+    nešplhá přes vrchol). Surová 8-směrová trasa se zředí a vyhladí splajnem. Hlavní cesta
+    503 (plná), vedlejší 505 (čárkovaná). Vrací (path_features grid, paths_info); kreslí
+    na `draw`/`pdraw`. `det` řídí počet cest.
+    """
+    n_paths = 1 + round(det * 1.6)
+    lo_f, hi_f = PATH_EDGE_FRAC
+    paths_info: list[dict] = []
+    path_features: list[tuple] = []                 # (curve grid, ISOM kód) pro vektor/OMAP
+    path_repulsion = np.zeros((GH, GW))             # rostoucí cena kolem nakreslených cest (#2)
+    for k in range(n_paths):
+        horizontal = bool(rng.integers(0, 2))       # orientace: vodorovná (L→P) nebo svislá (H→D)
+        if horizontal:                              # konce na levém a pravém okraji mřížky
+            start = (0, int(round(float(rng.uniform(lo_f, hi_f)) * (GH - 1))))
+            goal = (GW - 1, int(round(float(rng.uniform(lo_f, hi_f)) * (GH - 1))))
+        else:                                       # konce na horním a dolním okraji
+            start = (int(round(float(rng.uniform(lo_f, hi_f)) * (GW - 1))), 0)
+            goal = (int(round(float(rng.uniform(lo_f, hi_f)) * (GW - 1))), GH - 1)
+        cells = _dijkstra_path(elev, start, goal, cell_w_m, cell_h_m,
+                               PATH_SLOPE_LIN, PATH_SLOPE_SQ, path_repulsion, PATH_MAX_SLOPE)
+        _add_repulsion(path_repulsion, cells, PATH_REPULSION_R, PATH_REPULSION)  # odpuzuj další cesty
+        # zředění (každý N-tý uzel + poslední) → kontrolní body; Catmull-Rom vyhladí
+        # 8-směrová zalomení. Křivku držíme v souřadnicích MŘÍŽKY → stejný zdroj pro
+        # render (px) i vektorový/OMAP export.
+        ctrl = cells[::PATH_SIMPLIFY]
+        if ctrl[-1] != cells[-1]:
+            ctrl.append(cells[-1])
+        curve_grid = _catmull_rom([(float(gx), float(gy)) for gx, gy in ctrl])
+        curve_px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in curve_grid]
+        code = ISOM_ROAD if k == 0 else ISOM_FOOTPATH    # hlavní plná / vedlejší čárkovaná
+        _draw_path(draw, pdraw, curve_px, code)
+        path_features.append((curve_grid, code))
+        paths_info.append({"symbol": code, "symbol_name": PATH_NAME[code],
+                           "orientation": "H" if horizontal else "V"})
+    return path_features, paths_info
+
+
+def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné cesty (real-půlka §4.9): komunikace ze ZABAGED WFS pro tentýž výsek.
+
+    Stáhne komunikace (zabaged.fetch_paths), mapuje na ISOM (zabaged.map_to_isom),
+    transformuje S-JTSK → grid (inverze _write_contours_geojson: Y-flip, sever = ymax =
+    gy 0) → px a kreslí dle ISOM stylu. Reálné linie jsou už hladké (vektor z reality) →
+    žádný splajn. Výsek je TENTÝŽ jako u DMR vrstevnic (sdílený build_bbox) → cesty sednou
+    na terén. Vrací (path_features grid, paths_info).
+    """
+    from zabaged import fetch_paths, map_to_isom
+    xmin, ymin, xmax, ymax = geo_bbox
+    feats = fetch_paths(lat, lon, GW, GH, TILE_M)
+    paths_info: list[dict] = []
+    path_features: list[tuple] = []
+    for f in feats:
+        code = map_to_isom(f["layer"], f["props"])
+        for line in f["lines"]:
+            curve_grid = [((x - xmin) / (xmax - xmin) * (GW - 1),
+                           (ymax - y) / (ymax - ymin) * (GH - 1)) for x, y in line]
+            curve_px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in curve_grid]
+            if len(curve_px) < 2:
+                continue
+            _draw_path(draw, pdraw, curve_px, code)
+            path_features.append((curve_grid, code))
+            paths_info.append({"symbol": code, "symbol_name": PATH_NAME[code],
+                               "layer": f["layer"]})
+    return path_features, paths_info
+
+
+# =====================================================================
 #  Hlavní generování
 # =====================================================================
 def generate(seed: int, rug: float, det: float, out_dir: str,
-             terrain: str = "noise",
+             terrain: str = "noise", paths: str = "proc",
              lat: float = DEF_LAT, lon: float = DEF_LON) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
@@ -488,8 +618,13 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     (Option 2, §8.5). U reálného terénu se `rug` na výškopis neuplatní (terén je
     daný realitou).
 
+    `paths="proc"` (default) = procedurální Dijkstra cesty (§9); `paths="real"` =
+    reálné komunikace ze ZABAGED WFS (real-půlka §4.9). `real` VYŽADUJE `terrain="real"`
+    — reálné cesty mají S-JTSK souřadnice a párují se přes sdílený výsek; noise výsek
+    je v lokálních metrech bez georef → spárovat nelze.
+
     Vrstvy (z-order): vrstevnice (§4.5) → cesty (§4.9) → bodové symboly extrémů
-    (§4.10). `rug` řídí členitost terénu (jen noise), `det` počet cest.
+    (§4.10). `rug` řídí členitost terénu (jen noise), `det` počet proc cest.
 
     Malé uzavřené vrstevnice (lokální extrémy) se generalizují na bodové symboly
     (§4.10): kopeček 109/110, prohlubeň 111 — místo prstence se kreslí značka a GT
@@ -499,6 +634,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     vektorové linie s ISOM symbolem (101/102), georeferencované v S-JTSK pro real
     terén (§9). To je „skutečný vektor", ne pixely: contourpy dává polylinie přímo.
     """
+    if paths == "real" and terrain != "real":
+        raise ValueError("--paths real vyžaduje --terrain real (reálné cesty potřebují "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
     rng = np.random.default_rng(seed)
@@ -562,48 +700,17 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
 
-    # --- cesty (§4.9 + §9): least-cost trasa terénem (Dijkstra) + Catmull-Rom vyhlazení ---
-    # Konce na protilehlých okrajích (H: levý→pravý, V: horní→dolní), náhodná pozice
-    # na okraji. Mezi nimi Dijkstra najde trasu s nejnižší cenou ~ sklon (traverzuje
-    # svah, nešplhá přes vrchol). Surová 8-směrová trasa se zředí a protáhne Catmull-Rom
-    # splajnem (jinak je zubatá). Hlavní cesta plná (ISOM 503), vedlejší čárkovaná
-    # (ISOM 505). Kreslí se PO vrstevnicích, PŘED bodovými symboly (z-order).
+    # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
+    # Kreslí se PO vrstevnicích, PŘED bodovými symboly (z-order). Obě větve sdílí render
+    # (_draw_path) i GT masku — liší se jen zdrojem geometrie (proc Dijkstra / real WFS).
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
     pdraw = ImageDraw.Draw(path_mask_img)
-    n_paths = 1 + round(det * 1.6)
-    lo_f, hi_f = PATH_EDGE_FRAC
-    paths_info: list[dict] = []
-    path_features: list[tuple] = []                 # (curve v grid souřadnicích, ISOM symbol) pro vektor/OMAP
-    path_repulsion = np.zeros((GH, GW))             # rostoucí cena kolem nakreslených cest (#2)
-    for k in range(n_paths):
-        horizontal = bool(rng.integers(0, 2))       # orientace: vodorovná (L→P) nebo svislá (H→D)
-        if horizontal:                              # konce na levém a pravém okraji mřížky
-            start = (0, int(round(float(rng.uniform(lo_f, hi_f)) * (GH - 1))))
-            goal = (GW - 1, int(round(float(rng.uniform(lo_f, hi_f)) * (GH - 1))))
-        else:                                       # konce na horním a dolním okraji
-            start = (int(round(float(rng.uniform(lo_f, hi_f)) * (GW - 1))), 0)
-            goal = (int(round(float(rng.uniform(lo_f, hi_f)) * (GW - 1))), GH - 1)
-        cells = _dijkstra_path(elev, start, goal, cell_w_m, cell_h_m,
-                               PATH_SLOPE_LIN, PATH_SLOPE_SQ, path_repulsion, PATH_MAX_SLOPE)
-        _add_repulsion(path_repulsion, cells, PATH_REPULSION_R, PATH_REPULSION)  # odpuzuj další cesty
-        # zředění (každý N-tý uzel + poslední) → kontrolní body; Catmull-Rom vyhladí
-        # 8-směrová zalomení least-cost trasy. Křivku držíme v souřadnicích MŘÍŽKY
-        # (jako vrstevnice) → stejný zdroj pro render (px) i vektorový/OMAP export.
-        ctrl = cells[::PATH_SIMPLIFY]
-        if ctrl[-1] != cells[-1]:
-            ctrl.append(cells[-1])
-        curve_grid = _catmull_rom([(float(gx), float(gy)) for gx, gy in ctrl])
-        curve_px = [(gx / (GW - 1) * W, gy / (GH - 1) * H) for gx, gy in curve_grid]
-        if k == 0:                                   # první = hlavní cesta (plná čára)
-            draw.line(curve_px, fill=C_BLACK, width=PATH_MAIN_W)
-            pdraw.line(curve_px, fill=PATH_CLASS_MAIN, width=PATH_MAIN_W)
-            symbol = ISOM_ROAD
-        else:                                        # ostatní = vedlejší pěšiny (čárkované)
-            _draw_dashed(draw, pdraw, curve_px, C_BLACK, PATH_CLASS_MINOR, width=PATH_MINOR_W)
-            symbol = ISOM_FOOTPATH
-        path_features.append((curve_grid, symbol))
-        paths_info.append({"symbol": symbol, "symbol_name": PATH_NAME[symbol],
-                           "orientation": "H" if horizontal else "V"})
+    if paths == "real":
+        path_features, paths_info = _generate_real_paths(draw, pdraw, lat, lon, geo_bbox)
+    else:
+        path_features, paths_info = _generate_proc_paths(rng, elev, draw, pdraw,
+                                                         cell_w_m, cell_h_m, det)
+    n_paths = len(paths_info)
 
     # --- bodové symboly lokálních extrémů (§4.10): kreslí se NAHORU (po cestách) ---
     sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
@@ -627,7 +734,7 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, lat, lon, elev, crs_epsg,
+    meta = _build_meta(seed, rug, det, terrain, paths, lat, lon, elev, crs_epsg,
                        n_contours, n_paths, paths_info, point_symbols, omap_info)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
@@ -640,12 +747,15 @@ def main() -> None:
     p.add_argument("--det", type=float, default=0.5, help="hustota detailů 0-1 (počet cest)")
     p.add_argument("--terrain", choices=["noise", "real"], default="noise",
                    help="noise = fraktální šum (default), real = ČÚZK DMR 5G (§8.5)")
+    p.add_argument("--paths", choices=["proc", "real"], default="proc",
+                   help="proc = procedurální Dijkstra (default), real = ČÚZK ZABAGED WFS "
+                        "(vyžaduje --terrain real)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
     out = generate(args.seed, args.rug, args.det, args.out,
-                   terrain=args.terrain, lat=args.lat, lon=args.lon)
+                   terrain=args.terrain, paths=args.paths, lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
 

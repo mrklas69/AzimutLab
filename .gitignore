@@ -25,9 +25,12 @@ lasertool/
 # Lokální hold-out / reference, NE do veřejného gitu. Metadata (původ, licence) v KB.
 resources/
 
-# Cache stažených DMR 5G dlaždic (reálná ČÚZK data — nepatří do gitu)
+# Cache stažených reálných ČÚZK dat (nepatří do gitu): DMR 5G dlaždice (výškopis),
+# ZABAGED komunikace (cesty/pěšiny, GeoJSON z WFS)
 .dmr_cache/
 sandbox/**/.dmr_cache/
+.zabaged_cache/
+sandbox/**/.zabaged_cache/
 
 # Claude / IDE lokální
 .claude/settings.local.json

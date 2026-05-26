@@ -28,7 +28,9 @@ from pathlib import Path
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
-USED_CODES = ("101", "102", "503", "505", "109", "110", "111")
+# Cesty: proc větev dělá 503/505; reálná (ZABAGED WFS, Sez. 16) i 502/504/506 — všechny
+# musí být v template (čistá ISOM 2017-2 je obsahuje: 502→108, 504→111, 506→113).
+USED_CODES = ("101", "102", "502", "503", "504", "505", "506", "109", "110", "111")
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 ROTATABLE_CODES = frozenset({"110"})
 
