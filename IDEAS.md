@@ -65,13 +65,22 @@ realnost-artefaktu se přidá, nepřepisuje.
 
 ---
 
-## `synthesize_pseudorealistic_map` — generátor jako prediktor mapy (Sez. 23, %THINK)
+## `synthesize_pseudorealistic_map` — generátor jako prediktor mapy (Sez. 23, %THINK) → kód Sez. 25
 
 Reframe real-větve: z „feeder" na **prediktor mapy** pro konkrétní lokalitu. Cílové API
 **`synthesize_pseudorealistic_map(n, e, w_km, h_km)`** — „synthesize" = skládá 2 zdroje;
 „pseudorealistic" = vypadá real, není skutečné mapování; snake_case (Python). Zamítnuto
 `GetPredictedMap` (`Get` = existující mapa) a `GenerateProceduralMap` („procedural" je rezervováno
 pro noise-feeder, kolize s `generator-procedural.md`). Dvoufázový (A2 uživatele):
+
+> **Realizováno Sez. 25** (přejmenování `generate()`). Finální signatura se od návrhu liší:
+> `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir="output", *, …)`.
+> Odchylky: (1) `lat/lon` (WGS84) místo `n/e` — kód i konektory mluví WGS84, S-JTSK je až
+> interní georef. (2) Přidán `only_real` (vypíná fázi 2, sladěno s CLI `--only-real`) a `out_dir`.
+> (3) Noise (Option 1) větev + per-vrstva toggly **zachovány** jako keyword-only ocas
+> (`seed/rug/det/terrain/paths/…`, default `terrain="real"`) — z popředí API zmizely, ale žijí.
+> `_apply_extent(w_km, h_km)` se přesunul dovnitř funkce (rozměr je teď parametr). Dev lokality
+> SV/NL/LS = `DEV_LOCATIONS` + CLI `--location` (6×4 km, DRY zdroj souřadnic).
 - **(1) projekce** podkladů — DMR→vrstevnice, ZABAGED→ISOM cesty/voda/budovy. *Máme*
   (deterministický převod, ne predikce) = dnešní real-větev.
 - **(2) AI predikce** chybějících symbolů (vegetace/průchodnost — co v geodatech NENÍ, vegetace
@@ -94,6 +103,20 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   s prvním kódem mimo Pic2Omap (DRY vs předčasná abstrakce).
 - **Zobecnění domény (OSM/Google).** Vědomě odložené — viz `docs/architecture.md`
   „Čekající rozhodnutí". Past na conceptual integrity, dokud orienteering jádro nestojí.
+- **ISSprOM / sprint pipeline (Sez. 25).** `template_sprint.omap` je hotový ISSprOM template,
+  ale celý generátor stojí na ISOM (omap_export `TEMPLATE_PATH=classic`, ZABAGED→ISOM mapování
+  502/521/510, ladění na lesní OB). Sprint = jiná disciplína: městský terén, dominují budovy,
+  jiná symbolika. Skutečná sprint mapa = nový balík: přepínání template classic↔sprint +
+  přemapování ZABAGED→**ISSprOM** + ladění na město. Míchá dvě specifikace → samostatné sezení,
+  ne přílepek (foundations). Spouštěč: až bude ISOM jádro pevné a vznikne potřeba sprintu.
+  Pozn.: Lidové sady (LS) zatím generujeme jako **classic ISOM** (městsko-lesní výsek — natrénuje
+  i hustou zástavbu); ISSprOM verze je tato budoucí položka.
+- **Zánik noise (Option 1) větve — predikce uživatele (Sez. 25, „sázka").** Reframe Sez. 23 udělal
+  z real-prediktoru hlavní směr; noise (fraktální šum) byla úplně první PoC. Uživatel sází, že
+  keyword-only ocas (`seed/rug/det/terrain/paths/…`) jednou zmizí. Pravděpodobně ano — až UC5 feeder
+  poběží na reálném prediktoru, noise nemá konzumenta. **Protiargument (nezahazovat hned):** noise je
+  levný **offline deterministický regresní check** (proc baseline 65 bez WFS/sítě) — spíš degraduje
+  na test fixture než zmizí. Rozhodnout, až real-prediktor + UC5 dozrají; do té doby ocas zůstává.
 - **Synteticky renderované trénovací mapy** (původní jiskra projektu z Pic2Omap ML pilotu) —
   patří pod UC4-I/II + UC5 trénink. **→ DONE (Sez. 4): realizováno jako PoC** —
   procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).

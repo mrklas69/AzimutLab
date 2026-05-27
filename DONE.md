@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 25 (2026-05-27) — Refaktor `synthesize_pseudorealistic_map` + dev lokality (SV/NL/LS 6×4) + WFS limit nález
+- [x] **Přejmenování `generate()` → `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir="output", *, …)`**
+      (reframe Sez. 23). Hlavních 6 parametrů vepředu, noise (Option 1) větev + per-vrstva toggly zachovány jako
+      **keyword-only ocas** (default `terrain="real"`). `lat/lon` WGS84 (ne `n/e`). `only_real` (sladěn s CLI `--only-real`)
+      → interní `pseudorealistic = not only_real` jen na hranici (`_generate_real_powerlines`/`_build_meta` beze změny, DRY).
+      `_apply_extent(w_km, h_km)` přesunut z `main()` dovnitř funkce (rozměr je teď parametr).
+- [x] **Dev lokality `DEV_LOCATIONS` + CLI `--location` SV/NL/LS @ 6×4 km** (`DEV_W_KM/H_KM`): DRY zdroj souřadnic
+      (dřív ad-hoc). `--location KÓD` přepíše lat/lon + nastaví výsek 6×4. CLI defaulty překlopeny na `real`.
+- [x] **Lidové sady (LS) = classic ISOM** (oponentura sprintu): `template_sprint.omap` je ISSprOM, ale generátor stojí
+      na ISOM → LS jako classic (natrénuje hustou zástavbu); **ISSprOM/sprint pipeline → IDEAS** (samostatné sezení).
+- [x] **`batch.py` na nový název** (noise = DEF extent + proc/off → baseline drží; real beze změny chování). `diagnose_displacement.py`
+      nedotčen (`generate()` nevolá).
+- [x] **Verify** (`.venv`): proc baseline **65 drží** přesně; real 6×4 km (grid 696×464) SV 2689 / NL 1079 / LS 3701 obj,
+      `layer_errors: None`, vizuály sedí na terén.
+- [x] **Nález: ČÚZK ArcGIS WFS tvrdý strop 1000 obj/dotaz** (SV+LS přesně 1000 budov). Verify-against-source (`temp/wfs_probe.py`):
+      `count` strop nezvedá, `startIndex` paging rozbitý (anomálie) → **NE malá změna**; robustní = spatial tiling nebo přechod
+      na ArcGIS REST. **Odloženo** → TODO `[!]` (bije hlavně města = sprint doména). **Censure! (AI)** odhad „malá změna" vyvrácen verify.
+- [x] **`%END` cleanup pravidlo → `docs/PROMPTS.md`:** maž jen scratch (`temp/`, `output_*/`); cache (`.dmr_cache`,
+      `.zabaged_cache`) + `__pycache__` NECH (regenerovatelné, ale zrychlují).
+
 ## Sezení 24 (2026-05-27) — Katalog ZABAGED→ISOM (149 vrstev) + el. vedení (510) + dvě fáze (pseudorealistic)
 - [x] **Katalog VŠECH 149 vrstev ZABAGED Polohopis → ISOM** (`docs/kb/zabaged-isom-catalog.md`, nový):
       verify-against-source GetCapabilities (149 typů) + DescribeFeatureType (geom: 57 bodů/45 linií/47 ploch)

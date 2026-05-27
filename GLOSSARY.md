@@ -116,8 +116,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Feeder / enabler-feeder** — generátor (UC4-I) coby zdroj trénovacích dat pro UC5;
   „krmí" model. Reframe Sez. 4: ne konečný produkt, ale enabler.
 - **Prediktor mapy / `synthesize_pseudorealistic_map`** — reframe real-větve generátoru (Sez. 23):
-  pro konkrétní lokalitu (souřadnice + rozměry) vyrobit mapu. Cílové API
-  `synthesize_pseudorealistic_map(n, e, w_km, h_km)`. Opačná tvář k noise-feederu. Detail: IDEAS.
+  pro konkrétní lokalitu (souřadnice + rozměry) vyrobit mapu. Realizováno Sez. 25 (přejmenování
+  `generate()`): `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir, *, …)`
+  — `lat/lon` WGS84, `only_real` vypíná fázi 2; noise/toggly zachovány jako keyword-only ocas.
+  Opačná tvář k noise-feederu. Detail: IDEAS.
 - **Projekce vs predikce** — dvě fáze prediktoru mapy. *Projekce* = deterministický převod dostupných
   geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
   v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +

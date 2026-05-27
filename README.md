@@ -27,7 +27,13 @@ the real branch is conceptually a *map predictor* (`synthesize_pseudorealistic_m
 geodata now, AI prediction of missing symbols from similar localities later (UC5). Session 24 also split the real
 branch into two toggleable phases (`pseudorealistic`, default on; `--only-real` off): **phase 1 = projection** of
 hard data, **phase 2 = pseudorealistic decoration** of symbols not in the data (today: even power-line ticks
-where no pylon is recorded; future: vegetation).**
+where no pylon is recorded; future: vegetation). Session 25 realised the long-planned rename
+`generate()` → `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir, *, …)`
+(the noise/Option-1 branch + per-layer toggles kept as a keyword-only tail) and added `--location`
+dev shortcuts (`DEV_LOCATIONS`: Soví vrch / Nová louka / Lidové sady, all at 6×4 km; Lidové sady
+rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future task). Verify-against-source
+on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request (paging unreliable →
+deferred to TODO; bites dense towns, not forest ISOM extents).**
 
 ## What this is
 

@@ -27,3 +27,6 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 - Identita sezení = datum + pořadí v daném dni.
 - Měnil-li se kód: dva commity (feat/fix → docs(session)), pak push. V deštníkové
   fázi je „kód" často jen KB/docs → jeden commit `docs(session)` stačí.
+- **Cleanup (Sez. 25):** maž jen scratch výstupy — `temp/`, `output_*/` (jednorázové rendery,
+  probe skripty). **Cache reálných dat NECH** (`.dmr_cache`, `.zabaged_cache`) i `__pycache__` —
+  jsou regenerovatelné, ale zrychlují; rutinní mazání = zbytečný re-fetch z ČÚZK (opak účelu cache).
