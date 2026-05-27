@@ -212,6 +212,31 @@ POWERLINE_TICK_HALF_PX = round(0.5 * PX_PER_MM)      # ≈ 2 px (poloviční dé
 POWERLINE_TICK_SPACING_PX = round(2.5 * PX_PER_MM)   # ≈ 11 px (rovnoměrný interval, jen fáze 2)
 POWERLINE_MAST_SNAP_PX = round(0.7 * PX_PER_MM)      # ≈ 3 px (práh „sloup leží na této linii")
 
+# Železnice (Sez. 28, real-půlka, izomorfní s cestami/vedením): ZABAGED Železniční_trať →
+# ISOM 509 Railway. POZOR: 509 je v template_classic.omap KOMBINOVANÝ symbol (type=16), NE
+# prostá linie jako vedení 510 — skládá se z černých čárek (0,35 mm; dash 1,5 / break 1,0 mm)
+# a bílého „pražcového" knockout podkladu (barva „White for railway"). Raster to zrcadlí
+# (mode "railway"): bílý podklad → mezery mezi čárkami jsou BÍLÉ (odliší trať od pěšiny 505,
+# jejíž mezery ukazují terén). Mapování viz zabaged.map_railway_to_isom (vždy 509). Černá/bílá z palety.
+ISOM_RAILWAY = 509                 # železniční trať → černé čárky + bílý knockout
+RAILWAY_NAME = {ISOM_RAILWAY: "Railway"}
+# ISOM kód → třída v mask_railways.png (0 = pozadí). Jediná třída (1).
+RAILWAY_CLASS = {ISOM_RAILWAY: 1}
+# Render styl (mode, width [px], (dash, gap)). dash/gap z template (1,5 / 1,0 mm × PX_PER_MM
+# ≈ 6,9 / 4,6 px); šířka 0,35 mm ≈ 1,6 → 2 px (silnější než pěšina → zřetelná trať).
+RAILWAY_STYLE = {ISOM_RAILWAY: ("railway", 2, (6.9, 4.6))}
+
+# Zpevněné plochy / kolejiště (Sez. 28, real-půlka, plošná — izomorfní s budovou 521 / vodní
+# plochou 301): ZABAGED Kolejiště → ISOM 501 Paved area. 501 je v template KOMBINOVANÝ symbol
+# (hnědá 50% výplň + obrysová linie). Raster: výplň = C_ROAD (zavedená hnědá zpevněného povrchu,
+# DRY se silnicí 502 — paved i silnice jsou hnědé), obrys = C_BROWN (= template bounding line
+# Brown 100%). Mapování viz zabaged.map_paved_to_isom (vždy 501). Volba 501 pro kolejiště =
+# rozhodnutí uživatele (Sez. 28): nádraží se generalizuje na zpevněnou plochu, ne jednotlivé koleje.
+ISOM_PAVED = 501                   # zpevněná plocha (kolejiště) → hnědá výplň + obrysová linie
+PAVED_NAME = {ISOM_PAVED: "Paved area"}
+# ISOM kód → třída v mask_paved.png (0 = pozadí). Jediná třída (1).
+PAVED_CLASS = {ISOM_PAVED: 1}
+
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Soví vrch (Lužické hory, povodí Svitávky) — vlastní terénně mapovaná oblast uživatele
@@ -438,12 +463,19 @@ def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         if seg == 0.0:
             continue
         d = 0.0
-        while d < seg:
+        # epsilon v podmínce: poslední sub-ulp zbytek segmentu neřeš (jinak hrozí zacyklení)
+        while d < seg - 1e-9:
             phase = pos % pattern
             in_dash = phase < dash
             # zbývající délka aktuální fáze (čárky nebo mezery)
             remain = (dash - phase) if in_dash else (pattern - phase)
             step = min(remain, seg - d)
+            # float drift u NECELOČÍSELNÝCH dash/gap (např. železnice 6,9/4,6 px): fáze uvízne
+            # těsně pod hranicí čárka↔mezera → remain≈0 → step≈0 → smyčka „creepuje" donekonečna.
+            # Přesné dash/gap (pěšina 7,0/4,0) to netrefí. Nudge přes hranici udrží postup (Sez. 28).
+            if step < 1e-9:
+                pos += 1e-9          # posuň fázi přes hranici → příště se vyhodnotí druhá fáze
+                continue
             if in_dash:
                 t0, t1 = d / seg, (d + step) / seg
                 ax, ay = x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0
@@ -536,6 +568,16 @@ def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     elif mode == "powerline":  # ISOM 510: holá tenká linie (příčky kreslí _generate_real_powerlines
         draw.line(curve_px, fill=color, width=width)   # ze sloupů/fáze 2 — ne z definice symbolu)
         mdraw.line(curve_px, fill=cls, width=width)
+    elif mode == "railway":  # ISOM 509 (kombinovaný symbol): bílý knockout podklad + černé čárky
+        # maska = celá osa trati jako JEDNA třída (čárky jsou vizuální detail, ne třídy)
+        mdraw.line(curve_px, fill=cls, width=width)
+        # bílý podklad („White for railway", knockout) → mezery mezi čárkami jsou BÍLÉ, ne
+        # průhledné (odliší trať od pěšiny 505, jejíž mezery ukazují terén pod sebou)
+        draw.line(curve_px, fill=C_WHITE, width=width)
+        # černé čárky navrch (dash/break z template: 1,5 / 1,0 mm). _draw_dashed přepíše masku
+        # na čárkách stejnou třídou (cls) — neškodné, maska už je solid z řádku výš.
+        d, g = dash
+        _draw_dashed(draw, mdraw, curve_px, color, cls, dash=d, gap=g, width=width)
     else:  # casing: silná černá, přes ni tenčí HNĚDÁ → hnědý pás s černými okraji (ISOM 502)
         draw.line(curve_px, fill=color, width=width)
         draw.line(curve_px, fill=C_ROAD, width=max(1, width - 2))
@@ -564,6 +606,14 @@ def _draw_powerline(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.ImageDraw,
     _draw_line_symbol(draw, eldraw, curve_px, C_BLACK, mode, width, dash, POWERLINE_CLASS[code])
 
 
+def _draw_railway(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
+                  curve_px: list[tuple[float, float]], code: int) -> None:
+    """Železniční trať (černé čárky + bílý knockout, ISOM 509) dle RAILWAY_STYLE — wrapper
+    nad _draw_line_symbol (izomorfní s _draw_path / _draw_powerline)."""
+    mode, width, dash = RAILWAY_STYLE[code]
+    _draw_line_symbol(draw, rdraw, curve_px, C_BLACK, mode, width, dash, RAILWAY_CLASS[code])
+
+
 def _draw_area_symbol(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                       ring_px: list[tuple[float, float]],
                       fill: tuple, outline: tuple, mask_class: int) -> None:
@@ -589,6 +639,13 @@ def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
                         ring_px: list[tuple[float, float]], code: int) -> None:
     """Budova (ISOM 521): plná černá výplň + černý obrys — wrapper nad _draw_area_symbol."""
     _draw_area_symbol(draw, bdraw, ring_px, C_BLACK, C_BLACK, BUILDING_CLASS[code])
+
+
+def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
+                     ring_px: list[tuple[float, float]], code: int) -> None:
+    """Zpevněná plocha / kolejiště (ISOM 501): hnědá výplň + hnědý obrys — wrapper nad
+    _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area)."""
+    _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BROWN, PAVED_CLASS[code])
 
 
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
@@ -700,12 +757,14 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                water_mode: str, buildings_mode: str, powerlines_mode: str,
+                water_mode: str, paved_mode: str, buildings_mode: str, powerlines_mode: str,
+                railways_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
-                point_symbols: list[dict], water_info: list[dict],
-                building_info: list[dict], powerlines_info: list[dict], omap_info: dict,
+                point_symbols: list[dict], water_info: list[dict], paved_info: list[dict],
+                building_info: list[dict], powerlines_info: list[dict],
+                railways_info: list[dict], omap_info: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
@@ -719,6 +778,8 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     used_water_codes = sorted({w["symbol"] for w in water_info})
     used_building_codes = sorted({b["symbol"] for b in building_info})
     used_powerline_codes = sorted({p["symbol"] for p in powerlines_info})
+    used_railway_codes = sorted({r["symbol"] for r in railways_info})
+    used_paved_codes = sorted({p["symbol"] for p in paved_info})
     return {
         "seed": seed,
         # pseudorealistic = fáze 2 (dekorace symbolů nad rámec tvrdých dat) zapnuta; False =
@@ -768,6 +829,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": water_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if water_mode == "real" else {}),
+        # zpevněné plochy / kolejiště (real-půlka, Sez. 28): plochy ze ZABAGED REST → ISOM 501.
+        # Sekce jen když paved_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"paved": {
+            "count": len(paved_info),
+            "mask": "mask_paved.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): PAVED_NAME[c] for c in used_paved_codes},
+            "classes": {"0": "pozadí",
+                        **{str(PAVED_CLASS[c]): f"{c} {PAVED_NAME[c]}" for c in used_paved_codes}},
+            "items": paved_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if paved_mode == "real" else {}),
         # budovy/stavby (real-půlka, Sez. 18): plochy ze ZABAGED REST → ISOM 521. Sekce
         # jen když buildings_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
         **({"buildings": {
@@ -792,6 +865,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": powerlines_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if powerlines_mode == "real" else {}),
+        # železnice (real-půlka, Sez. 28): tratě ze ZABAGED REST → ISOM 509. Sekce jen když
+        # railways_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"railways": {
+            "count": len(railways_info),
+            "mask": "mask_railways.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): RAILWAY_NAME[c] for c in used_railway_codes},
+            "classes": {"0": "pozadí",
+                        **{str(RAILWAY_CLASS[c]): f"{c} {RAILWAY_NAME[c]}" for c in used_railway_codes}},
+            "items": railways_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if railways_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -1010,6 +1095,56 @@ def _generate_real_powerlines(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.Image
     return powerline_features, powerlines_info
 
 
+def _generate_real_railways(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
+                            lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné železniční tratě (real-půlka, Sez. 28): Železniční_trať ze ZABAGED REST → ISOM 509.
+
+    Čistá projekce tvrdých dat (fáze 1) — žádná pseudorealistická dekorace (na rozdíl od vedení
+    nemá co domýšlet). Mirror _generate_real_powerlines bez sloupů/příček (S-JTSK → grid → px,
+    sdílený výsek). Vrací (railway_features grid, railways_info)."""
+    from zabaged import fetch_railways, map_railway_to_isom
+    feats = fetch_railways(lat, lon, GW, GH, TILE_M)
+    railways_info: list[dict] = []
+    railway_features: list[tuple] = []
+    for f in feats:
+        c = map_railway_to_isom(f["layer"], f["props"])
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 2:
+                continue
+            _draw_railway(draw, rdraw, px, c)
+            railway_features.append((grid, c))
+            railways_info.append({"symbol": c, "symbol_name": RAILWAY_NAME[c],
+                                  "layer": f["layer"]})
+    return railway_features, railways_info
+
+
+def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné zpevněné plochy / kolejiště (real-půlka, Sez. 28): plochy ze ZABAGED → ISOM 501.
+
+    Mirror _generate_real_buildings (RAW S-JTSK → grid → px → polygon, bez generalizace).
+    Kolejiště = nádražní kolejová plocha (jednotlivé koleje data nemodelují jako linie). Vrací
+    (area_features [(grid, code)], paved_info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
+    from zabaged import fetch_paved_areas, map_paved_to_isom
+    feats = fetch_paved_areas(lat, lon, GW, GH, TILE_M)
+    area_features: list[tuple] = []
+    paved_info: list[dict] = []
+    for f in feats:
+        code = map_paved_to_isom(f["layer"], f["props"])
+        for ring in f["rings"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            _draw_paved_area(draw, adraw, px, code)
+            area_features.append((grid, code))
+            paved_info.append({"symbol": code, "symbol_name": PAVED_NAME[code],
+                               "kind": "area", "layer": f["layer"]})
+    return area_features, paved_info
+
+
 # =====================================================================
 #  Řopíky / lehké opevnění LO37 — fáze 1 (projekce reálných dat), asset placement (Sez. 27)
 # =====================================================================
@@ -1166,7 +1301,8 @@ def synthesize_pseudorealistic_map(
         *,                                    # vše dál keyword-only — z popředí API zmizí
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
         terrain: str = "real", paths: str = "real", water: str = "real",
-        buildings: str = "real", powerlines: str = "real", ropiky: str = "real",
+        paved: str = "real", buildings: str = "real", powerlines: str = "real",
+        railways: str = "real", ropiky: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -1201,7 +1337,7 @@ def synthesize_pseudorealistic_map(
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → bodové symboly extrémů
-    (§4.10) → voda → cesty (§4.9) → el. vedení (510) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
+    (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → el. vedení (510) → železnice (509) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
     naopak POD hnědou vrstevnicí), patří do OOM Colors okna = uživatelova doména, ne rastr.
@@ -1232,6 +1368,12 @@ def synthesize_pseudorealistic_map(
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if powerlines == "real" and terrain != "real":
         raise ValueError("--powerlines real vyžaduje --terrain real (reálné el. vedení potřebuje "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if railways == "real" and terrain != "real":
+        raise ValueError("--railways real vyžaduje --terrain real (reálná železnice potřebuje "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if paved == "real" and terrain != "real":
+        raise ValueError("--paved real vyžaduje --terrain real (reálná zpevněná plocha potřebuje "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if ropiky == "real" and terrain != "real":
         raise ValueError("--ropiky real vyžaduje --terrain real (řopíky ze ZABAGED potřebují "
@@ -1316,6 +1458,20 @@ def synthesize_pseudorealistic_map(
     # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Prázdné = vše OK.
     layer_errors: dict[str, str] = {}
 
+    # --- zpevněné plochy / kolejiště (ISOM 501): reálné ze ZABAGED REST (real-půlka, Sez. 28) ---
+    # Rastr z-order: brzy (po terénu/bodech, PŘED vodou/cestami) — hnědá plocha je podklad, na
+    # němž leží koleje (509), cesty i budovy. V lesních výsecích bez nádraží = 0 prvků. Jen --paved real.
+    paved_area_features: list[tuple] = []
+    paved_info: list[dict] = []
+    paved_mask_img: Image.Image | None = None
+    if paved == "real":
+        paved_mask_img = Image.new("L", (W, H), 0)       # GT maska zpevněných ploch (§8.1)
+        adraw = ImageDraw.Draw(paved_mask_img)
+        paved_area_features, paved_info = _try_layer(
+            "paved", lambda: _generate_real_paved(draw, adraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  zpevněné plochy: %d", len(paved_info))
+
     # --- voda (hydrografie): reálná ze ZABAGED REST (real-půlka, Sez. 17) ---
     # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém
     # terénu, černé cesty/budovy je překryjí nahoře (čitelnost feederu). Jen --water real.
@@ -1362,6 +1518,21 @@ def synthesize_pseudorealistic_map(
             lambda: _generate_real_powerlines(draw, eldraw, lat, lon, geo_bbox, pseudorealistic),
             ([], []), tolerant, layer_errors)
         _log.info("  el. vedení: %d", len(powerlines_info))
+
+    # --- železnice (ISOM 509): reálná ze ZABAGED REST (real-půlka, Sez. 28) ---
+    # Rastr z-order: PO vedení, PŘED budovami — černá trať (čárky + bílý knockout) nad terénem,
+    # izomorfní s komunikacemi. V lesních výsecích bez trati = 0 prvků (žádný šum). Jen --railways real.
+    railway_features: list[tuple] = []
+    railways_info: list[dict] = []
+    railway_mask_img: Image.Image | None = None
+    if railways == "real":
+        railway_mask_img = Image.new("L", (W, H), 0)     # GT maska železnic (§8.1)
+        rdraw = ImageDraw.Draw(railway_mask_img)
+        railway_features, railways_info = _try_layer(
+            "railways",
+            lambda: _generate_real_railways(draw, rdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  železnice: %d", len(railways_info))
 
     # --- budovy/stavby (§4.x): reálné ze ZABAGED REST (real-půlka, Sez. 18) ---
     # Rastr z-order: ÚPLNĚ NAVRCH — černá plocha budovy překryje vše pod sebou (vizuálně
@@ -1428,6 +1599,10 @@ def synthesize_pseudorealistic_map(
         building_mask_img.save(out / "mask_buildings.png")                  # budovy (GT)
     if powerline_mask_img is not None:
         powerline_mask_img.save(out / "mask_powerlines.png")                # el. vedení (GT)
+    if railway_mask_img is not None:
+        railway_mask_img.save(out / "mask_railways.png")                    # železnice (GT)
+    if paved_mask_img is not None:
+        paved_mask_img.save(out / "mask_paved.png")                         # zpevněné plochy (GT)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
@@ -1441,23 +1616,33 @@ def synthesize_pseudorealistic_map(
     building_omap_features = [(g, "521") for g, _ in building_area_features]
     # el. vedení = liniový symbol 510 (type-1 v template) → otevřený path
     powerline_omap_features = [(g, "510") for g, _ in powerline_features]
+    # železnice = liniový symbol 509 (kombinovaný type-16 v template) → otevřený path; OOM
+    # vykreslí kombinovaný symbol (čárky + bílý knockout) autoritativně z definice symbolu (Sez. 28)
+    railway_omap_features = [(g, "509") for g, _ in railway_features]
+    # zpevněné plochy → 501 (KOMBINOVANÝ symbol: hnědá výplň + OBRYSOVÁ LINIE). Bounding line je
+    # významová — do kolejiště se nevstupuje (rozhodnutí uživatele Sez. 28), proto NE čistě plošný
+    # 501.1 (bez obrysu, jako voda). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní
+    # area-část kombinovaného symbolu a nakreslí obrys (jako u vody 301 combined).
+    paved_omap_features = [(g, "501") for g, _ in paved_area_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
                              powerline_omap_features,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap",
-                             ortho_template=ortho_template, ropik_features=ropik_features)
+                             ortho_template=ortho_template, ropik_features=ropik_features,
+                             railway_features=railway_omap_features,
+                             paved_features=paved_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, powerlines,
+    meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,
                        pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
-                       building_info, powerlines_info, omap_info, layer_errors)
+                       paved_info, building_info, powerlines_info, railways_info, omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
-    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · cesty %d · vrstevnice %d · "
-              "vedení %d · body %d · .omap objektů %d", out, len(building_info), len(ropik_info),
-              len(water_info), n_paths, n_contours, len(powerlines_info), len(point_symbols),
-              omap_counts["objects"])
+    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d · "
+              "vedení %d · železnice %d · body %d · .omap objektů %d", out, len(building_info),
+              len(ropik_info), len(water_info), len(paved_info), n_paths, n_contours,
+              len(powerlines_info), len(railways_info), len(point_symbols), omap_counts["objects"])
     return out
 
 
@@ -1482,12 +1667,18 @@ def main() -> None:
     p.add_argument("--water", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST toky+plochy (default), off = bez vody "
                         "(real vyžaduje --terrain real; proc hydro D8 = budoucí)")
+    p.add_argument("--paved", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED REST Kolejiště → ISOM 501 zpevněná plocha (default), "
+                        "off = bez zpevněných ploch (real vyžaduje --terrain real; v lese bez nádraží 0 prvků)")
     p.add_argument("--buildings", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST plochy → ISOM 521 (default), off = bez budov "
                         "(real vyžaduje --terrain real)")
     p.add_argument("--powerlines", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST linie → ISOM 510 (default), off = bez vedení "
                         "(real vyžaduje --terrain real)")
+    p.add_argument("--railways", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED REST tratě → ISOM 509 (default), off = bez železnic "
+                        "(real vyžaduje --terrain real; v lese bez trati 0 prvků)")
     p.add_argument("--ropiky", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Bunkr LO37 → asset řopík (default), off = bez řopíků "
                         "(real vyžaduje --terrain real; jinde než u hranic 0 prvků)")
@@ -1518,8 +1709,9 @@ def main() -> None:
     out = synthesize_pseudorealistic_map(
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=args.out,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
-        paths=args.paths, water=args.water, buildings=args.buildings,
-        powerlines=args.powerlines, ropiky=args.ropiky, ortho=args.ortho, ortho_mpp=args.ortho_mpp)
+        paths=args.paths, water=args.water, paved=args.paved, buildings=args.buildings,
+        powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
+        ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 
 

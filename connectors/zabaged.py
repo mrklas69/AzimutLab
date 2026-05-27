@@ -42,6 +42,7 @@ _PAGE = 2000   # maxRecordCount REST query (ověřeno) — velikost dávky v pag
 LAYER_IDS = {
     "Cesta": 83, "Pěšina": 82, "Silnice__dálnice": 79,
     "Silnice_neevidovaná": 80, "Ulice": 84,
+    "Železniční_trať": 75, "Železniční_vlečka": 76, "Kolejiště": 122,
     "Vodní_tok": 93, "Vodní_plocha": 132, "Pozemní_nádrž": 107,
     "Budova_jednotlivá_nebo_blok_budov__plocha_": 99,
     "Elektrické_vedení": 88, "Stožár_elektrického_vedení": 87,
@@ -56,6 +57,21 @@ LAYER_IDS = {
 # zatím vynecháno (most = LINIE → ISOM 512 Bridge, kandidát na doplnění, ne bod jak dříve mylně
 # uvedeno; výstavba ve výsecích vzácná). Plný katalog 149 vrstev: docs/kb/zabaged-isom-catalog.md.
 PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
+
+# Železnice (Sez. 28, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED
+# `Železniční_trať` (id 75) = osy hlavních tratí; `Železniční_vlečka` (76) = průmyslové/nádražní
+# vlečky (přidáno na žádost uživatele — u nádraží zhušťují kolejovou síť). Obě → ISOM 509
+# (map_railway_to_isom, vždy 509, jako budovy→521/vedení→510). `Tramvajová_dráha` (71, urbánní)
+# vynecháno. POZN.: „deset kolejí vedle sebe" u nádraží NEJSOU linie — ZABAGED je generalizuje
+# do plochy `Kolejiště` (→ PAVED_AREA_LAYERS, 501). Katalog: docs/kb/zabaged-isom-catalog.md (sekce 3).
+RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka")
+
+# Kolejiště / zpevněné plochy (Sez. 28, real-půlka, plošná — izomorfní s vodní plochou/budovou).
+# ZABAGED `Kolejiště` (id 122, plocha) = nádražní kolejová plocha (Liberec hl. n. ~19 ha jako
+# JEDEN polygon; jednotlivé koleje data nemodelují jako linie). → ISOM 501 Paved area (kombinovaný
+# symbol: hnědá 50% výplň + obrysová linie). Mapování viz map_paved_to_isom. Vzor pro budoucí
+# další zdroje 501 (parkoviště ap.). Jinde než u nádraží/zpevněných ploch = 0 prvků.
+PAVED_AREA_LAYERS = ("Kolejiště",)
 
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
@@ -176,6 +192,53 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
             if lines:
                 out.append({"layer": layer, "props": feat.get("properties", {}),
                             "lines": lines})
+    return out
+
+
+def fetch_railways(lat: float, lon: float, gw: int, gh: int,
+                   tile_m: float = 1000.0,
+                   cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné železniční tratě pro výsek (lat, lon) jako seznam liniových features.
+
+    Každý prvek: {"layer", "props": atributy ZABAGED, "lines": [[(x,y)..]]} — `lines` je
+    seznam polylinií v S-JTSK metrech (MultiLineString rozbalen). Mapování na ISOM
+    (map_railway_to_isom → 509) se dělá výš, po verify atributů (Sez. 28).
+
+    Izomorfní s fetch_paths/fetch_powerlines (linie). Tentýž výsek (sdílený build_bbox) →
+    trať sedne na terén i k cestám/vodě. V lesních výsecích bez trati = 0 prvků (žádný šum).
+    """
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in RAILWAY_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_paved_areas(lat: float, lon: float, gw: int, gh: int,
+                      tile_m: float = 1000.0,
+                      cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné zpevněné plochy (kolejiště) pro výsek (lat, lon) jako plošné features.
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy ploch v S-JTSK
+    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_paved_to_isom → 501) se dělá výš
+    (Sez. 28). Izomorfní s fetch_buildings/area-půlkou fetch_water (plochy mají rings).
+    V lesních výsecích bez nádraží = 0 prvků (žádný šum). Tentýž výsek (sdílený build_bbox)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in PAVED_AREA_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
     return out
 
 
@@ -351,6 +414,29 @@ def map_path_to_isom(layer: str, props: dict) -> int:
         # pozor: REST vrací atribut malými (`typuskom_k`); WFS ho měl velkými (Sez. 26)
         return 505 if props.get("typuskom_k") == "026" else 506
     return 503   # fallback (neočekávaná vrstva) → viditelná plná čára
+
+
+def map_railway_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED železniční trať na ISOM 2017-2 liniový symbol (kód).
+
+    `Železniční_trať` → **509 Railway** (vždy; KISS, jako budovy→521 / vedení→510). ISOM
+    nerozlišuje trať podle počtu kolejí / elektrizace → jeden symbol. Vlečka (Železniční_vlečka)
+    by také byla 509, ale zatím se netáhne (viz RAILWAY_LAYERS).
+
+    Pozor (verify-against-source, Sez. 28): symbol 509 je v template_classic.omap kombinovaný
+    (type=16: černé čárky + bílý „pražcový" knockout), NE prostá linie jako vedení 510. Konektor
+    vrací jen holý ISOM kód (int) — render/styl zná generator.py (žádný cyklický import)."""
+    return 509
+
+
+def map_paved_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED zpevněnou plochu na ISOM 2017-2 plošný symbol (kód).
+
+    `Kolejiště` → **501 Paved area** (vždy; KISS, jako budovy→521). 501 je v template_classic.omap
+    kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 = rozhodnutí uživatele
+    (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu, ne na jednotlivé
+    koleje. Konektor vrací holý ISOM kód (int) — render zná generator.py (žádný cyklický import)."""
+    return 501
 
 
 def map_water_to_isom(layer: str, props: dict) -> int | None:

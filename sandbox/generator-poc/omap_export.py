@@ -36,7 +36,7 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 # type 16, nepřiřaditelný objektu). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
 USED_CODES = ("101", "102", "502", "503", "504", "505", "506",
-              "304", "305", "306", "301.1", "521", "510", "109", "110", "111")
+              "304", "305", "306", "301.1", "521", "510", "509", "501", "109", "110", "111")
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 ROTATABLE_CODES = frozenset({"110"})
 
@@ -44,7 +44,7 @@ ROTATABLE_CODES = frozenset({"110"})
 # (poslední bod nese close flag). Liniové kódy (vrstevnice/cesty/vodní toky) zůstávají
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily (uživatel „nevidím budovy/vodu").
-AREA_CODES = frozenset({"301.1", "521"})
+AREA_CODES = frozenset({"301.1", "521", "501"})  # 501 = kombinovaný (výplň+obrys) na ploše, Sez. 28
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -70,8 +70,10 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                world_w_m: float, world_h_m: float, scale: float,
                out_path: str | Path,
                ortho_template: dict | None = None,
-               ropik_features: list[tuple] | None = None) -> dict:
-    """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + body do `.omap` vložením do template.
+               ropik_features: list[tuple] | None = None,
+               railway_features: list[tuple] | None = None,
+               paved_features: list[tuple] | None = None) -> dict:
+    """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
     [(curve grid, code 502-506)] (proc dělá 503/505, reálná větev plnou hierarchii),
@@ -79,11 +81,16 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     `building_features` = [(ring grid, code 521)], `powerline_features` = [(line grid, code 510)]
     (liniový objekt, Sez. 24) — vše v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1); voda i budovy
     jdou jako liniové objekty (type 1), OOM je vyplní podle typu symbolu (plošný 301/521).
+    `railway_features` (volitelné, Sez. 28) = [(line grid, code 509)] — liniový objekt; 509 je
+    v template kombinovaný symbol (čárky + bílý knockout), OOM ho vykreslí z definice symbolu.
+    `paved_features` (volitelné, Sez. 28) = [(ring grid, code 501)] — plošný objekt (kolejiště);
+    501 = kombinovaný symbol (hnědá výplň + OBRYSOVÁ linie), OOM vyplní uzavřený prstenec a
+    nakreslí obrys (kolejiště = uzavřený prostor, bounding line významová — ne jako voda 301.1).
     `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale` = jmenovatel měřítka.
     `ortho_template` (volitelné, Sez. 26) = {name, img_w, img_h, opacity} → připne obrázek
     `name` jako PODKLADOVÝ (background) template: paper-space, vycentrovaný na origin (jako
     objekty), scale = map-mm na pixel tak, aby obraz img_w×img_h přesně pokryl výsek.
-    Návrat: {"contours", "paths", "water", "buildings", "powerlines", "points", "objects"}.
+    Návrat: {"contours", "paths", "water", "buildings", "powerlines", "railways", "points", "objects"}.
     """
     out_path = Path(out_path)
     template_xml = TEMPLATE_PATH.read_text(encoding="utf-8")
@@ -126,7 +133,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                 f'<coords count="{len(coords)}">{coord_str}</coords></object>')
 
     objs: list[str] = []
-    n_contours = n_paths = n_water = n_buildings = n_powerlines = n_points = n_ropiky = 0
+    n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -151,6 +158,17 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = line_object(line, str(code))
         if o:
             objs.append(o); n_powerlines += 1
+    # železnice (509) = liniový objekt (otevřený path); OOM vykreslí kombinovaný symbol (Sez. 28)
+    for line, code in (railway_features or []):
+        o = line_object(line, str(code))
+        if o:
+            objs.append(o); n_railways += 1
+    # zpevněné plochy / kolejiště (501 kombinovaný, výplň+obrys) = plošný objekt (uzavřený path
+    # s close flagem); OOM vyplní area-část a nakreslí obrysovou linii (Sez. 28)
+    for ring, code in (paved_features or []):
+        o = area_object(ring, str(code))
+        if o:
+            objs.append(o); n_paved += 1
     # řopíky (Sez. 27): asset = budova 521 (plocha) + vrstevnice náspu 101 (linie). Geometrie už
     # natočená/umístěná generátorem; emise jako ostatní (521 area s close flagem, 101 line).
     for geom, code in (ropik_features or []):
@@ -215,5 +233,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
 
     out_path.write_text(doc, encoding="utf-8")
     return {"contours": n_contours, "paths": n_paths, "water": n_water,
-            "buildings": n_buildings, "powerlines": n_powerlines,
-            "ropiky": n_ropiky, "points": n_points, "objects": len(objs)}
+            "buildings": n_buildings, "powerlines": n_powerlines, "railways": n_railways,
+            "paved": n_paved, "ropiky": n_ropiky, "points": n_points, "objects": len(objs)}

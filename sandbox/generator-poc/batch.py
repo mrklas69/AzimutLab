@@ -116,12 +116,13 @@ def main() -> None:
             # (variace = lokalita). Vedení (powerlines) batch zatím nedělá — viz docstring.
             # ortho=False: ortofoto je vizuální verify-podklad pro člověka, ne data pro UC5
             # feeder (ten se učí číst generovanou mapu) → dataset jím nezatěžujeme (Sez. 27).
-            # Vedení i řopíky batch zatím nedělá (dev-map vrstvy; jako u powerlines).
+            # Vedení, železnice i řopíky batch zatím nedělá (dev-map vrstvy; jako u powerlines —
+            # v lesních CZ_LOCATIONS jsou navíc vzácné, tratě většinou 0 prvků).
             synthesize_pseudorealistic_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
-                paths="real", water="real", buildings="real", powerlines="off",
-                ropiky="off", tolerant=True, ortho=False)
+                paths="real", water="real", paved="off", buildings="real", powerlines="off",
+                railways="off", ropiky="off", tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
@@ -147,7 +148,7 @@ def main() -> None:
             synthesize_pseudorealistic_map(
                 DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc",
-                water="off", buildings="off", powerlines="off", ropiky="off")
+                water="off", paved="off", buildings="off", powerlines="off", railways="off", ropiky="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),
