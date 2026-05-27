@@ -14,14 +14,20 @@ domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and — si
 `zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301), and — since session 18 —
 real buildings (`--buildings real`, ISOM 521) with level-1 cartographic generalization (min. size + Douglas-Peucker
 outline) and — since session 22 — level-2 displacement (buildings nudged off the fixed road/water network to the
-ISOM 0,4 mm minimum gap; `resolve_displacement`). `zabaged.py` (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+points
+ISOM 0,4 mm minimum gap; `resolve_displacement`), and — since session 24 — real power lines (`--powerlines real`,
+ISOM 510, with cross-ticks placed on real pylons from `Stožár_elektrického_vedení`, not invented). `zabaged.py`
+(sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+powerlines+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
 any location & aspect ratio; resolution held constant) and `zabaged.py` fetches the full relevant set of ZABAGED
-layers, not a curated subset (e.g. `Silnice_neevidovaná` — unregistered/forest asphalt roads, previously missing) —
+layers, not a curated subset (e.g. `Silnice_neevidovaná` — unregistered/forest asphalt roads, previously missing;
+**complete 149-layer ZABAGED→ISOM catalogue in `docs/kb/zabaged-isom-catalog.md`**, session 24) —
 the real branch is conceptually a *map predictor* (`synthesize_pseudorealistic_map`): projection of available
-geodata now, AI prediction of missing symbols from similar localities later (UC5).**
+geodata now, AI prediction of missing symbols from similar localities later (UC5). Session 24 also split the real
+branch into two toggleable phases (`pseudorealistic`, default on; `--only-real` off): **phase 1 = projection** of
+hard data, **phase 2 = pseudorealistic decoration** of symbols not in the data (today: even power-line ticks
+where no pylon is recorded; future: vegetation).**
 
 ## What this is
 
@@ -52,7 +58,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 | UC | Name | Scope | Status |
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
-| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ◐ first connectors live (DMR 5G terrain, ZABAGED paths + water + buildings) |
+| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/ZTM, geoportál) | ◐ first connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines; full 149-layer catalogue) |
 | UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
@@ -82,10 +88,11 @@ docs/
     data-sources.md    #   UC2 survey: ČÚZK / geoportál / ortofoto / LIDAR + licences
     isom-issprom.md    #   symbol semantics, spec links
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
-    generator-procedural.md  # UC4-I synthetic map generator spec (free-GT training data)
+    generator-procedural.md   # UC4-I synthetic map generator spec (free-GT training data)
+    zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths + water + buildings (WFS, GeoJSON); --paths/--water/--buildings real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths + water + buildings + power lines (WFS, GeoJSON); --paths/--water/--buildings/--powerlines real
 sandbox/               # UC1: isolated experiments, one folder each
   generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + buildings + extremum symbols + masks)
                        #     consumes connectors/ for real terrain, paths, water & buildings; adds them to sys.path

@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -87,7 +87,11 @@ První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do gen
   silniční evidenci — doplněno Sez. 23), `Ulice`. `Turistická_trasa` **vynechána** (vede po existující
   cestě → duplikace sítě). **Princip (Sez. 23, uživatel): stahovat VŠECHNY relevantní vrstvy, ne vybrané**
   — `Silnice_neevidovaná` původně chyběla → páteřní asfaltka Bedřichov→Nová louka na mapě úplně chyběla.
-  Příští doplnění z GetCapabilities: el. vedení (ISOM 516), `Most`, `Silnice_ve_výstavbě`.
+  Příští doplnění: el. vedení (**ISOM 510** Power line — pozor, NE 516, to je Fence/plot; oprava Sez. 24),
+  `Most` (ISOM 512, **linie** dle DescribeFeatureType), `Lesní_průsek` (508), balvany/skály (204/201).
+- **Kompletní katalog VŠECH 149 feature typů ZABAGED Polohopis → ISOM** (verify-against-source:
+  GetCapabilities + DescribeFeatureType + template, Sez. 24): **`docs/kb/zabaged-isom-catalog.md`**
+  — u každé vrstvy ISOM symbol, nebo důvod nepoužití; akční seznam kandidátů na doplnění.
 - **Mapování → ISOM** (fyzický stav = ISOM logika sjízdnosti, ne 1:1): Silnice/Ulice → 502 Wide road;
   Silnice_neevidovaná → 503 Road (zpevněná účelová <5 m); Cesta zpevněná (`povrch_k` Z/T) → 503 Road,
   nezpevněná (None) → 504 Vehicle track; Pěšina udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná
@@ -119,6 +123,19 @@ proti zdroji na výřezu Soví vrchu:
 - **Kartografická generalizace (Úroveň 1, Sez. 18):** min. velikost 0,5 mm + zjednodušení obrysu
   Douglas-Peucker (0,3 mm) z ISOM rozměrů (`template_classic.omap` × `PX_PER_MM`). Detail: spec §4.9b.
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `buildings.licence`.
+
+### ZABAGED el. vedení — WFS konektor (POUŽITO, Sez. 24)
+Rozšíření téhož konektoru o el. vedení (`fetch_powerlines` / `map_powerline_to_isom`). Stejný
+endpoint / CRS / GeoJSON / axis [x,y]. Ověřeno proti zdroji na Sovím vrchu (7 linií) i Č. ráji (2):
+- **Feature typy:** `Elektrické_vedení` (linie, MultiLineString) + `Stožár_elektrického_vedení`
+  (bod — poloha sloupů). Atributy `NAPETI`/`NAZEV`/`VYSKA_OBJ` jsou v datech **prázdné** (None).
+- **Mapování → ISOM:** `Elektrické_vedení` → **510 Power line, cableway or skilift** (vše 510;
+  `NAPETI` prázdné → bez rozlišení 511 Major power line). **Pozor: 510, NE 516** (516 = Fence/plot
+  — oprava zděděného předpokladu, verify proti `template_classic.omap`, Sez. 24).
+- **Příčky symbolu 510 = SLOUPY** (běžci se jimi řídí): fáze 1 kreslí příčku na poloze reálného
+  sloupu (`Stožár_elektrického_vedení`), fáze 2 (pseudorealistic) doplní rovnoměrné jen na liniích
+  bez evidovaného sloupu. Detail dvou fází: spec §0b + §4.9c, GLOSSARY „pseudorealistic".
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `powerlines.licence`.
 
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).

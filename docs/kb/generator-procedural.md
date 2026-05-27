@@ -29,6 +29,25 @@ reálných map, kde anotaci nemáme.
 
 ---
 
+## 0b. Projekce vs pseudorealistická dekorace (dvě fáze, Sez. 24)
+
+Reálná („real") větev generátoru má **dvě oddělitelné fáze** (přepínač `pseudorealistic`,
+default `True`; CLI `--only-real` ho vypne):
+
+1. **Fáze 1 — projekce.** Deterministický převod toho, co JE v datech (DMR výškopis → vrstevnice,
+   ZABAGED → cesty/voda/budovy/vedení/sloupy). 100% věrnost, žádný vymyšlený symbol.
+2. **Fáze 2 — pseudorealistická dekorace.** Doplní symboly, které v datech NEJSOU, ale dělají mapu
+   „orienťácky vypadající" (poloha vymyšlená). Dnes: rovnoměrné příčky vedení mimo evidované sloupy
+   (§4.9c). Budoucí hlavní konzument: **vegetace** (zelená/žlutá = průchodnost, v datech není kvůli
+   vegetace gate — to už je predikce přes UC5, ne jen dekorace).
+
+Princip: nevymýšlet, co v datech není, pod hlavičkou „věrnost". Co se vymýšlí pro vzhled, jde do
+fáze 2 a musí jít vypnout. Vazba: GLOSSARY „projekce vs predikce", „pseudorealistic",
+`synthesize_pseudorealistic_map`. Generalizace L1/L2 budov NENÍ fáze 2 (je to věrná kartografie
+reality, kterou ISOM předepisuje — §4.9b).
+
+---
+
 ## 1. Souřadný systém a měřítko
 
 - Výpočetní mřížka: `GW × GH` buněk (referenčně 170 × 116; poměr ≈ 1,466).
@@ -186,6 +205,24 @@ grid pro `.omap` se odvozuje ZPĚT z generalizovaného px (conceptual integrity 
 objektů/symbolů v `.omap`); export jen referencuje symboly přes ISOM kód a zdědí color-table
 template. Plošné symboly (301.1, 521) potřebují v `.omap` UZAVŘENÝ path (close flag 18), jinak
 je OOM nevyplní (`omap_export.area_object`, Sez. 18). Detail: GLOSSARY „Draw order / priorita barev".
+
+### 4.9c El. vedení (real-půlka, Sez. 24)
+**✅ Reálné el. vedení:** `--powerlines real` vezme `Elektrické_vedení` ze ZABAGED Polohopis WFS
+(`zabaged.fetch_powerlines`, týž konektor) pro tentýž výsek → ISOM **510 Power line** (tenká černá
+linie; `map_powerline_to_isom`). Vyžaduje `--terrain real`. Liniová vrstva, izomorfní s cestami.
+Atribut `NAPETI` je v datech prázdný → bez rozlišení 510/511 Major power line (vše 510, KISS).
+GT `mask_powerlines.png`. Z-order: po cestách, před budovami. **Pozor: 510, NE 516** (516 = Fence/plot
+— verify proti template, oprava zděděného předpokladu Sez. 24).
+
+**Příčky („zuby") symbolu 510 — dvě fáze** (viz §0b a GLOSSARY „pseudorealistic"). Na OB mapě příčky
+odpovídají SLOUPŮM (běžci se jimi řídí — doménový fakt). Generátor je proto NEvymýšlí rovnoměrně:
+- **Fáze 1** (vždy): příčka na poloze REÁLNÉHO sloupu ze ZABAGED `Stožár_elektrického_vedení`
+  (bod, `fetch_powerline_masts`; sloup leží na vrcholu vedení), kolmá na nejbližší segment
+  (`_nearest_seg` + `_draw_tick_at`).
+- **Fáze 2** (`pseudorealistic=True`, default): linie BEZ jediného evidovaného sloupu dostane
+  rovnoměrné příčky (`_draw_perp_ticks`) — dekorace „vypadá jako vedení", poloha vymyšlená.
+  Linie se sloupy zůstanou poctivě jen se sloupovými. `--only-real` (= `pseudorealistic=False`)
+  fázi 2 vypne. Mapování/licence: `data-sources.md`, katalog `zabaged-isom-catalog.md`.
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

@@ -8,6 +8,9 @@ venv/
 # Vzor output_* chytá i pojmenované scratch rendery (output_baseline, output_v2, …)
 output/
 output_*/
+# Dočasné průzkumné výstupy (Sez. 24): WFS capabilities/schema, diagnostiky, scratch
+# rendery. Nově sem (ne do kořene/generator-poc): konvence „dočasné výstupy → temp/".
+temp/
 sandbox/**/output/
 sandbox/**/output_*/
 sandbox/**/data/

@@ -63,10 +63,16 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
   `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem
   taky 521). Render izomorfní s vodní plochou 301 (`_draw_area_symbol`), jen černá místo modré.
+- **El. vedení** — elektrické vedení na OB mapě. ISOM **510 Power line, cableway or skilift**
+  (tenká černá linie s kolmými příčkami na SLOUPECH — běžci se jimi řídí). Generátor `--powerlines
+  real` (Sez. 24): reálná půlka ze ZABAGED `Elektrické_vedení` (linie → osa) + `Stožár_elektrického_
+  vedení` (body → příčky). Mapování `map_powerline_to_isom` → vždy 510 (`NAPETI` v datech prázdné →
+  bez rozlišení 511 Major power line). **Pozor: 510, NE 516** (516 = Fence/plot — oprava zděděného
+  předpokladu, verify proti template, Sez. 24). Příčky = dvě fáze (viz [[pseudorealistic]]).
 - **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
-  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda + budovy).
-  Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔ `--buildings off|real`.
-  Nemíchat zdroje napříč osou.
+  šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda + budovy
+  + vedení). Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔
+  `--buildings off|real` ↔ `--powerlines off|real`. Nemíchat zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
@@ -118,6 +124,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   licencí). Nezaměňovat: dnešní `--terrain real` je **projekce**, ne predikce.
 - **Pseudorealistic map** — výstup prediktoru: mapa, která *vypadá* realisticky, ale není skutečné
   terénní mapování (syntéza projekce + AI predikce). Pojmenování poctivě přiznává umělost (Sez. 23).
+- **pseudorealistic (parametr) / fáze 1-2** — přepínač real-větve generátoru (Sez. 24, default
+  `True`; CLI `--only-real` = `False`). **Fáze 1 = projekce** (deterministický převod tvrdých dat,
+  100% věrnost). **Fáze 2 = pseudorealistická dekorace** (doplní symboly, co v datech nejsou, ale
+  dělají mapu „orienťácky vypadající"; poloha vymyšlená → musí jít vypnout). Dnes jediný konzument
+  fáze 2 = rovnoměrné příčky [[el-vedení]] mimo evidované sloupy; budoucí hlavní = vegetace (gate).
+  Generalizace L1/L2 budov NENÍ fáze 2 (věrná kartografie, kterou ISOM předepisuje). Spec §0b.
+  Vztah k [[projekce-vs-predikce]]: fáze 2 sahá od dekorace (příčky) po predikci (vegetace, UC5).
 - **Deštník / fáze B→A** — AzimutLab je teď meta-vrstva (fáze B, deštník) nad sourozeneckým
   Pic2Omap; cíl je monorepo (fáze A), které Pic2Omap absorbuje, až vznikne sdílené jádro.
 - **Pic2Omap** — sourozenecký projekt (raster OB mapa → vektor `.omap`); UC4-III. Žije ve

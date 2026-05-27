@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 24 (2026-05-27) — Katalog ZABAGED→ISOM (149 vrstev) + el. vedení (510) + dvě fáze (pseudorealistic)
+- [x] **Katalog VŠECH 149 vrstev ZABAGED Polohopis → ISOM** (`docs/kb/zabaged-isom-catalog.md`, nový):
+      verify-against-source GetCapabilities (149 typů) + DescribeFeatureType (geom: 57 bodů/45 linií/47 ploch)
+      + ISOM kódy z `template_classic.omap`. U každé vrstvy ISOM symbol, nebo důvod nepoužití; 13 sekcí
+      (komunikace/voda/terén/vegetace/stavby/…), akční seznam kandidátů. Odkaz z `data-sources.md`.
+- [x] **Verify-against-source nálezy (oprava zděděných předpokladů):** (a) **el. vedení = ISOM 510, NE 516**
+      (516 = Fence/plot) — táhlo se 4 dokumenty (TODO, Příště Sez. 23, data-sources, komentář zabaged.py);
+      (b) **`Most` = linie, ne bod** (komentář zabaged.py tvrdil opak). Propsáno (516→510) napříč.
+- [x] **El. vedení `--powerlines real`** (`zabaged.py` + `generator.py` + `omap_export.py`): `Elektrické_vedení`
+      → ISOM 510 (tenká černá linie); `NAPETI` v datech prázdné → vše 510 (bez 511). Render `mode "powerline"`,
+      GT `mask_powerlines.png`, `.omap` liniový objekt 510, z-order po cestách. Izomorfní s vodou/budovami napříč
+      3 soubory. Verify: proc 65 drží, Soví vrch 253=246+7 vedení.
+- [x] **Příčky vedení = SLOUPY (dvě fáze, koncepční reframe uživatele):** příčky ISOM 510 odpovídají sloupům
+      (běžci se jimi řídí) → **fáze 1** kreslí příčku na poloze reálného sloupu (`Stožár_elektrického_vedení`,
+      `fetch_powerline_masts`, `_nearest_seg`+`_draw_tick_at`), **fáze 2** (`pseudorealistic=True`, default)
+      doplní rovnoměrné jen na liniích bez sloupu. **Censure! (AI):** původně jsem příčky vymyslel rovnoměrně.
+- [x] **Parametr `pseudorealistic` (default True) + CLI `--only-real`** (`generate`, meta): fáze 1 = projekce
+      tvrdých dat, fáze 2 = pseudorealistická dekorace (co v datech není). Zatím působí na vedení; `%THINK`
+      potvrdil, že dosavadní vrstvy jsou čistá projekce (no-op), budoucí konzument = vegetace. Spec §0b.
+- [x] **Úklid:** konvence dočasné výstupy → `temp/` (gitignored); generator-poc scratch smazán, kanonické
+      `Soví vrch/` + `Nová louka/` (6×4 km, 1079 obj / 3 vedení). lasertool ponechán (budoucí vegetace).
+
 ## Sezení 23 (2026-05-26) — Parametrizace výseku + reframe `synthesize_pseudorealistic_map` + úplnější/věrnější cesty
 - [x] **Parametrizace výseku** (`generator.py`): velikost z konstant → argumenty `--width-km`/`--height-km`
       (š×v; souřadnice `--lat/--lon`). Otočená závislost: `PX_PER_MM` + `M_PER_CELL` (rozlišení) = jedna pravda,
