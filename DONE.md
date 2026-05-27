@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 28 (2026-05-27) — Železnice 509 (+ vlečky) + kolejiště 501 + oprava float bugu v _draw_dashed
+- [x] **Železnice → ISOM 509** (real-půlka, izomorfní s vedením 510). Verify-against-source PŘED kódem:
+      vrstva je **`Železniční_trať` (id 75)**, ne „Železnice" (TODO se mýlilo); **509 = kombinovaný symbol**
+      (čárky 0,35 mm + bílý „pražcový" knockout), ne prostá linie jako 510. `zabaged.fetch_railways` +
+      `map_railway_to_isom`→509; `generator` mode `"railway"` (bílý podklad + černé čárky → mezery BÍLÉ,
+      odliší od pěšiny 505), `_draw_railway`, `_generate_real_railways`, `--railways`, `mask_railways.png`;
+      `omap_export` 509 v `USED_CODES` + `railway_features`; `batch` `railways="off"`. Export odkáže symbol 509.
+- [x] **Vlečky → 509 (C)** — `Železniční_vlečka` (id 76) přidána do `RAILWAY_LAYERS` (map vrací 509 pro každou
+      vrstvu). U libereckého nádraží 28 tratí (vs 6 jen `Železniční_trať`) = ten svazek kolejí.
+- [x] **Kolejiště → ISOM 501 Paved area (B)** — nová **plošná** vrstva `--paved`. Verify u Liberec hl. n.:
+      „10 kolejí" v datech NEJSOU linie, ale **jedna plocha `Kolejiště` (id 122, ~19 ha)**. `zabaged.fetch_paved_areas`
+      + `map_paved_to_isom`→501; `generator` `ISOM_PAVED`, `_draw_paved_area` (C_ROAD výplň + C_BROWN obrys),
+      `_generate_real_paved`, `mask_paved.png`, meta, CLI, z-order brzy (podklad pod kolejemi); `omap_export`
+      `paved_features`. **Symbol: kombinovaný 501 s OBRYSOVOU linií** (ne 501.1 bez obrysu) — uživatel „do kolejiště
+      se nevstupuje" (bounding line významová); voda 301.1 byla zbytečně konzervativní.
+- [x] **Oprava latentního float bugu v `_draw_dashed`** — railway render zamrzl; diagnostika (ne hádání):
+      neceločíselné `dash=6,9 / gap=4,6 px` → na hranici čárka↔mezera `step`→~1e-15 → smyčka „creepuje"
+      donekonečna (>100k iterací na 10,8 px segmentu). Pěšiny (přesné 7,0/4,0) to roky maskovaly. Fix: epsilon
+      v podmínce (`d < seg-1e-9`) + nudge (`step<1e-9: pos+=1e-9; continue`). Hardening i 505/506/306.
+- [x] **Crossability hranic → IDEAS/TODO** (princip uživatele): styl obrysu nese překonatelnost (301 uncrossable
+      vs 304/305/306 crossable; kolejiště 501 obrys = zákaz vstupu). Náš generátor honoruje volbou ISOM kódu.
+      Dluh: vodní plochy vždy 301, toky vždy crossable (široká nepřekonatelná řeka by byla špatně) → TODO.
+- [x] **Verify:** proc baseline **65 drží**; nádraží 28 železnic + 2 kolejiště (`.omap` 28× sym 120 + 2× sym 105);
+      LS 6×4 přegenerováno **15 železnic + 1 kolejiště** + 8273 budov (`.omap` 13121 obj, 15× 509 + 1× 501).
+
 ## Sezení 27 (2026-05-27) — %AUDIT:CODE + budovy RAW (pravoúhlost zavržena) + koupaliště + řopíky + logging
 - [x] **%AUDIT:CODE** (D1-D5+K1-K4, kritické 0): WFS→REST terminologický drift (~25 míst, vč. CLI help);
       `batch.py` `ortho=False`; asset `řopík_10000.*`→`ropik_10000.*` (ASCII); smazán `__future__` import;

@@ -223,6 +223,23 @@ odpovídají SLOUPŮM (běžci se jimi řídí — doménový fakt). Generátor 
   Linie se sloupy zůstanou poctivě jen se sloupovými. `--only-real` (= `pseudorealistic=False`)
   fázi 2 vypne. Mapování/licence: `data-sources.md`, katalog `zabaged-isom-catalog.md`.
 
+### 4.9d Železnice (real-půlka, Sez. 28)
+**✅ Reálné tratě:** `--railways real` vezme `Železniční_trať` (id 75) + `Železniční_vlečka` (id 76)
+ze ZABAGED Polohopis REST (`zabaged.fetch_railways`, týž konektor) → ISOM **509 Railway** (obě vrstvy,
+`map_railway_to_isom`). Liniová, izomorfní s vedením. GT `mask_railways.png`. Z-order: po vedení, před
+budovami. **509 je KOMBINOVANÝ symbol** (type 16: černé čárky 0,35 mm dash 1,5/break 1,0 mm + bílý
+„pražcový" knockout) — render mode `"railway"` (bílý podklad + černé čárky → mezery BÍLÉ, odliší od
+pěšiny 505 jejíž mezery ukazují terén). Vrstva je `Železniční_trať`, ne „Železnice" (verify-against-source).
+U nádraží svazek kolejí = vlečky (`Železniční_vlečka`); „10 kolejí" jako PLOCHA = §4.9e kolejiště.
+
+### 4.9e Kolejiště / zpevněné plochy (real-půlka, Sez. 28)
+**✅ Reálné kolejiště:** `--paved real` vezme `Kolejiště` (id 122, plocha) ze ZABAGED → ISOM **501
+Paved area** (`map_paved_to_isom`). Plošná, izomorfní s budovou/vodní plochou: render `_draw_area_symbol`
+(`C_ROAD` výplň + `C_BROWN` obrys). GT `mask_paved.png`. Z-order: brzy (po terénu/bodech, před vodou)
+= podklad, na němž leží koleje. **„10 kolejí" u nádraží v datech NEJSOU linie** — ZABAGED je generalizuje
+do jedné plochy `Kolejiště` (Liberec hl. n. ~19 ha). V `.omap` jako **kombinovaný 501 (s obrysovou linií)**,
+ne 501.1 (čistá plocha bez obrysu) — do kolejiště se nevstupuje, bounding line je významová (ISOM crossability).
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 

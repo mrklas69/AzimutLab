@@ -65,10 +65,31 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   vedení` (body → příčky). Mapování `map_powerline_to_isom` → vždy 510 (`NAPETI` v datech prázdné →
   bez rozlišení 511 Major power line). **Pozor: 510, NE 516** (516 = Fence/plot — oprava zděděného
   předpokladu, verify proti template, Sez. 24). Příčky = dvě fáze (viz [[pseudorealistic]]).
+- **Železnice** — železniční trať na OB mapě. ISOM **509 Railway** — v `template_classic.omap` **kombinovaný
+  symbol** (type 16): černé čárky (0,35 mm; dash 1,5 / break 1,0 mm) + bílý „pražcový" knockout (`White for
+  railway`), NE prostá linie jako vedení 510. Generátor `--railways real` (Sez. 28): reálná půlka ze ZABAGED
+  `Železniční_trať` (id 75) + `Železniční_vlečka` (76, nádražní/průmyslové vlečky — u nádraží svazek kolejí);
+  obě → 509 (`map_railway_to_isom`, KISS). Render mode `"railway"` = bílý knockout podklad + černé čárky navrch
+  → mezery jsou BÍLÉ (odliší od pěšiny 505, jejíž mezery ukazují terén). Pozor: vrstva je `Železniční_trať`,
+  ne „Železnice" (oprava TODO, Sez. 28).
+- **Kolejiště / zpevněná plocha** — nádražní kolejová plocha (a obecně zpevněné plochy). ISOM **501 Paved
+  area** — kombinovaný symbol (hnědá výplň + **obrysová linie**). Generátor `--paved real` (Sez. 28): reálná
+  plošná půlka ze ZABAGED `Kolejiště` (id 122; `map_paved_to_isom` → 501), render `_draw_paved_area`
+  (`C_ROAD` výplň + `C_BROWN` obrys, izomorfní s vodní plochou/budovou). **„10 kolejí" u nádraží v datech
+  NEJSOU linie — ZABAGED je generalizuje do jedné plochy `Kolejiště`** (Liberec hl. n. ~19 ha). V `.omap`
+  jako **kombinovaný 501 (s obrysem)**, ne 501.1 bez obrysu — **do kolejiště se nevstupuje**, bounding line
+  je významová (rozhodnutí uživatele, Sez. 28; viz [[crossability]]). Sym id 105 (501.1 = id 106, čistá plocha).
+- **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
+  301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
+  (přebrodit/překročit); plný obrys nepřekonatelné plochy (301, kolejiště 501) = bariéra. Generátor to honoruje
+  **volbou ISOM symbolu** (a tím i v GT masce přes třídu). Dluh (Sez. 28): všechny vodní plochy → 301, všechny
+  toky → crossable → široká nepřekonatelná řeka by byla špatně (TODO). „Brodnost" jako terénní znalost =
+  část [[projekce-vs-predikce|predikce]] (UC5), ne vždy atribut v datech.
 - **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
   šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda + budovy
-  + vedení). Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔
-  `--buildings off|real` ↔ `--powerlines off|real`. Nemíchat zdroje napříč osou.
+  + vedení + železnice + kolejiště). Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔
+  `--water off|real` ↔ `--paved off|real` ↔ `--buildings off|real` ↔ `--powerlines off|real` ↔
+  `--railways off|real`. Nemíchat zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 

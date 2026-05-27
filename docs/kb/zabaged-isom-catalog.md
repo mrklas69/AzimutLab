@@ -77,13 +77,13 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Železniční_trať` | linie | 509 Railway | ◐ | tratě procházejí lesem, relevantní |
-| `Železniční_vlečka` | linie | 509 Railway | ○ | průmyslová vlečka |
+| `Železniční_trať` | linie | 509 Railway | ✓ | **POUŽITO Sez. 28** (`--railways`, id 75, kombinovaný symbol) |
+| `Železniční_vlečka` | linie | 509 Railway | ✓ | **POUŽITO Sez. 28** (id 76; u nádraží svazek kolejí) |
 | `Lanová_dráha__lyžařský_vlek` | linie | 510 Power line, cableway or skilift | ○ | hory / lyž. areály |
 | `Stožár_lanové_dráhy` | bod | 510 (carrying mast) | ○ | stožár lanovky |
 | `Tramvajová_dráha` | linie | (509 Railway) | ✗ | urbánní |
 | `Metro` | linie | — | ✗ | podzemní / urbánní |
-| `Kolejiště` | plocha | — | ✗ | nádražní plocha, urbánní |
+| `Kolejiště` | plocha | 501 Paved area | ✓ | **POUŽITO Sez. 28** (`--paved`, id 122; „10 kolejí" = plocha, ne linie; do kolejiště se nevstupuje → 501 s obrysem) |
 | `Areál_železniční_stanice__zastávky` | plocha | — | ✗ | urbánní |
 | `Železniční_stanice__zastávka` | bod | — | ✗ | POI |
 | `Stanice_metra` | bod | — | ✗ | urbánní POI |

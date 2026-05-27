@@ -16,9 +16,12 @@ incl. swimming pools from `Pozemní_nádrž` since session 27), and — since se
 (`--buildings real`, ISOM 521), drawn as **RAW footprints exactly like water** (session 27 dropped the earlier
 level-1 generalization + level-2 displacement — they distorted the true shape; faithful raw data serves the feeder
 better — *generalize only with evidence*), and — since session 24 — real power lines (`--powerlines real`,
-ISOM 510, cross-ticks on real pylons), and — since session 27 — real pillboxes (`--ropiky real`, Czechoslovak
-fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border). `zabaged.py`
-(sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+powerlines+points
+ISOM 510, cross-ticks on real pylons), real pillboxes (`--ropiky real`, Czechoslovak
+fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border, since session 27), and
+— since session 28 — real railways (`--railways real`, `Železniční_trať`+`_vlečka` → ISOM 509 combined
+symbol) and railway yards (`--paved real`, `Kolejiště` → ISOM 501 paved area; the "ten parallel tracks"
+at a station are one area in the data, not lines). `zabaged.py`
+(sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+paved+buildings+powerlines+railways+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
@@ -102,7 +105,7 @@ docs/
     zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/water/buildings/power lines/pillboxes (ArcGIS REST, GeoJSON); --paths/--water/--buildings/--powerlines/--ropiky real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/water/paved/buildings/power lines/railways/pillboxes (ArcGIS REST, GeoJSON); --paths/--water/--paved/--buildings/--powerlines/--railways/--ropiky real
 sandbox/               # UC1: isolated experiments, one folder each
   generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + buildings + extremum symbols + masks)
                        #     consumes connectors/ for real terrain, paths, water & buildings; adds them to sys.path

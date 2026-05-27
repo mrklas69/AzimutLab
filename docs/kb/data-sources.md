@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27, železnice+kolejiště Sez. 28)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -139,6 +139,27 @@ endpoint / CRS / GeoJSON / axis [x,y]. Ověřeno proti zdroji na Sovím vrchu (7
   sloupu (`Stožár_elektrického_vedení`), fáze 2 (pseudorealistic) doplní rovnoměrné jen na liniích
   bez evidovaného sloupu. Detail dvou fází: spec §0b + §4.9c, GLOSSARY „pseudorealistic".
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `powerlines.licence`.
+
+### ZABAGED železnice — REST konektor (POUŽITO, Sez. 28)
+Rozšíření téhož konektoru o tratě (`fetch_railways` / `map_railway_to_isom`). Liniová, izomorfní
+s komunikacemi/vedením. Ověřeno proti zdroji:
+- **Feature typy:** `Železniční_trať` (id 75, osy hlavních tratí) + `Železniční_vlečka` (id 76,
+  nádražní/průmyslové vlečky — u nádraží zhušťují kolejovou síť). **Pozor: vrstva je `Železniční_trať`,
+  ne „Železnice"** (oprava zděděného TODO).
+- **Mapování → ISOM:** obě → **509 Railway** (KISS; ISOM nerozlišuje počet kolejí/elektrizaci).
+- **Render:** 509 je v template **kombinovaný symbol** (čárky + bílý „pražcový" knockout), ne prostá
+  linie jako 510 → mode `"railway"` (bílý podklad + černé čárky → bílé mezery, odliší od pěšiny 505).
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `railways.licence`.
+
+### ZABAGED kolejiště / zpevněné plochy — REST konektor (POUŽITO, Sez. 28)
+Plošná vrstva (`fetch_paved_areas` / `map_paved_to_isom`), izomorfní s vodní plochou/budovou:
+- **Feature typy:** `Kolejiště` (id 122, plocha). **„10 kolejí vedle sebe" u nádraží v datech NEJSOU
+  linie** — ZABAGED je generalizuje do jedné plochy `Kolejiště` (Liberec hl. n. ~19 ha). Jednotlivé
+  tratě procházející = `Železniční_trať`/`_vlečka` (linie, viz výše).
+- **Mapování → ISOM:** `Kolejiště` → **501 Paved area** (kombinovaný symbol: hnědá výplň + **obrysová
+  linie**). V `.omap` kombinovaný 501 (s obrysem), ne 501.1 — **do kolejiště se nevstupuje** (bounding
+  line významová; ISOM crossability hranic).
+- **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `paved.licence`.
 
 ### Pasti / TODO pro reálný konektor
 - **Únor 2026: ČÚZK změnil URL služeb** (doména `geoportal.cuzk.cz` → `geoportal.cuzk.gov.cz`).
