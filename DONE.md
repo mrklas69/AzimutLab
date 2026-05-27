@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 26 (2026-05-27) — Ortofoto podklad + WFS→REST (města kompletní) + asset pattern + reálné řopíky
+- [x] **Ortofoto podklad (3a, verify proti realitě)** — `connectors/ortofoto.py` (ČÚZK ORTOFOTO MapServer
+      `arcgis1`, S-JTSK 5514, CC BY 4.0, sdílený `build_bbox`, **dlaždicování** nad strop 4096 px). Generátor
+      `--ortho`/`--ortho-mpp` (default 0,5 m/px) → `ortofoto.png`; `omap_export` připne podkladový `<template>`
+      do `map.omap` (paper-space, x=y=0, scale=map-mm/px, opacity 0,5, pod mapou). Formát `<template>` ověřen
+      proti reálnému OOM 0.9.6 výstupu. SV/NL/LS 0,5 m/px; SV verify uživatelem (sedí pixel-přesně i v rozích).
+- [x] **WFS→REST fix** (řešení nálezu Sez. 25) — `zabaged._fetch_layer` z WFS GetFeature na ArcGIS REST
+      `MapServer/<id>/query` + sériová paging smyčka (`resultOffset += 2000`). `LAYER_IDS` (typeName→numerické ID),
+      `f=geojson` (parsery beze změny), oprava `typuskom_k` (REST malými, WFS velkými — chyceno verify PŘED kódem).
+      **Města kompletní:** SV budovy 1000→**1078**, **LS 1000→8273** budov + 3951 cest. Verify `temp/probe_rest_paging.py` (overlap 0).
+- [x] **Asset pattern** — dvojice `<jméno>.omap` (vizuální vzor kreslený v OOM) + `<jméno>.rules.xml` (pravidla).
+      `asset/řopík_10000.omap` (budova 521 + vrstevnice 101) + `.rules.xml` (`rotation_rule`, `draw_order`, `source`).
+- [x] **Reálné řopíky na SV** — ZABAGED `Bunkr` (id 37, `typbunkr_k='LO37'` = lehký objekt vz.37), 70 bodů.
+      Orientace = NORMÁLA na lokální linii řopíků (PCA okolí; nápad uživatele). Post-proces vložil 70 do SV map.omap.
+- [x] **Měřítko fix** — `omap_export` přepisuje georef template (15000) na `MAP_SCALE` (10000); nesoulad (side-finding) opraven.
+- [x] **Displacement práh** `MAX_DISPLACE_BUILDINGS=2000` — budova↔budova O(n²) na LS (8273) neúnosné → nad práh skip
+      (efekt 0,4 mm zanedbatelný). Odblokovalo LS (doběhla za minuty).
+- [x] **%BEEP → Stop/Notification hook** (`settings.local.json`). **Censure! (AI)** vymyšlený fortifikační fakt v rules
+      (opraveno: k nepříteli zasypáno, střílny do vnitrozemí); `OUTWARD=sever` zadrátováno → TODO univerzalita.
+
 ## Sezení 25 (2026-05-27) — Refaktor `synthesize_pseudorealistic_map` + dev lokality (SV/NL/LS 6×4) + WFS limit nález
 - [x] **Přejmenování `generate()` → `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir="output", *, …)`**
       (reframe Sez. 23). Hlavních 6 parametrů vepředu, noise (Option 1) větev + per-vrstva toggly zachovány jako

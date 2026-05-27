@@ -30,7 +30,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
-| Ortofoto ČR | letecké snímky, 2letý cyklus (2025 = západní půlka) | ČR | WMS/WMTS, ATOM | CC BY 4.0 | ✓ prozkoumáno |
+| Ortofoto ČR | letecké snímky, 2letý cyklus (2025 = západní půlka) | ČR | WMS/WMTS, ATOM, **ArcGIS REST `arcgis1/ORTOFOTO/MapServer/export`** | CC BY 4.0 | ✓ **použito Sez. 26 (podklad map, `connectors/ortofoto.py`, dlaždicování)** |
 | ZTM 5–250 | hotové topografické mapy (rastr) | ČR | WMS/WMTS, ATOM | CC BY 4.0 | ✓ prozkoumáno |
 | Data50 | generalizovaná data 1:50 000 | ČR | ATOM | CC BY 4.0 | ◐ okrajově |
 
@@ -76,8 +76,10 @@ vrstevnic z DMR 5G, gate netřeba). Až přijde konzument, prověřit zdroj + li
 ### ZABAGED komunikace — WFS konektor (POUŽITO, Sez. 16)
 První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do generátoru
 (real-půlka §4.9, izomorfní s `dmr.py` výškopisem). Ověřeno proti zdroji (verify-against-source):
-- **Endpoint:** `https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServer/WFSServer`
-  (ArcGIS WFS 2.0.0; **tatáž doména `ags.cuzk.gov.cz` jako DMR 5G ImageServer** → jedna infrastruktura).
+- **Endpoint (Sez. 26 přechod WFS→REST):** `https://ags.cuzk.gov.cz/arcgis/rest/services/ZABAGED_POLOHOPIS/MapServer/<id>/query`
+  (ArcGIS REST; **tatáž doména `ags.cuzk.gov.cz` jako DMR/ORTOFOTO** → jedna infrastruktura). Dřív WFS 2.0.0
+  `WFSServer`, ale ten tvrdě uřezával na 1000 obj/dotaz a startIndex paging byl rozbitý (Sez. 25) → REST query
+  má strop 2000 + spolehlivý `resultOffset` paging → **města kompletní** (LS 1000→8273 budov). Řopíky: vrstva `Bunkr` (LO37).
 - **Výhoda: vrací GeoJSON přímo** (`outputFormat=GEOJSON`) → žádný GML parsing (původní obava z IDEAS
   padla). Izomorfní s `contours.geojson`.
 - **CRS:** S-JTSK (EPSG:5514), shoda s DMR. Axis order odpovědi = **[x, y] = [easting, northing]**

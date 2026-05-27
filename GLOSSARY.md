@@ -76,6 +76,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
+- **Řopík** (lehké opevnění, ŘOP vz.37) — betonový pohraniční bunkr (čs. opevnění 30. let). V ZABAGED
+  bodová vrstva `Bunkr` (`typbunkr_k='LO37'`). Na OB mapě = bodový orientační prvek (NE budova 521):
+  asset `řopík_10000.omap` (bunkr na náspu), orientace = normála na linii řopíků; k hranici je zasypaná
+  strana (ochrana před dělostřelectvem), střílny do vnitrozemí (dvě řady). Sez. 26.
+
 ## Data a geoinformatika
 
 - **ČÚZK** — Český úřad zeměměřický a katastrální. Od 1. 7. 2023 poskytuje hlavní sady
@@ -104,6 +109,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (Hydrography — vodstvo) pro reálnou vodu. Data-driven zdroj pro UC4-II (viz IDEAS).
 - **georef** (georeferencování) — přiřazení world souřadnic geometrii. `contours.geojson`
   je u `--terrain real` georeferencován v S-JTSK.
+
+- **Ortofoto podklad** — letecký snímek výseku (ČÚZK ORTOFOTO MapServer `arcgis1`, CC BY 4.0,
+  `connectors/ortofoto.py`, dlaždicování nad 4096 px) připnutý do `.omap` jako podkladový template
+  (paper-space) pro vizuální verify generátoru proti realitě. CLI `--ortho`/`--ortho-mpp`. Sez. 26.
 
 ## Projekt — struktura a principy
 
@@ -149,6 +158,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (GT zdarma).
 - **SLAP** (Single Level of Abstraction Principle) — při změně konceptu aktualizovat všechny
   vrstvy najednou (model / kód / docs / data). Viz CLAUDE.md.
+
+- **Asset** — znovupoužitelný vzor objektu pro generátor (zatím řopík). **Asset pattern** (Sez. 26):
+  dvojice `<jméno>.omap` (vizuální geometrie kreslená v Mapperu — přesné body + ISOM symboly) +
+  `<jméno>.rules.xml` (pravidla, co `.omap` nepojme: `rotation_rule`, `draw_order`, `source`). Žije v `asset/`.
 
 ## Nástroje a knihovny
 

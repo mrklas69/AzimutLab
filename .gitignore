@@ -20,6 +20,8 @@ Soví vrch/
 sandbox/**/Soví vrch/
 Nová louka/
 sandbox/**/Nová louka/
+Lidové sady/
+sandbox/**/Lidové sady/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
 *.tif
@@ -40,9 +42,12 @@ resources/
 sandbox/**/.dmr_cache/
 .zabaged_cache/
 sandbox/**/.zabaged_cache/
+.ortofoto_cache/
+sandbox/**/.ortofoto_cache/
 
 # Claude / IDE lokální
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 .idea/
 .vscode/
 
