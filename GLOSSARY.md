@@ -16,7 +16,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   výšky. ISOM symbol **101**. Z principu se nekříží a nekončí ve vzduchu.
 - **Index contour** (zvýrazněná / hlavní vrstevnice) — každá pátá vrstevnice, silnější
   čára pro snazší čtení. ISOM symbol **102**. V generátoru každých 25 m.
-- **Form line** — pomocná vrstevnice mezi základními. ISOM **103**. Generátor zatím nedělá.
+- **Form line** (pomocná / doplňková vrstevnice) — čárkovaná vrstevnice na **poloviční ekvidistanci**
+  (2,5 m) tam, kde běžné vrstevnice nezachytí tvar. ISOM **103** (template: dash 2,0 / break 0,2 mm, hnědá).
+  ISOM ji povoluje **střídmě** a ZAKAZUJE jako „intermediate contour" (plošné zahuštění). Generátor
+  `--terrain real` (Sez. 29): heuristika z DMR — kreslí jen kde **(1) mírný svah** (rozestup vrstevnic >
+  `FORMLINE_SPACING_LIMIT_M`) **A (2) zakřivený terén** (`|Laplacián výšky| > FORMLINE_CURV_MIN`); rovnoměrný
+  (lineární) svah → form line by jen kopírovala vrstevnici = vynechána. Min. délka 3 mm (přísněji než ISOM
+  1,1 mm — bez „fousků"). Render break zvětšen 0,2→0,5 mm (rastr; `.omap` nese věrný symbol 103). GT maska
+  `mask_formlines.png`, vektor v `contours.geojson`. Branžový precedent: [[karttapullautin]] (poloviční hladiny
+  + filtr). Jen real terén (z DMR, ne ZABAGED vrstva); noise beze změny (proc baseline drží).
 - **Ekvidistance** — svislý rozestup vrstevnic (v projektu 5 m).
 - **Kopeček** (knoll) — malá vyvýšenina; je-li menší než zobrazitelná vrstevnicí, kreslí
   se bodovým symbolem. ISOM **109** (Small knoll, kulatý) / **110** (Small elongated knoll,

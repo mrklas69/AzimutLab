@@ -20,8 +20,10 @@ ISOM 510, cross-ticks on real pylons), real pillboxes (`--ropiky real`, Czechosl
 fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border, since session 27), and
 — since session 28 — real railways (`--railways real`, `Železniční_trať`+`_vlečka` → ISOM 509 combined
 symbol) and railway yards (`--paved real`, `Kolejiště` → ISOM 501 paved area; the "ten parallel tracks"
-at a station are one area in the data, not lines). `zabaged.py`
-(sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+paved+buildings+powerlines+railways+points
+at a station are one area in the data, not lines), and — since session 29 — auxiliary contours
+(form lines, ISOM 103) derived from the DMR where terrain is gently sloped yet curved (drawn sparingly,
+not as intermediate contours, per the ISOM rule). `zabaged.py`
+(sibling of `dmr.py`) is the first real UC2 connector. Exports contours (incl. form lines)+paths+water+paved+buildings+powerlines+railways+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,

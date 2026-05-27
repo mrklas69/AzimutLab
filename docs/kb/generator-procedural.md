@@ -145,6 +145,20 @@ pomáhá UC5 odlišit třídy 101/102. Variaci tlouštěk pro diverzitu datasetu
 Malá uzavřená smyčka (lokální extrém pod prahem plochy) se negeneralizuje jako
 prstenec, ale jako bodový symbol — viz §4.10 (realizace Sez. 10).
 
+**✅ Pomocné vrstevnice (form lines, ISOM 103, Sez. 29, jen `--terrain real`):** doplňková
+čárkovaná vrstevnice na **poloviční ekvidistanci** (`level + 2,5 m`). ISOM ji povoluje **střídmě**
+a zakazuje jako „intermediate contour" (plošné zahuštění svahů). Generátor proto kreslí jen úseky,
+kde maska `_formline_mask` splňuje **dvě podmínky současně** (návrh uživatele):
+(1) **mírný svah** — rozestup vrstevnic > `FORMLINE_SPACING_LIMIT_M` (40 m) ⟺ sklon < `CONTOUR_STEP/limit`;
+(2) **zakřivený terén** — `|Laplacián výšky| > FORMLINE_CURV_MIN` (0,004 1/m); na rovnoměrném (lineárním)
+svahu je Laplacián ≈ 0 → form line by jen kopírovala vrstevnici = vynechána. `elev` se před derivacemi
+3× vyhladí (3×3 box) — tlumí mikro-texturu DMR (jinak Laplacián dělá falešné form lines všude: bez tohoto
+filtru a s nízkým prahem vzniklo na NL 1466 úseků = plošný šum). Poloviční izolinie se ořeže na masku
+(„část pomocné vrstevnice"), zahodí se úseky < `FORMLINE_MIN_LEN_MM` (3 mm = ~30 m, přísněji než ISOM 1,1 mm —
+bez „fousků"). Render dashed hnědě (break zvětšen 0,2→0,5 mm pro rastr; `.omap` nese věrný symbol 103, OOM
+renderuje autoritativně). GT `mask_formlines.png`, vektor v `contours.geojson` (kód 103). Branžový precedent:
+**Karttapullautin** (poloviční hladiny + filtrace plochých partií). NL 6×4 km → 108 form lines (vs 240 vrstevnic).
+
 ### 4.6 Rýhy / erozní rýhy (`det` = detaily)
 `round(det*4)` kusů. Start ve strmé buňce (`slope > 0.4`), krátký sestup po spádnici
 (≤ 22 kroků), vykreslení Catmull-Rom splajnem hnědě + drobné kolmé tiky (odliší od
@@ -432,10 +446,12 @@ funkce generate(seed, params):
     — polylinie z contourpy se symbolem **101 Contour / 102 Index contour**,
     georeferencované v **S-JTSK (EPSG:5514)** pro `--terrain real` (lokální metry pro
     noise). Žádná vektorizace rastru (AutoTrace) — jdeme z přesného zdroje (contourpy),
-    ne z pixelů. 103 Form line generátor zatím nedělá.
+    ne z pixelů. **103 Form line (pomocné vrstevnice, Sez. 29)** jdou do téhož souboru (kód 103,
+    jen `--terrain real`) — viz §4.5.
   - **✅ `.omap` export (Sez. 8, přepsán Sez. 13, template-based Sez. 14):** `omap_export.py`
-    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + cestami (502-506) + vodou
-    (toky 304/305/306 + plocha 301.1) + budovami (521) + body (109/110/111)**, Local CRS,
+    (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + pomocnými vrstevnicemi (103, Sez. 29)
+    + cestami (502-506) + vodou (toky 304/305/306 + plocha 301.1) + budovami (521) + el. vedením (510,
+    Sez. 24) + železnicí (509, Sez. 28) + kolejištěm (501, Sez. 28) + body (109/110/111)**, Local CRS,
     paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). Plošné symboly (301.1, 521)
     se exportují jako UZAVŘENÝ path s close flagem 18, jinak je OOM nevyplní (Sez. 18).
     NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).

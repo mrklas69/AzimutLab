@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 29 (2026-05-28) — Pomocné vrstevnice (form lines, ISOM 103) z DMR
+- [x] **ISOM 103 = Form line** (verify-against-source, ne hádání): uživatel zmínil „103", ověřeno v
+      `template_classic.omap` — 103 = **Form line** (pomocná vrstevnice), NE slope line (ta je 101.1 / 103.1).
+      Není to ZABAGED vrstva — **derivace z DMR výškopisu** (týž zdroj jako vrstevnice 101/102).
+- [x] **Heuristika (návrh uživatele A1+A2):** form line jen kde **(1) mírný svah** (rozestup vrstevnic >
+      `FORMLINE_SPACING_LIMIT_M`=40 m ⟺ sklon < `CONTOUR_STEP/limit`) **A (2) zakřivený terén**
+      (`|Laplacián výšky| > FORMLINE_CURV_MIN`=0,004) — na rovnoměrném (lineárním) svahu Laplacián ≈ 0 →
+      form line by jen kopírovala vrstevnici (ISOM zakazuje „intermediate contours"). `elev` 3× vyhlazen
+      (3×3 box) před derivacemi — tlumí mikro-texturu DMR. Poloviční hladina (`level + 2,5 m`) ořezána na
+      masku, filtr min. délky **3 mm** (přísněji než ISOM 1,1 mm — uživatel „bez fousků").
+- [x] **Implementace** `generator.py` (`ISOM_FORMLINE`, `FORMLINE_*` konstanty, `_box_smooth`,
+      `_formline_mask`, `_clip_line_to_mask`, `_polyline_len_px`, render blok jen `terrain=="real"`,
+      `mask_formlines.png`, meta sekce `formlines`, log) + `omap_export.py` (103 v `USED_CODES`,
+      `formline_features` param, emit jako 101/102, `n_formlines` v návratu) + `_write_contours_geojson`
+      (103 do `names`). Render dashed hnědě, break zvětšen 0,2→0,5 mm (rastr; `.omap` symbol 103 věrný).
+- [x] **Ladění prahů přes verify (`temp/probe_formline.py`), ne poslepu:** první prahy (curv 0,0015,
+      1× smooth) daly **1466** úseků = plošný šum (mikro-textura DMR). Probe citlivosti (passes × curv ×
+      spacing) + distribuce délek → `curv 0,004` + `min 3 mm` = **108** (hustší než mezikrok 70, fousky <3 mm
+      pryč — obě uživatelova kritéria). Branžový precedent: Karttapullautin (poloviční hladiny + filtrace).
+- [x] **Verify:** proc baseline **65 drží** (form line jen real terén → noise beze změny). NL 6×4 km:
+      **108 form lines** vs 240 vrstevnic; vizuál (overlay) — form line jen v plochých zakřivených partiích,
+      strmé svahy (husté vrstevnice) je nemají. Uživatel ověřil `map.omap` v OOM („super").
+- [x] **SLAP docs:** GLOSSARY (Form line plná definice), spec §4.5 + §9 (form line blok, výčet `.omap`
+      doplněn i o vedení/železnice/kolejiště — drift Sez. 24/28), README, TODO/DONE.
+
 ## Sezení 28 (2026-05-27) — Železnice 509 (+ vlečky) + kolejiště 501 + oprava float bugu v _draw_dashed
 - [x] **Železnice → ISOM 509** (real-půlka, izomorfní s vedením 510). Verify-against-source PŘED kódem:
       vrstva je **`Železniční_trať` (id 75)**, ne „Železnice" (TODO se mýlilo); **509 = kombinovaný symbol**
