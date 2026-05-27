@@ -34,7 +34,8 @@ _WFS_SERVER = "https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServ
 # (Silnice/Ulice jsou v lese vzácné, ale patří do sítě, kde výsek zasáhne okraj obce.)
 # Silnice_neevidovaná = účelové/lesní asfaltky mimo silniční evidenci — v lese ČASTÉ a pro
 # OB klíčové (Sez. 23: chyběla páteřní asfaltka Bedřichov→Nová louka). Most/Silnice_ve_výstavbě
-# zatím vynecháno (most = bodový objekt, ne linie; výstavba ve výsecích vzácná).
+# zatím vynecháno (most = LINIE → ISOM 512 Bridge, kandidát na doplnění, ne bod jak dříve mylně
+# uvedeno; výstavba ve výsecích vzácná). Plný katalog 149 vrstev: docs/kb/zabaged-isom-catalog.md.
 PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
 
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
@@ -49,6 +50,13 @@ WATER_AREA_LAYERS = ("Vodní_plocha",)
 # proto se táhne jen plošná (izomorfní s Vodní_plocha). Pramen-like vynechání bodové
 # vrstvy = „nevymýšlet, co v datech není" (jako Zdroj_podzemních_vod, Sez. 17).
 BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",)
+
+# El. vedení (Sez. 24, real-půlka). Liniová vrstva (ověřeno DescribeFeatureType: MultiLineString),
+# izomorfní s komunikacemi. Stožáry (`Stožár_elektrického_vedení`) jsou bodová vrstva — nesou
+# polohu SLOUPŮ, na něž ISOM symbol 510 kreslí kolmé příčky (běžci se jimi řídí, doménový fakt
+# uživatele) → reálná data pro příčky (fáze 1, ne vymyšlené). Katalog: docs/kb/zabaged-isom-catalog.md.
+POWERLINE_LAYERS = ("Elektrické_vedení",)
+POWERLINE_MAST_LAYERS = ("Stožár_elektrického_vedení",)
 
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
@@ -180,6 +188,50 @@ def fetch_buildings(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_powerlines(lat: float, lon: float, gw: int, gh: int,
+                     tile_m: float = 1000.0,
+                     cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné el. vedení pro výsek (lat, lon) jako seznam liniových features.
+
+    Každý prvek: {"layer", "props": atributy ZABAGED, "lines": [[(x,y)..]]} — `lines` je
+    seznam polylinií v S-JTSK metrech (MultiLineString rozbalen). Mapování na ISOM
+    (map_powerline_to_isom → 510) se dělá výš, po verify atributů (Sez. 24).
+
+    Izomorfní s fetch_paths (linie). Tentýž výsek (sdílený build_bbox) → vedení sedne na
+    terén i k cestám/vodě. Vzor pro budoucí doplňování dalších liniových vrstev z katalogu.
+    """
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in POWERLINE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_powerline_masts(lat: float, lon: float, gw: int, gh: int,
+                          tile_m: float = 1000.0,
+                          cache_dir: str | Path | None = None) -> list[tuple[float, float]]:
+    """Vrátí polohy stožárů el. vedení pro výsek jako seznam bodů (x, y) v S-JTSK metrech.
+
+    Stožáry (`Stožár_elektrického_vedení`, geom Point) nesou polohu SLOUPŮ → reálná data
+    pro kolmé příčky symbolu ISOM 510 (fáze 1, Sez. 24; ověřeno: stožár leží na vrcholu
+    linie vedení). Atributy (výška) jsou v datech prázdné → vracíme jen souřadnice.
+    Tentýž výsek (sdílený build_bbox) jako linie vedení → příčky sednou na vedení."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[tuple[float, float]] = []
+    for layer in POWERLINE_MAST_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            out.extend(_geom_to_points(feat.get("geometry") or {}))
+    return out
+
+
 def map_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -254,6 +306,19 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
     return None
 
 
+def map_powerline_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED el. vedení na ISOM 2017-2 liniový symbol (kód).
+
+    Ověřeno proti reálným datům (verify-against-source, Sez. 24) na výřezech Soví vrch (7
+    linií) a Český ráj (2): atribut `NAPETI` (napětí) i `NAZEV` jsou v datech **prázdné**
+    (None) → podle napětí NELZE rozlišit VN/VVN, takže žádné dělení 510 vs 511 Major power
+    line. Vše → **510 Power line, cableway or skilift** (KISS, jako budovy → vždy 521).
+
+    Pozor (oprava zděděného předpokladu): el. vedení je ISOM **510**, NE 516 (516 = Fence/plot;
+    verify proti template_classic.omap, Sez. 24). Vrací holý ISOM kód (int)."""
+    return 510   # NAPETI prázdné → bez rozlišení; render konstanty zná generator.py
+
+
 def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
     """Rozbalí GeoJSON geometrii na seznam polylinií [(x,y), ...] (S-JTSK metry).
 
@@ -281,6 +346,19 @@ def _geom_to_polygons(geom: dict) -> list[list[tuple[float, float]]]:
         return [[(float(x), float(y)) for x, y, *_ in coords[0]]] if coords else []
     if gtype == "MultiPolygon":
         return [[(float(x), float(y)) for x, y, *_ in poly[0]] for poly in coords if poly]
+    return []
+
+
+def _geom_to_points(geom: dict) -> list[tuple[float, float]]:
+    """Rozbalí GeoJSON bodovou geometrii na seznam bodů [(x,y), ...] (S-JTSK metry).
+
+    Stožáry el. vedení jsou Point (příp. MultiPoint). Linie/plocha se ignorují."""
+    gtype = geom.get("type")
+    coords = geom.get("coordinates")
+    if gtype == "Point":
+        return [(float(coords[0]), float(coords[1]))] if coords else []
+    if gtype == "MultiPoint":
+        return [(float(x), float(y)) for x, y, *_ in coords] if coords else []
     return []
 
 

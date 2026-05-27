@@ -188,6 +188,24 @@ BUILDING_NAME = {ISOM_BUILDING: "Building"}
 # ISOM kód → třída v mask_buildings.png (0 = pozadí). Jediná třída (1).
 BUILDING_CLASS = {ISOM_BUILDING: 1}
 
+# El. vedení (Sez. 24, real-půlka, izomorfní s cestami): ZABAGED Elektrické_vedení → ISOM 510
+# Power line. Render = tenká černá linie s krátkými kolmými příčkami („fousky") v intervalu —
+# tak ji kreslí OB mapa (odlišení od cesty). Mapování viz zabaged.map_powerline_to_isom (vždy
+# 510; NAPETI v datech prázdné → bez rozlišení 510/511). Pozor: 510, NE 516 (=Fence). Černá.
+ISOM_POWERLINE = 510               # el. vedení → tenká linie + kolmé příčky
+POWERLINE_NAME = {ISOM_POWERLINE: "Power line"}
+# ISOM kód → třída v mask_powerlines.png (0 = pozadí). Jediná třída (1).
+POWERLINE_CLASS = {ISOM_POWERLINE: 1}
+# Render styl (mode, width [px], dash). mode "powerline" = plná linie + příčky (viz _draw_line_symbol).
+POWERLINE_STYLE = {ISOM_POWERLINE: ("powerline", 1, None)}   # linie 0,15 mm ≈ 0,7 px → 1 px
+# Příčky („zuby") symbolu 510 — na OB mapě odpovídají SLOUPŮM (běžci se jimi řídí, doménový
+# fakt). Fáze 1: příčka na poloze reálného sloupu (ZABAGED Stožár_elektrického_vedení). Fáze 2
+# (pseudorealistic): linie bez evidovaného sloupu dostane rovnoměrné příčky (dekorace, poloha
+# vymyšlená). Rozměry z ISOM přes PX_PER_MM (papírové mm × ≈4,58).
+POWERLINE_TICK_HALF_PX = round(0.5 * PX_PER_MM)      # ≈ 2 px (poloviční délka příčky, na každou stranu)
+POWERLINE_TICK_SPACING_PX = round(2.5 * PX_PER_MM)   # ≈ 11 px (rovnoměrný interval, jen fáze 2)
+POWERLINE_MAST_SNAP_PX = round(0.7 * PX_PER_MM)      # ≈ 3 px (práh „sloup leží na této linii")
+
 # Kartografická generalizace (Sez. 18): reálná OB mapa NENÍ syrová geometrie — kartograf
 # vynucuje minimální dimenze a zjednodušuje obrysy. Syrová data by zvětšila domain gap
 # feederu (UC5 se učí číst GENERALIZOVANOU mapu). Rozměry z ISOM (template_classic.omap,
@@ -458,16 +476,76 @@ def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
             pos += step
 
 
+def _draw_tick_at(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                  cx: float, cy: float, ux: float, uy: float, color: tuple, cls: int,
+                  width: int, half_len: float) -> None:
+    """Jedna krátká kolmá příčka v bodě (cx,cy), kolmá na směr (ux,uy) — jeden „zub"
+    symbolu el. vedení (na poloze sloupu, fáze 1; nebo rovnoměrná dekorace, fáze 2)."""
+    nx, ny = -uy, ux                                # kolmice (rotace směru o 90°)
+    seg = [cx + nx * half_len, cy + ny * half_len, cx - nx * half_len, cy - ny * half_len]
+    draw.line(seg, fill=color, width=width)
+    mdraw.line(seg, fill=cls, width=width)
+
+
+def _draw_perp_ticks(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                     pts: list[tuple[float, float]], color: tuple, cls: int,
+                     width: int, spacing: float, half_len: float) -> None:
+    """Rovnoměrné kolmé příčky podél linie (pseudorealistická dekorace, fáze 2 — vedení
+    bez evidovaných sloupů). Jdeme po délce oblouku (jako _draw_dashed); v každém násobku
+    `spacing` nakreslíme příčku kolmou na lokální směr. `pos` = ujetá vzdálenost,
+    `next_tick` = pozice příští příčky (první až po `spacing`, ne na začátku linie)."""
+    if len(pts) < 2:
+        return
+    pos = 0.0
+    next_tick = spacing
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        seg = math.hypot(x1 - x0, y1 - y0)
+        if seg == 0.0:
+            continue
+        ux, uy = (x1 - x0) / seg, (y1 - y0) / seg   # jednotkový směr segmentu
+        while next_tick <= pos + seg:               # všechny příčky padnoucí do segmentu
+            t = next_tick - pos                     # vzdálenost od začátku segmentu
+            _draw_tick_at(draw, mdraw, x0 + ux * t, y0 + uy * t, ux, uy,
+                          color, cls, width, half_len)
+            next_tick += spacing
+        pos += seg
+
+
+def _nearest_seg(px: float, py: float,
+                 lines_px: list[list[tuple[float, float]]]) -> tuple[float, float, float]:
+    """(ux, uy, dist): jednotkový směr nejbližšího segmentu k bodu (px,py) napříč `lines_px`
+    a vzdálenost k němu. Slouží k orientaci příčky na sloupu (fáze 1) a k přiřazení
+    sloup↔linie (sloup leží na vedení → dist ≈ 0). Projekce bodu na úsečku: parametr `t`
+    omezený na [0,1] dá nejbližší bod segmentu."""
+    best_d2 = float("inf")
+    best_dir = (1.0, 0.0)
+    for line in lines_px:
+        for (x0, y0), (x1, y1) in zip(line, line[1:]):
+            dx, dy = x1 - x0, y1 - y0
+            seg2 = dx * dx + dy * dy
+            if seg2 == 0.0:
+                continue
+            t = max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / seg2))
+            cx, cy = x0 + t * dx, y0 + t * dy
+            d2 = (px - cx) ** 2 + (py - cy) ** 2
+            if d2 < best_d2:
+                best_d2 = d2
+                L = math.hypot(dx, dy)
+                best_dir = (dx / L, dy / L)
+    return best_dir[0], best_dir[1], math.sqrt(best_d2)
+
+
 def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                       curve_px: list[tuple[float, float]], color: tuple,
                       mode: str, width: int, dash: tuple | None, cls: int) -> None:
     """Generický liniový symbol na mapu (`draw`) + třída do GT masky (`mdraw`).
 
     Jediná kreslicí logika pro VŠECHNY liniové symboly (izomorfismus / DRY): cesty
-    (černá, PATH_STYLE) i vodní toky (modrá, WATER_LINE_STYLE) přes ni jdou stejně,
-    liší se jen `color`/`mode`/`dash`. `solid` = plná, `dashed` = čárkovaná (dle
-    dash/gap), `casing` = černé okraje + tenčí HNĚDÁ výplň (jen silnice 502 — ISOM
-    Wide road = hnědý pás s černými hranami, template color 11/14). Maska dostává `cls`.
+    (černá, PATH_STYLE), vodní toky (modrá, WATER_LINE_STYLE) i el. vedení (černá,
+    POWERLINE_STYLE) přes ni jdou stejně, liší se jen `color`/`mode`/`dash`. `solid` =
+    plná, `dashed` = čárkovaná (dle dash/gap), `casing` = černé okraje + tenčí HNĚDÁ výplň
+    (jen silnice 502 — ISOM Wide road, template color 11/14), `powerline` = plná tenká linie
+    + kolmé příčky (ISOM 510). Maska dostává `cls`.
     """
     if len(curve_px) < 2:
         return
@@ -477,6 +555,9 @@ def _draw_line_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     elif mode == "dashed":
         d, g = dash
         _draw_dashed(draw, mdraw, curve_px, color, cls, dash=d, gap=g, width=width)
+    elif mode == "powerline":  # ISOM 510: holá tenká linie (příčky kreslí _generate_real_powerlines
+        draw.line(curve_px, fill=color, width=width)   # ze sloupů/fáze 2 — ne z definice symbolu)
+        mdraw.line(curve_px, fill=cls, width=width)
     else:  # casing: silná černá, přes ni tenčí HNĚDÁ → hnědý pás s černými okraji (ISOM 502)
         draw.line(curve_px, fill=color, width=width)
         draw.line(curve_px, fill=C_ROAD, width=max(1, width - 2))
@@ -495,6 +576,14 @@ def _draw_water_line(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     """Vodní tok (modrá) dle WATER_LINE_STYLE — wrapper nad _draw_line_symbol (izomorfní s cestou)."""
     mode, width, dash = WATER_LINE_STYLE[code]
     _draw_line_symbol(draw, wdraw, curve_px, C_BLUE, mode, width, dash, WATER_CLASS[code])
+
+
+def _draw_powerline(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.ImageDraw,
+                    curve_px: list[tuple[float, float]], code: int) -> None:
+    """El. vedení (černá, ISOM 510) dle POWERLINE_STYLE — wrapper nad _draw_line_symbol
+    (izomorfní s _draw_path / _draw_water_line)."""
+    mode, width, dash = POWERLINE_STYLE[code]
+    _draw_line_symbol(draw, eldraw, curve_px, C_BLACK, mode, width, dash, POWERLINE_CLASS[code])
 
 
 def _draw_area_symbol(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
@@ -633,11 +722,12 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                water_mode: str, buildings_mode: str, lat: float, lon: float,
+                water_mode: str, buildings_mode: str, powerlines_mode: str,
+                pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], water_info: list[dict],
-                building_info: list[dict], omap_info: dict,
+                building_info: list[dict], powerlines_info: list[dict], omap_info: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
@@ -650,9 +740,12 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     used_path_codes = sorted({p["symbol"] for p in paths_info})
     used_water_codes = sorted({w["symbol"] for w in water_info})
     used_building_codes = sorted({b["symbol"] for b in building_info})
+    used_powerline_codes = sorted({p["symbol"] for p in powerlines_info})
     return {
         "seed": seed,
-        "params": {"rug": rug, "det": det},
+        # pseudorealistic = fáze 2 (dekorace symbolů nad rámec tvrdých dat) zapnuta; False =
+        # jen projekce reálných dat (onlyreal). Zatím působí na vedení (příčky), Sez. 24.
+        "params": {"rug": rug, "det": det, "pseudorealistic": pseudorealistic},
         # původ výškopisu — pro reprodukovatelnost a atribuci (real = ČÚZK DMR 5G)
         "terrain": ({"source": "noise"} if terrain != "real" else {
             "source": "cuzk_dmr5g", "lat": lat, "lon": lon,
@@ -709,6 +802,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": building_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if buildings_mode == "real" else {}),
+        # el. vedení (real-půlka, Sez. 24): linie ze ZABAGED WFS → ISOM 510. Sekce jen když
+        # powerlines_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"powerlines": {
+            "count": len(powerlines_info),
+            "mask": "mask_powerlines.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): POWERLINE_NAME[c] for c in used_powerline_codes},
+            "classes": {"0": "pozadí",
+                        **{str(POWERLINE_CLASS[c]): f"{c} {POWERLINE_NAME[c]}" for c in used_powerline_codes}},
+            "items": powerlines_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if powerlines_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -843,6 +948,58 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
             water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "area",
                                "layer": f["layer"]})
     return line_features, area_features, water_info
+
+
+def _generate_real_powerlines(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.ImageDraw,
+                              lat: float, lon: float, geo_bbox: tuple,
+                              pseudorealistic: bool) -> tuple[list, list]:
+    """Reálné el. vedení (real-půlka, Sez. 24): Elektrické_vedení ze ZABAGED WFS → ISOM 510.
+
+    Dvě fáze (projekce vs pseudorealistická dekorace, viz GLOSSARY):
+      Fáze 1 (vždy): holá tenká linie + kolmé příčky na poloze REÁLNÝCH sloupů
+        (Stožár_elektrického_vedení) — příčky odpovídají sloupům (běžci se jimi řídí).
+      Fáze 2 (pseudorealistic=True): linie BEZ jediného evidovaného sloupu poblíž dostane
+        rovnoměrné příčky (dekorace „vypadá jako vedení"; poloha vymyšlená). Linie se sloupy
+        zůstanou poctivě jen se sloupovými příčkami.
+
+    Mirror _generate_real_paths (S-JTSK → grid → px, sdílený výsek). Vrací (powerline_features
+    grid, powerlines_info). Příčky se NEukládají do features (vektor/OMAP nese jen osu vedení).
+    """
+    from zabaged import fetch_powerlines, fetch_powerline_masts, map_powerline_to_isom
+    feats = fetch_powerlines(lat, lon, GW, GH, TILE_M)
+    masts_px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox))
+                for x, y in fetch_powerline_masts(lat, lon, GW, GH, TILE_M)]
+    code = ISOM_POWERLINE
+    color, cls, width = C_BLACK, POWERLINE_CLASS[code], POWERLINE_STYLE[code][1]
+    powerlines_info: list[dict] = []
+    powerline_features: list[tuple] = []
+    lines_px: list[list[tuple[float, float]]] = []
+    # 1) holé linie vedení (osa) + záznam do features
+    for f in feats:
+        c = map_powerline_to_isom(f["layer"], f["props"])
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 2:
+                continue
+            _draw_powerline(draw, eldraw, px, c)
+            powerline_features.append((grid, c))
+            powerlines_info.append({"symbol": c, "symbol_name": POWERLINE_NAME[c],
+                                    "layer": f["layer"]})
+            lines_px.append(px)
+    # 2) fáze 1: příčka na každém reálném sloupu (orientace dle nejbližšího segmentu vedení)
+    for mx, my in masts_px:
+        ux, uy, _ = _nearest_seg(mx, my, lines_px)
+        _draw_tick_at(draw, eldraw, mx, my, ux, uy, color, cls, width, POWERLINE_TICK_HALF_PX)
+    # 3) fáze 2 (pseudorealistic): linie bez sloupu poblíž → rovnoměrné příčky (dekorace)
+    if pseudorealistic:
+        for px in lines_px:
+            has_mast = any(_nearest_seg(mx, my, [px])[2] <= POWERLINE_MAST_SNAP_PX
+                           for mx, my in masts_px)
+            if not has_mast:
+                _draw_perp_ticks(draw, eldraw, px, color, cls, width,
+                                 POWERLINE_TICK_SPACING_PX, POWERLINE_TICK_HALF_PX)
+    return powerline_features, powerlines_info
 
 
 def _simplify_polyline(pts: list[tuple[float, float]], tol: float) -> list[tuple[float, float]]:
@@ -1127,7 +1284,9 @@ def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
 
 def generate(seed: int, rug: float, det: float, out_dir: str,
              terrain: str = "noise", paths: str = "proc", water: str = "off",
-             buildings: str = "off", lat: float = DEF_LAT, lon: float = DEF_LON,
+             buildings: str = "off", powerlines: str = "off",
+             pseudorealistic: bool = True,
+             lat: float = DEF_LAT, lon: float = DEF_LON,
              tolerant: bool = False) -> Path:
     """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
 
@@ -1171,6 +1330,9 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if buildings == "real" and terrain != "real":
         raise ValueError("--buildings real vyžaduje --terrain real (reálné budovy potřebují "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if powerlines == "real" and terrain != "real":
+        raise ValueError("--powerlines real vyžaduje --terrain real (reálné el. vedení potřebuje "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
@@ -1276,6 +1438,21 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                                                          cell_w_m, cell_h_m, det)
     n_paths = len(paths_info)
 
+    # --- el. vedení (ISOM 510): reálné ze ZABAGED WFS (real-půlka, Sez. 24) ---
+    # Rastr z-order: PO cestách, PŘED budovami — tenká černá linie s příčkami nad terénem,
+    # izomorfní s komunikacemi. NENÍ kotva displacementu (vedení vede NAD budovami, odsazení
+    # by lhalo o poloze) → pevná síť zůstává cesty+voda. Jen --powerlines real.
+    powerline_features: list[tuple] = []
+    powerlines_info: list[dict] = []
+    powerline_mask_img: Image.Image | None = None
+    if powerlines == "real":
+        powerline_mask_img = Image.new("L", (W, H), 0)   # GT maska el. vedení (§8.1)
+        eldraw = ImageDraw.Draw(powerline_mask_img)
+        powerline_features, powerlines_info = _try_layer(
+            "powerlines",
+            lambda: _generate_real_powerlines(draw, eldraw, lat, lon, geo_bbox, pseudorealistic),
+            ([], []), tolerant, layer_errors)
+
     # --- budovy/stavby (§4.x): reálné ze ZABAGED WFS (real-půlka, Sez. 18) ---
     # Rastr z-order: ÚPLNĚ NAVRCH — černá plocha budovy překryje vše pod sebou (vizuálně
     # dominantní blok). Pozor: v OOM color orderu je to naopak (521 priorita 8, pod cestami
@@ -1308,6 +1485,8 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
         water_mask_img.save(out / "mask_water.png")                         # voda (GT, multi-class)
     if building_mask_img is not None:
         building_mask_img.save(out / "mask_buildings.png")                  # budovy (GT)
+    if powerline_mask_img is not None:
+        powerline_mask_img.save(out / "mask_powerlines.png")                # el. vedení (GT)
     # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
     n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
@@ -1319,14 +1498,18 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
                            + [(g, "301.1") for g, _ in water_area_features])
     # budovy = plošný symbol 521 (area, type-4 v template) → uzavřený prstenec, OOM vyplní
     building_omap_features = [(g, "521") for g, _ in building_area_features]
+    # el. vedení = liniový symbol 510 (type-1 v template) → otevřený path
+    powerline_omap_features = [(g, "510") for g, _ in powerline_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
+                             powerline_omap_features,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, lat, lon, elev,
+    meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, powerlines,
+                       pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
-                       building_info, omap_info, layer_errors)
+                       building_info, powerlines_info, omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
@@ -1347,6 +1530,12 @@ def main() -> None:
     p.add_argument("--buildings", choices=["off", "real"], default="off",
                    help="off = bez budov (default), real = ČÚZK ZABAGED WFS plochy → ISOM 521 "
                         "(vyžaduje --terrain real)")
+    p.add_argument("--powerlines", choices=["off", "real"], default="off",
+                   help="off = bez el. vedení (default), real = ČÚZK ZABAGED WFS linie → ISOM 510 "
+                        "(vyžaduje --terrain real)")
+    p.add_argument("--only-real", action="store_true",
+                   help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
+                        "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--width-km", type=float, default=DEF_WIDTH_KM,
@@ -1358,6 +1547,7 @@ def main() -> None:
     _apply_extent(args.width_km, args.height_km)   # velikost výseku → rozměrové globály před generováním
     out = generate(args.seed, args.rug, args.det, args.out, terrain=args.terrain,
                    paths=args.paths, water=args.water, buildings=args.buildings,
+                   powerlines=args.powerlines, pseudorealistic=not args.only_real,
                    lat=args.lat, lon=args.lon)
     print(f"Hotovo -> {out.resolve()}")
 
