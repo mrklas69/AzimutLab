@@ -227,6 +227,11 @@ DISPLACE_GAP_PX = round(0.4 * PX_PER_MM, 2)     # cílová mezera mezi OKRAJI sy
 # Strop posunu: velký displacement je horší než kolize (hrubě by lhal o poloze). 0,8 mm na
 # mapě = mírné odsazení, drží budovu poznatelně u reálné polohy (akumulovaný posun se clampuje).
 MAX_DISPLACE_PX = round(0.8 * PX_PER_MM, 2)     # ≈ 3,66 px (0,8 mm na mapě)
+# Strop počtu budov pro L2 displacement: kolize budova↔budova je O(n²), na hustých městech
+# (LS ~8273 budov) neúnosně pomalá. Nad práh se displacement PŘESKOČÍ (budovy se kreslí na
+# reálné poloze) — efekt je stejně jen 0,4 mm a u husté zástavby zanedbatelný. Pořádný fix =
+# spatial index (mřížka) místo párového O(n²) → TODO. Lesní ISOM lokality jsou pod prahem.
+MAX_DISPLACE_BUILDINGS = 2000
 # Iterace: odsazení budovy od cesty ji může přitlačit k sousední budově (sekundární kolize) →
 # několik průchodů „od sítě → budova↔budova" se musí ustálit. Krok 0 (Sez. 21) odhadl 1-2, ale
 # verify (Sez. 22, diagnose_displacement.py) ukázal, že při 2 budova↔budova kolize REGRESUJÍ
@@ -1239,7 +1244,9 @@ def _resolve_and_draw_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.Imag
     jako L1, Sez. 18/22 — posunutá maska JE správná GT: UC5 čte mapu, ne realitu). Vrací
     (area_features [(grid, code)], building_info).
     """
-    moved = resolve_displacement([c[0] for c in collected], fixed)
+    rings = [c[0] for c in collected]
+    # husté město (LS) → displacement O(n²) neúnosné; přeskoč (efekt 0,4 mm zanedbatelný)
+    moved = rings if len(rings) > MAX_DISPLACE_BUILDINGS else resolve_displacement(rings, fixed)
     area_features: list[tuple] = []
     building_info: list[dict] = []
     for (_, code, info), px in zip(collected, moved):
@@ -1301,7 +1308,7 @@ def synthesize_pseudorealistic_map(
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
         terrain: str = "real", paths: str = "real", water: str = "real",
         buildings: str = "real", powerlines: str = "real",
-        tolerant: bool = False) -> Path:
+        tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
     Reframe Sez. 23 (IDEAS „synthesize_pseudorealistic_map"): real-větev je *prediktor
@@ -1511,6 +1518,24 @@ def synthesize_pseudorealistic_map(
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     img.save(out / "rgb.png")
+    # ortofoto podklad (verify proti realitě, Sez. 26): reálný letecký snímek TÉHOŽ výseku
+    # (ČÚZK, sdílený build_bbox → pixel-zarovnané s rgb.png i s .omap objekty). Jen reálný
+    # terén (potřebuje S-JTSK georef výseku); u noise se přeskočí. Rozlišení = plátno (W×H).
+    # V .omap se připne jako podkladový template (paper-space, viz omap_export.write_omap).
+    ortho_template = None       # předá se write_omap → připnutí ortofota jako podklad v .omap
+    if ortho and terrain == "real":
+        from ortofoto import fetch_ortofoto
+        # rozlišení podkladu z požadovaného m/px (menší = ostřejší, ale větší soubor i RAM
+        # v OOM). Konektor stáhne po dlaždicích, pokud rozměr přesáhne strop MapServeru (4096 px).
+        o_w = round(WORLD_W_M / ortho_mpp)
+        o_h = round(TILE_M / ortho_mpp)
+        orto_arr = _try_layer("ortho",
+                              lambda: fetch_ortofoto(lat, lon, GW, GH, TILE_M, o_w, o_h),
+                              None, tolerant, layer_errors)
+        if orto_arr is not None:
+            Image.fromarray(orto_arr).save(out / "ortofoto.png")
+            # podklad pod mapou s 50% průhledností; img_w/h = skutečné rozlišení fetche
+            ortho_template = {"name": "ortofoto.png", "img_w": o_w, "img_h": o_h, "opacity": 0.5}
     cmask_img.save(out / "mask_contours.png")
     path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
@@ -1537,7 +1562,8 @@ def synthesize_pseudorealistic_map(
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
                              powerline_omap_features,
-                             GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap")
+                             GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap",
+                             ortho_template=ortho_template)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, powerlines,
                        pseudorealistic, lat, lon, elev,
@@ -1574,6 +1600,12 @@ def main() -> None:
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
+    p.add_argument("--no-ortho", dest="ortho", action="store_false",
+                   help="nestahovat ortofoto podklad (default = ČÚZK ortofoto výseku do ortofoto.png "
+                        "+ připnutí do .omap; jen s --terrain real)")
+    p.add_argument("--ortho-mpp", type=float, default=0.5,
+                   help="rozlišení ortofoto podkladu [m/px] (default 0,5; menší = ostřejší, ale "
+                        "větší soubor i RAM v OOM; konektor dlaždicuje nad 4096 px)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--width-km", type=float, default=DEF_WIDTH_KM,
@@ -1593,7 +1625,7 @@ def main() -> None:
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=args.out,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, water=args.water, buildings=args.buildings,
-        powerlines=args.powerlines)
+        powerlines=args.powerlines, ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     print(f"Hotovo -> {out.resolve()}")
 
 

@@ -67,7 +67,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                building_features: list[tuple], powerline_features: list[tuple],
                gw: int, gh: int,
                world_w_m: float, world_h_m: float, scale: float,
-               out_path: str | Path) -> dict:
+               out_path: str | Path,
+               ortho_template: dict | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -77,10 +78,18 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     (liniový objekt, Sez. 24) — vše v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1); voda i budovy
     jdou jako liniové objekty (type 1), OOM je vyplní podle typu symbolu (plošný 301/521).
     `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale` = jmenovatel měřítka.
+    `ortho_template` (volitelné, Sez. 26) = {name, img_w, img_h, opacity} → připne obrázek
+    `name` jako PODKLADOVÝ (background) template: paper-space, vycentrovaný na origin (jako
+    objekty), scale = map-mm na pixel tak, aby obraz img_w×img_h přesně pokryl výsek.
     Návrat: {"contours", "paths", "water", "buildings", "powerlines", "points", "objects"}.
     """
     out_path = Path(out_path)
     template_xml = TEMPLATE_PATH.read_text(encoding="utf-8")
+    # sjednoť georef měřítko s generátorovým: template_classic.omap nese scale 15000, ale
+    # generátor sází objekty v `scale` (MAP_SCALE=10000) → bez opravy by OOM měřil vzdálenosti
+    # i mřížku 1,5× špatně (nález Sez. 26). Přepíšeme jediný <georeferencing scale="...">.
+    template_xml = re.sub(r'(<georeferencing\b[^>]*\bscale=")\d+(")',
+                          rf'\g<1>{int(scale)}\g<2>', template_xml, count=1)
     sym = _parse_symbol_ids(template_xml)
 
     # paper-space: 1 m terénu = (1e6/scale) µm papíru; výsek vycentrován na (0,0)
@@ -154,6 +163,46 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     doc, n_sub = re.subn(r'<objects count="0">', objects_open, template_xml, count=1)
     if n_sub != 1:
         raise ValueError('Template nemá očekávaný prázdný <objects count="0"> blok')
+
+    # ortofoto podklad (Sez. 26): vlož TemplateImage do dvou prázdných <templates count="0">
+    # bloků čistého template — (a) definice v <map> (poloha+scale), (b) ref v <view> (opacity).
+    # Formát ověřen proti reálnému OOM 0.9.6 výstupu (uživatel připnul ručně → odečten XML).
+    # Jednotky: OOM template_to_map matice mapuje px → MAP-mm (objekty jsou v µm = 1/1000 mm),
+    # proto scale_x = pw[µm]/1000/img_w. x=y=0: obraz vycentrovaný na origin jako objekty
+    # (paper() centruje na (0,0)) → sedne bez translace. first_front_template="1" = pod mapou.
+    if ortho_template is not None:
+        iw, ih = ortho_template["img_w"], ortho_template["img_h"]
+        name = ortho_template.get("name", "ortofoto.png")
+        opacity = ortho_template.get("opacity", 0.5)
+        sx = pw / 1000.0 / iw                       # map mm na pixel obrazu (E-W)
+        sy = ph / 1000.0 / ih                       # map mm na pixel obrazu (S-J)
+        tmpl = (
+            f'<template type="TemplateImage" open="true" name="{name}" '
+            f'path="{name}" relpath="{name}">'
+            f'<transformations adjustment_dirty="true" passpoints="0">'
+            f'<transformation role="active" x="0" y="0" '
+            f'scale_x="{sx:.7g}" scale_y="{sy:.7g}" rotation="0"/>'
+            f'<transformation role="other" x="0" y="0" scale_x="1" scale_y="1" rotation="0"/>'
+            f'<matrix role="map_to_template" n="3" m="3">'
+            f'<element value="{1.0 / sx:.7g}"/><element value="0"/><element value="0"/>'
+            f'<element value="0"/><element value="{1.0 / sy:.7g}"/><element value="0"/>'
+            f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
+            f'<matrix role="template_to_map" n="3" m="3">'
+            f'<element value="{sx:.7g}"/><element value="0"/><element value="0"/>'
+            f'<element value="0"/><element value="{sy:.7g}"/><element value="0"/>'
+            f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
+            f'<matrix role="template_to_map_other" n="0" m="0"/></transformations></template>'
+        )
+        doc, n_def = re.subn(r'<templates count="0" first_front_template="0">',
+                             f'<templates count="1" first_front_template="1">{tmpl}',
+                             doc, count=1)
+        doc, n_ref = re.subn(
+            r'<templates count="0"/>',
+            f'<templates count="1"><ref template="0" visible="true" opacity="{opacity:g}"/>'
+            f'</templates>', doc, count=1)
+        if n_def != 1 or n_ref != 1:
+            raise ValueError(f"Template nemá očekávané prázdné <templates> bloky "
+                             f"(definice={n_def}, view ref={n_ref})")
 
     out_path.write_text(doc, encoding="utf-8")
     return {"contours": n_contours, "paths": n_paths, "water": n_water,

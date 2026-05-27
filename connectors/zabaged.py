@@ -5,17 +5,21 @@ Sourozenec dmr.py (NE kopie): dmr.py táhne reálný VÝŠKOPIS (DMR 5G, rastr/I
 zabaged.py táhne reálné KOMUNIKACE (vektor, WFS). Oba berou tentýž výsek přes sdílený
 dmr.build_bbox() → reálné cesty padnou bezešvě na tentýž terén jako vrstevnice z DMR.
 
-Zdroj: ČÚZK ZABAGED Polohopis WFS 2.0.0 (open data, CC BY 4.0 — atribuce povinná).
-Endpoint vrací GeoJSON přímo (ne GML) → žádný GML parsing, izomorfní s contours.geojson.
+Zdroj: ČÚZK ZABAGED Polohopis, ArcGIS REST MapServer `/query` (open data, CC BY 4.0 —
+atribuce povinná). `f=geojson` → GeoJSON přímo (žádný GML parsing, izomorfní s contours.geojson).
 
-Klíčová zjištění (ověřeno Sezení 16):
-  - WFS 2.0.0: .../arcgis/services/ZABAGED_POLOHOPIS/MapServer/WFSServer
-  - feature typy komunikací: Cesta, Pěšina, Silnice__dálnice, Ulice, Turistická_trasa
-  - outputFormat=GEOJSON, srsName/bbox v EPSG:5514 (S-JTSK, shoda s dmr.py)
-  - geometrie MultiLineString; atributy typu/povrchu nesou ISOM-relevantní rozlišení
+Klíčová zjištění (Sez. 16 = WFS, Sez. 26 = přechod na REST):
+  - REST: .../arcgis/rest/services/ZABAGED_POLOHOPIS/MapServer/<layer_id>/query
+  - PROČ REST místo WFS (Sez. 26): WFS GetFeature tvrdě uřezával na 1000 obj/dotaz a
+    startIndex paging byl rozbitý → velká města přicházela o objekty. REST query má strop
+    2000 + spolehlivý resultOffset paging (viz _fetch_layer + LAYER_IDS).
+  - vrstvy se adresují numerickým layer ID (LAYER_IDS), ne typeName; in/outSR=EPSG:5514.
+  - geometrie LineString/Polygon (i Multi-); atributy v REST jsou MALÝMI písmeny (pozor:
+    WFS měl `TYPUSKOM_K` velkými, REST `typuskom_k` — viz map_to_isom).
 
 Pozn. k souřadnicím: S-JTSK (EPSG:5514) má v ČR záporné x i y (x ≈ -700 tis = easting,
-y ≈ -1000 tis = northing). Axis order WFS odpovědi se OVĚŘUJE diagnostikou (main), ne hádá.
+y ≈ -1000 tis = northing). Axis order REST odpovědi (in/outSR=5514) se ověřuje regresí
+(vizuál sedí na terén) i diagnostikou (main).
 """
 
 import json
@@ -26,8 +30,22 @@ from pathlib import Path
 # Sdílený výsek s výškopisem (izomorfismus, bezešvost) — build_bbox je public (Sez. 8).
 from dmr import build_bbox
 
-# WFS endpoint ZABAGED Polohopis (nové .gov.cz; cesta MUSÍ obsahovat /services/...WFSServer).
-_WFS_SERVER = "https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServer/WFSServer"
+# REST endpoint ZABAGED Polohopis MapServer (Sez. 26: přechod z WFS). WFS GetFeature tvrdě
+# uřezával na 1000 obj/dotaz a startIndex paging byl rozbitý (Sez. 25); REST query má strop
+# 2000 + SPOLEHLIVÝ resultOffset paging (ověřeno temp/probe_rest_paging.py: SV budovy 1078,
+# dávky navazují, overlap 0) → města se stáhnou kompletní. Vrstvy se adresují numerickým
+# layer ID (ne typeName).
+_REST_SERVER = "https://ags.cuzk.gov.cz/arcgis/rest/services/ZABAGED_POLOHOPIS/MapServer"
+_PAGE = 2000   # maxRecordCount REST query (ověřeno) — velikost dávky v paging smyčce
+
+# WFS typeName → REST layer ID (ověřeno proti MapServer?f=json, Sez. 26; obnova: temp/probe_zabaged_rest.py).
+LAYER_IDS = {
+    "Cesta": 83, "Pěšina": 82, "Silnice__dálnice": 79,
+    "Silnice_neevidovaná": 80, "Ulice": 84,
+    "Vodní_tok": 93, "Vodní_plocha": 132,
+    "Budova_jednotlivá_nebo_blok_budov__plocha_": 99,
+    "Elektrické_vedení": 88, "Stožár_elektrického_vedení": 87,
+}
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
 # zpravidla PO existující cestě/pěšině → duplikovala by liniovou síť (rozhodnuto Sez. 16).
@@ -61,45 +79,63 @@ POWERLINE_MAST_LAYERS = ("Stožár_elektrického_vedení",)
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
                  cache_dir: Path) -> dict:
-    """Stáhne jednu vrstvu komunikací jako GeoJSON FeatureCollection (cache na disk).
+    """Stáhne jednu vrstvu jako GeoJSON FeatureCollection (REST query + paging, cache na disk).
 
-    `bbox` = (xmin, ymin, xmax, ymax) v S-JTSK (z build_bbox). WFS GetFeature s BBOX
-    filtrem vrátí jen linie protínající výsek. Cache key = vrstva + bbox (stejný výsek
-    → stejný soubor, batch netáhne opakovaně). Izomorfní s dmr cache.
+    `bbox` = (xmin, ymin, xmax, ymax) v S-JTSK (z build_bbox). REST `MapServer/<id>/query`
+    s envelope filtrem vrátí prvky protínající výsek; `f=geojson` → tatáž struktura jako
+    dřív WFS (parsery `_geom_to_*` beze změny). Server omezuje dávku na `_PAGE` (2000), proto
+    **paging smyčka** přes `resultOffset` (Sez. 26: spolehlivý, na rozdíl od rozbitého WFS
+    startIndex) — bez ní by velká města (LS) přišla o objekty nad strop.
+
+    Cache key má prefix `zbg_rest_` (odlišení od staré WFS cache, která mohla být uříznutá
+    na 1000); stejný výsek → stejný soubor (batch netáhne opakovaně). Izomorfní s dmr cache.
     """
     xmin, ymin, xmax, ymax = bbox
     # cache: souřadnice na celé metry stačí na jednoznačnost výseku
-    key = f"zbg_{layer}_{int(xmin)}_{int(ymin)}_{int(xmax)}_{int(ymax)}.geojson"
+    key = f"zbg_rest_{layer}_{int(xmin)}_{int(ymin)}_{int(xmax)}_{int(ymax)}.geojson"
     cpath = cache_dir / key
     if cpath.exists():
         return json.loads(cpath.read_text(encoding="utf-8"))
 
-    params = {
-        "service": "WFS",
-        "version": "2.0.0",
-        "request": "GetFeature",
-        "typeNames": f"ZABAGED_POLOHOPIS:{layer}",
-        "srsName": "EPSG:5514",
-        # WFS 2.0.0 bbox: minx,miny,maxx,maxy + CRS; pořadí os ověřeno diagnostikou
-        "bbox": f"{xmin},{ymin},{xmax},{ymax},EPSG:5514",
-        "outputFormat": "GEOJSON",
+    lid = LAYER_IDS.get(layer)
+    if lid is None:
+        raise ValueError(f"Vrstva {layer!r} nemá REST layer ID (doplň do LAYER_IDS).")
+    base = {
+        "geometry": f"{xmin},{ymin},{xmax},{ymax}",
+        "geometryType": "esriGeometryEnvelope",
+        "inSR": "5514", "outSR": "5514",
+        "spatialRel": "esriSpatialRelIntersects",
+        "where": "1=1", "outFields": "*", "f": "geojson",
     }
-    url = f"{_WFS_SERVER}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        ctype = resp.headers.get("Content-Type", "")
-        raw = resp.read()
-    # server při chybě vrací XML ExceptionReport (text) místo JSON → srozumitelná výjimka
-    text = raw.decode("utf-8", "replace")
-    if "json" not in ctype.lower() and not text.lstrip().startswith("{"):
-        raise RuntimeError(
-            f"ZABAGED WFS nevrátil GeoJSON pro vrstvu {layer!r} "
-            f"(Content-Type={ctype!r}). Odpověď: {text[:400]}"
-        )
-    fc = json.loads(text)
+    # paging: stahuj dávky po _PAGE, dokud server vrací plnou dávku (poslední je kratší)
+    features: list[dict] = []
+    offset = 0
+    while True:
+        params = {**base, "resultOffset": str(offset), "resultRecordCount": str(_PAGE)}
+        url = f"{_REST_SERVER}/{lid}/query?{urllib.parse.urlencode(params)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            ctype = resp.headers.get("Content-Type", "")
+            raw = resp.read()
+        text = raw.decode("utf-8", "replace")
+        # při chybě ArcGIS vrací JSON {"error": {...}} (ne GeoJSON FeatureCollection)
+        if "json" not in ctype.lower() and not text.lstrip().startswith("{"):
+            raise RuntimeError(
+                f"ZABAGED REST nevrátil JSON pro vrstvu {layer!r} (id={lid}, "
+                f"Content-Type={ctype!r}). Odpověď: {text[:400]}"
+            )
+        fc = json.loads(text)
+        if isinstance(fc.get("error"), dict):
+            raise RuntimeError(f"ZABAGED REST chyba pro {layer!r} (id={lid}): {fc['error']}")
+        batch = fc.get("features", [])
+        features.extend(batch)
+        if len(batch) < _PAGE:        # neúplná dávka = poslední → konec
+            break
+        offset += _PAGE
+    result = {"type": "FeatureCollection", "features": features}
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cpath.write_text(text, encoding="utf-8")
-    return fc
+    cpath.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+    return result
 
 
 def fetch_paths(lat: float, lon: float, gw: int, gh: int,
@@ -237,8 +273,8 @@ def map_to_isom(layer: str, props: dict) -> int:
 
     Klíč = FYZICKÝ stav (sjízdnost / zřetelnost), ne správní třída — tak rozlišuje
     ISOM. Ověřeno proti reálným datům (verify-against-source, Sez. 16): `povrch_k`
-    Z/T = zpevněná, None = nezpevněná; `TYPUSKOM_K` 026 = udržovaná pěšina, jinak
-    neudržovaná. Mapovací tabulka:
+    Z/T = zpevněná, None = nezpevněná; `typuskom_k` 026 = udržovaná pěšina, jinak
+    neudržovaná (REST: atribut malými; WFS ho měl velkými — Sez. 26). Mapovací tabulka:
       Silnice/Ulice     → 502 Wide road     (evidovaná, ≥5 m, autodoprava)
       Silnice neevid.   → 503 Road          (účelová/lesní asfaltka, zpevněná <5 m)
       Cesta zpevněná    → 503 Road          (sjízdná autem)
@@ -257,7 +293,8 @@ def map_to_isom(layer: str, props: dict) -> int:
     if layer == "Cesta":
         return 503 if props.get("povrch_k") in ("Z", "T") else 504
     if layer == "Pěšina":
-        return 505 if props.get("TYPUSKOM_K") == "026" else 506
+        # pozor: REST vrací atribut malými (`typuskom_k`); WFS ho měl velkými (Sez. 26)
+        return 505 if props.get("typuskom_k") == "026" else 506
     return 503   # fallback (neočekávaná vrstva) → viditelná plná čára
 
 

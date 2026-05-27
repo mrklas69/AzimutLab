@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Pravidla použití assetu řopík_10000.omap (samotná geometrie je v tom .omap).
+     AzimutLab asset pattern (vyjasněno Sez. 26): dvojice souborů
+       <jméno>.omap       = vizuální vzor kreslený v Mapperu (přesná geometrie + ISOM symboly),
+       <jméno>.rules.xml  = jak s ním generátor nakládá (co .omap nepojme).
+     Řopík = lehké opevnění (ŘOP bunkr) na orienťácké mapě = budova (ISOM 521) na
+     náspu (vrstevnice ISOM 101). Měřítko 1:10000. -->
+<asset_rules for="řopík_10000.omap" scale="10000">
+  <rotation_rule>Natoč severní stranu (zasypaný čelní násep) kolmo k nejbližší státní hranici.</rotation_rule>
+  <draw_order>Vrstevnice (101) leží POD budovou (521) — násep nesmí překrýt bunkr.</draw_order>
+  <placement>Bod výskytu řopíku = jeho poloha; asset se umístí svým středem na tento bod.</placement>
+  <source>ZABAGED vrstva opevnění → tento asset místo prostého ISOM 521 (řopík ≠ běžná stavba). Viz TODO „řopíky ≠ stavby".</source>
+  <!-- Fortifikační fakt (uživatel, Sez. 26): strana K HRANICI / nepříteli je zcela ZASYPANÁ
+       (ochrana před dělostřelectvem) → severní strana = strmý násep, kolmo k hranici. STŘÍLNY
+       míří do VNITROZEMÍ (jih) a kryjí sousední bunkry boční palbou (linie ve dvou řadách);
+       na jihu je proto vstup a pozvolný terén. -->
+  <note>Vrstevnice asymetrická: STRMÁ k severu (zasypaný násep k nepříteli), POZVOLNÁ ke vstupu na jihu (vnitrozemí).</note>
+</asset_rules>
