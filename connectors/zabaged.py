@@ -1,8 +1,8 @@
 """
-zabaged.py — reálné cesty z ČÚZK ZABAGED® Polohopis WFS (UC2 konektor, real-půlka §4.9).
+zabaged.py — reálné cesty z ČÚZK ZABAGED® Polohopis (ArcGIS REST; UC2 konektor, real-půlka §4.9).
 
 Sourozenec dmr.py (NE kopie): dmr.py táhne reálný VÝŠKOPIS (DMR 5G, rastr/ImageServer),
-zabaged.py táhne reálné KOMUNIKACE (vektor, WFS). Oba berou tentýž výsek přes sdílený
+zabaged.py táhne reálné KOMUNIKACE (vektor, ArcGIS REST query). Oba berou tentýž výsek přes sdílený
 dmr.build_bbox() → reálné cesty padnou bezešvě na tentýž terén jako vrstevnice z DMR.
 
 Zdroj: ČÚZK ZABAGED Polohopis, ArcGIS REST MapServer `/query` (open data, CC BY 4.0 —
@@ -15,7 +15,7 @@ Klíčová zjištění (Sez. 16 = WFS, Sez. 26 = přechod na REST):
     2000 + spolehlivý resultOffset paging (viz _fetch_layer + LAYER_IDS).
   - vrstvy se adresují numerickým layer ID (LAYER_IDS), ne typeName; in/outSR=EPSG:5514.
   - geometrie LineString/Polygon (i Multi-); atributy v REST jsou MALÝMI písmeny (pozor:
-    WFS měl `TYPUSKOM_K` velkými, REST `typuskom_k` — viz map_to_isom).
+    WFS měl `TYPUSKOM_K` velkými, REST `typuskom_k` — viz map_path_to_isom).
 
 Pozn. k souřadnicím: S-JTSK (EPSG:5514) má v ČR záporné x i y (x ≈ -700 tis = easting,
 y ≈ -1000 tis = northing). Axis order REST odpovědi (in/outSR=5514) se ověřuje regresí
@@ -42,9 +42,10 @@ _PAGE = 2000   # maxRecordCount REST query (ověřeno) — velikost dávky v pag
 LAYER_IDS = {
     "Cesta": 83, "Pěšina": 82, "Silnice__dálnice": 79,
     "Silnice_neevidovaná": 80, "Ulice": 84,
-    "Vodní_tok": 93, "Vodní_plocha": 132,
+    "Vodní_tok": 93, "Vodní_plocha": 132, "Pozemní_nádrž": 107,
     "Budova_jednotlivá_nebo_blok_budov__plocha_": 99,
     "Elektrické_vedení": 88, "Stožár_elektrického_vedení": 87,
+    "Bunkr": 37, "Hranice_správní_jednotky": 1,
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -60,8 +61,11 @@ PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná",
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
 # (Zdroj_podzemních_vod) se NEtáhne: ve výsecích OB map je vzácný (ověřeno — v demo
 # výřezu 0, nejbližší PS 1,9 km) a 312 Spring je real-only bez náhrady (rozhodnuto Sez. 17).
+# Plochy: kromě Vodní_plocha (přírodní — rybníky/jezera) i Pozemní_nádrž (umělé nádrže vč.
+# KOUPALIŠŤ/bazénů, podtypob_k='BA') — taky 301. Verify Sez. 27: Lesní koupaliště v LS je
+# Pozemní_nádrž ~1934 m², NE Vodní_plocha → bez ní na mapě chybělo.
 WATER_LINE_LAYERS = ("Vodní_tok",)
-WATER_AREA_LAYERS = ("Vodní_plocha",)
+WATER_AREA_LAYERS = ("Vodní_plocha", "Pozemní_nádrž")
 
 # Budovy/stavby (Sez. 18, real-půlka). ZABAGED dělí budovy na bodovou a plošnou vrstvu;
 # bodová (`_bod_`) je v lesních OB výsecích prázdná (ověřeno — 0 features na Sovím vrchu),
@@ -75,6 +79,17 @@ BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",)
 # uživatele) → reálná data pro příčky (fáze 1, ne vymyšlené). Katalog: docs/kb/zabaged-isom-catalog.md.
 POWERLINE_LAYERS = ("Elektrické_vedení",)
 POWERLINE_MAST_LAYERS = ("Stožár_elektrického_vedení",)
+
+# Řopíky / lehké opevnění (Sez. 27, fáze 1 = projekce reálných dat, NE dekorace). ZABAGED
+# `Bunkr`, filtr typbunkr_k='LO37' (lehký objekt vz.37 čs. pohraničního opevnění); bodová vrstva.
+# Na OB mapě = asset (NE prostý ISOM 521 — řopík ≠ běžná stavba), orientace dle linie řopíků +
+# „ven" k nejbližší státní hranici. Vyskytují se jen u hranic → jinde 0 prvků (žádný šum).
+BUNKER_LAYERS = ("Bunkr",)
+BUNKER_TYPE_LO37 = "LO37"          # typbunkr_k řopíku (ostatní typy bunkru zatím vynecháváme)
+# Státní hranice pro orientaci řopíku „ven" (Sez. 27). `Hranice správní jednotky` nese VŠECHNY
+# správní hranice (KÚ/obec/okres…); vyzn_zsh_k='1' = státní (ověřeno: vyzn_zsh_p „Stát, Oblast, Kraj…").
+STATE_BORDER_LAYERS = ("Hranice_správní_jednotky",)
+STATE_BORDER_CODE = "1"            # vyzn_zsh_k hodnota pro státní hranici
 
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
@@ -268,7 +283,47 @@ def fetch_powerline_masts(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
-def map_to_isom(layer: str, props: dict) -> int:
+def fetch_bunkers(lat: float, lon: float, gw: int, gh: int,
+                  tile_m: float = 1000.0,
+                  cache_dir: str | Path | None = None) -> list[tuple[float, float]]:
+    """Vrátí polohy řopíků (lehkých opevnění LO37) pro výsek jako body (x, y) v S-JTSK metrech.
+
+    ZABAGED `Bunkr` (bodová vrstva); filtr `typbunkr_k='LO37'` = lehký objekt vz.37 čs.
+    pohraničního opevnění (= řopík). Ostatní typy bunkru (těžké, atypické) se zatím vynechávají.
+    Na OB mapě se nekreslí jako prostý symbol, ale jako asset (řopík ≠ budova) — orientace
+    + placement řeší generátor. Izomorfní s fetch_powerline_masts (body). Sez. 27."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[tuple[float, float]] = []
+    for layer in BUNKER_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            if feat.get("properties", {}).get("typbunkr_k") == BUNKER_TYPE_LO37:
+                out.extend(_geom_to_points(feat.get("geometry") or {}))
+    return out
+
+
+def fetch_state_border(lat: float, lon: float, gw: int, gh: int,
+                       tile_m: float = 1000.0,
+                       cache_dir: str | Path | None = None) -> list[list[tuple[float, float]]]:
+    """Vrátí linie STÁTNÍ hranice protínající výsek jako polylinie (x, y) v S-JTSK metrech.
+
+    ZABAGED `Hranice správní jednotky` nese všechny správní hranice; filtr `vyzn_zsh_k='1'`
+    vybere státní (ostatní = obec/okres/KÚ, nezajímají). Slouží k orientaci řopíku „ven" =
+    směr k nejbližší státní hranici (univerzální ČR — sever u SV, JV u Šumavy; Sez. 27).
+    Prázdné, když výsek hranici neprotíná (vnitrozemí). Izomorfní s fetch_powerlines (linie)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[list[tuple[float, float]]] = []
+    for layer in STATE_BORDER_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            if str(feat.get("properties", {}).get("vyzn_zsh_k")) == STATE_BORDER_CODE:
+                out.extend(_geom_to_lines(feat.get("geometry") or {}))
+    return out
+
+
+def map_path_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
     Klíč = FYZICKÝ stav (sjízdnost / zřetelnost), ne správní třída — tak rozlišuje
@@ -308,6 +363,7 @@ def map_water_to_isom(layer: str, props: dict) -> int | None:
       Vodní_tok stálý, pojmenovaný (hlavní) → 304 Crossable watercourse (silnější linie)
       Vodní_tok stálý, bezejmenný (přítok)  → 305 Small crossable watercourse (tenčí linie)
       Vodní_plocha                           → 301 Uncrossable body of water (výplň + břeh)
+      Pozemní_nádrž (umělá vč. koupališť)    → 301 (Sez. 27; bazén/nádrž = vodní plocha na mapě)
 
     Hierarchie 304/305 podle pojmenovanosti toku (generalizovatelné — pojmenovaný tok je
     v ZABAGED evidovaný/významnější; ne hardcode konkrétní řeky). Vrací holý ISOM kód
@@ -321,7 +377,7 @@ def map_water_to_isom(layer: str, props: dict) -> int | None:
         if props.get("jmeno"):                    # pojmenovaný stálý tok = hlavní
             return 304
         return 305                                 # bezejmenný stálý přítok
-    if layer == "Vodní_plocha":
+    if layer in ("Vodní_plocha", "Pozemní_nádrž"):  # Pozemní_nádrž = umělé nádrže/koupaliště (Sez. 27)
         return 301
     return None
 

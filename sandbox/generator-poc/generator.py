@@ -21,6 +21,7 @@ UC5); historie je v gitu (commit Sezení 10). Stavíme: vrstevnice → cesty →
 import argparse
 import heapq  # binární halda pro Dijkstra least-cost trasování cest (§9)
 import json
+import logging  # průběžný + souhrnný výstup synthesize (úroveň INFO; CLI zapíná, batch tichý)
 import math  # math.hypot: délka segmentu při čárkování cest + vzdálenost sousedů v Dijkstra
 import sys
 from pathlib import Path
@@ -44,11 +45,16 @@ if str(_CONNECTORS_DIR) not in sys.path:
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
 from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD
 
+# Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
+# (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
+# basicConfig nevolá → INFO se nezobrazí (tichý při dávce). Úroveň DEBUG = budoucí detail.
+_log = logging.getLogger("generator")
+
 # ---------- Rozměry výseku, mřížky a plátna, měřítko (§1) ----------
 # Velikost výseku je PARAMETR (lokalita + rozměry → cíl synthesize_pseudorealistic_map);
 # grid/plátno/svět se z ní odvodí (_apply_extent). Rozlišení (PX_PER_MM, M_PER_CELL) a
-# měřítko jsou JEDNA PRAVDA — drží konstantní, takže mm-odvozené prahy (MIN_BUILDING_PX,
-# DISPLACE_* …) platí nezávisle na velikosti výseku (0,5 mm na papíře je 0,5 mm vždy).
+# měřítko jsou JEDNA PRAVDA — drží konstantní, takže mm-odvozené prahy (příčky vedení
+# POWERLINE_TICK_* …) platí nezávisle na velikosti výseku (0,5 mm na papíře je 0,5 mm vždy).
 MAP_SCALE = 10000        # měřítko mapy 1:MAP_SCALE — paper-space přepočet v .omap exportu (§9)
 PX_PER_MM = 4.5855       # cílová hustota rastru na papíře [px/mm] (historicky 672 px / 146,55 mm)
 M_PER_CELL = 1000.0 / 116  # rozteč výpočetní mřížky [m/buňku] (historicky 116 buněk na 1 km S-J)
@@ -112,8 +118,8 @@ SYM_NAME = {ISOM_SMALL_KNOLL: "Small knoll", ISOM_ELONGATED_KNOLL: "Small elonga
 # Cesty (§4.9) — ISOM 2017-2 liniová hierarchie komunikací (ověřeno proti
 # template_classic.omap). Dvě větve sdílejí render i symboly (izomorfismus):
 #   --paths proc (default) = procedurální Dijkstra, jen 503/505 (hlavní/vedlejší);
-#   --paths real           = reálné komunikace ze ZABAGED WFS (real-půlka §4.9, Sez. 16),
-#                            plná hierarchie 502-506 dle ZABAGED→ISOM (viz zabaged.map_to_isom).
+#   --paths real           = reálné komunikace ze ZABAGED REST (real-půlka §4.9, Sez. 16),
+#                            plná hierarchie 502-506 dle ZABAGED→ISOM (viz zabaged.map_path_to_isom).
 # Mapování kód↔kresba (Sez. 15): plná → 503 Road, pravidelná čárka → 505 Footpath
 # (505 JE v ISOM čárkovaná; Sez. 13 zde mylně volila 507 s argumentem „505 je plná").
 ISOM_WIDE_ROAD = 502          # silnice/ulice (zpevněná, autodoprava) → dvojitá linie (casing)
@@ -158,7 +164,7 @@ PATH_SIMPLIFY = 7             # zředění least-cost trasy: každý N-tý uzel 
 PATH_EDGE_FRAC = (0.15, 0.85) # rozsah náhodného konce cesty na okraji mřížky (jako dřív)
 
 # Voda (§4.x hydrografie) — ISOM 2017-2 (ověřeno proti template_classic.omap). Zatím jen
-# reálná půlka (ZABAGED Polohopis WFS, Sez. 17, izomorfní s reálnými cestami): toky (linie)
+# reálná půlka (ZABAGED Polohopis REST, Sez. 17, izomorfní s reálnými cestami): toky (linie)
 # + plochy (polygon). Procedurální hydro jádro (D8) = budoucí noise-půlka. Mapování
 # ZABAGED→ISOM viz zabaged.map_water_to_isom. Barva = modrá (C_BLUE z palety).
 ISOM_CROSSABLE_WATERCOURSE = 304   # stálý pojmenovaný tok (hlavní) → plná modrá silnější
@@ -181,7 +187,7 @@ WATER_LINE_STYLE = {
 
 # Budovy/stavby (Sez. 18, real-půlka, izomorfní s vodní PLOCHOU 301): ZABAGED
 # Budova_..._plocha_ → ISOM 521 Building = plošný černý symbol (výplň + obrys). Jen reálná
-# půlka (ZABAGED WFS); bodová vrstva budov je v lesních výsecích prázdná → jen plochy.
+# půlka (ZABAGED REST); bodová vrstva budov je v lesních výsecích prázdná → jen plochy.
 # Mapování ZABAGED→ISOM viz zabaged.map_building_to_isom. Barva = černá (C_BLACK z palety).
 ISOM_BUILDING = 521                # plošná budova → černá výplň + obrysová linie
 BUILDING_NAME = {ISOM_BUILDING: "Building"}
@@ -206,51 +212,6 @@ POWERLINE_TICK_HALF_PX = round(0.5 * PX_PER_MM)      # ≈ 2 px (poloviční dé
 POWERLINE_TICK_SPACING_PX = round(2.5 * PX_PER_MM)   # ≈ 11 px (rovnoměrný interval, jen fáze 2)
 POWERLINE_MAST_SNAP_PX = round(0.7 * PX_PER_MM)      # ≈ 3 px (práh „sloup leží na této linii")
 
-# Kartografická generalizace (Sez. 18): reálná OB mapa NENÍ syrová geometrie — kartograf
-# vynucuje minimální dimenze a zjednodušuje obrysy. Syrová data by zvětšila domain gap
-# feederu (UC5 se učí číst GENERALIZOVANOU mapu). Rozměry z ISOM (template_classic.omap,
-# papírové mm); převod přes PX_PER_MM (jedna pravda, definováno výše u rozměrů výseku).
-# ISOM 521: „Minimum area 0,5 × 0,5 mm" → budova pod minimem se kreslí na minimum.
-MIN_BUILDING_PX = round(0.5 * PX_PER_MM)           # ≈ 2 px (min. strana budovy)
-# Zjednodušení obrysu (Douglas-Peucker): detail menší než cca rozlišení mapy kartograf
-# zhrubí. Práh = ISOM minimální průchod budovou 0,3 mm (template 521: „Passages … minimum
-# width of 0,3 mm") → jemnější výstupek/zub není rozlišitelný. (Sez. 18: 0,7 px bylo opatrné.)
-BUILDING_SIMPLIFY_PX = round(0.3 * PX_PER_MM, 1)    # ≈ 1,4 px (0,3 mm na mapě)
-
-# Kartografická generalizace — ÚROVEŇ 2: displacement (Sez. 22). Objekty blíž než ISOM
-# minimální čitelná mezera 0,4 mm se odsadí (poloha ↓, čitelnost ↑). Krok 0 (Sez. 21,
-# diagnose_displacement.py) změřil ~28 % budov v kolizi, dominuje budova↔cesta, shluky
-# budov ~0 → lehký GREEDY (ne NP-hard relaxace shluků). Hierarchie pevnosti (volba uživatele
-# Sez. 21): cesty + voda = pevná páteř, budovy ustupují (kartografický standard). Budova =
-# tuhé těleso → translace celého ringu, netvaruje se. Pořadí generalizace: L1 (min-size) → L2.
-DISPLACE_GAP_PX = round(0.4 * PX_PER_MM, 2)     # cílová mezera mezi OKRAJI symbolů (≈ 1,83 px)
-# Strop posunu: velký displacement je horší než kolize (hrubě by lhal o poloze). 0,8 mm na
-# mapě = mírné odsazení, drží budovu poznatelně u reálné polohy (akumulovaný posun se clampuje).
-MAX_DISPLACE_PX = round(0.8 * PX_PER_MM, 2)     # ≈ 3,66 px (0,8 mm na mapě)
-# Strop počtu budov pro L2 displacement: kolize budova↔budova je O(n²), na hustých městech
-# (LS ~8273 budov) neúnosně pomalá. Nad práh se displacement PŘESKOČÍ (budovy se kreslí na
-# reálné poloze) — efekt je stejně jen 0,4 mm a u husté zástavby zanedbatelný. Pořádný fix =
-# spatial index (mřížka) místo párového O(n²) → TODO. Lesní ISOM lokality jsou pod prahem.
-MAX_DISPLACE_BUILDINGS = 2000
-# Iterace: odsazení budovy od cesty ji může přitlačit k sousední budově (sekundární kolize) →
-# několik průchodů „od sítě → budova↔budova" se musí ustálit. Krok 0 (Sez. 21) odhadl 1-2, ale
-# verify (Sez. 22, diagnose_displacement.py) ukázal, že při 2 budova↔budova kolize REGRESUJÍ
-# (14→16 v Č. Švýcarsku); od ~6 se vrací na baseline a dořeší se i slepený pár. Plató od 6-7
-# (síť 1-2, bb beze změny, dotyk 0) → 8 s rezervou. Cena triviální (O(iter·n²), n≈99 budov).
-DISPLACE_ITERATIONS = 8
-
-
-def _line_half_width_px(code: int) -> float:
-    """Půl render-šířky liniového symbolu [px] (cesta nebo vodní tok) — pro mezeru k OKRAJI.
-
-    DRY: displacement (mezera budova↔OKRAJ linie) i verify (diagnose_displacement.py) sdílí
-    týž zdroj render šířky (PATH_STYLE / WATER_LINE_STYLE). 502 casing má width 3 → half 1,5.
-    """
-    if code in PATH_STYLE:
-        return PATH_STYLE[code][1] / 2.0
-    if code in WATER_LINE_STYLE:
-        return WATER_LINE_STYLE[code][1] / 2.0
-    return 0.0
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Soví vrch (Lužické hory, povodí Svitávky) — vlastní terénně mapovaná oblast uživatele
@@ -786,7 +747,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
         "paths": {
             "count": n_paths,
             "mask": "mask_paths.png",
-            # proc = Dijkstra least-cost (§9, cena ~ sklon); real = reálné komunikace ZABAGED WFS
+            # proc = Dijkstra least-cost (§9, cena ~ sklon); real = reálné komunikace ZABAGED REST
             "source": ("cuzk_zabaged" if paths_mode == "real" else "procedural_dijkstra"),
             "symbols": {str(c): PATH_NAME[c] for c in used_path_codes},
             "classes": {"0": "pozadí",
@@ -795,7 +756,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             # reálné cesty = ČÚZK open data → atribuce povinná (CC BY 4.0)
             **({"licence": "CC BY 4.0 (ČÚZK ZABAGED)"} if paths_mode == "real" else {}),
         },
-        # voda (hydrografie): toky + plochy ze ZABAGED WFS (real-půlka, Sez. 17). Sekce
+        # voda (hydrografie): toky + plochy ze ZABAGED REST (real-půlka, Sez. 17). Sekce
         # jen když water_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
         **({"water": {
             "count": len(water_info),
@@ -807,7 +768,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": water_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if water_mode == "real" else {}),
-        # budovy/stavby (real-půlka, Sez. 18): plochy ze ZABAGED WFS → ISOM 521. Sekce
+        # budovy/stavby (real-půlka, Sez. 18): plochy ze ZABAGED REST → ISOM 521. Sekce
         # jen když buildings_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
         **({"buildings": {
             "count": len(building_info),
@@ -819,7 +780,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": building_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if buildings_mode == "real" else {}),
-        # el. vedení (real-půlka, Sez. 24): linie ze ZABAGED WFS → ISOM 510. Sekce jen když
+        # el. vedení (real-půlka, Sez. 24): linie ze ZABAGED REST → ISOM 510. Sekce jen když
         # powerlines_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
         **({"powerlines": {
             "count": len(powerlines_info),
@@ -844,13 +805,13 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                            "2": "110 Small elongated knoll", "3": "111 Small depression"},
         # .omap export (§9): vrstevnice + cesty + body, template-based (vlastní čistý ISOM template)
         "omap": omap_info,
-        # reálné vrstvy vynechané kvůli selhání WFS/sítě (jen tolerant režim, jinak prázdné/chybí)
+        # reálné vrstvy vynechané kvůli selhání REST/sítě (jen tolerant režim, jinak prázdné/chybí)
         **({"layer_errors": layer_errors} if layer_errors else {}),
     }
 
 
 # =====================================================================
-#  Cesty (§4.9): procedurální (Dijkstra) | reálné (ZABAGED WFS)
+#  Cesty (§4.9): procedurální (Dijkstra) | reálné (ZABAGED REST)
 # =====================================================================
 def _generate_proc_paths(rng: np.random.Generator, elev: np.ndarray,
                          draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
@@ -896,20 +857,20 @@ def _generate_proc_paths(rng: np.random.Generator, elev: np.ndarray,
 
 def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálné cesty (real-půlka §4.9): komunikace ze ZABAGED WFS pro tentýž výsek.
+    """Reálné cesty (real-půlka §4.9): komunikace ze ZABAGED REST pro tentýž výsek.
 
-    Stáhne komunikace (zabaged.fetch_paths), mapuje na ISOM (zabaged.map_to_isom),
+    Stáhne komunikace (zabaged.fetch_paths), mapuje na ISOM (zabaged.map_path_to_isom),
     transformuje S-JTSK → grid (inverze _write_contours_geojson: Y-flip, sever = ymax =
     gy 0) → px a kreslí dle ISOM stylu. Reálné linie jsou už hladké (vektor z reality) →
     žádný splajn. Výsek je TENTÝŽ jako u DMR vrstevnic (sdílený build_bbox) → cesty sednou
     na terén. Vrací (path_features grid, paths_info).
     """
-    from zabaged import fetch_paths, map_to_isom
+    from zabaged import fetch_paths, map_path_to_isom
     feats = fetch_paths(lat, lon, GW, GH, TILE_M)
     paths_info: list[dict] = []
     path_features: list[tuple] = []
     for f in feats:
-        code = map_to_isom(f["layer"], f["props"])
+        code = map_path_to_isom(f["layer"], f["props"])
         for line in f["lines"]:
             curve_grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
             curve_px = [_grid_to_px(gx, gy) for gx, gy in curve_grid]
@@ -924,7 +885,7 @@ def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
 
 def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list, list]:
-    """Reálná voda (real-půlka hydrografie, Sez. 17): toky + plochy ze ZABAGED WFS.
+    """Reálná voda (real-půlka hydrografie, Sez. 17): toky + plochy ze ZABAGED REST.
 
     Mirror _generate_real_paths: stáhne vodu (zabaged.fetch_water), mapuje na ISOM
     (map_water_to_isom; None = podzemní tok → přeskočit), transformuje S-JTSK → grid
@@ -967,10 +928,40 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     return line_features, area_features, water_info
 
 
+def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné budovy (real-půlka, Sez. 18; RAW od Sez. 27): plochy ze ZABAGED → ISOM 521.
+
+    Kreslí se PŘESNĚ jako vodní plocha (_generate_real_water): SYROVÝ ZABAGED půdorys
+    (S-JTSK → grid → px → polygon), BEZ generalizace i displacementu. Rozhodnutí uživatele
+    Sez. 27 („kresli budovy jako vodu"): kartografická generalizace (DP/orthogonalizace/min-size)
+    i displacement ničily/posouvaly skutečný tvar a polohu (verify: budova 1028994 = 15 vrcholů
+    → 5 zkomolených). Voda je věrná právě proto, že je RAW — budovy teď stejně. Vrací
+    (area_features [(grid, code)], building_info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
+    from zabaged import fetch_buildings, map_building_to_isom
+    feats = fetch_buildings(lat, lon, GW, GH, TILE_M)
+    area_features: list[tuple] = []
+    building_info: list[dict] = []
+    for f in feats:
+        code = map_building_to_isom(f["layer"], f["props"])
+        if code is None:
+            continue
+        for ring in f["rings"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            _draw_building_area(draw, bdraw, px, code)
+            area_features.append((grid, code))
+            building_info.append({"symbol": code, "symbol_name": BUILDING_NAME[code],
+                                  "kind": "area", "layer": f["layer"]})
+    return area_features, building_info
+
+
 def _generate_real_powerlines(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.ImageDraw,
                               lat: float, lon: float, geo_bbox: tuple,
                               pseudorealistic: bool) -> tuple[list, list]:
-    """Reálné el. vedení (real-půlka, Sez. 24): Elektrické_vedení ze ZABAGED WFS → ISOM 510.
+    """Reálné el. vedení (real-půlka, Sez. 24): Elektrické_vedení ze ZABAGED REST → ISOM 510.
 
     Dvě fáze (projekce vs pseudorealistická dekorace, viz GLOSSARY):
       Fáze 1 (vždy): holá tenká linie + kolmé příčky na poloze REÁLNÝCH sloupů
@@ -1019,270 +1010,138 @@ def _generate_real_powerlines(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.Image
     return powerline_features, powerlines_info
 
 
-def _simplify_polyline(pts: list[tuple[float, float]], tol: float) -> list[tuple[float, float]]:
-    """Douglas-Peucker: zředí vrcholy polylinie pod toleranci `tol` [px], zachová rohy.
-
-    Generalizace obrysu (Sez. 18): reálný obrys budovy nese detaily pod rozlišením mapy,
-    kartograf je zhrubí. Rekurzivní DP — najde nejvzdálenější vrchol od úsečky konec-konec;
-    pod tolerancí zahodí mezilehlé. Funguje i na uzavřený prstenec (první=poslední vrchol).
-    """
-    if len(pts) < 3:
-        return list(pts)
-    (x0, y0), (x1, y1) = pts[0], pts[-1]
-    dx, dy = x1 - x0, y1 - y0
-    seg2 = dx * dx + dy * dy
-    dmax, idx = 0.0, 0
-    for i in range(1, len(pts) - 1):
-        px_, py_ = pts[i]
-        if seg2 == 0.0:                      # degenerovaná úsečka (uzavřený prstenec) → vzdálenost k bodu
-            d = ((px_ - x0) ** 2 + (py_ - y0) ** 2) ** 0.5
-        else:
-            t = max(0.0, min(1.0, ((px_ - x0) * dx + (py_ - y0) * dy) / seg2))
-            d = ((px_ - (x0 + t * dx)) ** 2 + (py_ - (y0 + t * dy)) ** 2) ** 0.5
-        if d > dmax:
-            dmax, idx = d, i
-    if dmax <= tol:
-        return [pts[0], pts[-1]]
-    return _simplify_polyline(pts[:idx + 1], tol)[:-1] + _simplify_polyline(pts[idx:], tol)
-
-
-def _enforce_min_size(ring_px: list[tuple[float, float]], min_px: float) -> list[tuple[float, float]]:
-    """ISOM 521 „Minimum area 0,5 × 0,5 mm": budova pod minimem → obdélník min. rozměrů.
-
-    Generalizace (Sez. 18): pod minimální dimenzí by symbol nebyl čitelný, proto se každý
-    rozměr bbox naklampuje na `min_px` (velký rozměr u protáhlé budovy zůstane). Tvar malé
-    budovy se nahradí osově orientovaným obdélníkem na jejím středu (reálné malé budovy jsou
-    zhruba čtvercové → ztráta tvaru je akceptovatelná, tak generalizuje i kartograf).
-    """
-    xs = [p[0] for p in ring_px]
-    ys = [p[1] for p in ring_px]
-    w, h = max(xs) - min(xs), max(ys) - min(ys)
-    if w >= min_px and h >= min_px:
-        return ring_px
-    cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
-    hw, hh = max(w, min_px) / 2, max(h, min_px) / 2
-    return [(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)]
-
-
-def _generalize_building(ring_px: list[tuple[float, float]]) -> list[tuple[float, float]]:
-    """ISOM generalizace budovy: zjednodušení obrysu → vynucení minimální velikosti (Sez. 18)."""
-    return _enforce_min_size(_simplify_polyline(ring_px, BUILDING_SIMPLIFY_PX), MIN_BUILDING_PX)
-
-
 # =====================================================================
-#  Displacement (kartografická generalizace L2, Sez. 22)
+#  Řopíky / lehké opevnění LO37 — fáze 1 (projekce reálných dat), asset placement (Sez. 27)
 # =====================================================================
-def _seg_point_dist(px: float, py: float, ax: float, ay: float,
-                    bx: float, by: float) -> tuple[float, tuple[float, float]]:
-    """Vzdálenost bodu (px,py) k úsečce a-b [px] + nejbližší bod na úsečce.
+# Řopík NENÍ prostý ISOM symbol, ale ASSET (budova 521 + vrstevnice náspu 101) — dvojici
+# kreslí uživatel v OOM (asset pattern, Sez. 26). Generátor ho stáhne (ZABAGED Bunkr LO37),
+# natočí (normála na lokální linii řopíků, „čelní zasypaný násep" = asset-sever VEN k nejbližší
+# státní hranici — univerzální ČR) a vloží na každou reálnou polohu. Projekce, ne dekorace.
+ROPIK_ASSET_PATH = Path(__file__).resolve().parent.parent.parent / "asset" / "ropik_10000.omap"
+ROPIK_PCA_K = 6        # počet nejbližších řopíků pro odhad směru lokální linie (PCA)
+_ROPIK_GEOM_CACHE: tuple | None = None   # (building_ring_um, contour_lines_um) — načteno jednou
 
-    Parametr `t` projekce bodu na úsečku se clampuje na [0,1] → nejbližší bod je buď
-    pata kolmice, nebo krajní bod úsečky. Vrací (vzdálenost, (cx,cy)).
-    """
-    dx, dy = bx - ax, by - ay
-    seg2 = dx * dx + dy * dy
-    if seg2 == 0.0:                       # degenerovaná úsečka (a == b) → vzdálenost k bodu
-        cx, cy = ax, ay
+
+def _load_ropik_asset() -> tuple[list, list]:
+    """Načte geometrii řopík assetu (ropik_10000.omap): 1 budova 521 + vrstevnice 101.
+
+    Vrací (building_ring, contour_lines) v PAPER µm relativně k počátku assetu (0,0 = poloha
+    bunkru); asset-sever = −y (jak uživatel kreslí „sever nahoru"). Bere JEN mapové objekty
+    z bloku <objects> (NE grafiku symbolů v <symbols> — to byl dřívější parsovací omyl).
+    OOM coord flagy (1 = bezier řídicí, 18 = close) ignorujeme → polylinie/polygon. Cachuje."""
+    global _ROPIK_GEOM_CACHE
+    if _ROPIK_GEOM_CACHE is not None:
+        return _ROPIK_GEOM_CACHE
+    import re
+    xml = ROPIK_ASSET_PATH.read_text(encoding="utf-8")
+    syms = {m.group(1): m.group(2)
+            for m in re.finditer(r'<symbol\b[^>]*\bid="(\d+)"[^>]*\bcode="([^"]+)"', xml)}
+    mo = re.search(r'<objects count="\d+">(.*?)</objects>', xml, re.S)   # jen mapové objekty
+    if mo is None:
+        raise ValueError(f"Řopík asset {ROPIK_ASSET_PATH.name} nemá blok <objects>")
+    building: list = []
+    contours: list = []
+    for o in re.finditer(r'<object\b[^>]*\bsymbol="(\d+)"[^>]*>.*?<coords count="\d+">(.*?)</coords>',
+                         mo.group(1), re.S):
+        code = syms.get(o.group(1))
+        pts = [(float(p[0]), float(p[1]))                       # x y [flag] → flag ignorujeme
+               for tok in o.group(2).strip().rstrip(";").split(";")
+               if len(p := tok.split()) >= 2]
+        if code == "521":
+            building = pts
+        elif code == "101":
+            contours.append(pts)
+    if not building:
+        raise ValueError(f"Řopík asset {ROPIK_ASSET_PATH.name} postrádá budovu 521")
+    _ROPIK_GEOM_CACHE = (building, contours)
+    return _ROPIK_GEOM_CACHE
+
+
+def _ropik_outward(bx: float, by: float, pts_arr: np.ndarray,
+                   border_px: list[list[tuple[float, float]]]) -> tuple[float, float]:
+    """Jednotkový směr „ven" pro řopík v px (bx,by): normála na lokální linii řopíků (PCA
+    K nejbližších) otočená k nejbližší STÁTNÍ hranici. Bez hranice ve výseku → jen normála
+    (strana nejednoznačná, ale konzistentní podél linie). px frame: x vpravo, y dolů, sever nahoře."""
+    d2 = (pts_arr[:, 0] - bx) ** 2 + (pts_arr[:, 1] - by) ** 2
+    nb = pts_arr[np.argsort(d2)[:ROPIK_PCA_K]]
+    if len(nb) >= 2:
+        # PCA: hlavní vlastní vektor kovariance = směr linie řopíků
+        cov = np.cov((nb - nb.mean(axis=0)).T)
+        w, v = np.linalg.eigh(cov)
+        d = v[:, int(np.argmax(w))]
     else:
-        t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg2))
-        cx, cy = ax + t * dx, ay + t * dy
-    return math.hypot(px - cx, py - cy), (cx, cy)
+        d = np.array([1.0, 0.0])
+    nx, ny = -float(d[1]), float(d[0])                  # normála na linii
+    norm = math.hypot(nx, ny) or 1.0
+    nx, ny = nx / norm, ny / norm
+    if border_px:                                       # otoč normálu k nejbližšímu bodu hranice
+        best, bestd = None, float("inf")
+        for line in border_px:
+            for px, py in line:
+                dd = (px - bx) ** 2 + (py - by) ** 2
+                if dd < bestd:
+                    bestd, best = dd, (px, py)
+        if best is not None and nx * (best[0] - bx) + ny * (best[1] - by) < 0:
+            nx, ny = -nx, -ny
+    return nx, ny
 
 
-def _ring_centroid(ring: list[tuple[float, float]]) -> tuple[float, float]:
-    """Těžiště (průměr vrcholů) — pro směr roztlačení budova↔budova. Malý ~konvexní ring."""
-    n = len(ring)
-    return (sum(p[0] for p in ring) / n, sum(p[1] for p in ring) / n)
+def _generate_real_ropiky(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                          cdraw: ImageDraw.ImageDraw, lat: float, lon: float,
+                          geo_bbox: tuple) -> tuple[list, list]:
+    """Řopíky (LO37) jako asset (fáze 1, real, Sez. 27): bod ZABAGED Bunkr → asset natočený
+    normálou linie řopíků, „čelní násep" (asset-sever) VEN k nejbližší státní hranici.
 
+    Kreslí budovu (černá 521) na rgb (`draw`) + masku budov (`bdraw`) a vrstevnici náspu
+    (hnědá 101) na rgb + masku vrstevnic (`cdraw`). Vrací (ropik_features [(grid_geom, code)],
+    ropik_info) pro .omap (řopík vrstevnice NEjde do contours.geojson — není to DMR izolinie)."""
+    from zabaged import fetch_bunkers, fetch_state_border
+    pts_sjtsk = fetch_bunkers(lat, lon, GW, GH, TILE_M)
+    if not pts_sjtsk:                                   # jinde než u hranic 0 řopíků
+        return [], []
+    bunkers_px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y in pts_sjtsk]
+    border_px = [[_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y in line]
+                 for line in fetch_state_border(lat, lon, GW, GH, TILE_M)]
+    building_um, contours_um = _load_ropik_asset()
+    K = PX_PER_MM / 1000.0          # asset µm → px (asset i mapa jsou 1:MAP_SCALE → bez měřítka)
+    pts_arr = np.array(bunkers_px)
+    ropik_features: list = []
+    ropik_info: list = []
 
-def _verts_to_edges_gap(verts: list[tuple[float, float]],
-                        edges: list[tuple]) -> float:
-    """Nejmenší vzdálenost vrcholů `verts` k hranám `edges` (= seznam ((ax,ay),(bx,by)))."""
-    best = float("inf")
-    for vx, vy in verts:
-        for (ax, ay), (bx, by) in edges:
-            d, _ = _seg_point_dist(vx, vy, ax, ay, bx, by)
-            if d < best:
-                best = d
-    return best
+    def _to_grid(pts_px):           # px → grid (inverze _grid_to_px) pro .omap export
+        return [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in pts_px]
 
+    for bx, by in bunkers_px:
+        ux, uy = _ropik_outward(bx, by, pts_arr, border_px)
+        # rotace: asset-sever (0,−1) → směr „ven" (ux,uy). Odvozeno z R(a)·(0,−1)=(sa,−ca):
+        a = math.atan2(ux, -uy)
+        ca, sa = math.cos(a), math.sin(a)
 
-def _ring_ring_gap(r1: list, r2: list) -> float:
-    """Nejmenší mezera mezi obrysy dvou uzavřených ringů [px] (obousměrně vrchol→hrana)."""
-    e1 = list(zip(r1, r1[1:] + r1[:1]))
-    e2 = list(zip(r2, r2[1:] + r2[:1]))
-    return min(_verts_to_edges_gap(r1, e2), _verts_to_edges_gap(r2, e1))
+        def place(pts_um):          # asset µm (rel. počátku) → px (rotace + posun na bunkr)
+            out = []
+            for mx, my in pts_um:
+                px_, py_ = mx * K, my * K
+                out.append((bx + px_ * ca - py_ * sa, by + px_ * sa + py_ * ca))
+            return out
 
-
-def _push_from_fixed(ring: list, fixed: list[tuple]) -> tuple[float, float] | None:
-    """Vektor posunu budovy OD nejbližší pevné linie, nebo None když mezera ≥ GAP.
-
-    `fixed` = [(px_polylinie, half_width_px)]. Mezera k OKRAJI = vzdálenost obrysu budovy
-    k OSE linie − půl šířky linie. Při podkročení DISPLACE_GAP_PX vrací posun ve směru
-    od linie (z nejbližšího páru ring_bod ← line_bod) o chybějící mezeru. Měří vrcholy
-    budovy proti segmentům linie (budova malý blok, cesty hustý vektor → stačí).
-    """
-    best_d = float("inf")
-    ring_pt = line_pt = None
-    best_half = 0.0
-    for line, half in fixed:
-        for vx, vy in ring:
-            for (ax, ay), (bx, by) in zip(line, line[1:]):
-                d, (cx, cy) = _seg_point_dist(vx, vy, ax, ay, bx, by)
-                if d < best_d:
-                    best_d, ring_pt, line_pt, best_half = d, (vx, vy), (cx, cy), half
-    if ring_pt is None:
-        return None
-    edge_gap = best_d - best_half
-    if edge_gap >= DISPLACE_GAP_PX:
-        return None
-    dx, dy = ring_pt[0] - line_pt[0], ring_pt[1] - line_pt[1]
-    norm = math.hypot(dx, dy)
-    if norm < 1e-9:                       # budova přesně na ose linie (vzácné) → směr neznámý
-        return None                       # necháme na budova↔budova / další iteraci
-    need = DISPLACE_GAP_PX - edge_gap
-    return (dx / norm * need, dy / norm * need)
-
-
-def _push_apart(r1: list, r2: list) -> tuple[float, float] | None:
-    """Vektor (na r2; opačně na r1) k rozsazení dvou budov na GAP, nebo None když dost daleko.
-
-    Směr = spojnice těžišť (budovy ~ konvexní bloky), velikost = chybějící mezera. Volající
-    posune každou o polovinu (symetricky — žádná z budov není pevnější než druhá, Sez. 21).
-    """
-    d = _ring_ring_gap(r1, r2)
-    if d >= DISPLACE_GAP_PX:
-        return None
-    c1, c2 = _ring_centroid(r1), _ring_centroid(r2)
-    dx, dy = c2[0] - c1[0], c2[1] - c1[1]
-    norm = math.hypot(dx, dy)
-    if norm < 1e-9:                       # splývající těžiště (téměř totožné budovy) → přeskoč
-        return None
-    need = DISPLACE_GAP_PX - d
-    return (dx / norm * need, dy / norm * need)
-
-
-def resolve_displacement(rings: list[list], fixed: list[tuple]) -> list[list]:
-    """Greedy kartografický displacement (L2): odsaď budovy od pevné sítě a od sebe (Sez. 22).
-
-    `rings` = px obrysy budov (po L1), `fixed` = [(px_polylinie, half_width_px)] pevné páteře
-    (cesty + vodní toky). Budova = tuhé těleso → TRANSLACE celého ringu (Sez. 21). Cíl: mezera
-    mezi OKRAJI ≥ DISPLACE_GAP_PX. Hierarchie: pevná síť drží, budovy ustupují; budova↔budova
-    symetricky (každá půl). Akumulovaný posun každé budovy se clampuje na MAX_DISPLACE_PX
-    (velký posun = horší než kolize). DISPLACE_ITERATIONS iterací na sekundární kolize. Vrací
-    nové px ringy; originály (`rings`) zůstávají netknuté (čistá funkce nad geometrií).
-    """
-    n = len(rings)
-    offs = [(0.0, 0.0)] * n               # akumulovaný posun každé budovy od originálu [px]
-
-    def moved_ring(i: int) -> list:
-        ox, oy = offs[i]
-        return [(x + ox, y + oy) for x, y in rings[i]]
-
-    def add_offset(i: int, dx: float, dy: float) -> None:
-        nx, ny = offs[i][0] + dx, offs[i][1] + dy
-        mag = math.hypot(nx, ny)
-        if mag > MAX_DISPLACE_PX:         # clamp na strop → budova zůstane poznatelně u reálné polohy
-            nx, ny = nx / mag * MAX_DISPLACE_PX, ny / mag * MAX_DISPLACE_PX
-        offs[i] = (nx, ny)
-
-    for _ in range(DISPLACE_ITERATIONS):
-        moved = False
-        # 1) budova ↔ pevná síť (cesty + toky): kolmé odsazení od nejbližší linie k OKRAJI
-        for i in range(n):
-            push = _push_from_fixed(moved_ring(i), fixed)
-            if push:
-                add_offset(i, *push)
-                moved = True
-        # 2) budova ↔ budova: symetrické roztlačení (shluky ~0 dle kroku 0 → vzácné)
-        for i in range(n):
-            ri = moved_ring(i)
-            for j in range(i + 1, n):
-                push = _push_apart(ri, moved_ring(j))
-                if push:
-                    add_offset(i, -push[0] / 2, -push[1] / 2)
-                    add_offset(j, push[0] / 2, push[1] / 2)
-                    ri = moved_ring(i)            # i se posunulo → přepočítej pro další j
-                    moved = True
-        if not moved:                     # ustálené (žádná kolize) → konec dřív
-            break
-    return [moved_ring(i) for i in range(n)]
-
-
-def _collect_real_buildings(lat: float, lon: float, geo_bbox: tuple) -> list[tuple]:
-    """Sběr reálných budov BEZ kreslení — L2 displacement potřebuje vidět všechny naráz.
-
-    Mirror dřívějšího _generate_real_buildings, ale jen fetch → map → S-JTSK→grid→px → L1
-    generalizace; vrací [(px_ring, code, info)]. Kresbu + displacement + grid odvození (GT)
-    řeší _resolve_and_draw_buildings, protože posun budovy závisí na ostatních vrstvách
-    (inverze kontroly — lokálně jen pro budovy, díky z-orderu jsou poslední, Sez. 22).
-    """
-    from zabaged import fetch_buildings, map_building_to_isom
-    feats = fetch_buildings(lat, lon, GW, GH, TILE_M)
-    collected: list[tuple] = []
-    for f in feats:
-        code = map_building_to_isom(f["layer"], f["props"])
-        if code is None:
-            continue
-        for ring in f["rings"]:
-            px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y in ring]
-            if len(px) < 3:
-                continue
-            px = _generalize_building(px)        # L1 (zjednodušení obrysu + min. velikost) PŘED L2
-            collected.append((px, code, {"symbol": code, "symbol_name": BUILDING_NAME[code],
-                                         "kind": "area", "layer": f["layer"]}))
-    return collected
-
-
-def _resolve_and_draw_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
-                                collected: list[tuple], fixed: list[tuple]) -> tuple[list, list]:
-    """L2 displacement + kresba budov + GT geometrie pro OMAP (Sez. 22).
-
-    `collected` = [(px_ring, code, info)] z _collect_real_buildings; `fixed` = pevná síť.
-    Posune budovy (resolve_displacement), pak z POSUNUTÉ px geometrie kreslí rastr + masku
-    a odvozuje grid pro .omap → render, maska i OMAP sdílí touž geometrii (GT konzistence,
-    jako L1, Sez. 18/22 — posunutá maska JE správná GT: UC5 čte mapu, ne realitu). Vrací
-    (area_features [(grid, code)], building_info).
-    """
-    rings = [c[0] for c in collected]
-    # husté město (LS) → displacement O(n²) neúnosné; přeskoč (efekt 0,4 mm zanedbatelný)
-    moved = rings if len(rings) > MAX_DISPLACE_BUILDINGS else resolve_displacement(rings, fixed)
-    area_features: list[tuple] = []
-    building_info: list[dict] = []
-    for (_, code, info), px in zip(collected, moved):
-        grid = [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in px]   # px → grid (inverze _grid_to_px)
-        _draw_building_area(draw, bdraw, px, code)
-        area_features.append((grid, code))
-        building_info.append(info)
-    return area_features, building_info
-
-
-def _fixed_network_px(path_features: list[tuple],
-                      water_line_features: list[tuple]) -> list[tuple]:
-    """Pevná páteř pro displacement: cesty + vodní toky jako px linie + půl jejich šířky.
-
-    Displacement měří mezeru k OKRAJI linie → nese half_width (px) z render stylu (sdílené
-    _line_half_width_px). Budovy se odsazují od této sítě (cesty + voda drží, Sez. 21).
-    Vodní PLOCHY zatím nejsou kotva (shoda s krokem 0 diagnostiky; v Soví vrchu 2 malé,
-    daleko od zástavby) — případné rozšíření, až verify ukáže kolizi budova↔rybník.
-    """
-    fixed: list[tuple] = []
-    for grid, code in path_features:
-        line = [_grid_to_px(gx, gy) for gx, gy in grid]
-        if len(line) >= 2:
-            fixed.append((line, _line_half_width_px(code)))
-    for grid, code in water_line_features:
-        line = [_grid_to_px(gx, gy) for gx, gy in grid]
-        if len(line) >= 2:
-            fixed.append((line, _line_half_width_px(code)))
-    return fixed
+        bring = place(building_um)
+        _draw_building_area(draw, bdraw, bring, ISOM_BUILDING)      # černá 521 + maska budov
+        ropik_features.append((_to_grid(bring), 521))
+        for cline_um in contours_um:
+            cline = place(cline_um)
+            if len(cline) >= 2:
+                draw.line(cline, fill=C_BROWN, width=1)            # hnědý násep
+                cdraw.line(cline, fill=255, width=1)               # do masky vrstevnic
+                ropik_features.append((_to_grid(cline), 101))
+        ropik_info.append({"symbol": 521, "kind": "ropik"})
+    return ropik_features, ropik_info
 
 
 # =====================================================================
 #  Hlavní generování
 # =====================================================================
 def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
-    """Zavolá kreslení reálné vrstvy `fn`; v tolerantním režimu pohltí selhání WFS/sítě.
+    """Zavolá kreslení reálné vrstvy `fn`; v tolerantním režimu pohltí selhání REST/sítě.
 
     `tolerant=False` (default, single-mapa CLI) = výjimka propadne ven: kdo žádá
     `--water real`, má vědět, že ZABAGED spadl. `tolerant=True` (dávkový batch přes
@@ -1297,7 +1156,7 @@ def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
         if not tolerant:
             raise
         errors[label] = str(e)
-        print(f"  ⚠ vrstva '{label}' vynechána (ZABAGED/síť selhala): {e}", file=sys.stderr)
+        _log.warning("vrstva '%s' vynechána (ZABAGED/síť selhala): %s", label, e)
         return default
 
 
@@ -1307,7 +1166,7 @@ def synthesize_pseudorealistic_map(
         *,                                    # vše dál keyword-only — z popředí API zmizí
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
         terrain: str = "real", paths: str = "real", water: str = "real",
-        buildings: str = "real", powerlines: str = "real",
+        buildings: str = "real", powerlines: str = "real", ropiky: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -1329,20 +1188,20 @@ def synthesize_pseudorealistic_map(
     (noise) větev a per-vrstva volbu — default `terrain="real"` (prediktor), `terrain="noise"`
     = fraktální šum (Option 1, §8.5). U reálného terénu se `rug` na výškopis neuplatní.
 
-    `paths="real"` (default) = reálné komunikace ze ZABAGED WFS (real-půlka §4.9);
+    `paths="real"` (default) = reálné komunikace ze ZABAGED REST (real-půlka §4.9);
     `paths="proc"` = procedurální Dijkstra cesty (§9). `real` VYŽADUJE `terrain="real"`
     — reálné cesty mají S-JTSK souřadnice a párují se přes sdílený výsek; noise výsek
     je v lokálních metrech bez georef → spárovat nelze.
 
-    `buildings="real"` = reálné budovy/stavby ze ZABAGED WFS (real-půlka, ISOM 521);
+    `buildings="real"` = reálné budovy/stavby ze ZABAGED REST (real-půlka, ISOM 521);
     také VYŽADUJE `terrain="real"` (stejný georef důvod jako cesty/voda).
 
-    `tolerant=True` (dávkový režim batch.py přes mnoho lokalit) = selhání WFS/sítě u jedné
+    `tolerant=True` (dávkový režim batch.py přes mnoho lokalit) = selhání REST/sítě u jedné
     reálné vrstvy ji vynechá místo pádu celé mapy; vynechané vrstvy se zapíšou do
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → bodové symboly extrémů
-    (§4.10) → voda → cesty (§4.9) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
+    (§4.10) → voda → cesty (§4.9) → el. vedení (510) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
     naopak POD hnědou vrstevnicí), patří do OOM Colors okna = uživatelova doména, ne rastr.
@@ -1374,9 +1233,14 @@ def synthesize_pseudorealistic_map(
     if powerlines == "real" and terrain != "real":
         raise ValueError("--powerlines real vyžaduje --terrain real (reálné el. vedení potřebuje "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if ropiky == "real" and terrain != "real":
+        raise ValueError("--ropiky real vyžaduje --terrain real (řopíky ze ZABAGED potřebují "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
     rng = np.random.default_rng(seed)
+    _log.info("synthesize %.5f, %.5f · %g×%g km → grid %d×%d, plátno %d×%d px, 1:%d",
+              lat, lon, w_km, h_km, GW, GH, W, H, MAP_SCALE)
 
     # --- výškopis: reálný (DMR 5G) nebo syntetický šum ---
     if terrain == "real":
@@ -1386,6 +1250,7 @@ def synthesize_pseudorealistic_map(
         # georef pro vektorový export: skutečný S-JTSK bbox výseku (stejný TILE_M jako fetch)
         geo_bbox = build_bbox(lat, lon, GW, GH, TILE_M)
         crs_epsg: int | None = 5514                              # S-JTSK / Křovák
+        _log.info("terén: ČÚZK DMR 5G (%.0f–%.0f m n. m.)", float(elev.min()), float(elev.max()))
     else:
         hbase = fractal(rng, 1.6 + rug * 2.6, 3 + round(rug * 2))  # výškopis (členitost = rug)
         vrange = 25 + rug * 90                                    # převýšení: víc členitosti → víc vrstevnic
@@ -1394,6 +1259,7 @@ def synthesize_pseudorealistic_map(
         # geometrie výseku jako real (TILE_M × poměr GW/GH). crs=None.
         geo_bbox = (0.0, 0.0, WORLD_W_M, TILE_M)
         crs_epsg = None
+        _log.info("terén: fraktální šum (rug=%.2f)", rug)
 
     # --- plátno: bílá = průběžný les (§4.1) ---
     rgb = np.full((H, W, 3), C_WHITE, dtype=np.uint8)
@@ -1436,6 +1302,7 @@ def synthesize_pseudorealistic_map(
                 draw.line(pts, fill=C_BROWN, width=width)
                 cdraw.line(pts, fill=255, width=width)
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
+    _log.info("  vrstevnice: %d · body extrémů: %d", len(contour_features), len(point_symbols))
 
     # --- bodové symboly lokálních extrémů (§4.10): hnědé kopečky/prohlubně ---
     # Rastr z-order: hned po vrstevnicích = POD vodou/cestami/budovami (hnědý terénní detail,
@@ -1449,7 +1316,7 @@ def synthesize_pseudorealistic_map(
     # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Prázdné = vše OK.
     layer_errors: dict[str, str] = {}
 
-    # --- voda (hydrografie): reálná ze ZABAGED WFS (real-půlka, Sez. 17) ---
+    # --- voda (hydrografie): reálná ze ZABAGED REST (real-půlka, Sez. 17) ---
     # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém
     # terénu, černé cesty/budovy je překryjí nahoře (čitelnost feederu). Jen --water real.
     water_line_features: list[tuple] = []
@@ -1462,8 +1329,9 @@ def synthesize_pseudorealistic_map(
         water_line_features, water_area_features, water_info = _try_layer(
             "water", lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox),
             ([], [], []), tolerant, layer_errors)
+        _log.info("  voda: %d (toky+plochy)", len(water_info))
 
-    # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED WFS) ---
+    # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED REST) ---
     # Rastr z-order: PO vodě, PŘED budovami. Obě větve sdílí render (_draw_path) i GT masku
     # — liší se jen zdrojem geometrie (proc/real).
     path_mask_img = Image.new("L", (W, H), 0)       # GT maska cest (§8.1), multi-class
@@ -1473,12 +1341,13 @@ def synthesize_pseudorealistic_map(
             "paths", lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox),
             ([], []), tolerant, layer_errors)
     else:
-        # proc cesty (Dijkstra) jsou offline → žádné WFS selhání, tolerance se netýká
+        # proc cesty (Dijkstra) jsou offline → žádné REST selhání, tolerance se netýká
         path_features, paths_info = _generate_proc_paths(rng, elev, draw, pdraw,
                                                          cell_w_m, cell_h_m, det)
     n_paths = len(paths_info)
+    _log.info("  cesty: %d (%s)", n_paths, paths)
 
-    # --- el. vedení (ISOM 510): reálné ze ZABAGED WFS (real-půlka, Sez. 24) ---
+    # --- el. vedení (ISOM 510): reálné ze ZABAGED REST (real-půlka, Sez. 24) ---
     # Rastr z-order: PO cestách, PŘED budovami — tenká černá linie s příčkami nad terénem,
     # izomorfní s komunikacemi. NENÍ kotva displacementu (vedení vede NAD budovami, odsazení
     # by lhalo o poloze) → pevná síť zůstává cesty+voda. Jen --powerlines real.
@@ -1492,8 +1361,9 @@ def synthesize_pseudorealistic_map(
             "powerlines",
             lambda: _generate_real_powerlines(draw, eldraw, lat, lon, geo_bbox, pseudorealistic),
             ([], []), tolerant, layer_errors)
+        _log.info("  el. vedení: %d", len(powerlines_info))
 
-    # --- budovy/stavby (§4.x): reálné ze ZABAGED WFS (real-půlka, Sez. 18) ---
+    # --- budovy/stavby (§4.x): reálné ze ZABAGED REST (real-půlka, Sez. 18) ---
     # Rastr z-order: ÚPLNĚ NAVRCH — černá plocha budovy překryje vše pod sebou (vizuálně
     # dominantní blok). Pozor: v OOM color orderu je to naopak (521 priorita 8, pod cestami
     # i vrstevnicí) — rastr feederu a OOM separace jsou dvě roviny (Sez. 18). Jen --buildings real.
@@ -1503,16 +1373,29 @@ def synthesize_pseudorealistic_map(
     if buildings == "real":
         building_mask_img = Image.new("L", (W, H), 0)   # GT maska budov (§8.1)
         bdraw = ImageDraw.Draw(building_mask_img)
-        # L2 displacement (Sez. 22): inverze kontroly LOKÁLNĚ pro budovy. Díky z-orderu jsou
-        # budovy poslední → pevná síť (voda+cesty) je hotová. Sběr budov BEZ kresby →
-        # odsazení od pevné sítě → kresba posunuté geometrie. Tolerance WFS obaluje jen SBĚR
-        # (to padá na síti); resolve+draw běží vždy na tom, co se sebralo.
-        collected = _try_layer(
-            "buildings", lambda: _collect_real_buildings(lat, lon, geo_bbox),
-            [], tolerant, layer_errors)
-        fixed_network = _fixed_network_px(path_features, water_line_features)
-        building_area_features, building_info = _resolve_and_draw_buildings(
-            draw, bdraw, collected, fixed_network)
+        # RAW kresba jako vodní plocha (Sez. 27): syrový ZABAGED půdorys, bez generalizace
+        # i displacementu (ty ničily tvar/polohu — voda je věrná, protože je RAW).
+        building_area_features, building_info = _try_layer(
+            "buildings", lambda: _generate_real_buildings(draw, bdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  budovy: %d (RAW půdorys)", len(building_info))
+
+    # --- řopíky / lehké opevnění LO37 (postprodukce, fáze 1 real, Sez. 27) ---
+    # Asset (budova 521 + vrstevnice náspu 101) natočený normálou linie řopíků + „čelní násep"
+    # VEN k nejbližší státní hranici. Kreslí se PO budovách (navrch); NEjde přes displacement
+    # (pevný asset). Budova → maska budov (vytvoř, je-li --buildings off), násep → maska vrstevnic
+    # (cdraw). Features pro .omap (řopík násep NEjde do contours.geojson). Jen --ropiky real.
+    ropik_features: list[tuple] = []
+    ropik_info: list[dict] = []
+    if ropiky == "real":
+        if building_mask_img is None:           # řopíky potřebují masku budov i bez --buildings real
+            building_mask_img = Image.new("L", (W, H), 0)
+            bdraw = ImageDraw.Draw(building_mask_img)
+        ropik_features, ropik_info = _try_layer(
+            "ropiky",
+            lambda: _generate_real_ropiky(draw, bdraw, cdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  řopíky: %d", len(ropik_info))
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
@@ -1563,17 +1446,25 @@ def synthesize_pseudorealistic_map(
                              water_omap_features, building_omap_features,
                              powerline_omap_features,
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap",
-                             ortho_template=ortho_template)
+                             ortho_template=ortho_template, ropik_features=ropik_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, buildings, powerlines,
                        pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
                        building_info, powerlines_info, omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
+    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · cesty %d · vrstevnice %d · "
+              "vedení %d · body %d · .omap objektů %d", out, len(building_info), len(ropik_info),
+              len(water_info), n_paths, n_contours, len(powerlines_info), len(point_symbols),
+              omap_counts["objects"])
     return out
 
 
 def main() -> None:
+    # CLI zapne INFO log → uvidí se průběh + souhrn ze synthesize (formát = holá zpráva,
+    # bez timestampů; warning vrstvy se pozná ze znění). batch.py basicConfig nevolá → tichý.
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     p = argparse.ArgumentParser(description="Syntéza pseudorealistické mapy výseku OB terénu "
                                             "(default reálná data ČÚZK; --terrain noise = procedurální Option 1).")
     p.add_argument("--location", choices=list(DEV_LOCATIONS), default=None,
@@ -1586,17 +1477,20 @@ def main() -> None:
     p.add_argument("--terrain", choices=["noise", "real"], default="real",
                    help="real = ČÚZK DMR 5G (default, §8.5), noise = fraktální šum (Option 1)")
     p.add_argument("--paths", choices=["proc", "real"], default="real",
-                   help="real = ČÚZK ZABAGED WFS (default), proc = procedurální Dijkstra "
+                   help="real = ČÚZK ZABAGED REST (default), proc = procedurální Dijkstra "
                         "(real vyžaduje --terrain real)")
     p.add_argument("--water", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED WFS toky+plochy (default), off = bez vody "
+                   help="real = ČÚZK ZABAGED REST toky+plochy (default), off = bez vody "
                         "(real vyžaduje --terrain real; proc hydro D8 = budoucí)")
     p.add_argument("--buildings", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED WFS plochy → ISOM 521 (default), off = bez budov "
+                   help="real = ČÚZK ZABAGED REST plochy → ISOM 521 (default), off = bez budov "
                         "(real vyžaduje --terrain real)")
     p.add_argument("--powerlines", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED WFS linie → ISOM 510 (default), off = bez vedení "
+                   help="real = ČÚZK ZABAGED REST linie → ISOM 510 (default), off = bez vedení "
                         "(real vyžaduje --terrain real)")
+    p.add_argument("--ropiky", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED Bunkr LO37 → asset řopík (default), off = bez řopíků "
+                        "(real vyžaduje --terrain real; jinde než u hranic 0 prvků)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -1625,8 +1519,8 @@ def main() -> None:
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=args.out,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, water=args.water, buildings=args.buildings,
-        powerlines=args.powerlines, ortho=args.ortho, ortho_mpp=args.ortho_mpp)
-    print(f"Hotovo -> {out.resolve()}")
+        powerlines=args.powerlines, ropiky=args.ropiky, ortho=args.ortho, ortho_mpp=args.ortho_mpp)
+    _log.info("výstup: %s", out.resolve())
 
 
 if __name__ == "__main__":

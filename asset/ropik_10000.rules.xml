@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Pravidla použití assetu řopík_10000.omap (samotná geometrie je v tom .omap).
+<!-- Pravidla použití assetu ropik_10000.omap (samotná geometrie je v tom .omap).
      AzimutLab asset pattern (vyjasněno Sez. 26): dvojice souborů
        <jméno>.omap       = vizuální vzor kreslený v Mapperu (přesná geometrie + ISOM symboly),
        <jméno>.rules.xml  = jak s ním generátor nakládá (co .omap nepojme).
      Řopík = lehké opevnění (ŘOP bunkr) na orienťácké mapě = budova (ISOM 521) na
      náspu (vrstevnice ISOM 101). Měřítko 1:10000. -->
-<asset_rules for="řopík_10000.omap" scale="10000">
+<asset_rules for="ropik_10000.omap" scale="10000">
   <rotation_rule>Natoč severní stranu (zasypaný čelní násep) kolmo k nejbližší státní hranici.</rotation_rule>
   <draw_order>Vrstevnice (101) leží POD budovou (521) — násep nesmí překrýt bunkr.</draw_order>
   <placement>Bod výskytu řopíku = jeho poloha; asset se umístí svým středem na tento bod.</placement>

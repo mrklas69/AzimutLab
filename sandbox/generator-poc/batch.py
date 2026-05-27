@@ -5,10 +5,10 @@ Dva režimy přes --terrain:
   - noise (default): fraktální šum, parametry (rug, det) losuje master-PRNG.
     Celá sada je reprodukovatelná z dvojice (--seed0, --n).
   - real: PLNÁ REALITA — reálný ČÚZK DMR 5G terén + reálné cesty/voda/budovy ze
-    ZABAGED WFS (Sez. 16-18) z různých lokalit ČR (CZ_LOCATIONS). Hlavní (a jediná)
+    ZABAGED REST (Sez. 16-18) z různých lokalit ČR (CZ_LOCATIONS). Hlavní (a jediná)
     variace je LOKALITA: rug se u reálného terénu neuplatní a cesty jdou ze ZABAGED
     (ne procedurálně z `det`). Sada je daná seznamem lokalit a dvojicí (--seed0, --n).
-    Robustnost: selhání WFS u jedné vrstvy/lokality ji jen vynechá (generate
+    Robustnost: selhání REST u jedné vrstvy/lokality ji jen vynechá (generate
     tolerant=True), batch jede dál; manifest zaznamená skutečné počty + chyby.
 
 Účel: ověřit, že generátor produkuje rozmanité mapy (ne one-off), a vyrobit
@@ -110,17 +110,20 @@ def main() -> None:
             # Reálný terén = PLNÁ REALITA: terén + cesty + voda + budovy ze ZABAGED.
             # Hlavní (a jediná) variace je LOKALITA; rug ani det se neuplatní (terén je
             # daný realitou, cesty jdou ze ZABAGED ne z det). Lokality cyklíme, když
-            # n > počet lokalit. tolerant=True → selhavší WFS vrstvu vynech, neshazuj sadu.
+            # n > počet lokalit. tolerant=True → selhavší REST vrstvu vynech, neshazuj sadu.
             name, lat, lon = CZ_LOCATIONS[i % len(CZ_LOCATIONS)]
             # batch jede na baseline výseku (DEF_WIDTH/HEIGHT_KM); rug/det u real nelosujeme
             # (variace = lokalita). Vedení (powerlines) batch zatím nedělá — viz docstring.
+            # ortho=False: ortofoto je vizuální verify-podklad pro člověka, ne data pro UC5
+            # feeder (ten se učí číst generovanou mapu) → dataset jím nezatěžujeme (Sez. 27).
+            # Vedení i řopíky batch zatím nedělá (dev-map vrstvy; jako u powerlines).
             synthesize_pseudorealistic_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", water="real", buildings="real", powerlines="off",
-                tolerant=True)
+                ropiky="off", tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
-            # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání WFS.
+            # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
             entry = {
                 "id": i, "dir": f"{i:03d}", "seed": seed,
@@ -144,7 +147,7 @@ def main() -> None:
             synthesize_pseudorealistic_map(
                 DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc",
-                water="off", buildings="off", powerlines="off")
+                water="off", buildings="off", powerlines="off", ropiky="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

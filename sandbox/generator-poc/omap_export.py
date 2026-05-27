@@ -15,7 +15,8 @@ Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 502-506, voda 304/305/3
 změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení template
 v OOM — id NEjsou pořadová: 503→110, 505→112).
 
-Georef: template má Local CRS (paper-space), scale 1:10000. Object coords jsou v µm na
+Georef: template má Local CRS (paper-space); jeho původní scale (1:15000) přepisujeme na
+generátorové MAP_SCALE (1:10000, nález Sez. 26 — viz write_omap). Object coords jsou v µm na
 PAPÍŘE; 1 m terénu = (1e6/scale) µm. Vycentrováno na (0,0), bez Y-flip (paper y i grid gy
 rostou dolů — stejná konvence jako contours.geojson).
 
@@ -30,7 +31,7 @@ from pathlib import Path
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
-# Cesty: proc větev dělá 503/505; reálná (ZABAGED WFS, Sez. 16) i 502/504/506. Voda (Sez. 17):
+# Cesty: proc větev dělá 503/505; reálná (ZABAGED REST, Sez. 16) i 502/504/506. Voda (Sez. 17):
 # toky 304/305/306 (liniové) + plocha 301.1 (plošný symbol — kombinovaný 301 s břehem je
 # type 16, nepřiřaditelný objektu). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
@@ -68,7 +69,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                gw: int, gh: int,
                world_w_m: float, world_h_m: float, scale: float,
                out_path: str | Path,
-               ortho_template: dict | None = None) -> dict:
+               ortho_template: dict | None = None,
+               ropik_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -124,7 +126,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                 f'<coords count="{len(coords)}">{coord_str}</coords></object>')
 
     objs: list[str] = []
-    n_contours = n_paths = n_water = n_buildings = n_powerlines = n_points = 0
+    n_contours = n_paths = n_water = n_buildings = n_powerlines = n_points = n_ropiky = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -149,6 +151,13 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = line_object(line, str(code))
         if o:
             objs.append(o); n_powerlines += 1
+    # řopíky (Sez. 27): asset = budova 521 (plocha) + vrstevnice náspu 101 (linie). Geometrie už
+    # natočená/umístěná generátorem; emise jako ostatní (521 area s close flagem, 101 line).
+    for geom, code in (ropik_features or []):
+        code = str(code)
+        o = area_object(geom, code) if code in AREA_CODES else line_object(geom, code)
+        if o:
+            objs.append(o); n_ropiky += 1
     # bodové symboly extrémů = bodové objekty (type 0, 1 souřadnice); 110 rotatable → rotation
     for ps in point_symbols:
         code = str(ps["symbol"])
@@ -207,4 +216,4 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     out_path.write_text(doc, encoding="utf-8")
     return {"contours": n_contours, "paths": n_paths, "water": n_water,
             "buildings": n_buildings, "powerlines": n_powerlines,
-            "points": n_points, "objects": len(objs)}
+            "ropiky": n_ropiky, "points": n_points, "objects": len(objs)}
