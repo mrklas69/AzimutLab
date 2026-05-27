@@ -95,9 +95,33 @@ def _apply_extent(w_km: float, h_km: float) -> None:
 _apply_extent(DEF_WIDTH_KM, DEF_HEIGHT_KM)   # inicializace globálů na default výsek
 
 # ISOM symboly vrstevnic (§4.5, ověřeno O-Map Wiki) — pro vektorový export (§9).
-# 103 Form line generátor zatím nedělá (rozšíření věrnosti).
 ISOM_CONTOUR = 101       # základní vrstevnice (Contour)
 ISOM_INDEX_CONTOUR = 102 # zvýrazněná každá pátá (Index contour)
+ISOM_FORMLINE = 103      # pomocná (čárkovaná) vrstevnice na poloviční ekvidistanci (Form line)
+
+# --- pomocné vrstevnice (form lines, ISOM 103) — heuristika z DMR (Sez. 29) ---
+# Form line = doplňková vrstevnice na POLOVIČNÍ ekvidistanci (CONTOUR_STEP/2 = 2,5 m). ISOM ji
+# povoluje JEN tam, kde běžné vrstevnice nezachytí tvar, a ZAKAZUJE jako "intermediate contour"
+# (plošné zahuštění). Proto dvě podmínky současně (návrh uživatele):
+#   (1) mírný svah  — rozestup sousedních vrstevnic > FORMLINE_SPACING_LIMIT_M (jinak se nevejde);
+#       rozestup = CONTOUR_STEP / sklon  ⟺  sklon < CONTOUR_STEP / FORMLINE_SPACING_LIMIT_M
+#   (2) zakřivený terén — |Laplacián výšky| > FORMLINE_CURV_MIN; na rovnoměrném (lineárním) svahu
+#       je Laplacián ≈ 0 → form line by jen kopírovala vrstevnici = zbytečná rovnoběžka.
+FORMLINE_SPACING_LIMIT_M = 40.0  # CONST_LIMIT_103: práh rozestupu vrstevnic [m] (víc = méně form lines)
+FORMLINE_CURV_MIN = 0.004        # min |křivost terénu| [1/m] — odfiltruje rovnoměrný svah (podmínka 2);
+                                 #   laděno na NL (Sez. 29): 0,0015 dalo 1466 (plošný šum); nižší práh =
+                                 #   víc tvarů (uživatel chtěl hustší), drobné fousky řeší MIN_LEN níže
+FORMLINE_SMOOTH_PASSES = 3       # kolikrát vyhladit elev (3×3 box) před derivacemi — tlumí mikro-texturu
+                                 #   DMR, kterou Laplacián jinak zachytí jako falešné form lines všude
+FORMLINE_MIN_LEN_MM = 3.0        # minimální délka form line na papíře [mm] (footprint ~30 m). ISOM
+                                 #   minimum je 1,1 mm, ale volíme PŘÍSNĚJI (uživatel Sez. 29) — kratší
+                                 #   úseky jsou „fousky" (vizuální šum), ne plnohodnotný terénní tvar
+FORMLINE_DASH_PX = 2.0 * PX_PER_MM   # render dash (template 103: dash 2,0 mm); .omap nese pravý symbol
+FORMLINE_BREAK_PX = 0.5 * PX_PER_MM  # render break: ZVĚTŠEN proti template (0,2 mm = 0,9 px = sub-px,
+                                     #   v rastru neviditelný → form line splývá s 101). 0,5 mm je
+                                     #   čitelně čárkované. .omap nese věrný symbol 103 (OOM renderuje
+                                     #   0,2 mm autoritativně) — jako render-vs-omap u cest/železnice.
+FORMLINE_CLASS = 1               # třída v mask_formlines.png (0 = pozadí, jediná třída)
 
 # Bodové symboly lokálních extrémů (§4.10) — generalizace malých uzavřených
 # vrstevnic. V ISOM se příliš malý kopeček/prohlubeň nekreslí prstencem vrstevnice,
@@ -664,7 +688,8 @@ def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | 
     xmin, ymin, xmax, ymax = bbox
     sx = (xmax - xmin) / (GW - 1)   # metrů na buňku mřížky, osa x
     sy = (ymax - ymin) / (GH - 1)   # metrů na buňku mřížky, osa y
-    names = {ISOM_CONTOUR: "Contour", ISOM_INDEX_CONTOUR: "Index contour"}
+    names = {ISOM_CONTOUR: "Contour", ISOM_INDEX_CONTOUR: "Index contour",
+             ISOM_FORMLINE: "Form line"}
     geo_features = []
     for line, code in features:
         # mřížka → world metry; round na cm stačí (zdrojový grid je 2 m nativně)
@@ -728,6 +753,68 @@ def _classify_loop(line: np.ndarray, level: float, elev: np.ndarray,
     return {"symbol": ISOM_SMALL_DEPRESSION, "gx": cx, "gy": cy, "horiz": True}   # lokální min
 
 
+def _box_smooth(a: np.ndarray) -> np.ndarray:
+    """3×3 box průměr — potlačí šum DMR PŘED derivacemi (druhá derivace = Laplacián šum
+    zesiluje). Okraje replikací (`np.pad mode="edge"`). Devět posunutých výseků
+    vypadlého paddingu sečteme a vydělíme 9 (klasický box filtr bez scipy)."""
+    p = np.pad(a, 1, mode="edge")
+    return (p[:-2, :-2] + p[:-2, 1:-1] + p[:-2, 2:]
+            + p[1:-1, :-2] + p[1:-1, 1:-1] + p[1:-1, 2:]
+            + p[2:, :-2] + p[2:, 1:-1] + p[2:, 2:]) / 9.0
+
+
+def _formline_mask(elev: np.ndarray, cell_w_m: float, cell_h_m: float) -> np.ndarray:
+    """Bool maska mřížky (GH, GW): kde má smysl kreslit pomocnou vrstevnici (ISOM 103).
+
+    Dvě podmínky současně (viz konstanty FORMLINE_*):
+      (1) mírný svah    — sklon < CONTOUR_STEP / FORMLINE_SPACING_LIMIT_M (rozestup > limit),
+      (2) zakřivený terén — |Laplacián výšky| > FORMLINE_CURV_MIN (ne rovnoměrný svah).
+    `np.gradient(z, dy, dx)` vrací první derivace ve FYZIKÁLNÍCH jednotkách (m/m), když mu
+    předáme rozteč buňky [m] pro každou osu. Druhá aplikace na složky → druhé derivace
+    (Laplacián = ∂²z/∂x² + ∂²z/∂y², jednotka 1/m). Vyhlazení _box_smooth tlumí šum.
+    """
+    sm = elev
+    for _ in range(FORMLINE_SMOOTH_PASSES):        # opakované vyhlazení ≈ širší jádro (KISS bez scipy)
+        sm = _box_smooth(sm)
+    gy, gx = np.gradient(sm, cell_h_m, cell_w_m)   # ∂z/∂y (osa 0 = řádky), ∂z/∂x (osa 1 = sloupce)
+    slope = np.hypot(gx, gy)
+    slope_limit = CONTOUR_STEP / FORMLINE_SPACING_LIMIT_M
+    gyy = np.gradient(gy, cell_h_m, axis=0)
+    gxx = np.gradient(gx, cell_w_m, axis=1)
+    curv = np.abs(gxx + gyy)                        # |Laplacián| [1/m]
+    return (slope < slope_limit) & (curv > FORMLINE_CURV_MIN)
+
+
+def _clip_line_to_mask(line: np.ndarray, mask: np.ndarray) -> list[list[tuple[float, float]]]:
+    """Rozdělí polylinii (souřadnice mřížky) na úseky ležící v True oblasti `mask`.
+
+    Form line se kreslí jen v plochém/zakřiveném terénu (maska), ne po celé délce poloviční
+    izolinie. Sampluje masku v nejbližší buňce každého bodu; souvislé True body = jeden úsek
+    (≥2 body). Tím vznikne „část pomocné vrstevnice" jen tam, kde je opodstatněná (uživatel)."""
+    h, w = mask.shape
+    segs: list[list[tuple[float, float]]] = []
+    cur: list[tuple[float, float]] = []
+    for gx, gy in line:
+        ix = int(np.clip(round(float(gx)), 0, w - 1))
+        iy = int(np.clip(round(float(gy)), 0, h - 1))
+        if mask[iy, ix]:
+            cur.append((float(gx), float(gy)))
+        elif len(cur) >= 2:
+            segs.append(cur)
+            cur = []
+        else:
+            cur = []
+    if len(cur) >= 2:
+        segs.append(cur)
+    return segs
+
+
+def _polyline_len_px(pts: list[tuple[float, float]]) -> float:
+    """Délka oblouku polyčáry v pixelech (součet délek úseček)."""
+    return sum(math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+               for i in range(len(pts) - 1))
+
+
 def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                        ps: dict) -> None:
     """Nakreslí jeden bodový symbol extrému na mapu (`draw`) i do GT masky (`mdraw`).
@@ -761,7 +848,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                 railways_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
-                n_contours: int, n_paths: int, paths_info: list[dict],
+                n_contours: int, n_formlines: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], water_info: list[dict], paved_info: list[dict],
                 building_info: list[dict], powerlines_info: list[dict],
                 railways_info: list[dict], omap_info: dict,
@@ -801,8 +888,17 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
         "contours_vector": {
             "file": "contours.geojson",
             "crs": ("EPSG:5514" if crs_epsg else "local_m"),
-            "n_lines": n_contours,
-            "symbols": {"101": "Contour", "102": "Index contour"},
+            "n_lines": n_contours,   # vč. pomocných vrstevnic 103 (jsou ve stejném souboru)
+            "symbols": {"101": "Contour", "102": "Index contour", "103": "Form line"},
+        },
+        # pomocné vrstevnice (form lines, ISOM 103): počet, GT maska, heuristika fáze 1 z DMR
+        # (rozestup vrstevnic > limit AND zakřivený terén). Jen reálný terén (Sez. 29).
+        "formlines": {
+            "count": n_formlines,
+            "mask": "mask_formlines.png",
+            "source": ("cuzk_dmr5g" if terrain == "real" else "none"),
+            "spacing_limit_m": FORMLINE_SPACING_LIMIT_M,
+            "curv_min_per_m": FORMLINE_CURV_MIN,
         },
         # cesty (§4.9): počet, GT maska, zdroj, ISOM symboly + třídy masky (dynamicky)
         "paths": {
@@ -1446,6 +1542,31 @@ def synthesize_pseudorealistic_map(
                 contour_features.append((line, symbol))   # grid souřadnice → georef ve vektor exportu
     _log.info("  vrstevnice: %d · body extrémů: %d", len(contour_features), len(point_symbols))
 
+    # --- pomocné vrstevnice (form lines, ISOM 103): jen reálný terén (Sez. 29) ---
+    # Čárkovaná vrstevnice na POLOVIČNÍ ekvidistanci (level + 2,5 m). Heuristika fáze 1 z DMR:
+    # kreslíme jen úseky v masce `_formline_mask` (mírný svah AND zakřivený terén) — tím se vyhneme
+    # ISOM zákazu "intermediate contours" (rovnoběžka na rovnoměrném svahu). Jen `terrain=="real"`:
+    # noise terén je umělý perlin (form line tam nemá doménový smysl) a drží proc baseline.
+    formline_features: list[tuple] = []
+    fmask_img = Image.new("L", (W, H), 0)           # GT maska form lines (§8.1, jediná třída)
+    fdraw = ImageDraw.Draw(fmask_img)
+    if terrain == "real":
+        fmask = _formline_mask(elev, cell_w_m, cell_h_m)
+        half = CONTOUR_STEP / 2.0                   # poloviční ekvidistance [m]
+        min_len_px = FORMLINE_MIN_LEN_MM * PX_PER_MM
+        # poloviční hladina mezi každou dvojicí sousedních vrstevnic = právě JEDNA form line
+        # (level+2,5 m) → ISOM pravidlo „jen jedna mezi vrstevnicemi" splněno automaticky
+        for level in range(lo, hi + 1, CONTOUR_STEP):
+            for line in cont.lines(level + half):
+                for seg in _clip_line_to_mask(line, fmask):
+                    pts = [_grid_to_px(x, y) for x, y in seg]
+                    if _polyline_len_px(pts) < min_len_px:   # ISOM minimální délka (1,1 mm)
+                        continue
+                    _draw_dashed(draw, fdraw, pts, C_BROWN, FORMLINE_CLASS,
+                                 dash=FORMLINE_DASH_PX, gap=FORMLINE_BREAK_PX, width=1)
+                    formline_features.append((np.asarray(seg, dtype=float), ISOM_FORMLINE))
+        _log.info("  pomocné vrstevnice (103): %d", len(formline_features))
+
     # --- bodové symboly lokálních extrémů (§4.10): hnědé kopečky/prohlubně ---
     # Rastr z-order: hned po vrstevnicích = POD vodou/cestami/budovami (hnědý terénní detail,
     # černé komunikace ho přirozeně překryjí — tak ho vidí oko na reálné mapě). Sez. 18:
@@ -1591,6 +1712,7 @@ def synthesize_pseudorealistic_map(
             # podklad pod mapou s 50% průhledností; img_w/h = skutečné rozlišení fetche
             ortho_template = {"name": "ortofoto.png", "img_w": o_w, "img_h": o_h, "opacity": 0.5}
     cmask_img.save(out / "mask_contours.png")
+    fmask_img.save(out / "mask_formlines.png")                              # pomocné vrstevnice 103 (GT)
     path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
     if water_mask_img is not None:
@@ -1603,8 +1725,9 @@ def synthesize_pseudorealistic_map(
         railway_mask_img.save(out / "mask_railways.png")                    # železnice (GT)
     if paved_mask_img is not None:
         paved_mask_img.save(out / "mask_paved.png")                         # zpevněné plochy (GT)
-    # vektorový export vrstevnic (§9): ISOM 101/102 linie, georef (real = S-JTSK)
-    n_contours = _write_contours_geojson(contour_features, geo_bbox, crs_epsg,
+    # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
+    # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
+    n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
                                          out / "contours.geojson")
     # .omap export (§9): vrstevnice + cesty + voda + body do uživatelova čistého ISOM 2017-2
     # template (template_classic.omap, Sez. 14). Vodní toky 304/305/306 = liniové objekty;
@@ -1624,6 +1747,9 @@ def synthesize_pseudorealistic_map(
     # 501.1 (bez obrysu, jako voda). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní
     # area-část kombinovaného symbolu a nakreslí obrys (jako u vody 301 combined).
     paved_omap_features = [(g, "501") for g, _ in paved_area_features]
+    # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
+    # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
+    formline_omap_features = [(g, "103") for g, _ in formline_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
@@ -1631,18 +1757,20 @@ def synthesize_pseudorealistic_map(
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap",
                              ortho_template=ortho_template, ropik_features=ropik_features,
                              railway_features=railway_omap_features,
-                             paved_features=paved_omap_features)
+                             paved_features=paved_omap_features,
+                             formline_features=formline_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,
                        pseudorealistic, lat, lon, elev,
-                       crs_epsg, n_contours, n_paths, paths_info, point_symbols, water_info,
+                       crs_epsg, n_contours, len(formline_features), n_paths, paths_info, point_symbols, water_info,
                        paved_info, building_info, powerlines_info, railways_info, omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
-    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d · "
-              "vedení %d · železnice %d · body %d · .omap objektů %d", out, len(building_info),
-              len(ropik_info), len(water_info), len(paved_info), n_paths, n_contours,
-              len(powerlines_info), len(railways_info), len(point_symbols), omap_counts["objects"])
+    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d "
+              "(pomocné %d) · vedení %d · železnice %d · body %d · .omap objektů %d", out, len(building_info),
+              len(ropik_info), len(water_info), len(paved_info), n_paths, len(contour_features),
+              len(formline_features), len(powerlines_info), len(railways_info), len(point_symbols),
+              omap_counts["objects"])
     return out
 
 
