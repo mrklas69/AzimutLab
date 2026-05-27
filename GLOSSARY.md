@@ -26,18 +26,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   hnědý oblouk „⌣"; staré 2017 = 115). Generátor z malých uzavřených vrstevnic (lokální
   min). **112 Pit** (jiná feature class — umělá/erozní díra) generátor nedělá (neodvoditelný
   z výškopisu).
-- **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy (reálná OB mapa NENÍ
-  syrová geometrie). V generátoru: (1) malý kopeček/prohlubeň → bodová značka místo prstence
-  (§4.10); (2) **min. velikost** — budova pod ISOM 0,5 mm se kreslí na minimum (`_enforce_min_size`,
-  Sez. 18); (3) **zjednodušení obrysu** — Douglas-Peucker (`_simplify_polyline`, detail pod 0,3 mm
-  passage se zhrubí). Rozměry ze spec přes `PX_PER_MM` (≈4,58 px/mm při 1:10000). **Úroveň 2 =
-  displacement** (viz níže). Pořadí: L1 (tvar) → L2 (poloha).
-- **Displacement (Úroveň 2 generalizace)** — odsazení kolidujících objektů na ISOM min. čitelnou
-  mezeru 0,4 mm (≈1,83 px); poloha mírně ustoupí ve prospěch čitelnosti. Generátor (Sez. 22,
-  `resolve_displacement`): budovy se kolmo odsadí od pevné sítě (cesty+toky = kotva) a symetricky
-  od sebe; budova = tuhé těleso → translace celého ringu (netvaruje se), strop 0,8 mm, 8 iterací.
-- **Douglas-Peucker** — algoritmus zjednodušení polylinie: zředí vrcholy pod toleranci, zachová
-  významné (rohy). Generátor jím generalizuje obrys budov (`_simplify_polyline`, Sez. 18).
+- **Kartografická generalizace** — zjednodušení reality pro čitelnost mapy. V generátoru zbyla jen
+  (1) malý kopeček/prohlubeň → bodová značka místo prstence (§4.10). **Generalizace BUDOV byla zavržena
+  (Sez. 27):** min. velikost (`_enforce_min_size`), Douglas-Peucker obrys, orthogonalizace/pravoúhlost
+  (Sez. 27) i displacement (L2, Sez. 22) komolily skutečný tvar/polohu → smazáno, budovy kresleny **RAW
+  jako voda**. Zásada: **generalizuj jen s důkazem, raw je default** (CLAUDE.md). [[budova-stavba]]
 - **Draw order / priorita barev** — pořadí vykreslování vrstev v OOM. Určuje ho **pořadí (priorita)
   BAREV** v mapě (nižší priorita = navrch; Purple overprint = 0 = úplně navrch), NE pořadí symbolů
   ani objektů. Závazně definované IOF (*Printing and Colour Definitions*, kap. 7); krycí klony
@@ -57,12 +50,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Crossable watercourse (hlavní, pojmenovaný) / **305** Small crossable watercourse (přítok) /
   **306** Minor/seasonal water channel (občasný, čárkovaný); plochy **301** Uncrossable body
   of water (výplň + břehová linie). **312 Spring** (pramen — pozor, ne 313 = Prominent water
-  feature). Generátor `--water real` (Sez. 17): reálná půlka ze ZABAGED `Vodní_tok`/`Vodní_plocha`;
-  podzemní toky (`typtoku_k=004`) se nekreslí. Procedurální voda (hydro jádro D8) = budoucí noise-půlka.
+  feature). Generátor `--water real` (Sez. 17): reálná půlka ze ZABAGED `Vodní_tok`/`Vodní_plocha`
+  + `Pozemní_nádrž` (umělé nádrže vč. **koupališť/bazénů** `podtypob_k='BA'` → 301, Sez. 27 — Lesní
+  koupaliště LS chybělo, je nádrž ne `Vodní_plocha`); podzemní toky (`typtoku_k=004`) se nekreslí.
 - **Budova / stavba** — umělý objekt na OB mapě. ISOM **521 Building** (plošný černý symbol,
   výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
   `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem
   taky 521). Render izomorfní s vodní plochou 301 (`_draw_area_symbol`), jen černá místo modré.
+  **RAW půdorys (Sez. 27):** kresleno přesně jako voda (syrový ZABAGED ring), BEZ generalizace či
+  displacementu — ty komolily tvar/polohu (viz [[kartografická-generalizace]]).
 - **El. vedení** — elektrické vedení na OB mapě. ISOM **510 Power line, cableway or skilift**
   (tenká černá linie s kolmými příčkami na SLOUPECH — běžci se jimi řídí). Generátor `--powerlines
   real` (Sez. 24): reálná půlka ze ZABAGED `Elektrické_vedení` (linie → osa) + `Stožár_elektrického_
@@ -78,8 +74,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 
 - **Řopík** (lehké opevnění, ŘOP vz.37) — betonový pohraniční bunkr (čs. opevnění 30. let). V ZABAGED
   bodová vrstva `Bunkr` (`typbunkr_k='LO37'`). Na OB mapě = bodový orientační prvek (NE budova 521):
-  asset `řopík_10000.omap` (bunkr na náspu), orientace = normála na linii řopíků; k hranici je zasypaná
-  strana (ochrana před dělostřelectvem), střílny do vnitrozemí (dvě řady). Sez. 26.
+  asset `ropik_10000.omap` (bunkr na náspu). Generátor `--ropiky real` (integrace Sez. 27): `fetch_bunkers`
+  + asset placement; orientace = normála na lokální linii řopíků, „čelní zasypaný násep" VEN k nejbližší
+  **státní hranici** (`Hranice správní jednotky` `vyzn_zsh_k='1'`, univerzální ČR — sever u SV, JV u Šumavy).
+  Fáze 1 (projekce, real data), NE pseudorealistická dekorace. Sez. 26-27.
 
 ## Data a geoinformatika
 

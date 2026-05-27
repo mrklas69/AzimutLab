@@ -20,6 +20,12 @@ viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.
   (`rgb.png` přes Read), neptej se „chceš vidět?". Uživatel je rozhodující článek
   vizuálního verify (oko = source, doplněk verify-against-source). Proč/detail:
   paměť `always-show-visual-output`.
+- **Generalizuj jen v odůvodněných případech — raw je default.** Reálná geodata (ZABAGED)
+  jsou už věrný zdroj; nepřidávej generalizační vrstvu, dokud konkrétní vada nedokáže, že je
+  potřeba. Generalizace půdorysu budov (Sez. 18 DP/min-size → Sez. 27 orthogonalizace +
+  displacement) způsobila víc problémů než užitku (komolení tvaru, lichoběžníky, špatná
+  orientace malých, neškálovatelný O(n²)) → **zavrženo, návrat k raw kresbě jako voda** (voda
+  byla od začátku dokonalá právě proto, že raw). Lekce: „nejdřív raw, generalizuj až s důkazem".
 
 ## %THINK — doménové rozšíření
 U map/CV/generování zvaž: ISOM↔ISSprOM spec rozdíly, paper-space vs world georef,

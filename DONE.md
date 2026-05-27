@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 27 (2026-05-27) — %AUDIT:CODE + budovy RAW (pravoúhlost zavržena) + koupaliště + řopíky + logging
+- [x] **%AUDIT:CODE** (D1-D5+K1-K4, kritické 0): WFS→REST terminologický drift (~25 míst, vč. CLI help);
+      `batch.py` `ortho=False`; asset `řopík_10000.*`→`ropik_10000.*` (ASCII); smazán `__future__` import;
+      `map_to_isom`→`map_path_to_isom`; z-order/scale/shebang/„WFS"→„REST" kosmetika. Baseline 65 drží.
+- [x] **Pravoúhlost budov → ZAVRŽENA → budovy RAW.** Implementováno (dominantní osa + tolerantní snap ±15° +
+      slučování hran + rekonstrukce rohů; verify LS 96,4 % hran near-orto, 214 výjimek). ALE generalizace komolila
+      tvar (budova 1028994: 15→5 vrcholů) → uživatel „kresli budovy jako vodu". **Smazáno ~430 LOC**: L1 generalizace
+      (DP/min-size Sez. 18 + orthogonalizace) + L2 displacement (Sez. 21-22) + `diagnose_displacement.py`. Nový
+      `_generate_real_buildings` = raw jako `_generate_real_water`. **Ponaučení → CLAUDE.md: generalizuj jen s důkazem.**
+- [x] **Koupaliště (#1)** — `Pozemní_nádrž` (id 107, `podtypob_k='BA'` bazén) → ISOM 301. Lesní koupaliště LS
+      (~1934 m²) chybělo, protože je nádrž, ne `Vodní_plocha`. Přidáno do `WATER_AREA_LAYERS` + `map_water_to_isom`.
+- [x] **Řopíky (#2) — generátorová integrace.** `zabaged.fetch_bunkers` (Bunkr LO37) + `fetch_state_border`
+      (`vyzn_zsh_k='1'` = státní hranice, ověřeno). Asset loader (jen mapové objekty z `<objects>` — oprava parsovacího
+      bugu). Orientace = PCA-normála linie řopíků, „ven" k nejbližší státní hranici (univerzální ČR, ruší `OUTWARD=sever`).
+      `--ropiky off|real`, postprod fáze v `synthesize_pseudorealistic_map`. SV 70 řopíků (70/70 na sever k hranici).
+- [x] **Logging** v `synthesize_pseudorealistic_map` — `logging` (ne print), INFO průběh po vrstvách + finální souhrn;
+      CLI zapíná (`main`→`basicConfig`), `batch.py` tichý. `_try_layer` stderr→`_log.warning`. Nápad uživatele.
+- [x] Přegenerováno SV (1078 budov+70 řopíků) / NL (124) / LS (8273) — vše RAW, `layer_errors=None`.
+
 ## Sezení 26 (2026-05-27) — Ortofoto podklad + WFS→REST (města kompletní) + asset pattern + reálné řopíky
 - [x] **Ortofoto podklad (3a, verify proti realitě)** — `connectors/ortofoto.py` (ČÚZK ORTOFOTO MapServer
       `arcgis1`, S-JTSK 5514, CC BY 4.0, sdílený `build_bbox`, **dlaždicování** nad strop 4096 px). Generátor
@@ -13,7 +32,7 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       `f=geojson` (parsery beze změny), oprava `typuskom_k` (REST malými, WFS velkými — chyceno verify PŘED kódem).
       **Města kompletní:** SV budovy 1000→**1078**, **LS 1000→8273** budov + 3951 cest. Verify `temp/probe_rest_paging.py` (overlap 0).
 - [x] **Asset pattern** — dvojice `<jméno>.omap` (vizuální vzor kreslený v OOM) + `<jméno>.rules.xml` (pravidla).
-      `asset/řopík_10000.omap` (budova 521 + vrstevnice 101) + `.rules.xml` (`rotation_rule`, `draw_order`, `source`).
+      `asset/ropik_10000.omap` (budova 521 + vrstevnice 101) + `.rules.xml` (`rotation_rule`, `draw_order`, `source`).
 - [x] **Reálné řopíky na SV** — ZABAGED `Bunkr` (id 37, `typbunkr_k='LO37'` = lehký objekt vz.37), 70 bodů.
       Orientace = NORMÁLA na lokální linii řopíků (PCA okolí; nápad uživatele). Post-proces vložil 70 do SV map.omap.
 - [x] **Měřítko fix** — `omap_export` přepisuje georef template (15000) na `MAP_SCALE` (10000); nesoulad (side-finding) opraven.

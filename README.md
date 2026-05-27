@@ -10,12 +10,14 @@ generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-tr
 least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
 109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
 domain gap). Draws real terrain from ČÚZK DMR 5G (`--terrain real`) and — since session 16 — real paths from
-ČÚZK ZABAGED Polohopis WFS (`--paths real`, ISOM 502-506), — since session 17 — real water from the same
-`zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301), and — since session 18 —
-real buildings (`--buildings real`, ISOM 521) with level-1 cartographic generalization (min. size + Douglas-Peucker
-outline) and — since session 22 — level-2 displacement (buildings nudged off the fixed road/water network to the
-ISOM 0,4 mm minimum gap; `resolve_displacement`), and — since session 24 — real power lines (`--powerlines real`,
-ISOM 510, with cross-ticks placed on real pylons from `Stožár_elektrického_vedení`, not invented). `zabaged.py`
+ČÚZK ZABAGED Polohopis (ArcGIS REST since session 26; `--paths real`, ISOM 502-506), — since session 17 — real
+water from the same `zabaged.py` connector (`--water real`, watercourses ISOM 304/305/306 + water bodies 301,
+incl. swimming pools from `Pozemní_nádrž` since session 27), and — since session 18 — real buildings
+(`--buildings real`, ISOM 521), drawn as **RAW footprints exactly like water** (session 27 dropped the earlier
+level-1 generalization + level-2 displacement — they distorted the true shape; faithful raw data serves the feeder
+better — *generalize only with evidence*), and — since session 24 — real power lines (`--powerlines real`,
+ISOM 510, cross-ticks on real pylons), and — since session 27 — real pillboxes (`--ropiky real`, Czechoslovak
+fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border). `zabaged.py`
 (sibling of `dmr.py`) is the first real UC2 connector. Exports contours+paths+water+buildings+powerlines+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
@@ -32,8 +34,10 @@ where no pylon is recorded; future: vegetation). Session 25 realised the long-pl
 (the noise/Option-1 branch + per-layer toggles kept as a keyword-only tail) and added `--location`
 dev shortcuts (`DEV_LOCATIONS`: Soví vrch / Nová louka / Lidové sady, all at 6×4 km; Lidové sady
 rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future task). Verify-against-source
-on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request (paging unreliable →
-deferred to TODO; bites dense towns, not forest ISOM extents).**
+on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request — **fixed in session 26 by
+switching `zabaged.py` from WFS to ArcGIS REST `MapServer/<id>/query`** with reliable `resultOffset` paging
+(dense towns now complete: SV 1078, LS 8273 buildings). Session 27 added a `logging` progress/summary to
+`synthesize_pseudorealistic_map` (CLI shows it; batch stays quiet).**
 
 ## What this is
 
@@ -98,7 +102,7 @@ docs/
     zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths + water + buildings + power lines (WFS, GeoJSON); --paths/--water/--buildings/--powerlines real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/water/buildings/power lines/pillboxes (ArcGIS REST, GeoJSON); --paths/--water/--buildings/--powerlines/--ropiky real
 sandbox/               # UC1: isolated experiments, one folder each
   generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + buildings + extremum symbols + masks)
                        #     consumes connectors/ for real terrain, paths, water & buildings; adds them to sys.path

@@ -136,21 +136,20 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   (plošný černý symbol, izomorfní s vodní plochou 301). Bodová vrstva budov prázdná → netáhne se.
   Vodojem → taky 521 (rozhodnutí uživatele-mapéra). Real-půlka kompletní pro cesty+voda+budovy.
 
-## Kartografická generalizace (Sez. 18)
+## Kartografická generalizace budov — ZAVRŽENO (Sez. 27)
 
-Reálná OB mapa NENÍ syrová geometrie — kartograf vynucuje minimální dimenze, zjednodušuje obrysy,
-odsazuje kolidující objekty (*displacement*). Syrová data zvětšují domain gap feederu (UC5 se učí
-číst GENERALIZOVANOU mapu). Rozměry ze spec (ISOM, `template_classic.omap`, papírové mm × `PX_PER_MM`).
-GT zůstává konzistentní (maska z téže generalizované geometrie).
+**Celá generalizace budov byla zavržena (Sez. 27): budovy se kreslí RAW jako voda.** Domněnka, že
+„feeder se učí číst GENERALIZOVANOU mapu", se nepotvrdila — generalizace KOMOLILA skutečný tvar
+(budova 1028994: 15 vrcholů → 5 zkomolených; lichoběžníky z obdélníků; špatná orientace malých).
+Voda byla od začátku dokonalá právě proto, že raw. **Zásada → CLAUDE.md: generalizuj jen s důkazem,
+raw je default.** Historie přístupů (smazáno ~430 LOC + `diagnose_displacement.py`):
 
-- **Úroveň 1 → DONE (Sez. 18):** min. velikost budovy 0,5 mm (`_enforce_min_size`), zjednodušení
-  obrysu Douglas-Peucker (`_simplify_polyline`, 0,3 mm passage), tloušťka 505 → 2 px. Levné, foundational.
-- **Úroveň 1b — pravoúhlost budov (→ TODO `[!]`, fokus Sez. 23):** lidská obydlí ≈ 99 % obdélníky;
-  reálné ZABAGED footprinty mají šikmé/zaoblené hrany a Douglas-Peucker je nenarovná na pravé úhly →
-  na mapě je pravoúhlá sotva polovina (nález uživatele Sez. 22). Orthogonalizace TVARU: dominantní osa
-  budovy + snap hran na násobky 90°, příp. min-area bounding rectangle u malých. **Nezávislé na L2**
-  (displacement translatuje tuhý ring, tvar neřeší). Metoda k probrání (uživatelovy noty).
-- **Úroveň 2 — displacement → DONE (Sez. 22):** odsazení budov od pevné sítě (cesty+toky=kotva) a od
+- **Úroveň 1 (Sez. 18, ZAVRŽENO Sez. 27):** min. velikost 0,5 mm (`_enforce_min_size`), Douglas-Peucker
+  obrys (`_simplify_polyline`). Komolilo malé budovy na obdélníky + DP dělalo lichoběžníky.
+- **Úroveň 1b — pravoúhlost budov (implementováno Sez. 27, ZAVRŽENO):** dominantní osa + tolerantní snap
+  hran ±15° na 90° + rekonstrukce rohů (verify LS: 96,4 % hran near-orto, 214 výjimek zachováno). Fungovalo
+  na syntetice, ale na reálných footprintech ubíralo věrnost → uživatel „kresli jako vodu".
+- **Úroveň 2 — displacement (Sez. 22, ZAVRŽENO Sez. 27):** odsazení budov od pevné sítě (cesty+toky=kotva) a od
   sebe na ISOM 0,4 mm (≈1,83 px). `resolve_displacement` — greedy kolmé odsazení (mezera k OKRAJI),
   budova↔budova symetricky, strop 0,8 mm, 8 iterací. Budova = tuhé těleso → translace celého ringu.
   - **Krok 0 (Sez. 21):** Č. Švýcarsko ~28/99 v kolizi, dominuje budova↔cesta, shluky budov ~0

@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | WFS, ATOM, WMS/WMTS | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
@@ -73,7 +73,7 @@ i lokální `lasertool` (viz `tools-models.md`) vegetaci zvládly. Vědomě **od
 tvorby map z reálných podkladů**; teď je cíl generovat realisticky vyhlížející mapy (vektor
 vrstevnic z DMR 5G, gate netřeba). Až přijde konzument, prověřit zdroj + licenci znovu.
 
-### ZABAGED komunikace — WFS konektor (POUŽITO, Sez. 16)
+### ZABAGED komunikace — REST konektor (POUŽITO, Sez. 16)
 První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do generátoru
 (real-půlka §4.9, izomorfní s `dmr.py` výškopisem). Ověřeno proti zdroji (verify-against-source):
 - **Endpoint (Sez. 26 přechod WFS→REST):** `https://ags.cuzk.gov.cz/arcgis/rest/services/ZABAGED_POLOHOPIS/MapServer/<id>/query`
@@ -85,7 +85,7 @@ První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do gen
 - **CRS:** S-JTSK (EPSG:5514), shoda s DMR. Axis order odpovědi = **[x, y] = [easting, northing]**
   (ověřeno: x ≈ -714 tis, y ≈ -964 tis pro Děčínsko) → žádný axis swap.
 - **Feature typy komunikací (`PATH_LAYERS`):** `Cesta` (atributy `typcesty_k`, `povrch_k`), `Pěšina`
-  (`TYPUSKOM_K`), `Silnice__dálnice` (`typsil_k`), **`Silnice_neevidovaná`** (účelové/lesní asfaltky mimo
+  (`typuskom_k`), `Silnice__dálnice` (`typsil_k`), **`Silnice_neevidovaná`** (účelové/lesní asfaltky mimo
   silniční evidenci — doplněno Sez. 23), `Ulice`. `Turistická_trasa` **vynechána** (vede po existující
   cestě → duplikace sítě). **Princip (Sez. 23, uživatel): stahovat VŠECHNY relevantní vrstvy, ne vybrané**
   — `Silnice_neevidovaná` původně chyběla → páteřní asfaltka Bedřichov→Nová louka na mapě úplně chyběla.
@@ -96,12 +96,13 @@ První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do gen
   — u každé vrstvy ISOM symbol, nebo důvod nepoužití; akční seznam kandidátů na doplnění.
 - **Mapování → ISOM** (fyzický stav = ISOM logika sjízdnosti, ne 1:1): Silnice/Ulice → 502 Wide road;
   Silnice_neevidovaná → 503 Road (zpevněná účelová <5 m); Cesta zpevněná (`povrch_k` Z/T) → 503 Road,
-  nezpevněná (None) → 504 Vehicle track; Pěšina udržovaná (`TYPUSKOM_K` 026) → 505 Footpath, neudržovaná
-  → 506 Small footpath. (Viz `zabaged.map_to_isom`.)
+  nezpevněná (None) → 504 Vehicle track; Pěšina udržovaná (`typuskom_k` 026) → 505 Footpath, neudržovaná
+  → 506 Small footpath. (Viz `zabaged.map_path_to_isom`.)
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED) — atribuce povinná, uložena v `meta.json` (`paths.licence`).
-- **Limit:** WFS 10 000 features/request — pro výsek ~1,5×1 km bohatě stačí (Děčínsko = 58 linií).
+- **Limit:** REST `maxRecordCount` 2000/dávku → sériová paging smyčka (`resultOffset += 2000`) stáhne i hustá
+  města kompletní (Sez. 26 — dřív WFS uřezával na 1000 + rozbitý paging). SV 1078, LS 8273 budov.
 
-### ZABAGED vodstvo — WFS konektor (POUŽITO, Sez. 17)
+### ZABAGED vodstvo — REST konektor (POUŽITO, Sez. 17)
 Rozšíření téhož konektoru o hydrografii (real-půlka, `fetch_water` / `map_water_to_isom`). Stejný
 endpoint / CRS / GeoJSON / axis [x,y] jako komunikace. Ověřeno proti zdroji na výřezu Soví vrchu:
 - **Feature typy:** `Vodní_tok` (toky; `vydattok_p` stálý/občasný, `typtoku_k` 004=podzemní, `jmeno`),
@@ -113,7 +114,7 @@ endpoint / CRS / GeoJSON / axis [x,y] jako komunikace. Ověřeno proti zdroji na
 - **Pozn. ISOM:** pramen = **312 Spring** (ne 313 = Prominent water feature — verify-against-source catch, Sez. 17).
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `water.licence`. Soví vrch = 16 toků + 2 plochy.
 
-### ZABAGED budovy — WFS konektor (POUŽITO, Sez. 18)
+### ZABAGED budovy — REST konektor (POUŽITO, Sez. 18)
 Rozšíření téhož konektoru o stavby (real-půlka, `fetch_buildings` / `map_building_to_isom`). Stejný
 endpoint / CRS / GeoJSON / axis [x,y] jako komunikace a vodstvo; izomorfní s vodní PLOCHOU. Ověřeno
 proti zdroji na výřezu Soví vrchu:
@@ -126,7 +127,7 @@ proti zdroji na výřezu Soví vrchu:
   Douglas-Peucker (0,3 mm) z ISOM rozměrů (`template_classic.omap` × `PX_PER_MM`). Detail: spec §4.9b.
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `buildings.licence`.
 
-### ZABAGED el. vedení — WFS konektor (POUŽITO, Sez. 24)
+### ZABAGED el. vedení — REST konektor (POUŽITO, Sez. 24)
 Rozšíření téhož konektoru o el. vedení (`fetch_powerlines` / `map_powerline_to_isom`). Stejný
 endpoint / CRS / GeoJSON / axis [x,y]. Ověřeno proti zdroji na Sovím vrchu (7 linií) i Č. ráji (2):
 - **Feature typy:** `Elektrické_vedení` (linie, MultiLineString) + `Stožár_elektrického_vedení`

@@ -114,7 +114,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Zdroj_podzemních_vod` | bod | 312 Spring | ◐ | pramen; ve výsecích vzácný (Sez. 17), ale relevantní (`typzdroj_k` PS) |
 | `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád |
 | `Vodopád__bod_` | bod | 313 Prominent water feature | ○ | bodová varianta |
-| `Pozemní_nádrž` | plocha | 301 | ○ | nádrž = vodní plocha |
+| `Pozemní_nádrž` | plocha | 301 | ✓ | **použito Sez. 27** — koupaliště/bazény (`podtypob_k='BA'`) i ostatní → 301 (Lesní koupaliště LS) |
 | `Nadzemní_zásobní_nádrž` | plocha | (311 Well/tank) | ○ | technická nádrž |
 | `Břehová_čára` | linie | 301.4 bank line | ✗ | obrys vodní plochy — odvozeno z 301, netáhnout zvlášť |
 | `Přehradní_hráz__jez` | linie | — | ○ | hráz/jez; ISOM 528 prom. line, většinou nekreslit přímo |
@@ -195,7 +195,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 |---|---|---|---|---|
 | `Kříž__sloup_kulturního_významu` | bod | 530/531 Prominent man-made feature | ◐ | boží muka / kříž = klasický OB objekt |
 | `Mohyla__pomník__náhrobek` | bod | 526 Cairn / 530 Prom. man-made | ◐ | mohyla / pomník = OB objekt |
-| `Bunkr` | bod | 521 Building / 530 | ◐ | bunkry v lese = klasický OB objekt |
+| `Bunkr` | bod | asset (řopík) | ✓ | **použito Sez. 27** — LO37 → asset `ropik_10000.omap`, orientace k st. hranici (NE prostý 521) |
 | `Věž__věžovitá_nástavba` | bod | 524 High tower | ◐ | rozhledna / věž = výrazný OB bod |
 | `Vodojem_věžový` | bod | 524 High tower | ○ | vodárenská věž (zemní vodojem → 521, Sez. 18) |
 | `Větrný_mlýn` | bod | 524 High tower / 526 | ○ | historický objekt |
@@ -259,7 +259,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | 9 | cesty (Cesta, Pěšina, Silnice__dálnice, Silnice_neevidovaná, Ulice) + voda (Vodní_tok, Vodní_plocha) + budovy (Budova…plocha) + **vedení (Elektrické_vedení + Stožár_… Sez. 24)** |
+| ✓ použito | 12 | cesty (Cesta, Pěšina, Silnice__dálnice, Silnice_neevidovaná, Ulice) + voda (Vodní_tok, Vodní_plocha, **Pozemní_nádrž/koupaliště Sez. 27**) + budovy (Budova…plocha) + vedení (Elektrické_vedení + Stožár_… Sez. 24) + **řopíky (Bunkr LO37 Sez. 27)** |
 | ◐ kandidát | 11 | **viz akční seznam níže** |
 | ○ možné | ~30 | okrajově relevantní (vzácné / nízká priorita) |
 | ✗ mimo doménu | ~100 | administrativa, POI, urbánní, vegetace gate |
@@ -271,7 +271,7 @@ Seřazeno podle vizuální návratnosti pro OB lesní mapu (✓ `Elektrické_ved
 1. **`Most` → 512 Bridge/tunnel** — linie; spolu s `Lávka__linie_` → 512.2 Footbridge.
 2. **`Osamělý_balvan…` → 204/205 Boulder** + **`Skalní_útvary` → 201/202 Cliff** — skály a balvany jsou jádro lesního OB.
 3. **`Lesní_průsek` → 508 Narrow ride** — průseky strukturují les.
-4. **`Kříž__sloup…` → 530/531** + **`Mohyla__pomník…` → 526/530** + **`Bunkr`** + **`Věž…` → 524** — bodové orientační prvky.
+4. **`Kříž__sloup…` → 530/531** + **`Mohyla__pomník…` → 526/530** + ~~`Bunkr`~~ (HOTOVO Sez. 27 = asset řopík) + **`Věž…` → 524** — bodové orientační prvky.
 5. **`Zeď` → 513 Wall** — liniový objekt.
 6. **`Bažina__močál` → 308 Marsh** — pokud se vrátíme k mokřadům.
 7. **`Zdroj_podzemních_vod` → 312 Spring** — pramen (ve výsecích vzácný).

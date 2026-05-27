@@ -43,8 +43,8 @@ default `True`; CLI `--only-real` ho vypne):
 
 Princip: nevymýšlet, co v datech není, pod hlavičkou „věrnost". Co se vymýšlí pro vzhled, jde do
 fáze 2 a musí jít vypnout. Vazba: GLOSSARY „projekce vs predikce", „pseudorealistic",
-`synthesize_pseudorealistic_map`. Generalizace L1/L2 budov NENÍ fáze 2 (je to věrná kartografie
-reality, kterou ISOM předepisuje — §4.9b).
+`synthesize_pseudorealistic_map`. Budovy jsou čistá fáze 1 (projekce) — kreslí se RAW (Sez. 27,
+generalizace zavržena); žádná „věrná kartografie" navíc, syrový footprint jako voda.
 
 ---
 
@@ -166,7 +166,7 @@ DMR. Vyžaduje `--terrain real`. **Vodní_tok** → ISOM **304** (pojmenovaný s
 **301** (modrá výplň + břeh). Pramen **312 Spring** se táhne ze `Zdroj_podzemních_vod` (v demo
 výřezu žádný → vynechán). Modrá `C_BLUE`, GT `mask_water.png`. Z-order: po vrstevnicích, před
 cestami. Procedurální §4.8 (proc voda) = noise-půlka; hydro jádro D8 budoucí (viz IDEAS). Detaily
-mapování/licence: `data-sources.md` „ZABAGED vodstvo — WFS konektor".
+mapování/licence: `data-sources.md` „ZABAGED vodstvo — REST konektor".
 
 ### 4.9 Cesty
 `1 + round(det*1.6)` cest, konce na protilehlých okrajích (vodorovně/svisle), náhodná
@@ -183,7 +183,7 @@ least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrcho
 **reálnými komunikacemi z ČÚZK ZABAGED Polohopis WFS** (`zabaged.py`, viz `data-sources.md`).
 Vyžaduje `--terrain real` — sdílí výsek s DMR vrstevnicemi (`dmr.build_bbox`) → cesty sednou
 na terén. Plná ISOM hierarchie **502-506** (silnice / cesta zpevněná / vozová / pěšina) dle
-typu a povrchu (mapování `zabaged.map_to_isom`). Izomorfní s výškopisem: noise↔proc cesty,
+typu a povrchu (mapování `zabaged.map_path_to_isom`). Izomorfní s výškopisem: noise↔proc cesty,
 real↔ZABAGED cesty. (Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka — viz IDEAS.)
 
 ### 4.9b Budovy / stavby (real-půlka, Sez. 18)
@@ -194,12 +194,11 @@ budov je v lesních výsecích prázdná → netáhne se (jako pramen 312). Rend
 (sdílený s vodní plochou 301 — voda modrá, budova černá). GT `mask_buildings.png`. Vyžaduje
 `--terrain real`. Z-order: úplně navrch (po cestách). Izomorfní s vodou/cestami (real-půlka).
 
-**Kartografická generalizace (Úroveň 1, Sez. 18):** reálná geometrie se před renderem generalizuje
-(reálná OB mapa NENÍ syrová). Rozměry z ISOM (`template_classic.omap`, papírové mm × `PX_PER_MM`
-≈ 4,58): (a) **min. velikost** budovy 0,5 × 0,5 mm (`_enforce_min_size`); (b) **zjednodušení obrysu**
-Douglas-Peucker (`_simplify_polyline`, tolerance = ISOM průchod 0,3 mm). Generalizace pracuje v px,
-grid pro `.omap` se odvozuje ZPĚT z generalizovaného px (conceptual integrity render ↔ vektor).
-**Úroveň 2 = displacement** (odsazení budov od cest/sebe na min. 0,4 mm) — odloženo (IDEAS, `%THINK`).
+**Budovy se kreslí RAW (Sez. 27) — žádná generalizace.** Syrový ZABAGED půdorys (S-JTSK → grid → px →
+polygon), přesně jako vodní plocha. Generalizace budov byla zavržena: L1 (min. velikost `_enforce_min_size`
++ Douglas-Peucker obrys, Sez. 18) i L2 displacement (Sez. 22) i orthogonalizace/pravoúhlost (Sez. 27)
+KOMOLILY skutečný tvar/polohu (budova 1028994: 15 vrcholů → 5 zkomolených) → smazáno (~430 LOC). **Zásada:
+generalizuj jen s důkazem, raw je default** (CLAUDE.md; voda byla dokonalá právě proto, že raw). Detail: IDEAS.
 
 **Pozn. — OOM draw order:** vykreslovací pořadí v OOM určuje **priorita barev** (ne pořadí
 objektů/symbolů v `.omap`); export jen referencuje symboly přes ISOM kód a zdědí color-table
@@ -398,11 +397,11 @@ funkce generate(seed, params):
     (na reálném DMR cesty vedou skutečnými sedly/údolími). „Vede údolím" v plném smyslu
     (preferuje údolnice) přijde až s hydro jádrem (toky = údolnice); teď jen vazba na sklon.
 - **Reálné cesty místo procedurálních** (real-půlka, Sez. 16): `--paths real` vezme skutečnou
-  síť komunikací z **ČÚZK ZABAGED Polohopis WFS** (vektor, GeoJSON) pro tentýž výsek jako DMR.
-  - **✅ Implementováno:** `zabaged.py` (sourozenec `dmr.py`) — WFS 2.0.0 GetFeature s BBOX, cache
-    `.zabaged_cache/`. Linie v S-JTSK → grid inverzí georef vrstevnic (Y-flip). Mapování ZABAGED
-    kategorií → ISOM 502-506 (`map_to_isom`); render sjednocen s proc přes `_draw_path`/`PATH_STYLE`.
-    Detaily endpointu/mapování/licence: `data-sources.md` „ZABAGED komunikace — WFS konektor".
+  síť komunikací z **ČÚZK ZABAGED Polohopis (ArcGIS REST)** (vektor, GeoJSON) pro tentýž výsek jako DMR.
+  - **✅ Implementováno:** `zabaged.py` (sourozenec `dmr.py`) — ArcGIS REST `MapServer/<id>/query` s BBOX
+    + `resultOffset` paging (přechod z WFS Sez. 26), cache `.zabaged_cache/`. Linie v S-JTSK → grid inverzí
+    georef vrstevnic (Y-flip). Mapování ZABAGED kategorií → ISOM 502-506 (`map_path_to_isom`); render
+    sjednocen s proc přes `_draw_path`/`PATH_STYLE`. Detaily: `data-sources.md` „ZABAGED komunikace — REST konektor".
     Vrstvy (`PATH_LAYERS`, Sez. 23 doplněno): `Silnice__dálnice`/`Ulice`→502, **`Silnice_neevidovaná`**
     (účelové/lesní asfaltky)→503, `Cesta` zpevněná→503 / nezpevněná→504, `Pěšina`→505/506. Pozn.: 502
     Wide road kreslen `casing` s **hnědou výplní** (`C_ROAD` = Upper brown 50%) + černé okraje (Sez. 23,
