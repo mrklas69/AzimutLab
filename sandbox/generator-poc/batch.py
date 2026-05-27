@@ -24,8 +24,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 # Import ze sousedního modulu: Python přidá složku spouštěného skriptu na sys.path,
-# takže `generator` je viditelný, když batch.py běží přímo.
-from generator import generate, W, H
+# takže `generator` je viditelný, když batch.py běží přímo. W/H jsou rozměry plátna na
+# default výseku (batch jede na baseline extentu); DEF_* = výchozí výsek/lokalita.
+from generator import (synthesize_pseudorealistic_map, W, H,
+                       DEF_WIDTH_KM, DEF_HEIGHT_KM, DEF_LAT, DEF_LON)
 
 # ---------- Reálné lokality ČR pro --terrain real ----------
 # Členité, OB-relevantní oblasti. Souřadnice = přibližné středy oblastí (WGS84),
@@ -110,9 +112,13 @@ def main() -> None:
             # daný realitou, cesty jdou ze ZABAGED ne z det). Lokality cyklíme, když
             # n > počet lokalit. tolerant=True → selhavší WFS vrstvu vynech, neshazuj sadu.
             name, lat, lon = CZ_LOCATIONS[i % len(CZ_LOCATIONS)]
-            generate(seed, 0.0, 0.0, str(inst_dir), terrain="real",
-                     paths="real", water="real", buildings="real",
-                     lat=lat, lon=lon, tolerant=True)
+            # batch jede na baseline výseku (DEF_WIDTH/HEIGHT_KM); rug/det u real nelosujeme
+            # (variace = lokalita). Vedení (powerlines) batch zatím nedělá — viz docstring.
+            synthesize_pseudorealistic_map(
+                lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
+                seed=seed, rug=0.0, det=0.0, terrain="real",
+                paths="real", water="real", buildings="real", powerlines="off",
+                tolerant=True)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání WFS.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
@@ -133,7 +139,12 @@ def main() -> None:
             # Noise sada: losujeme rug (členitost terénu) a det (počet cest).
             # Sada je reprodukovatelná z dvojice (seed0, n).
             rug, det = (float(x) for x in master.random(2))   # dva parametry z [0,1)
-            generate(seed, rug, det, str(inst_dir))
+            # noise = procedurální Option 1 (baseline 65): default výsek + proc cesty, bez
+            # real vrstev. lat/lon se u noise neuplatní (georef je lokální), předáváme DEF_*.
+            synthesize_pseudorealistic_map(
+                DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
+                seed=seed, rug=rug, det=det, terrain="noise", paths="proc",
+                water="off", buildings="off", powerlines="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

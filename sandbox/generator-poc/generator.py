@@ -252,6 +252,18 @@ def _line_half_width_px(code: int) -> float:
 # (proto výchozí lokalita; zná tu ground-truth). Členitý terén vhodný pro OB.
 DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 
+# ---------- Vývojářské test lokality (CLI --location, jednotně 6×4 km) ----------
+# Jeden zdroj pravdy souřadnic (DRY) — dřív ad-hoc v hlavě/diáři. CLI --location KÓD
+# nastaví lat/lon + rozměr výseku. Všechny generujeme jako classic ISOM; Lidové sady
+# jsou městsko-lesní výsek (kus Liberce pod Ještědem) — sprint/ISSprOM verze je
+# samostatný budoucí úkol (IDEAS „ISSprOM/sprint pipeline"). Rozměr 6×4 km společný.
+DEV_W_KM, DEV_H_KM = 6.0, 4.0
+DEV_LOCATIONS: dict[str, tuple[str, float, float]] = {
+    "SV": ("Sovi vrch",   DEF_LAT,    DEF_LON),       # Lužické hory (default, terénně mapováno)
+    "NL": ("Nova louka",  50.8140386, 15.1579069),    # Jizerské hory
+    "LS": ("Lidove sady", 50.7773244, 15.0811114),    # Liberec (městsko-lesní pod Ještědem)
+}
+
 
 # ---------- Souřadnicové přepočty (DRY: jeden zdroj pro grid↔px↔S-JTSK) ----------
 # Tři vrstvy souřadnic: MŘÍŽKA (gx∈0..GW-1, gy∈0..GH-1, sever = gy 0), PIXEL plátna
@@ -731,9 +743,9 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
-    Vyčleněno z generate() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
-    sestavení metadat jsou dvě úrovně abstrakce. Vysoký počet parametrů je daň za to, že
-    meta agreguje výstupy všech vrstev — alternativou byl 45řádkový inline dict v generate().
+    Vyčleněno ze synthesize_pseudorealistic_map() (SLAP, Sez. 15, tehdy generate()):
+    orchestrace kreslení vrstev a deklarativní sestavení metadat jsou dvě úrovně abstrakce.
+    Vysoký počet parametrů je daň za to, že meta agreguje výstupy všech vrstev.
     """
     # cesty: legendu symbolů/tříd stavíme dynamicky ze SKUTEČNĚ použitých ISOM kódů
     # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
@@ -1282,21 +1294,36 @@ def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
         return default
 
 
-def generate(seed: int, rug: float, det: float, out_dir: str,
-             terrain: str = "noise", paths: str = "proc", water: str = "off",
-             buildings: str = "off", powerlines: str = "off",
-             pseudorealistic: bool = True,
-             lat: float = DEF_LAT, lon: float = DEF_LON,
-             tolerant: bool = False) -> Path:
-    """Vygeneruje jednu instanci mapy + GT masky + vektor vrstevnic do `out_dir`.
+def synthesize_pseudorealistic_map(
+        lat: float, lon: float, w_km: float, h_km: float,
+        only_real: bool = False, out_dir: str = "output",
+        *,                                    # vše dál keyword-only — z popředí API zmizí
+        seed: int = 1, rug: float = 0.5, det: float = 0.5,
+        terrain: str = "real", paths: str = "real", water: str = "real",
+        buildings: str = "real", powerlines: str = "real",
+        tolerant: bool = False) -> Path:
+    """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
-    Vrací cestu k složce. `terrain="noise"` (default) = fraktální šum (Option 1).
-    `terrain="real"` = reálný výškopis ČÚZK DMR 5G pro (lat, lon) místo šumu
-    (Option 2, §8.5). U reálného terénu se `rug` na výškopis neuplatní (terén je
-    daný realitou).
+    Reframe Sez. 23 (IDEAS „synthesize_pseudorealistic_map"): real-větev je *prediktor
+    mapy* — skládá dva zdroje (DMR výškopis + ZABAGED vektor) do mapy konkrétního místa.
+    Vrací cestu k výstupní složce (`out_dir`). Dvě oddělitelné fáze (Sez. 24, GLOSSARY):
+    fáze 1 = projekce tvrdých dat (vždy), fáze 2 = pseudorealistická dekorace symbolů,
+    co v datech nejsou (řízena `only_real`; viz níže).
 
-    `paths="proc"` (default) = procedurální Dijkstra cesty (§9); `paths="real"` =
-    reálné komunikace ze ZABAGED WFS (real-půlka §4.9). `real` VYŽADUJE `terrain="real"`
+    `w_km`×`h_km` [km] určují velikost výseku — funkce z nich na začátku odvodí rozměrové
+    globály (`_apply_extent`: grid GW×GH, plátno W×H, svět v metrech) při konstantním
+    rozlišení (PX_PER_MM), takže mm-odvozené prahy (budovy, displacement) platí vždy.
+
+    `only_real=True` (CLI `--only-real`) vypne fázi 2 (pseudorealistickou dekoraci nad
+    rámec tvrdých dat — dnes příčky vedení mimo evidované sloupy); default `False` = fáze
+    2 zapnuta. Uvnitř se převede na `pseudorealistic` (doménový pojem, GLOSSARY).
+
+    Keyword-only ocas (`seed`/`rug`/`det`/`terrain`/`paths`/…) drží i původní procedurální
+    (noise) větev a per-vrstva volbu — default `terrain="real"` (prediktor), `terrain="noise"`
+    = fraktální šum (Option 1, §8.5). U reálného terénu se `rug` na výškopis neuplatní.
+
+    `paths="real"` (default) = reálné komunikace ze ZABAGED WFS (real-půlka §4.9);
+    `paths="proc"` = procedurální Dijkstra cesty (§9). `real` VYŽADUJE `terrain="real"`
     — reálné cesty mají S-JTSK souřadnice a párují se přes sdílený výsek; noise výsek
     je v lokálních metrech bez georef → spárovat nelze.
 
@@ -1322,6 +1349,12 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
     vektorové linie s ISOM symbolem (101/102), georeferencované v S-JTSK pro real
     terén (§9). To je „skutečný vektor", ne pixely: contourpy dává polylinie přímo.
     """
+    # Velikost výseku → rozměrové globály (grid/plátno/svět) PŘED jakýmkoli generováním.
+    # Dřív to dělal main() zvenčí; teď w_km/h_km jsou parametry → odpovědnost patří sem.
+    _apply_extent(w_km, h_km)
+    # only_real (veřejné API/CLI) → pseudorealistic (interní doménový pojem, fáze 2 dekorace).
+    # Převod na hranici drží zbytek kódu (i _generate_real_powerlines/_build_meta) beze změny.
+    pseudorealistic = not only_real
     if paths == "real" and terrain != "real":
         raise ValueError("--paths real vyžaduje --terrain real (reálné cesty potřebují "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
@@ -1515,40 +1548,52 @@ def generate(seed: int, rug: float, det: float, out_dir: str,
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Procedurální generátor výseku OB mapy.")
+    p = argparse.ArgumentParser(description="Syntéza pseudorealistické mapy výseku OB terénu "
+                                            "(default reálná data ČÚZK; --terrain noise = procedurální Option 1).")
+    p.add_argument("--location", choices=list(DEV_LOCATIONS), default=None,
+                   help="vývojářská test lokalita (přepíše --lat/--lon, nastaví výsek "
+                        f"{DEV_W_KM:g}×{DEV_H_KM:g} km): "
+                        + ", ".join(f"{k}={v[0]}" for k, v in DEV_LOCATIONS.items()))
     p.add_argument("--seed", type=int, default=1, help="seed PRNG (determinismus)")
     p.add_argument("--rug", type=float, default=0.5, help="členitost terénu 0-1 (jen --terrain noise)")
-    p.add_argument("--det", type=float, default=0.5, help="hustota detailů 0-1 (počet cest)")
-    p.add_argument("--terrain", choices=["noise", "real"], default="noise",
-                   help="noise = fraktální šum (default), real = ČÚZK DMR 5G (§8.5)")
-    p.add_argument("--paths", choices=["proc", "real"], default="proc",
-                   help="proc = procedurální Dijkstra (default), real = ČÚZK ZABAGED WFS "
-                        "(vyžaduje --terrain real)")
-    p.add_argument("--water", choices=["off", "real"], default="off",
-                   help="off = bez vody (default), real = ČÚZK ZABAGED WFS toky+plochy "
-                        "(vyžaduje --terrain real; proc hydro D8 = budoucí)")
-    p.add_argument("--buildings", choices=["off", "real"], default="off",
-                   help="off = bez budov (default), real = ČÚZK ZABAGED WFS plochy → ISOM 521 "
-                        "(vyžaduje --terrain real)")
-    p.add_argument("--powerlines", choices=["off", "real"], default="off",
-                   help="off = bez el. vedení (default), real = ČÚZK ZABAGED WFS linie → ISOM 510 "
-                        "(vyžaduje --terrain real)")
+    p.add_argument("--det", type=float, default=0.5, help="hustota detailů 0-1 (počet proc cest)")
+    p.add_argument("--terrain", choices=["noise", "real"], default="real",
+                   help="real = ČÚZK DMR 5G (default, §8.5), noise = fraktální šum (Option 1)")
+    p.add_argument("--paths", choices=["proc", "real"], default="real",
+                   help="real = ČÚZK ZABAGED WFS (default), proc = procedurální Dijkstra "
+                        "(real vyžaduje --terrain real)")
+    p.add_argument("--water", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED WFS toky+plochy (default), off = bez vody "
+                        "(real vyžaduje --terrain real; proc hydro D8 = budoucí)")
+    p.add_argument("--buildings", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED WFS plochy → ISOM 521 (default), off = bez budov "
+                        "(real vyžaduje --terrain real)")
+    p.add_argument("--powerlines", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED WFS linie → ISOM 510 (default), off = bez vedení "
+                        "(real vyžaduje --terrain real)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--width-km", type=float, default=DEF_WIDTH_KM,
-                   help=f"šířka výseku E-W [km] (default {DEF_WIDTH_KM} = baseline)")
+                   help=f"šířka výseku E-W [km] (default {DEF_WIDTH_KM} = baseline; --location dá {DEV_W_KM:g})")
     p.add_argument("--height-km", type=float, default=DEF_HEIGHT_KM,
-                   help=f"výška výseku S-J [km] (default {DEF_HEIGHT_KM} = baseline)")
+                   help=f"výška výseku S-J [km] (default {DEF_HEIGHT_KM} = baseline; --location dá {DEV_H_KM:g})")
     p.add_argument("--out", default="output", help="výstupní složka")
     args = p.parse_args()
-    _apply_extent(args.width_km, args.height_km)   # velikost výseku → rozměrové globály před generováním
-    out = generate(args.seed, args.rug, args.det, args.out, terrain=args.terrain,
-                   paths=args.paths, water=args.water, buildings=args.buildings,
-                   powerlines=args.powerlines, pseudorealistic=not args.only_real,
-                   lat=args.lat, lon=args.lon)
+    # vývojářská lokalita (--location) přepíše souřadnice + nastaví společný výsek 6×4 km;
+    # jinak ruční --lat/--lon/--width-km/--height-km. _apply_extent volá až sama funkce.
+    if args.location:
+        _, lat, lon = DEV_LOCATIONS[args.location]
+        w_km, h_km = DEV_W_KM, DEV_H_KM
+    else:
+        lat, lon, w_km, h_km = args.lat, args.lon, args.width_km, args.height_km
+    out = synthesize_pseudorealistic_map(
+        lat, lon, w_km, h_km, only_real=args.only_real, out_dir=args.out,
+        seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
+        paths=args.paths, water=args.water, buildings=args.buildings,
+        powerlines=args.powerlines)
     print(f"Hotovo -> {out.resolve()}")
 
 
