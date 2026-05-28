@@ -753,34 +753,43 @@ def _draw_bridge_brackets(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 def _draw_bridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                  curve_px: list[tuple[float, float]]) -> None:
-    """Most (ISOM 512, varianta plná osa): osa MOSTU PLNÁ + závorky na obou koncích.
+    """Most (ISOM 512): JEN závorky na obou koncích linie, ŽÁDNÁ plná osa.
 
-    Trať na mostu (silnice/železnice) je už nakreslená jinde (paths/railways layers).
-    Most přidá svou vlastní 0,18 mm linii podél osy mostu (= zvýraznění konstrukce mostu)
-    plus závorky 512 na koncích vymezující vstup/výstup. Foto reálné OB mapy potvrdilo
-    tento layout (image (1).png z Sez. 32 Q&A)."""
+    Uživatel Sez. 32 chyba E3: „512 NENÍ centrovaná v ose linie komunikace, ale lemuje
+    ji po stranách s mezerou (~0,5 mm)." Most je reprezentován silnicí/železnicí 502/509
+    ve vlastní vrstvě, která už je nakreslená; symbol 512 přidá jen závorky vymezující
+    začátek a konec mostu (lemují osu po stranách)."""
     if len(curve_px) < 2:
         return
-    # Plná čára podél celé osy mostu (= konstrukce mostu zvýrazněná)
-    draw.line(curve_px, fill=C_BLACK, width=BRIDGE_LINE_WIDTH_PX)
-    mdraw.line(curve_px, fill=BRIDGE_CLASS_BRIDGE, width=BRIDGE_LINE_WIDTH_PX)
-    # Závorky na obou koncích
+    # Závorky na obou koncích (paralelně s osou, dle E2/E3) — žádná plná osa mostu
     _draw_bridge_brackets(draw, mdraw, curve_px, BRIDGE_CLASS_BRIDGE)
 
 
 def _draw_tunnel(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                  curve_px: list[tuple[float, float]]) -> None:
-    """Tunel (ISOM 512, varianta vynechaná osa): JEN závorky na obou koncích linie.
+    """Tunel (ISOM 512, kolmé závorky na obou koncích): kolmá čárka přes osu.
 
-    Trať uvnitř tunelu = vynechaná (terén skrz, foto image (2).png Sez. 32 Q&A). Trať
-    nad/pod tunelem (silnice/železnice ZABAGED) je nakreslená v jiných vrstvách; v tunelu
-    by ideálně měla být přerušená v úseku tunelu (TODO Sez. 33 — průnik železnice a tunelu
-    → cropping). MVP: závorky tunelu jsou navrch a vizuálně překrývají vstup/výstup;
-    železnice uvnitř tunelu zůstává viditelná (mírná nedoslednost vs realita)."""
+    Uživatel Sez. 32 chyba E5: tunel závorka je KOLMÁ k ose komunikace (ne paralelní
+    jako most). E6: párová = vstup + výstup. MVP varianta: 2× kolmá čárka stejná jako
+    footbridge 512.2 (single dash 1,25 × 0,25 mm), jedna na vstupu, jedna na výstupu.
+    Bez nožiček (Sez. 33+: doplnit `[`-bracket s patami ven, pokud OOM verify žádá)."""
     if len(curve_px) < 2:
         return
-    # Žádná osa (= rozdíl od mostu). Jen závorky na koncích.
-    _draw_bridge_brackets(draw, mdraw, curve_px, BRIDGE_CLASS_TUNNEL)
+    # Pro každý konec tunelu (start + end) nakresli 1 kolmou čárku napříč osou
+    for end_idx, neighbor_idx in ((0, 1), (-1, -2)):
+        ex, ey = curve_px[end_idx]
+        nx, ny = curve_px[neighbor_idx]
+        tdx, tdy = nx - ex, ny - ey
+        tlen = math.hypot(tdx, tdy) or 1.0
+        # Normála k tangentě (= směr kolmé čárky)
+        nx_perp, ny_perp = -tdy / tlen, tdx / tlen
+        # Kolmá čárka: ±FOOTBRIDGE_HALF_LEN_PX podél normály
+        p1 = (ex - FOOTBRIDGE_HALF_LEN_PX * nx_perp,
+              ey - FOOTBRIDGE_HALF_LEN_PX * ny_perp)
+        p2 = (ex + FOOTBRIDGE_HALF_LEN_PX * nx_perp,
+              ey + FOOTBRIDGE_HALF_LEN_PX * ny_perp)
+        draw.line([p1, p2], fill=C_BLACK, width=FOOTBRIDGE_WIDTH_PX)
+        mdraw.line([p1, p2], fill=BRIDGE_CLASS_TUNNEL, width=FOOTBRIDGE_WIDTH_PX)
 
 
 def _draw_footbridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1273,14 +1282,13 @@ def _generate_proc_paths(rng: np.random.Generator, elev: np.ndarray,
 
 
 def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
-                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+                         lat: float, lon: float, geo_bbox: tuple,
+                         cutter_lines_grid: list[list] | None = None) -> tuple[list, list]:
     """Reálné cesty (real-půlka §4.9): komunikace ze ZABAGED REST pro tentýž výsek.
 
-    Stáhne komunikace (zabaged.fetch_paths), mapuje na ISOM (zabaged.map_path_to_isom),
-    transformuje S-JTSK → grid (inverze _write_contours_geojson: Y-flip, sever = ymax =
-    gy 0) → px a kreslí dle ISOM stylu. Reálné linie jsou už hladké (vektor z reality) →
-    žádný splajn. Výsek je TENTÝŽ jako u DMR vrstevnic (sdílený build_bbox) → cesty sednou
-    na terén. Vrací (path_features grid, paths_info).
+    `cutter_lines_grid` (volitelně, Sez. 32 E1+E4): seznam grid linií mostů+tunelů. Pokud
+    zadáno, každá cesta se v okolí mostu/tunelu (±0,5 mm v paper-space) **přeruší** (rozsekne
+    na víc kratších polyline). Většina cest neprochází pod mostem → bez vlivu na nich.
     """
     from zabaged import fetch_paths, map_path_to_isom
     feats = fetch_paths(lat, lon, GW, GH, TILE_M)
@@ -1290,26 +1298,28 @@ def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
         code = map_path_to_isom(f["layer"], f["props"])
         for line in f["lines"]:
             curve_grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            curve_px = [_grid_to_px(gx, gy) for gx, gy in curve_grid]
-            if len(curve_px) < 2:
-                continue
-            _draw_path(draw, pdraw, curve_px, code)
-            path_features.append((curve_grid, code))
-            paths_info.append({"symbol": code, "symbol_name": PATH_NAME[code],
-                               "layer": f["layer"]})
+            # Cropping kolem mostů/tunelů (Sez. 32 E1+E4): rozsekni na sub-polylinie
+            sub_curves = (_crop_line_at_cutters(curve_grid, cutter_lines_grid, geo_bbox)
+                          if cutter_lines_grid else [curve_grid])
+            for sub in sub_curves:
+                curve_px = [_grid_to_px(gx, gy) for gx, gy in sub]
+                if len(curve_px) < 2:
+                    continue
+                _draw_path(draw, pdraw, curve_px, code)
+                path_features.append((sub, code))
+                paths_info.append({"symbol": code, "symbol_name": PATH_NAME[code],
+                                   "layer": f["layer"]})
     return path_features, paths_info
 
 
 def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
-                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list, list]:
+                         lat: float, lon: float, geo_bbox: tuple,
+                         cutter_lines_grid: list[list] | None = None) -> tuple[list, list, list]:
     """Reálná voda (real-půlka hydrografie, Sez. 17): toky + plochy ze ZABAGED REST.
 
-    Mirror _generate_real_paths: stáhne vodu (zabaged.fetch_water), mapuje na ISOM
-    (map_water_to_isom; None = podzemní tok → přeskočit), transformuje S-JTSK → grid
-    (Y-flip, sever = ymax) → px a kreslí (toky linie 304/305/306, plochy polygon 301).
-    Tentýž výsek jako DMR/cesty (sdílený build_bbox) → voda sedne na terén. Reálné linie
-    jsou hladké (vektor z reality) → žádný splajn. Vrací (line_features, area_features,
-    water_info) v souřadnicích MŘÍŽKY (zdroj pro vektor/OMAP).
+    `cutter_lines_grid` (volitelně, Sez. 32 E1): seznam grid linií mostů+tunelů. Pokud
+    zadáno, **vodní toky** se v okolí mostu (±0,5 mm) přerušují (rozseknou na víc polyline).
+    Vodní plochy (rybníky/jezera) NE — ty leží mimo mosty (cropping by porušil obrys).
     """
     from zabaged import fetch_water, map_water_to_isom
     line_feats, area_feats = fetch_water(lat, lon, GW, GH, TILE_M)
@@ -1322,13 +1332,17 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
             continue
         for line in f["lines"]:
             grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            _draw_water_line(draw, wdraw, px, code)
-            line_features.append((grid, code))
-            water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "line",
-                               "layer": f["layer"], "name": f["props"].get("jmeno")})
+            # Cropping kolem mostů/tunelů (Sez. 32 E1): rozsekni na sub-polylinie
+            sub_lines = (_crop_line_at_cutters(grid, cutter_lines_grid, geo_bbox)
+                         if cutter_lines_grid else [grid])
+            for sub in sub_lines:
+                px = [_grid_to_px(gx, gy) for gx, gy in sub]
+                if len(px) < 2:
+                    continue
+                _draw_water_line(draw, wdraw, px, code)
+                line_features.append((sub, code))
+                water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "line",
+                                   "layer": f["layer"], "name": f["props"].get("jmeno")})
     for f in area_feats:
         code = map_water_to_isom(f["layer"], f["props"])
         if code is None:
@@ -1428,12 +1442,14 @@ def _generate_real_powerlines(draw: ImageDraw.ImageDraw, eldraw: ImageDraw.Image
 
 
 def _generate_real_railways(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
-                            lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+                            lat: float, lon: float, geo_bbox: tuple,
+                            cutter_lines_grid: list[list] | None = None) -> tuple[list, list]:
     """Reálné železniční tratě (real-půlka, Sez. 28): Železniční_trať ze ZABAGED REST → ISOM 509.
 
-    Čistá projekce tvrdých dat (fáze 1) — žádná pseudorealistická dekorace (na rozdíl od vedení
-    nemá co domýšlet). Mirror _generate_real_powerlines bez sloupů/příček (S-JTSK → grid → px,
-    sdílený výsek). Vrací (railway_features grid, railways_info)."""
+    `cutter_lines_grid` (volitelně, Sez. 32 E1+E4): seznam grid linií mostů+tunelů. Pokud
+    zadáno, **železnice procházející tunelem se VYNECHÁ v úseku tunelu** (E4) + most přerušuje
+    železnici pod sebou (E1, vzácné — typicky most NAD železnicí; tunel ji obklopuje).
+    """
     from zabaged import fetch_railways, map_railway_to_isom
     feats = fetch_railways(lat, lon, GW, GH, TILE_M)
     railways_info: list[dict] = []
@@ -1442,13 +1458,17 @@ def _generate_real_railways(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDra
         c = map_railway_to_isom(f["layer"], f["props"])
         for line in f["lines"]:
             grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            _draw_railway(draw, rdraw, px, c)
-            railway_features.append((grid, c))
-            railways_info.append({"symbol": c, "symbol_name": RAILWAY_NAME[c],
-                                  "layer": f["layer"]})
+            # Cropping kolem tunelů/mostů (Sez. 32 E4): rozsekni na sub-polylinie
+            sub_lines = (_crop_line_at_cutters(grid, cutter_lines_grid, geo_bbox)
+                         if cutter_lines_grid else [grid])
+            for sub in sub_lines:
+                px = [_grid_to_px(gx, gy) for gx, gy in sub]
+                if len(px) < 2:
+                    continue
+                _draw_railway(draw, rdraw, px, c)
+                railway_features.append((sub, c))
+                railways_info.append({"symbol": c, "symbol_name": RAILWAY_NAME[c],
+                                      "layer": f["layer"]})
     return railway_features, railways_info
 
 
@@ -1541,6 +1561,88 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
 # =====================================================================
 #  Mosty / tunely / lávky — fáze 1 (projekce reálných dat ZABAGED), Sez. 32 spec-driven
 # =====================================================================
+def _crop_line_at_cutters(line_grid: list[tuple[float, float]],
+                          cutter_lines_grid: list[list[tuple[float, float]]],
+                          geo_bbox: tuple,
+                          crop_mm: float = 0.5
+                          ) -> list[list[tuple[float, float]]]:
+    """Rozdělí `line_grid` na segmenty s vynechanými okolími průsečíků s `cutter_lines_grid`.
+
+    Pro každý bod `line_grid` se zjistí px vzdálenost k nejbližšímu segmentu kteréhokoli
+    `cutter_lines_grid` (= most/tunel). Pokud je < `crop_mm` v paper-space (= závorka
+    by se otiskla blízko), bod se vypustí — vrácený list obsahuje **více kratších polyline**
+    místo jedné celé (= linie přerušená v okolí závorky).
+
+    Uživatel Sez. 32 E1: voda/cesty/železnice pod mostem jsou přerušeny ~0,5 mm před a za
+    závorkou (= mezera ~1 mm v okolí mostu). Implementace přes přepínač „blízko" po bodech.
+
+    Vrací seznam polyline (každá ≥ 2 body); polyline obsahující jen 1 bod jsou vynechány."""
+    if not cutter_lines_grid or len(line_grid) < 2:
+        return [line_grid] if len(line_grid) >= 2 else []
+    # Práh v px: 0,5 mm × PX_PER_MM. Vzdálenost v grid prostoru se převede přes _grid_to_px.
+    crop_px = crop_mm * PX_PER_MM
+    crop_px2 = crop_px * crop_px
+    # Předpočet px souřadnic cutter segmentů (rychlejší than per-bod konverze)
+    cutters_px: list[list[tuple[float, float]]] = []
+    for cl in cutter_lines_grid:
+        cutters_px.append([_grid_to_px(gx, gy) for gx, gy in cl])
+    # Pro každý bod line_grid spočti, jestli je blízko nějakého cutter segmentu
+    def is_near(p_px: tuple[float, float]) -> bool:
+        bx, by = p_px
+        for cl in cutters_px:
+            for i in range(1, len(cl)):
+                x1, y1 = cl[i - 1]
+                x2, y2 = cl[i]
+                dx, dy = x2 - x1, y2 - y1
+                seg_len2 = dx * dx + dy * dy
+                if seg_len2 < 1e-9:
+                    continue
+                t = max(0.0, min(1.0, ((bx - x1) * dx + (by - y1) * dy) / seg_len2))
+                cx, cy = x1 + t * dx, y1 + t * dy
+                d2 = (bx - cx) ** 2 + (by - cy) ** 2
+                if d2 < crop_px2:
+                    return True
+        return False
+
+    # Projít body line_grid; pokud is_near = True, "rozřezat" polyline v tomto bodě
+    segments: list[list[tuple[float, float]]] = []
+    current: list[tuple[float, float]] = []
+    for gx, gy in line_grid:
+        p_px = _grid_to_px(gx, gy)
+        if is_near(p_px):
+            # Bod je v okolí mostu/tunelu — uzavři současný segment
+            if len(current) >= 2:
+                segments.append(current)
+            current = []
+        else:
+            current.append((gx, gy))
+    if len(current) >= 2:
+        segments.append(current)
+    return segments
+
+
+def _crop_features_at_bridges_tunnels(features: list[tuple],
+                                       bridge_lines_grid: list[list],
+                                       tunnel_lines_grid: list[list],
+                                       geo_bbox: tuple,
+                                       crop_mm: float = 0.5) -> list[tuple]:
+    """Aplikuje `_crop_line_at_cutters` na seznam (grid_polyline, code) featur (= cesty/voda/
+    železnice). Vrací nový seznam s rozsekanými polyline; každý rozsek = vlastní (grid, code).
+
+    Uživatel Sez. 32 E1+E4: linie pod mostem/tunelem se přerušuje. Pro most: voda+cesty+
+    železnice. Pro tunel: železnice+silnice (= co vede tunelem). MVP: stejné cutter pole
+    pro most i tunel = `bridge_lines_grid + tunnel_lines_grid`."""
+    all_cutters = bridge_lines_grid + tunnel_lines_grid
+    if not all_cutters:
+        return features
+    out: list[tuple] = []
+    for grid, code in features:
+        segs = _crop_line_at_cutters(grid, all_cutters, geo_bbox, crop_mm)
+        for s in segs:
+            out.append((s, code))
+    return out
+
+
 def _nearest_segment_tangent(bx: float, by: float,
                              lines_px: list[list[tuple[float, float]]]
                              ) -> tuple[float, float] | None:
@@ -1569,86 +1671,101 @@ def _nearest_segment_tangent(bx: float, by: float,
     return best_dir
 
 
-def _generate_real_bridges_tunnels(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                                   lat: float, lon: float, geo_bbox: tuple,
-                                   water_lines_px: list[list[tuple[float, float]]]
-                                   ) -> tuple[list, list, list, list]:
-    """Mosty, tunely a lávky ze ZABAGED REST (Sez. 32 spec-driven, ISOM 512 + 512.2).
+def _fetch_bridges_tunnels_geometries(lat: float, lon: float, geo_bbox: tuple
+                                       ) -> tuple[list, list, list, list]:
+    """Pre-fetch fáze (Sez. 32 E1+E4): stáhne mosty/tunely/lávky ze ZABAGEDu, vrátí JEN
+    GEOMETRIE (žádné kreslení). Generator pak může z těchto grid linií udělat cutter pole
+    pro `_generate_real_paths/_water/_railways`, které cropují průchozí vrstvy.
 
-    Vrací 4-tici:
-      - bridge_features: [(grid_polyline, 512)] — mosty (line objekty, OOM osa + závorky)
-      - tunnel_features: [(grid_polyline, 512)] — tunely (line objekty, OOM stejný symbol)
-      - footbridge_features: [(gx, gy, 5122, rot_rad)] — lávky (point objekty s rotací)
-      - info: list[dict] souhrnný popis pro meta.json
+    Vrací 4-tici (volaný před vodou/cestami/železnicí):
+      - bridge_grids: [grid_polyline] — všechny mosty
+      - tunnel_grids: [grid_polyline] — všechny tunely
+      - footbridge_lines_data: [(grid_polyline, layer, jmeno)] — pro pozdější render lávek
+      - footbridge_points_data: [(x_sjtsk, y_sjtsk)] — surové body lávek (rotace zatím nevíme)
+    """
+    from zabaged import fetch_bridges, fetch_tunnels, fetch_footbridges
+    bridge_grids: list = []
+    tunnel_grids: list = []
+    footbridge_lines_data: list = []
+    for f in fetch_bridges(lat, lon, GW, GH, TILE_M):
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            if len(grid) >= 2:
+                bridge_grids.append(grid)
+    for f in fetch_tunnels(lat, lon, GW, GH, TILE_M):
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            if len(grid) >= 2:
+                tunnel_grids.append(grid)
+    line_feats, points = fetch_footbridges(lat, lon, GW, GH, TILE_M)
+    for f in line_feats:
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            if len(grid) >= 2:
+                footbridge_lines_data.append((grid, f["layer"], f["props"].get("jmeno")))
+    footbridge_points_data = list(points)
+    return bridge_grids, tunnel_grids, footbridge_lines_data, footbridge_points_data
 
-    Most a tunel mají SHODNÝ ISOM kód (512), ale OOM render musí být odlišný (most = osa
-    plná, tunel = osa vynechaná). V .omap obojí emitujeme jako line objekt symbol 512;
-    OOM ho dnes kreslí stejně, oba s plnou osou — odlišení tunelu = MVP omezení, k řešení
-    v Sez. 33 (úprava template / vlastní symbol pro tunel / generátor cropuje železnici).
-    V RASTRU je rozdíl viditelný: `_draw_bridge` kreslí plnou osu, `_draw_tunnel` jen závorky.
 
-    Lávky linie + bod → 512.2 (single dash). Bodová lávka rotuje kolmo k nejbližšímu toku
-    (`water_lines_px`); liniová lávka = kolmá čárka v polovině osy lávky."""
-    from zabaged import (fetch_bridges, fetch_tunnels, fetch_footbridges,
-                         map_bridge_to_isom, map_tunnel_to_isom, map_footbridge_to_isom)
+def _render_bridges_tunnels(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                             bridge_grids: list, tunnel_grids: list,
+                             footbridge_lines_data: list, footbridge_points_data: list,
+                             geo_bbox: tuple,
+                             water_lines_px: list[list[tuple[float, float]]]
+                             ) -> tuple[list, list, list, list]:
+    """Render fáze (Sez. 32): kreslí závorky mostů + tunelů + lávky do rastru, vrátí
+    features pro .omap export + info. Volá se PO všech ostatních vrstvách (z-order).
+
+    Vrací (bridge_features, tunnel_features, footbridge_features, info):
+      - bridge_features: [(grid, 512)] — mosty pro .omap (line objekt 512)
+      - tunnel_features: [(grid, 512)] — tunely pro .omap (NEemit jako line, omap_export to
+        zpracuje jako 2× point 512.2 na koncích — to dělá synthesize_pseudorealistic_map)
+      - footbridge_features: [(gx, gy, 5122, rot)] — lávky bodové+liniové pro .omap
+      - info: souhrn pro meta.json
+    """
+    from zabaged import map_bridge_to_isom, map_tunnel_to_isom, map_footbridge_to_isom
 
     bridge_features: list[tuple] = []
     tunnel_features: list[tuple] = []
     footbridge_features: list[tuple] = []
     info: list[dict] = []
 
-    # 1) Mosty (ZABAGED `Most`) → ISOM 512 line, osa plná
-    for f in fetch_bridges(lat, lon, GW, GH, TILE_M):
-        code = map_bridge_to_isom(f["layer"], f["props"])
-        for line in f["lines"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            _draw_bridge(draw, mdraw, px)
-            bridge_features.append((grid, code))
-            info.append({"symbol": code, "kind": "bridge", "layer": f["layer"],
-                         "jmeno": f["props"].get("jmeno")})
-
-    # 2) Tunely (ZABAGED `Tunel`) → ISOM 512 line, osa vynechaná
-    for f in fetch_tunnels(lat, lon, GW, GH, TILE_M):
-        code = map_tunnel_to_isom(f["layer"], f["props"])
-        for line in f["lines"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            _draw_tunnel(draw, mdraw, px)
-            tunnel_features.append((grid, code))
-            info.append({"symbol": code, "kind": "tunnel", "layer": f["layer"],
-                         "jmeno": f["props"].get("jmeno")})
-
-    # 3) Lávky linie + bod → ISOM 512.2 (=5122 int alias) point objekt s rotací
-    line_feats, points = fetch_footbridges(lat, lon, GW, GH, TILE_M)
+    code_b = map_bridge_to_isom("Most", {})
+    code_t = map_tunnel_to_isom("Tunel", {})
     code_fb = map_footbridge_to_isom("Lávka (bod)", {})
 
-    # 3a) Lávky linie: čárka uprostřed osy lávky, rovnoběžná s osou lávky (= směr lávky)
-    for f in line_feats:
-        for line in f["lines"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            mid_i = len(px) // 2
-            cx, cy = px[mid_i]
-            prev_i = max(0, mid_i - 1)
-            next_i = min(len(px) - 1, mid_i + 1)
-            dx = px[next_i][0] - px[prev_i][0]
-            dy = px[next_i][1] - px[prev_i][1]
-            rot = math.atan2(dy, dx)
-            _draw_footbridge(draw, mdraw, cx, cy, rot)
-            gx_mid, gy_mid = grid[mid_i]
-            footbridge_features.append((gx_mid, gy_mid, code_fb, rot))
-            info.append({"symbol": code_fb, "kind": "footbridge_line",
-                         "layer": f["layer"], "jmeno": f["props"].get("jmeno")})
+    for grid in bridge_grids:
+        px = [_grid_to_px(gx, gy) for gx, gy in grid]
+        _draw_bridge(draw, mdraw, px)
+        bridge_features.append((grid, code_b))
+        info.append({"symbol": code_b, "kind": "bridge", "layer": "Most"})
 
-    # 3b) Lávky body: rotace kolmá k nejbližšímu toku (= tangenta vody → rot = atan2(-tx, ty))
-    for x, y in points:
+    for grid in tunnel_grids:
+        px = [_grid_to_px(gx, gy) for gx, gy in grid]
+        _draw_tunnel(draw, mdraw, px)
+        tunnel_features.append((grid, code_t))
+        info.append({"symbol": code_t, "kind": "tunnel", "layer": "Tunel"})
+
+    # Lávky linie: čárka uprostřed osy, rovnoběžná s osou lávky
+    for grid, layer, jmeno in footbridge_lines_data:
+        px = [_grid_to_px(gx, gy) for gx, gy in grid]
+        if len(px) < 2:
+            continue
+        mid_i = len(px) // 2
+        cx, cy = px[mid_i]
+        prev_i = max(0, mid_i - 1)
+        next_i = min(len(px) - 1, mid_i + 1)
+        dx = px[next_i][0] - px[prev_i][0]
+        dy = px[next_i][1] - px[prev_i][1]
+        rot = math.atan2(dy, dx)
+        _draw_footbridge(draw, mdraw, cx, cy, rot)
+        gx_mid, gy_mid = grid[mid_i]
+        footbridge_features.append((gx_mid, gy_mid, code_fb, rot))
+        info.append({"symbol": code_fb, "kind": "footbridge_line",
+                     "layer": layer, "jmeno": jmeno})
+
+    # Lávky body: rotace kolmá k nejbližšímu toku
+    for x, y in footbridge_points_data:
         gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
         px_b, py_b = _grid_to_px(gx, gy)
         tg = _nearest_segment_tangent(px_b, py_b, water_lines_px)
@@ -2010,6 +2127,29 @@ def synthesize_pseudorealistic_map(
     # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Prázdné = vše OK.
     layer_errors: dict[str, str] = {}
 
+    # --- PRE-FETCH mostů/tunelů (Sez. 32 E1+E4): jen geometrie, žádné kreslení ---
+    # Mosty/tunely se vykreslí navrch (= závorky lemují, kolmé čárky vstup/výstup) AŽ NA KONCI;
+    # ale jejich grid linie potřebujeme TEĎ jako "cutter pole" pro voda/cesty/železnice, aby
+    # se procházející linie přerušily v okolí mostu/tunelu (±0,5 mm). Sez. 31/32 = 4 iterace
+    # bez ohledu na E1+E4; teď systematicky integrované do pipeline.
+    bridge_grids: list = []
+    tunnel_grids: list = []
+    footbridge_lines_data: list = []
+    footbridge_points_data: list = []
+    if bridges == "real":
+        bridge_grids, tunnel_grids, footbridge_lines_data, footbridge_points_data = _try_layer(
+            "bridges_fetch",
+            lambda: _fetch_bridges_tunnels_geometries(lat, lon, geo_bbox),
+            ([], [], [], []), tolerant, layer_errors)
+    # cutter pole pro cropping (Sez. 32 E1+E4). DVĚ kategorie podle typu vrstvy:
+    # - voda/cesty: cropují MOSTY (most = nad vodou/cestou, přerušuje je) i TUNELY (přechody)
+    # - železnice: cropuje JEN TUNELY (most je často PARALELNĚ se železnicí v ZABAGEDu —
+    #   železnice JE NA mostu, ne pod ním; cropování by ji rozsekalo na celém viaduktu).
+    #   MVP omezení: silniční most NAD železnicí se neřeší (vzácné v lesních výsecích).
+    #   Sez. 33+: line-line intersection (jen skutečná křížení), ne vzdálenost.
+    cutter_lines_for_water_paths = bridge_grids + tunnel_grids
+    cutter_lines_for_railways = tunnel_grids
+
     # --- zpevněné plochy / kolejiště (ISOM 501): reálné ze ZABAGED REST (real-půlka, Sez. 28) ---
     # Rastr z-order: brzy (po terénu/bodech, PŘED vodou/cestami) — hnědá plocha je podklad, na
     # němž leží koleje (509), cesty i budovy. V lesních výsecích bez nádraží = 0 prvků. Jen --paved real.
@@ -2035,7 +2175,8 @@ def synthesize_pseudorealistic_map(
         water_mask_img = Image.new("L", (W, H), 0)      # GT maska vody (§8.1), multi-class
         wdraw = ImageDraw.Draw(water_mask_img)
         water_line_features, water_area_features, water_info = _try_layer(
-            "water", lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox),
+            "water",
+            lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox, cutter_lines_for_water_paths),
             ([], [], []), tolerant, layer_errors)
         _log.info("  voda: %d (toky+plochy)", len(water_info))
 
@@ -2046,7 +2187,8 @@ def synthesize_pseudorealistic_map(
     pdraw = ImageDraw.Draw(path_mask_img)
     if paths == "real":
         path_features, paths_info = _try_layer(
-            "paths", lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox),
+            "paths",
+            lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox, cutter_lines_for_water_paths),
             ([], []), tolerant, layer_errors)
     else:
         # proc cesty (Dijkstra) jsou offline → žádné REST selhání, tolerance se netýká
@@ -2082,7 +2224,7 @@ def synthesize_pseudorealistic_map(
         rdraw = ImageDraw.Draw(railway_mask_img)
         railway_features, railways_info = _try_layer(
             "railways",
-            lambda: _generate_real_railways(draw, rdraw, lat, lon, geo_bbox),
+            lambda: _generate_real_railways(draw, rdraw, lat, lon, geo_bbox, cutter_lines_for_railways),
             ([], []), tolerant, layer_errors)
         _log.info("  železnice: %d", len(railways_info))
 
@@ -2146,11 +2288,10 @@ def synthesize_pseudorealistic_map(
         else:
             _log.info("  skály: 0")
 
-    # --- mosty + tunely + lávky (ISOM 512 + 512.2): reálné ze ZABAGED REST (Sez. 32) ---
-    # Rastr z-order: úplně navrch (po skály) — symbol 512 dominuje nad mostem/tunelem
-    # (visuálně významný liniový prvek). Lávka 512.2 je drobná bodová značka. Bodová lávka
-    # potřebuje water_lines_px (px polylinie z _generate_real_water) pro orientaci kolmo
-    # k toku — bez vody (--water off) fallback rot=0. Jen --bridges real.
+    # --- mosty + tunely + lávky (ISOM 512 + 512.2): RENDER fáze (Sez. 32 spec-driven) ---
+    # Data už máme z pre-fetch fáze. Tady jen vykreslíme závorky (rastr z-order: úplně navrch
+    # — po skálách/budovách). Bodová lávka rotuje kolmo k nejbližšímu toku (potřebuje
+    # water_lines_px z _generate_real_water; bez vody fallback rot=0).
     bridge_features: list[tuple] = []
     tunnel_features: list[tuple] = []
     footbridge_features: list[tuple] = []
@@ -2161,11 +2302,10 @@ def synthesize_pseudorealistic_map(
         bdraw_bridges = ImageDraw.Draw(bridge_mask_img)
         water_lines_px = [[_grid_to_px(gx, gy) for gx, gy in grid]
                           for grid, _ in water_line_features]
-        bridge_features, tunnel_features, footbridge_features, bridges_info = _try_layer(
-            "bridges",
-            lambda: _generate_real_bridges_tunnels(draw, bdraw_bridges, lat, lon, geo_bbox,
-                                                    water_lines_px),
-            ([], [], [], []), tolerant, layer_errors)
+        bridge_features, tunnel_features, footbridge_features, bridges_info = _render_bridges_tunnels(
+            draw, bdraw_bridges,
+            bridge_grids, tunnel_grids, footbridge_lines_data, footbridge_points_data,
+            geo_bbox, water_lines_px)
         # souhrn po typech (most / tunel / lávka)
         by_kind: dict[str, int] = {}
         for it in bridges_info:
@@ -2246,11 +2386,32 @@ def synthesize_pseudorealistic_map(
     # 202 = line_object (uzavřená polylinie obrysu, jako 304/305). Body = point_object (jako 109/110/111).
     rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
-    # Mosty (Sez. 32): linie 512 = line objekt (OOM render z line_symbol = osa + závorky).
-    # Tunely: stejný symbol 512 (OOM dnes kreslí stejně jako most; pro rozlišení vynechané osy
-    # v tunelu = úprava template TODO Sez. 33). Lávka 512.2: point objekt s rotací (rotatable).
+    # Mosty (Sez. 32): linie 512 = line objekt. Template id=125 upraven Sez. 32 — zrušena
+    # centrovaná osa (line_width=0) + start_symbol/end_symbol mají PÁROVOU polovinu (NAD i POD osu)
+    # → OOM kreslí závorky lemující osu po obou stranách (uživatel E2, E3).
+    # Tunely: 2× point objekt 512.2 (kolmá čárka napříč osou) na obou koncích linie tunelu
+    # (vstup + výstup), rotace = kolmá k tangentě. NE line_symbol 512 (most je paralelní;
+    # uživatel E5: „tunel závorka je kolmá k ose"). Generator emituje 2 point objekty per tunel.
     bridge_omap_features = [(g, "512") for g, _ in bridge_features]
-    tunnel_omap_features = [(g, "512") for g, _ in tunnel_features]
+    # Tunel → 2× point objekt 512.2 na koncích linie (vstup + výstup)
+    tunnel_point_omap_features: list[tuple] = []
+    for grid_line, _code in tunnel_features:
+        if len(grid_line) < 2:
+            continue
+        # Vstup tunelu: start linie, tangenta = bod[1] - bod[0]
+        gx0, gy0 = grid_line[0]
+        gx1, gy1 = grid_line[1]
+        # tangenta v px (převést přes _grid_to_px — ne, tangenta v grid je úměrná)
+        rot_in = math.atan2(gy1 - gy0, gx1 - gx0)
+        # Footbridge symbol 512.2 je rotatable point_symbol s rotation v radiánech;
+        # rot = úhel tangenty → kolmá čárka templatu se otočí kolmo k tangentě (✓ E5)
+        tunnel_point_omap_features.append((gx0, gy0, "512.2", rot_in))
+        # Výstup tunelu: end linie, tangenta opačně (z předposledního na poslední bod)
+        gxE, gyE = grid_line[-1]
+        gxP, gyP = grid_line[-2]
+        rot_out = math.atan2(gyE - gyP, gxE - gxP)
+        tunnel_point_omap_features.append((gxE, gyE, "512.2", rot_out))
+    # Lávka 512.2: bod s rotací = kolmá k vodě (Sez. 32 zachováno)
     footbridge_omap_features = [(gx, gy, "512.2", rot) for gx, gy, _, rot in footbridge_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
@@ -2264,7 +2425,7 @@ def synthesize_pseudorealistic_map(
                              rock_point_features=rock_point_omap_features,
                              rock_area_features=rock_area_omap_features,
                              bridge_features=bridge_omap_features,
-                             tunnel_features=tunnel_omap_features,
+                             tunnel_point_features=tunnel_point_omap_features,
                              footbridge_features=footbridge_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,

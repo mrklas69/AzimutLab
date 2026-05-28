@@ -83,7 +83,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                rock_point_features: list[tuple] | None = None,
                rock_area_features: list[tuple] | None = None,
                bridge_features: list[tuple] | None = None,
-               tunnel_features: list[tuple] | None = None,
+               tunnel_point_features: list[tuple] | None = None,
                footbridge_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
@@ -222,22 +222,24 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(geom, str(code))
         if o:
             objs.append(o); n_rocks += 1
-    # mosty + tunely (Sez. 32 spec-driven): 512 Bridge/tunnel = liniový objekt (otevřený path).
-    # OOM vykreslí line_symbol (osa) + start/end závorky z definice symbolu 125 autoritativně.
-    # Most a tunel mají stejný symbol 512 — dnes OOM oba kreslí stejně (= s plnou osou). Pro
-    # tunel by ideálně osa neměla být kreslena (vynechání železnice/silnice v tunelu); to je
-    # téma pro úpravu template (Sez. 33 verify v OOM).
+    # Mosty (Sez. 32 oprava E1-E3): 512 = liniový objekt. Template id=125 upravený Sez. 32:
+    # line_width=0 (zrušena centrovaná osa = E3) + start/end_symbol mají PÁROVÉ elementy
+    # (NAD i POD osu = E2). OOM nakreslí závorky lemující most po obou stranách.
     for line, code in (bridge_features or []):
         o = line_object(line, str(code))
         if o:
             objs.append(o); n_bridges += 1
-    for line, code in (tunnel_features or []):
-        o = line_object(line, str(code))
-        if o:
-            objs.append(o); n_bridges += 1
-    # lávky (Sez. 32): 512.2 Footbridge = bodový objekt (type=0) s rotací (rotatable=true).
-    # Rotace v RADIÁNECH (template ukládá v radiánech, verify Sez. 31). Tuple 4-tice
-    # (gx, gy, code, rot_rad) — rot = úhel kolmý k nejbližšímu vodnímu toku (generátor).
+    # Tunely (Sez. 32 oprava E5-E6): NEemitujeme jako line objekt (kolmá orientace je odlišná
+    # od mostu). Místo toho 2× point objekt 512.2 (kolmá čárka napříč osou) na obou koncích
+    # tunelu (vstup + výstup), rotace = tangenta ose tunelu (template 512.2 je rotatable
+    # → čárka se otočí kolmo k tangentě). Maska tříd je v rastru (BRIDGE_CLASS_TUNNEL).
+    for gx, gy, code, rot in (tunnel_point_features or []):
+        x, y = paper(gx, gy)
+        objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
+                    f'<coords count="1">{x} {y};</coords></object>')
+        n_bridges += 1
+    # Lávky (Sez. 32 zachováno): 512.2 Footbridge = bodový objekt (rotatable=true). Rotace
+    # v RADIÁNECH (template ukládá v radiánech). Tuple (gx, gy, code, rot_rad).
     for gx, gy, code, rot in (footbridge_features or []):
         x, y = paper(gx, gy)
         objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
