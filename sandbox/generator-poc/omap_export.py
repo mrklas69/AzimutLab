@@ -264,27 +264,39 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         center_coords_um = [paper(gx, gy) for gx, gy in line]
         if len(center_coords_um) < 2:
             continue
-        # Linie A: ORIGINAL direction, offset levou normálou (= jedna strana osy mostu)
-        line_a = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
-        # Linie B: REVERSED direction, offset levou normálou v reversed frame
-        # (= efektivně pravá normála v originálu = druhá strana osy mostu).
-        # Reverze taky otáčí tangentu → start_symbol kreslí šikmou čárku na opačném konci
-        # a v opačném směru → 4 šikmé čárky pohromadě tvoří hranatou závorku `[ ]`.
-        line_b = _offset_polyline_left(list(reversed(center_coords_um)),
+        # Linie A: REVERSED direction, offset (= jedna strana osy mostu, „nožičky ven").
+        # Reverze tangenty → start/end_symbol OOM kreslí šikmé čárky VEN z osy mostu
+        # (= místo dovnitř, jak by tomu bylo se stejnou tangentou jako linie B).
+        # Sez. 32 7. iterace fix: v 6. iter jsem reverzoval špatnou ze 2 paralel
+        # → obě měly nožičky dovnitř; teď je to invertováno.
+        line_a = _offset_polyline_left(list(reversed(center_coords_um)),
                                         BRIDGE_PARALLEL_OFFSET_UM)
+        # Linie B: ORIGINAL direction, offset (= druhá strana osy mostu, „nožičky ven").
+        # Original tangenta → start/end_symbol OOM kreslí šikmé čárky VEN (na své straně osy).
+        line_b = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
         for offset_coords in (line_a, line_b):
             coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
             objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
                         f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
             n_bridges += 1
-    # Tunely (uživatel Sez. 32: „512 tunel je OK" s upraveným template id=125): emit 1
-    # line objekt 512 přímo (jako bridge_features, ale BEZ paralelizace = jen 1 osa).
-    # Template kreslí osu + 1 šikmou čárku na konci linie → tunel má symetrický vstup/výstup.
-    # Cropping železnice tunelem zajišťuje E4 (railway nekreslí v úseku tunelu).
+    # Tunely (Sez. 32 7. iterace dle uživatelovy chyby B „prostor tunelu má být prázdný"):
+    # Emit tunel STEJNĚ jako most = 2 PARALELNÍ line objekty 512 s reverzací jedné z nich
+    # (= nožičky závorek ven). NE jedna centrální linie přes tunel — ta by kreslila tenkou
+    # černou osu skrz prostor tunelu (chyba B). Cropping železnice tunelem (passage strategy)
+    # vytvoří mezeru v železnici; 4 šikmé čárky (Linie A + Linie B start/end) tvoří
+    # hranatou závorku [ ] na vstupu a ] [ na výstupu tunelu.
     for line, code in (tunnel_features or []):
-        o = line_object(line, str(code))
-        if o:
-            objs.append(o); n_bridges += 1
+        center_coords_um = [paper(gx, gy) for gx, gy in line]
+        if len(center_coords_um) < 2:
+            continue
+        line_a = _offset_polyline_left(list(reversed(center_coords_um)),
+                                        BRIDGE_PARALLEL_OFFSET_UM)
+        line_b = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
+        for offset_coords in (line_a, line_b):
+            coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
+            objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
+                        f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
+            n_bridges += 1
     # Lávky (Sez. 32 zachováno): 512.2 Footbridge = bodový objekt (rotatable=true). Rotace
     # v RADIÁNECH (template ukládá v radiánech). Tuple (gx, gy, code, rot_rad).
     for gx, gy, code, rot in (footbridge_features or []):

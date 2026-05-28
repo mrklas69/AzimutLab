@@ -45,11 +45,11 @@ Z 24 sledovaných ISOM symbolů reálně používáme **24** (zbytek = · znamen
 
 ## Poslední aktualizace
 
-- **SV** (`Soví Vrch/`): 2026-05-28 17:12:15
-- **NL** (`Nová Louka/`): 2026-05-28 17:12:25
-- **LS** (`Lidové sady/`): 2026-05-28 17:12:37
-- **HS** (`Hrubá Skála/`): 2026-05-28 17:12:48
-- **NV** (`Novina/`): 2026-05-28 17:11:35
+- **SV** (`Soví Vrch/`): 2026-05-28 17:28:37
+- **NL** (`Nová Louka/`): 2026-05-28 17:28:46
+- **LS** (`Lidové sady/`): 2026-05-28 17:28:58
+- **HS** (`Hrubá Skála/`): 2026-05-28 17:29:09
+- **NV** (`Novina/`): 2026-05-28 17:28:11
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-28 17:12:48.*
+*Tabulka regenerována `stats.py` v 2026-05-28 17:29:09.*
