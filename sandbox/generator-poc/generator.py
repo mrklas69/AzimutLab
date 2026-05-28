@@ -250,6 +250,19 @@ RAILWAY_CLASS = {ISOM_RAILWAY: 1}
 # ≈ 6,9 / 4,6 px); šířka 0,35 mm ≈ 1,6 → 2 px (silnější než pěšina → zřetelná trať).
 RAILWAY_STYLE = {ISOM_RAILWAY: ("railway", 2, (6.9, 4.6))}
 
+# Lesní průseky (Sez. 36, real-půlka, izomorfní s cestami/vedením): ZABAGED Lesní průsek → ISOM 508
+# Narrow ride = průhled lesem BEZ zřetelné vyšlapané cesty (odlišení od 503-506). Render = černá
+# čárkovaná linie; dash/break z template (id 115): 3,0 / 0,375 mm → dlouhé čárky s malými mezerami
+# (≈ „skoro plná", odliší od pěšiny 505 7,0/4,0 i od 506 4,0/4,0). Šířka 0,21 mm ≈ 0,96 → 1 px.
+# Runnability pozadí (žlutá/zelená dle prostupnosti) se NEKRESLÍ — vegetace = UC5 predikce (gate
+# Sez. 3), ne data; ISOM varianta „without background". Mapování viz zabaged.map_ride_to_isom (vždy 508).
+ISOM_NARROW_RIDE = 508             # lesní průsek → černá čárkovaná (bez runnability pozadí)
+RIDE_NAME = {ISOM_NARROW_RIDE: "Narrow ride"}
+# ISOM kód → třída v mask_rides.png (0 = pozadí). Jediná třída (1).
+RIDE_CLASS = {ISOM_NARROW_RIDE: 1}
+# Render styl (mode, width [px], (dash, gap)). dash/break z template 508 (3,0 / 0,375 mm × PX_PER_MM).
+RIDE_STYLE = {ISOM_NARROW_RIDE: ("dashed", 1, (3.0 * PX_PER_MM, 0.375 * PX_PER_MM))}
+
 # Zpevněné plochy / kolejiště (Sez. 28, real-půlka, plošná — izomorfní s budovou 521 / vodní
 # plochou 301): ZABAGED Kolejiště → ISOM 501 Paved area. 501 je v template KOMBINOVANÝ symbol
 # (hnědá 50% výplň + obrysová linie). Raster: výplň = C_ROAD (zavedená hnědá zpevněného povrchu,
@@ -719,6 +732,14 @@ def _draw_railway(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     _draw_line_symbol(draw, rdraw, curve_px, C_BLACK, mode, width, dash, RAILWAY_CLASS[code])
 
 
+def _draw_ride(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
+               curve_px: list[tuple[float, float]], code: int) -> None:
+    """Lesní průsek (černá čárkovaná, ISOM 508) dle RIDE_STYLE — wrapper nad _draw_line_symbol
+    (izomorfní s _draw_path / _draw_railway). Bez runnability pozadí (vegetace = UC5)."""
+    mode, width, dash = RIDE_STYLE[code]
+    _draw_line_symbol(draw, ridraw, curve_px, C_BLACK, mode, width, dash, RIDE_CLASS[code])
+
+
 def _offset_polyline_px(pts: list[tuple[float, float]], offset: float) -> list[tuple[float, float]]:
     """Posun polyline o `offset` px po LEVÉ normále lokální tangenty (per-bod); záporný offset =
     pravá normála. Rastrový protějšek omap_export._offset_polyline_left (tam µm) — jiná jednotka
@@ -1064,13 +1085,13 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                water_mode: str, paved_mode: str, buildings_mode: str, powerlines_mode: str,
-                railways_mode: str, rocks_mode: str, bridges_mode: str,
+                rides_mode: str, water_mode: str, paved_mode: str, buildings_mode: str,
+                powerlines_mode: str, railways_mode: str, rocks_mode: str, bridges_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_formlines: int, n_paths: int, paths_info: list[dict],
-                point_symbols: list[dict], water_info: list[dict], paved_info: list[dict],
-                building_info: list[dict], powerlines_info: list[dict],
+                rides_info: list[dict], point_symbols: list[dict], water_info: list[dict],
+                paved_info: list[dict], building_info: list[dict], powerlines_info: list[dict],
                 railways_info: list[dict], rocks_info: list[dict],
                 bridges_info: list[dict], omap_info: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
@@ -1083,6 +1104,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     # cesty: legendu symbolů/tříd stavíme dynamicky ze SKUTEČNĚ použitých ISOM kódů
     # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
     used_path_codes = sorted({p["symbol"] for p in paths_info})
+    used_ride_codes = sorted({r["symbol"] for r in rides_info})
     used_water_codes = sorted({w["symbol"] for w in water_info})
     used_building_codes = sorted({b["symbol"] for b in building_info})
     used_powerline_codes = sorted({p["symbol"] for p in powerlines_info})
@@ -1135,6 +1157,18 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             # reálné cesty = ČÚZK open data → atribuce povinná (CC BY 4.0)
             **({"licence": "CC BY 4.0 (ČÚZK ZABAGED)"} if paths_mode == "real" else {}),
         },
+        # lesní průseky (real-půlka, Sez. 36): linie ze ZABAGED REST → ISOM 508. Sekce jen když
+        # rides_mode == real; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"rides": {
+            "count": len(rides_info),
+            "mask": "mask_rides.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): RIDE_NAME[c] for c in used_ride_codes},
+            "classes": {"0": "pozadí",
+                        **{str(RIDE_CLASS[c]): f"{c} {RIDE_NAME[c]}" for c in used_ride_codes}},
+            "items": rides_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if rides_mode == "real" else {}),
         # voda (hydrografie): toky + plochy ze ZABAGED REST (real-půlka, Sez. 17). Sekce
         # jen když water_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
         **({"water": {
@@ -1479,6 +1513,30 @@ def _generate_real_railways(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDra
                 railways_info.append({"symbol": c, "symbol_name": RAILWAY_NAME[c],
                                       "layer": f["layer"]})
     return railway_features, railways_info
+
+
+def _generate_real_rides(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné lesní průseky (real-půlka, Sez. 36): Lesní průsek ze ZABAGED REST → ISOM 508.
+
+    Mirror _generate_real_railways/_generate_real_paths (S-JTSK → grid → px → čárkovaná linie).
+    KISS, vše → 508 (map_ride_to_isom). Vrací (ride_features [(grid, code)], rides_info) v
+    souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém výseku = 0 prvků."""
+    from zabaged import fetch_forest_rides, map_ride_to_isom
+    feats = fetch_forest_rides(lat, lon, GW, GH, TILE_M)
+    rides_info: list[dict] = []
+    ride_features: list[tuple] = []
+    for f in feats:
+        c = map_ride_to_isom(f["layer"], f["props"])
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 2:
+                continue
+            _draw_ride(draw, ridraw, px, c)
+            ride_features.append((grid, c))
+            rides_info.append({"symbol": c, "symbol_name": RIDE_NAME[c], "layer": f["layer"]})
+    return ride_features, rides_info
 
 
 def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
@@ -2045,7 +2103,7 @@ def synthesize_pseudorealistic_map(
         only_real: bool = False, out_dir: str = "output",
         *,                                    # vše dál keyword-only — z popředí API zmizí
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
-        terrain: str = "real", paths: str = "real", water: str = "real",
+        terrain: str = "real", paths: str = "real", rides: str = "real", water: str = "real",
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real",
@@ -2083,8 +2141,8 @@ def synthesize_pseudorealistic_map(
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → pomocné vrstevnice (103) →
-    bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → el. vedení
-    (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
+    bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
+    (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
     lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
@@ -2108,7 +2166,9 @@ def synthesize_pseudorealistic_map(
     # Všechny reálné vrstvy potřebují S-JTSK georef výseku (sdílený build_bbox) — noise terén je
     # v lokálních metrech bez georef, reálná data by se neměla na co napárovat. Jedna validace pro
     # všechny vrstvy (DRY): (CLI flag, zvolený mode, popis vrstvy do hlášky).
-    for flag, mode, popis in (("--paths", paths, "reálné cesty"), ("--water", water, "reálná voda"),
+    for flag, mode, popis in (("--paths", paths, "reálné cesty"),
+                              ("--rides", rides, "reálné lesní průseky"),
+                              ("--water", water, "reálná voda"),
                               ("--buildings", buildings, "reálné budovy"),
                               ("--powerlines", powerlines, "reálné el. vedení"),
                               ("--railways", railways, "reálná železnice"),
@@ -2296,6 +2356,20 @@ def synthesize_pseudorealistic_map(
     n_paths = len(paths_info)
     _log.info("  cesty: %d (%s)", n_paths, paths)
 
+    # --- lesní průseky (ISOM 508): reálné ze ZABAGED REST (real-půlka, Sez. 36) ---
+    # Rastr z-order: PO cestách, PŘED vedením — černá čárkovaná linie (průhled lesem bez cesty),
+    # izomorfní s komunikacemi. V bezlesém výseku = 0 prvků (žádný šum). Jen --rides real.
+    ride_features: list[tuple] = []
+    rides_info: list[dict] = []
+    ride_mask_img: Image.Image | None = None
+    if rides == "real":
+        ride_mask_img = Image.new("L", (W, H), 0)        # GT maska lesních průseků (§8.1)
+        ridraw = ImageDraw.Draw(ride_mask_img)
+        ride_features, rides_info = _try_layer(
+            "rides", lambda: _generate_real_rides(draw, ridraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  lesní průseky: %d", len(rides_info))
+
     # --- el. vedení (ISOM 510): reálné ze ZABAGED REST (real-půlka, Sez. 24) ---
     # Rastr z-order: PO cestách, PŘED budovami — tenká černá linie s příčkami nad terénem,
     # izomorfní s komunikacemi. NENÍ kotva displacementu (vedení vede NAD budovami, odsazení
@@ -2444,6 +2518,8 @@ def synthesize_pseudorealistic_map(
     fmask_img.save(out / "mask_formlines.png")                              # pomocné vrstevnice 103 (GT)
     path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
     sym_mask_img.save(out / "mask_symbols.png")                             # bodové symboly (GT, §8.1)
+    if ride_mask_img is not None:
+        ride_mask_img.save(out / "mask_rides.png")                          # lesní průseky 508 (GT)
     if water_mask_img is not None:
         water_mask_img.save(out / "mask_water.png")                         # voda (GT, multi-class)
     if building_mask_img is not None:
@@ -2475,6 +2551,9 @@ def synthesize_pseudorealistic_map(
     # železnice = liniový symbol 509 (kombinovaný type-16 v template) → otevřený path; OOM
     # vykreslí kombinovaný symbol (čárky + bílý knockout) autoritativně z definice symbolu (Sez. 28)
     railway_omap_features = [(g, "509") for g, _ in railway_features]
+    # lesní průseky = liniový symbol 508 (čárkovaný, type-1 v template) → otevřený path; OOM
+    # vykreslí čárkování z definice symbolu (dash 3,0 / break 0,375 mm)
+    ride_omap_features = [(g, "508") for g, _ in ride_features]
     # zpevněné plochy → 501 (KOMBINOVANÝ symbol: hnědá výplň + OBRYSOVÁ LINIE). Bounding line je
     # významová — do kolejiště se nevstupuje (rozhodnutí uživatele Sez. 28), proto NE čistě plošný
     # 501.1 (bez obrysu, jako voda). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní
@@ -2501,6 +2580,7 @@ def synthesize_pseudorealistic_map(
                              GW, GH, WORLD_W_M, TILE_M, MAP_SCALE, out / "map.omap",
                              ortho_template=ortho_template, ropik_features=ropik_features,
                              railway_features=railway_omap_features,
+                             ride_features=ride_omap_features,
                              paved_features=paved_omap_features,
                              formline_features=formline_omap_features,
                              rock_point_features=rock_point_omap_features,
@@ -2509,18 +2589,20 @@ def synthesize_pseudorealistic_map(
                              tunnel_features=tunnel_omap_features,
                              footbridge_features=footbridge_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,
-                       rocks, bridges,
+    meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
+                       railways, rocks, bridges,
                        pseudorealistic, lat, lon, elev,
-                       crs_epsg, n_contours, len(formline_features), n_paths, paths_info, point_symbols, water_info,
+                       crs_epsg, n_contours, len(formline_features), n_paths, paths_info, rides_info,
+                       point_symbols, water_info,
                        paved_info, building_info, powerlines_info, railways_info, rocks_info, bridges_info,
                        omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
-    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d "
-              "(pomocné %d) · vedení %d · železnice %d · skály %d · mosty/tunely/lávky %d · body %d · "
-              ".omap objektů %d", out, len(building_info),
-              len(ropik_info), len(water_info), len(paved_info), n_paths, len(contour_features),
+    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "
+              "vrstevnice %d (pomocné %d) · vedení %d · železnice %d · skály %d · mosty/tunely/lávky %d · "
+              "body %d · .omap objektů %d", out, len(building_info),
+              len(ropik_info), len(water_info), len(paved_info), n_paths, len(rides_info),
+              len(contour_features),
               len(formline_features), len(powerlines_info), len(railways_info),
               len(rocks_info), len(bridges_info), len(point_symbols),
               omap_counts["objects"])
@@ -2546,6 +2628,9 @@ def main() -> None:
     p.add_argument("--paths", choices=["proc", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST (default), proc = procedurální Dijkstra "
                         "(real vyžaduje --terrain real)")
+    p.add_argument("--rides", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED REST Lesní průsek → ISOM 508 Narrow ride (default), "
+                        "off = bez průseků (real vyžaduje --terrain real; v bezlesém výseku 0 prvků)")
     p.add_argument("--water", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST toky+plochy (default), off = bez vody "
                         "(real vyžaduje --terrain real; proc hydro D8 = budoucí)")
@@ -2604,7 +2689,7 @@ def main() -> None:
     out = synthesize_pseudorealistic_map(
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=out_dir,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
-        paths=args.paths, water=args.water, paved=args.paved, buildings=args.buildings,
+        paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
         rocks=args.rocks, bridges=args.bridges,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)

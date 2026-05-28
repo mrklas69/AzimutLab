@@ -45,6 +45,7 @@ _PAGE = 2000   # maxRecordCount REST query (ověřeno) — velikost dávky v pag
 LAYER_IDS = {
     "Cesta": 83, "Pěšina": 82, "Silnice__dálnice": 79,
     "Silnice_neevidovaná": 80, "Ulice": 84,
+    "Lesní průsek": 16,                # (Sez. 36) REST jméno s MEZEROU (jako tramvaj/lávka), ne escape
     "Železniční_trať": 75, "Železniční_vlečka": 76, "Kolejiště": 122,
     "Tramvajová dráha": 71,            # (Sez. 31) jméno s MEZEROU, ne WFS escape s podtržítkem
 
@@ -77,6 +78,14 @@ LAYER_IDS = {
 # Silnice_ve_výstavbě zatím vynechána (ve výsecích vzácná). Plný katalog 149 vrstev:
 # docs/kb/zabaged-isom-catalog.md.
 PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
+
+# Lesní průseky (Sez. 36, real-půlka, liniová — izomorfní s cestami). ZABAGED `Lesní průsek`
+# (id 16, REST jméno s MEZEROU jako tramvaj/lávka) → ISOM 508 Narrow ride = průhled lesem BEZ
+# zřetelné vyšlapané cesty (odlišení od 503-506). KISS, vrstva → jeden symbol (vrstva nese jen
+# nekategoriální atributy — verify SV: 46 prvků, žádný typ/šířka). Runnability pozadí (žlutá/zelená
+# dle prostupnosti) se NEKRESLÍ: vegetace není v datech (gate Sez. 3), je to UC5 predikce ne projekce
+# → ISOM varianta „without background". Mapování viz map_ride_to_isom.
+RIDE_LAYERS = ("Lesní průsek",)
 
 # Železnice + tramvaj (Sez. 28+31, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED:
 # `Železniční_trať` (id 75) = osy hlavních tratí; `Železniční_vlečka` (76) = průmyslové/nádražní
@@ -236,6 +245,28 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
         for feat in fc.get("features", []):
             geom = feat.get("geometry") or {}
             lines = _geom_to_lines(geom)
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_forest_rides(lat: float, lon: float, gw: int, gh: int,
+                       tile_m: float = 1000.0,
+                       cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné lesní průseky pro výsek (lat, lon) jako seznam liniových features.
+
+    Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} — polylinie v S-JTSK metrech
+    (MultiLineString rozbalen). Mapování na ISOM (map_ride_to_isom → 508) se dělá výš (Sez. 36).
+    Izomorfní s fetch_paths/fetch_railways (linie). Tentýž výsek (sdílený build_bbox) → průsek
+    sedne na terén i k cestám. V bezlesém výseku = 0 prvků (žádný šum)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in RIDE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
             if lines:
                 out.append({"layer": layer, "props": feat.get("properties", {}),
                             "lines": lines})
@@ -596,6 +627,16 @@ def map_path_to_isom(layer: str, props: dict) -> int:
         # pozor: REST vrací atribut malými (`typuskom_k`); WFS ho měl velkými (Sez. 26)
         return 505 if props.get("typuskom_k") == "026" else 506
     return 503   # fallback (neočekávaná vrstva) → viditelná plná čára
+
+
+def map_ride_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED lesní průsek na ISOM 2017-2 liniový symbol (kód).
+
+    `Lesní průsek` → **508 Narrow ride** (vždy; KISS, jako vedení→510 / železnice→509). Verify
+    Sez. 36 (Soví vrch): 46 prvků, vrstva bez kategoriálního atributu (typ/šířka) → jeden symbol.
+    508 = průhled lesem bez vyšlapané cesty (ISOM odlišuje od 503-506). Runnability pozadí se
+    nekreslí (vegetace = UC5 predikce, ne data). Konektor vrací holý ISOM kód (int)."""
+    return 508
 
 
 def map_railway_to_isom(layer: str, props: dict) -> int:

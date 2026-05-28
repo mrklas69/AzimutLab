@@ -10,7 +10,7 @@ Zisk oproti od-nuly:
     (line_symbol) — místo dřívějšího jednotného zjednodušeného kruhu;
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
-Skládáme tedy jen <objects> (vrstevnice 101/102 + pomocné 103, cesty 502-506, voda 304/305/306
+Skládáme tedy jen <objects> (vrstevnice 101/102 + pomocné 103, cesty 502-506 + lesní průseky 508, voda 304/305/306
 + plocha 301.1, zpevněné plochy 501, železnice 509, el. vedení 510, budovy 521, body 109/110/111,
 skály 204/207 + plochy 206, mosty/tunely 512 + lávky 512.2); barvy/symboly/georef/view přebíráme
 z template beze změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení
@@ -37,7 +37,7 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 # toky 304/305/306 (liniové) + plocha 301.1 (plošný symbol — kombinovaný 301 s břehem je
 # type 16, nepřiřaditelný objektu). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
-USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506",
+USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "304", "305", "306", "301.1", "521", "510", "509", "501", "109", "110", "111",
               "204", "206", "207",       # skály/balvany Sez. 30 (204 bod, 207 bod, 206 plocha)
               "512", "512.2")            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
@@ -80,6 +80,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                ortho_template: dict | None = None,
                ropik_features: list[tuple] | None = None,
                railway_features: list[tuple] | None = None,
+               ride_features: list[tuple] | None = None,
                paved_features: list[tuple] | None = None,
                formline_features: list[tuple] | None = None,
                rock_point_features: list[tuple] | None = None,
@@ -154,7 +155,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
 
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
-    n_formlines = n_rocks = n_bridges = 0
+    n_formlines = n_rocks = n_bridges = n_rides = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -190,6 +191,12 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = line_object(line, str(code))
         if o:
             objs.append(o); n_railways += 1
+    # lesní průseky (508) = liniový objekt (otevřený path); OOM vykreslí čárkování z definice
+    # symbolu (dash 3,0 / break 0,375 mm). Bez runnability pozadí (Sez. 36)
+    for line, code in (ride_features or []):
+        o = line_object(line, str(code))
+        if o:
+            objs.append(o); n_rides += 1
     # zpevněné plochy / kolejiště (501 kombinovaný, výplň+obrys) = plošný objekt (uzavřený path
     # s close flagem); OOM vyplní area-část a nakreslí obrysovou linii (Sez. 28)
     for ring, code in (paved_features or []):
@@ -365,7 +372,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                              f"(definice={n_def}, view ref={n_ref})")
 
     out_path.write_text(doc, encoding="utf-8")
-    return {"contours": n_contours, "formlines": n_formlines, "paths": n_paths, "water": n_water,
-            "buildings": n_buildings, "powerlines": n_powerlines, "railways": n_railways,
-            "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks, "bridges": n_bridges,
-            "points": n_points, "objects": len(objs)}
+    return {"contours": n_contours, "formlines": n_formlines, "paths": n_paths, "rides": n_rides,
+            "water": n_water, "buildings": n_buildings, "powerlines": n_powerlines,
+            "railways": n_railways, "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
+            "bridges": n_bridges, "points": n_points, "objects": len(objs)}

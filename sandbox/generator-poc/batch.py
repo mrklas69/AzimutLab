@@ -123,7 +123,7 @@ def main() -> None:
             synthesize_pseudorealistic_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
-                paths="real", water="real", paved="off", buildings="real", powerlines="off",
+                paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
                 railways="off", ropiky="off", rocks="off", bridges="off",
                 tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
@@ -150,7 +150,7 @@ def main() -> None:
             # real vrstev. lat/lon se u noise neuplatní (georef je lokální), předáváme DEF_*.
             synthesize_pseudorealistic_map(
                 DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
-                seed=seed, rug=rug, det=det, terrain="noise", paths="proc",
+                seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
                 ropiky="off", rocks="off", bridges="off")
             manifest.append({

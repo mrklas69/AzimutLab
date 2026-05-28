@@ -1,7 +1,7 @@
 """stats.py — agreguje meta.json všech DEV_LOCATIONS do tabulky STATISTICS.md.
 
 Pro každou lokalitu (sandbox/generator-poc/<dirname>/) přečte:
-- meta.json: počty symbolů ze sekcí (paths/water/buildings/powerlines/railways/paved/rocks/
+- meta.json: počty symbolů ze sekcí (paths/rides/water/buildings/powerlines/railways/paved/rocks/
   bridges/point_symbols) — každá items má `symbol: int` (např. 503, 304, 5122=512.2),
 - contours.geojson: vrstevnice 101/102/103 (každý feature má properties.code),
 - mtime meta.json: čas poslední regenerace.
@@ -52,6 +52,7 @@ SYMBOLS = [
     ("504",   "Vehicle track"),
     ("505",   "Footpath"),
     ("506",   "Small footpath"),
+    ("508",   "Narrow ride"),
     ("509",   "Railway"),
     ("510",   "Power line"),
     # Stavby (§4.12)
@@ -95,7 +96,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     # 1) vrstevnice 101/102/103 z contours.geojson (meta agreguje jen total)
     counts.update(_count_contours(folder / "contours.geojson"))
     # 2) items z 8 sekcí (každá má seznam s {"symbol": <int>})
-    for section in ("paths", "water", "paved", "buildings", "powerlines",
+    for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
                     "railways", "rocks", "bridges"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
