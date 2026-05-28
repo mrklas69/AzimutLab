@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 33 (2026-05-28) — Mosty/tunely DOKONČENY (OOM verify na NTBHEJ21) + out_dir do adresářů
+- [x] **Nožičky 512 mostu — orientace ven** (Sez. 32 7. iter byla obráceně, neověřená). Diagnóza měřením
+      `Most.omap` dema (ne hádáním): demo má levá strana osy reversed / pravá forward, kód zrcadlově →
+      nožičky dovnitř. Symbol 125 v demu == template (identický). Fix: offset paralel na **pravou normálu**
+      (záporný `BRIDGE_PARALLEL_OFFSET_UM`). Self-check relace == demo.
+- [x] **Buffer crop pod mostem** (uživatel „cutnout linie 0,5 mm za závorkami"). Měření demu: cut endpointy
+      perp ≈ 1250 µm = 0,75 (paralela) + 0,5. Nahradil křehkou crossing strategii (`>2 průsečíky → ignore`
+      selhával na ZABAGED noise) **buffer pásem ±1,25 mm KOLMO od osy** + **úhlový filtr** (∥ osa < 25° =
+      nesená trať nahoře → necropovat). Interpolovaný okraj (`_split_by_zones_interp`). Voda 130→145, cesty
+      486→499 (dělení), železnice 5 (nesená ∥ ✓).
+- [x] **Tunel = 512 otočené o 90°** (uživatel: tunel ≠ paralely; 512 zobrazují vjezdy). Oddělen emit:
+      most = 2 paralely podél osy; **tunel = 2 krátké 512 KOLMÉ na obou koncích** (`_tunnel_portals`, 1,5 mm).
+      Ortofoto verify: vjezdy na správných místech.
+- [x] **Passage crop tunelu — fix 4 mm → 0,5 mm.** Dřív snap na nejbližší vrchol trati (řídké body).
+      Fix: vjezdy se **projektují přesně na trať** (`_project_to_line`) + interp okraj. Self-check: konce
+      železnice 499–500 µm od vjezdů.
+- [x] **`--location` → výstup do složky lokality.** Názvy složek byly 2× (ASCII `DEV_LOCATIONS` / diakritika
+      `stats.py`) → sjednoceno na diakritickou verzi (SSoT shoda obou). Orphany `output/` + `Hruboskalsko/` smazány.
+- [x] **Úklid + DRY.** Smazány dead `_segment_intersection_pt`, `_crop_line_at_cutters`, `_apply_cut_zones`;
+      vytaženy `_split_by_zones_interp`/`_emit_512_line`/`_point_on_line_px`/`_interp_grid_at`/`_project_to_line`.
+      proc 65 drží; všech 5 lokalit přegenerováno do adresářů + STATISTICS 24/24.
+
 ## Sezení 31 (2026-05-28) — Mosty 512 + Lávky 512.2 + oprava tramvaje 509 + DEV_LOCATIONS refaktor
 - [x] **Mosty `--bridges real`** (`Most` id=73 → ISOM 512, linie+V-křídla; render = středová linie 0,18 mm
       + 4 šikmá křídla na koncích symetricky ke 35° vůči ose, template autoritativní). Probe Novina
