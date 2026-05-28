@@ -15,13 +15,15 @@ sandbox/**/output/
 sandbox/**/output_*/
 sandbox/**/data/
 # Kanonické outputy reálných map (regenerovatelné): Soví vrch (Lužické hory, Sez. 17),
-# Nová louka (Jizerské hory, Sez. 23)
+# Nová louka (Jizerské hory, Sez. 23), Lidové sady (Liberec, Sez. 28), Hrubá Skála (Sez. 30).
 Soví vrch/
 sandbox/**/Soví vrch/
 Nová louka/
 sandbox/**/Nová louka/
 Lidové sady/
 sandbox/**/Lidové sady/
+Hrubá Skála/
+sandbox/**/Hrubá Skála/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
 *.tif
