@@ -28,7 +28,10 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
   nestačí. Projdi checklist a propiš dnešní změnu, kam patří (conceptual integrity, SLAP):
   - **Přidal/změnil reálnou vrstvu?** → `DONE.md` (záznam) + `architecture.md` UC2 (výčet `--…real`)
     + spec `generator-procedural.md` (sekce §4.9*) + `GLOSSARY.md` (termín) + README (status) +
-    oba README (`connectors/`, `generator-poc/`) + `zabaged-isom-catalog.md` (stav vrstvy).
+    oba README (`connectors/`, `generator-poc/`) + `zabaged-isom-catalog.md` (stav vrstvy)
+    + **CALL-SITES kódu**: `batch.py` OBĚ větve (noise i real) — nová vrstva s default `real`
+      MUSÍ být v batch volání explicitně `"off"`, jinak noise větev padne na validaci a real ji
+      zbytečně stahuje (Sez. 35 B1: `rocks`/`bridges` to nedostaly → crash, nezachycen 30→34).
   - **Migrace/přejmenování (typ WFS→REST)?** → grep celý strom, ne jen dotčený soubor (drift Sez. 26
     přežil 7 sezení v 5 docs → audit Sez. 34).
   - **Po `%END` ověř:** každé `## Sezení N` v diáři má řádek v `DIARY.md` indexu **i** v `DONE.md`

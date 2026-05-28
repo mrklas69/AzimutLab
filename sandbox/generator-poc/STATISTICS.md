@@ -27,7 +27,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **301** | Uncrossable body of water | 14 | 11 | 58 | 41 | 12 |
 | **304** | Crossable watercourse | 70 | 90 | 124 | 28 | 43 |
 | **305** | Small crossable watercourse | 107 | 119 | 148 | 90 | 88 |
-| **306** | Seasonal watercourse | 43 | 82 | 6 | 17 | 2 |
+| **306** | Minor seasonal water channel | 43 | 82 | 6 | 17 | 2 |
 | **501** | Paved area | · | · | 1 | · | · |
 | **502** | Wide road | 212 | 15 | 3192 | 170 | 29 |
 | **503** | Road | 195 | 181 | 301 | 325 | 180 |
@@ -45,11 +45,11 @@ Z 24 sledovaných ISOM symbolů reálně používáme **24** (zbytek = · znamen
 
 ## Poslední aktualizace
 
-- **SV** (`Soví Vrch/`): 2026-05-28 22:14:15
-- **NL** (`Nová Louka/`): 2026-05-28 22:14:33
-- **LS** (`Lidové sady/`): 2026-05-28 22:15:40
-- **HS** (`Hrubá Skála/`): 2026-05-28 22:14:54
-- **NV** (`Novina/`): 2026-05-28 22:12:02
+- **SV** (`Soví Vrch/`): 2026-05-28 23:38:25
+- **NL** (`Nová Louka/`): 2026-05-28 23:39:09
+- **LS** (`Lidové sady/`): 2026-05-28 23:41:09
+- **HS** (`Hrubá Skála/`): 2026-05-28 23:42:01
+- **NV** (`Novina/`): 2026-05-28 23:42:41
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-28 22:15:49.*
+*Tabulka regenerována `stats.py` v 2026-05-28 23:42:58.*

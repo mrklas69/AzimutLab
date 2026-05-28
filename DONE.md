@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 35 (2026-05-28) — %AUDIT:CODE (LOC práh) + sjednocení rastru mostů/tunelů s .omap + fix batch noise
+- [x] **%AUDIT:CODE** (LOC práh ≥500 překročen 3,5× = net +1756 LOC od Sez. 27). Přečteny sám
+      generator/omap_export/stats/batch/palette + 3 konektory; kód zdravý, dominanta = drift komentářů.
+- [x] **D1 — drift symbolu 202** (zavržená hybridní 202/206 logika popsaná jako aktivní na 5 místech
+      `generator.py` vč. CLI helpu) smazán; `map_rock_area_to_isom` vrací vždy 206 (KISS).
+- [x] **D2+K3 — rastr mostů/tunelů sjednocen s `.omap`.** Verify-against-source PŘED kódem (geometrie
+      symbolu 512 z `template_classic.omap` id=125 + demo `Most.png`): `_draw_bridge` = 2 paralely
+      (`_offset_polyline_px` ±0,75 mm) + nožičky `_draw_bridge_leg` (450 µm podél osy ven + 654 µm kolmo
+      ven → `[ ]`); `_draw_tunnel` = portály `TUNNEL_PORTAL_HALF` 0,75 mm (přestal půjčovat `FOOTBRIDGE_*`).
+      Konstanty na template: baseline 180→270 µm, lávka 625/250→937/375 µm. Smazán `_draw_bridge_brackets`
+      + `BRIDGE_BRACKET_*` (Sez. 32 interpretace 60°, vyvrácená Most.omap demem).
+- [x] **D3 — DRY:** 9× duplikovaný validační blok `real ⇒ terrain real` → smyčka (27→13 ř.).
+- [x] **D4/D5 — zastaralé docstringy/komentáře:** `zabaged.py` modul (cesty→11 vrstev), `omap_export.py`
+      výčet symbolů, z-order v `synthesize_pseudorealistic_map`, „Most vynechán" v `PATH_LAYERS`.
+- [x] **K1/K2 — kosmetika:** zhuštěn chaotický komentář `_draw_boulder_cluster`; název 306 sjednocen
+      na ISOM „Minor seasonal water channel" (`generator` + `stats`).
+- [x] **B1 (kritické) — fix `batch.py --terrain noise` crash.** Noise i real větev nepředávaly
+      `rocks=`/`bridges=` (default `real`) → noise padala na validaci, real je zbytečně stahovala.
+      Doplněno `rocks="off", bridges="off"` do obou + komentář. Pre-existující (Sez. 30/32 nepropsáno).
+- [x] **Verify:** syntax OK ×5, proc baseline 65 drží, most vizuálně OK (Novina výřez), všech 5 lokalit
+      přegenerováno + STATISTICS (jen 306 název + časy, počty drží). A1 monolit (2623 ř.) = úvaha, neřešeno.
+
 ## Sezení 33 (2026-05-28) — Mosty/tunely DOKONČENY (OOM verify na NTBHEJ21) + out_dir do adresářů
 - [x] **Nožičky 512 mostu — orientace ven** (Sez. 32 7. iter byla obráceně, neověřená). Diagnóza měřením
       `Most.omap` dema (ne hádáním): demo má levá strana osy reversed / pravá forward, kód zrcadlově →
