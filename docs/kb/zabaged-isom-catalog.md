@@ -60,15 +60,15 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Most` | linie | 512 Bridge/tunnel | ◐ | **linie, ne bod** (oprava zděděného předpokladu); přemostění |
-| `Lávka__linie_` | linie | 512.2 Footbridge | ◐ | lávka pro pěší |
-| `Lávka__bod_` | bod | 512.2 Footbridge | ○ | bodová varianta lávky |
-| `Tunel` | linie | 512 Bridge/tunnel | ○ | žel./silniční tunel (vzácné v lese) |
+| `Most` | linie | 512 Bridge/tunnel | ◐ | **linie, ne bod** (oprava zděděného předpokladu); Sez. 31 implementace rollbacknuta Sez. 32 (3 iterace bez spec-driven), znovu spec-driven |
+| `Lávka (linie)` | linie | 512.2 Footbridge | ◐ | lávka pro pěší (REST jméno **s mezerou a závorkou**, ne podtržítka); spec-driven po Sez. 32 mostu |
+| `Lávka (bod)` | bod | 512.2 Footbridge | ◐ | bodová varianta lávky (REST jméno s mezerou); single dash 1,25 mm × 0,25 mm template id=127 |
+| `Tunel` | linie | 512 Bridge/tunnel | ◐ | žel./silniční tunel; ISOM 512 = stejný symbol pro most i tunel (spec str. 32: „Bridges and tunnels are represented using the same basic symbols") |
 | `Brod` | linie | (519 Crossing point) | ○ | brod přes tok; ISOM nemá vlastní symbol, nejblíž žádný |
 | `Propustek__linie_` | linie | — | ○ | propustek pod cestou; drobnost, většinou nekreslit |
 | `Propustek__bod_` | bod | — | ○ | bodová varianta |
-| `Podjezd__linie_` | linie | — | ✗ | urbánní |
-| `Podjezd__bod_` | bod | — | ✗ | urbánní |
+| `Podjezd (linie)` | linie | (519 Crossing point?) | ○ | tematická skupina s Most/Tunel; verify ISOM 519 spec před implementací |
+| `Podjezd (bod)` | bod | (519 Crossing point?) | ○ | bodová varianta; viz výše |
 | `Přívoz` | linie | — | ✗ | přes splavnou řeku, vzácné v OB |
 | `Přístaviště` | bod | — | ✗ | voda, urbánní |
 | `Hraniční_přechod__přeshraniční_propojení` | bod | — | ✗ | administrativní |
