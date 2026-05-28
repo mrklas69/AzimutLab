@@ -136,11 +136,11 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Osamělý_balvan__skála__skalní_suk` | bod | 204 Boulder / 205 Large boulder | ◐ | balvan = klasický OB objekt |
-| `Skalní_útvary` | plocha | 201 Impassable cliff / 202 Cliff | ◐ | skály v lese, relevantní pro OB |
-| `Skupina_balvanů__bod_` | bod | 207 Boulder cluster | ○ | skupina balvanů |
-| `Skupina_balvanů__linie_` | linie | 208 Boulder field | ○ | pole balvanů |
-| `Sesuv_půdy__suť` | plocha | 210 Stony ground | ○ | suť / sesuv |
+| `Osamělý_balvan__skála__skalní_suk` | bod | 204 Boulder | ✓ | Sez. 30 (`--rocks`); ZABAGED bez atributu typu/výšky → 205 odpadlo, KISS |
+| `Skalní_útvary` | plocha | 206 Gigantic boulder | ✓ | Sez. 30 (`--rocks`, plná černá plocha); hybridní 202/206 podle plochy zavrženo „bez datového podkladu" |
+| `Skupina_balvanů__bod_` | bod | 207 Boulder cluster | ✓ | Sez. 30 (`--rocks`) |
+| `Skupina_balvanů__linie_` | linie | 208 Boulder field | ◐ | pole balvanů — odloženo (3 prvky na Hrubé Skále) |
+| `Sesuv_půdy__suť` | plocha | 210 Stony ground | ◐ | suť — odloženo (0 prvků na Hrubé Skále, verify v Jeseníkách / Krkonoších) |
 | `Vstup_do_jeskyně` | bod | 203.2 Cave | ○ | jeskyně = OB objekt |
 | `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom (skalní stěna) |
 | `Ústí_šachty__štoly` | bod | (203.2 Cave) | ○ | důlní ústí (umělé) |
@@ -269,13 +269,13 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 Seřazeno podle vizuální návratnosti pro OB lesní mapu (✓ `Elektrické_vedení` hotovo Sez. 24):
 
 1. **`Most` → 512 Bridge/tunnel** — linie; spolu s `Lávka__linie_` → 512.2 Footbridge.
-2. **`Osamělý_balvan…` → 204/205 Boulder** + **`Skalní_útvary` → 201/202 Cliff** — skály a balvany jsou jádro lesního OB.
+2. ~~`Osamělý_balvan…` → 204 + `Skupina_balvanů__bod_` → 207 + `Skalní_útvary` → 206~~ (HOTOVO Sez. 30, `--rocks`; KISS vrstva → jeden symbol).
 3. **`Lesní_průsek` → 508 Narrow ride** — průseky strukturují les.
 4. **`Kříž__sloup…` → 530/531** + **`Mohyla__pomník…` → 526/530** + ~~`Bunkr`~~ (HOTOVO Sez. 27 = asset řopík) + **`Věž…` → 524** — bodové orientační prvky.
 5. **`Zeď` → 513 Wall** — liniový objekt.
 6. **`Bažina__močál` → 308 Marsh** — pokud se vrátíme k mokřadům.
 7. **`Zdroj_podzemních_vod` → 312 Spring** — pramen (ve výsecích vzácný).
-8. **`Železniční_trať` → 509 Railway** — kde výsek zasáhne trať.
+8. ~~`Železniční_trať` → 509 Railway~~ (HOTOVO Sez. 28, `--railways`; `_vlečka` taky).
 
 > Každý kandidát = nová vrstva v `PATH_LAYERS` / nová `*_LAYERS` + mapovací funkce + render
 > styl + verify-against-source na reálném výseku (atributy → ISOM před renderem). Po ověření
