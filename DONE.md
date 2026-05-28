@@ -2,6 +2,36 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 31 (2026-05-28) — Mosty 512 + Lávky 512.2 + oprava tramvaje 509 + DEV_LOCATIONS refaktor
+- [x] **Mosty `--bridges real`** (`Most` id=73 → ISOM 512, linie+V-křídla; render = středová linie 0,18 mm
+      + 4 šikmá křídla na koncích symetricky ke 35° vůči ose, template autoritativní). Probe Novina
+      ukázal `jmeno 2/4` = Novinský viadukt 199 m + Malý viadukt 143 m (oba kamenné železniční,
+      `material_p='neznámý'` — ZABAGED nedělí kámen separátně, ISOM stejně nerozlišuje).
+- [x] **Lávky `Lávka (linie)` (67) + `Lávka (bod)` (66) → ISOM 512.2 Footbridge** (bodový symbol s
+      rotací kolmo k nejbližšímu vodnímu toku — paralela řopíku→hranici). Pro liniovou lávku se
+      bere střed osy (MVP, drobnost TODO). V .omap rotation v radiánech (template signatura).
+      **Nález:** Lávka má v REST jméno **s mezerou a závorkou** (`Lávka (linie)`), NE WFS escape
+      `Lávka__linie_` jak v katalogu Sez. 23 — ČÚZK ZABAGED má 2 konvence názvů (verify `?f=json`
+      před doplněním do `LAYER_IDS`).
+- [x] **Tramvaj `Tramvajová dráha` (71) → 509** (oprava Sez. 28: vynechána „jako urbánní", chyběla
+      točna Lidové sady). Probe LS: 25 LineString prvků, atributy chudé → KISS, vše → 509. Doplněno
+      do `RAILWAY_LAYERS`. Lekce: „urbánní" není kritérium, když ISOM nerozlišuje (jeden symbol).
+- [x] **Refaktor `DEV_LOCATIONS` na per-lokalita rozměr** (5-tuple: label, lat, lon, w_km, h_km):
+      `DEV_W_KM`/`DEV_H_KM` zrušeno. Existující 4 lokality zůstávají landscape 6×4 km (kanonika
+      stable). Přidáno **NV `Novina` 50.7598686, 14.9601922, 3×5 km PORTRAIT** (5. lokalita, kamenné
+      železniční viadukty). HS `Hrubá Skála` změněna z landscape 6×4 na **SQUARE 5×5 km** centrovaný
+      na **50.5481, 15.1762** = midpoint Kacanovy ↔ Doubravice (Doubravice = část obce Hrubá Skála,
+      verify-against-source: Wikipedia uvádí 8 částí obce).
+- [x] **Implementace**: `connectors/zabaged.py` (`fetch_bridges`/`fetch_footbridges` + `map_bridge_to_isom`/
+      `map_footbridge_to_isom`); `generator.py` ISOM konstanty 512/5122 + `_draw_bridge` (V-křídla)/
+      `_draw_footbridge_point` + `_nearest_segment_tangent` (helper rotace) + `_generate_real_bridges`
+      + CLI `--bridges` + meta sekce `bridges` + `mask_bridges.png` 2-class; `omap_export.py` USED_CODES
+      += 512/512.2, `ROTATABLE_CODES` += 512.2, `bridge_features`/`footbridge_features` parametry.
+- [x] **Verify**: proc baseline **65 drží** přesně. NV (3×5 km portrait) **22 mostů** (Bridge:17,
+      Footbridge:5, vč. Novinský + Malý viadukt). HS (5×5 km square) **639 skal** (459× plné 206!),
+      13 mostů. LS (6×4 km) **40 železnic** (15 trat+vleček + 25 tramvaj nová), 76 mostů.
+      Kanonika `Novina/`, `Hrubá Skála/` (square), `Lidové sady/` (tramvaj) regenerována v plné variantě.
+
 ## Sezení 29 (2026-05-28) — Pomocné vrstevnice (form lines, ISOM 103) z DMR
 - [x] **ISOM 103 = Form line** (verify-against-source, ne hádání): uživatel zmínil „103", ověřeno v
       `template_classic.omap` — 103 = **Form line** (pomocná vrstevnice), NE slope line (ta je 101.1 / 103.1).
