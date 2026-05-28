@@ -341,11 +341,13 @@ DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 # formáty výseku (landscape/portrait/strip/square) testují korektní dotahování/ořezávání
 # podkladů (DMR, ZABAGED, ortofoto) i v ne-1.5:1 poměrech. Existující 4 zůstávají
 # landscape 6×4 km (kanonické výstupy stable). Sprint/ISSprOM = budoucí úkol (IDEAS).
+# Název (index 0) = zároveň název výstupní složky (`--location` ⇒ out_dir, viz main).
+# Musí sedět s `stats.py` LOCATIONS (SSoT názvů složek pro STATISTICS.md).
 DEV_LOCATIONS: dict[str, tuple[str, float, float, float, float]] = {
-    "SV": ("Sovi vrch",   DEF_LAT,    DEF_LON,    6.0, 4.0),  # Lužické hory (default, terénně mapováno) — landscape
-    "NL": ("Nova louka",  50.8140386, 15.1579069, 6.0, 4.0),  # Jizerské hory — landscape
-    "LS": ("Lidove sady", 50.7773244, 15.0811114, 6.0, 4.0),  # Liberec městsko-lesní pod Ještědem — landscape
-    "HS": ("Hruba Skala", 50.5481000, 15.1761500, 5.0, 5.0),  # Hruboskalsko (midpoint Kacanovy↔Doubravice) — SQUARE (Sez. 31)
+    "SV": ("Soví Vrch",   DEF_LAT,    DEF_LON,    6.0, 4.0),  # Lužické hory (default, terénně mapováno) — landscape
+    "NL": ("Nová Louka",  50.8140386, 15.1579069, 6.0, 4.0),  # Jizerské hory — landscape
+    "LS": ("Lidové sady", 50.7773244, 15.0811114, 6.0, 4.0),  # Liberec městsko-lesní pod Ještědem — landscape
+    "HS": ("Hrubá Skála", 50.5481000, 15.1761500, 5.0, 5.0),  # Hruboskalsko (midpoint Kacanovy↔Doubravice) — SQUARE (Sez. 31)
     "NV": ("Novina",      50.7598686, 14.9601922, 3.0, 5.0),  # Lužické hory, kamenné železniční viadukty — PORTRAIT (Sez. 31)
 }
 
@@ -1303,7 +1305,7 @@ def _generate_real_paths(draw: ImageDraw.ImageDraw, pdraw: ImageDraw.ImageDraw,
             # Dvojí cropping: crossings (mosty) + passages (tunely), sekvenčně
             sub_curves = [curve_grid]
             if bridge_cutters:
-                sub_curves = [s for c in sub_curves for s in _crop_line_at_crossings(c, bridge_cutters)]
+                sub_curves = [s for c in sub_curves for s in _crop_line_under_bridge(c, bridge_cutters)]
             if tunnel_cutters:
                 sub_curves = [s for c in sub_curves for s in _crop_line_at_passages(c, tunnel_cutters)]
             for sub in sub_curves:
@@ -1337,8 +1339,8 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
             continue
         for line in f["lines"]:
             grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            # Cropping mostů (Sez. 32 E1, crossing strategy)
-            sub_lines = (_crop_line_at_crossings(grid, bridge_cutters)
+            # Cropping mostů (buffer pás kolem osy, Sez. 33 verify Most.omap)
+            sub_lines = (_crop_line_under_bridge(grid, bridge_cutters)
                          if bridge_cutters else [grid])
             for sub in sub_lines:
                 px = [_grid_to_px(gx, gy) for gx, gy in sub]
@@ -1566,59 +1568,6 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
 # =====================================================================
 #  Mosty / tunely / lávky — fáze 1 (projekce reálných dat ZABAGED), Sez. 32 spec-driven
 # =====================================================================
-def _segment_intersection_pt(p1: tuple[float, float], p2: tuple[float, float],
-                              q1: tuple[float, float], q2: tuple[float, float]
-                              ) -> tuple[float, float] | None:
-    """Vrátí bod průsečíku DVOU ÚSEČEK p1-p2 a q1-q2 (v grid coords) nebo None.
-
-    Paralelní úsečky (= nemají vlastní bod průsečíku) vrátí None — KLÍČOVÉ pro cropping
-    silnice NA mostu (= paralelně s mostem → žádný průsečík → žádný crop). Bod průsečíku
-    se vrací JEN když obě parametry t1∈[0,1] a t2∈[0,1] (= průsečík uvnitř obou úseček)."""
-    x1, y1 = p1
-    x2, y2 = p2
-    x3, y3 = q1
-    x4, y4 = q2
-    den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-    if abs(den) < 1e-9:
-        return None                                 # paralelní úsečky → žádný bod průsečíku
-    t1 = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
-    t2 = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
-    if 0 <= t1 <= 1 and 0 <= t2 <= 1:
-        return (x1 + t1 * (x2 - x1), y1 + t1 * (y2 - y1))
-    return None
-
-
-def _apply_cut_zones(line_grid: list[tuple[float, float]],
-                     cum_dist_px: list[float],
-                     cut_zones_px: list[tuple[float, float]]
-                     ) -> list[list[tuple[float, float]]]:
-    """Helper: rozdělí line_grid podle cut_zones (paper-space px intervaly, kde je linie
-    vynechaná). Body, jejichž kumulativní vzdálenost spadá do nějaké zone, vypustí."""
-    if not cut_zones_px:
-        return [line_grid] if len(line_grid) >= 2 else []
-    # Sloučit překrývající zóny
-    cut_zones_px = sorted(cut_zones_px)
-    merged = [cut_zones_px[0]]
-    for z in cut_zones_px[1:]:
-        if z[0] <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], z[1]))
-        else:
-            merged.append(z)
-    segments: list[list[tuple[float, float]]] = []
-    current: list[tuple[float, float]] = []
-    for k, gp in enumerate(line_grid):
-        d = cum_dist_px[k]
-        if any(z[0] <= d <= z[1] for z in merged):
-            if len(current) >= 2:
-                segments.append(current)
-            current = []
-        else:
-            current.append(gp)
-    if len(current) >= 2:
-        segments.append(current)
-    return segments
-
-
 def _cum_distance_px(line_grid: list[tuple[float, float]]) -> list[float]:
     """Kumulativní vzdálenost bodů line_grid v paper-space (px). Pro mapování bod → d."""
     line_px = [_grid_to_px(gx, gy) for gx, gy in line_grid]
@@ -1629,56 +1578,140 @@ def _cum_distance_px(line_grid: list[tuple[float, float]]) -> list[float]:
     return cum
 
 
-def _crop_line_at_crossings(line_grid: list[tuple[float, float]],
+# Half-width pásu, v němž se křížící linie pod mostem přeruší (KOLMO od osy mostu):
+# 0,75 mm (offset paralely 512, viz omap_export.BRIDGE_PARALLEL_OFFSET_UM) + 0,5 mm
+# „za závorkami" (uživatel, verify Most.omap Sez. 33). Mimo tento pás linie pokračuje.
+BRIDGE_CROP_HALFWIDTH_MM = 1.25
+# Úsek křížící linie ~rovnoběžný s osou mostu (úhel < tohoto) = NESENÁ trať (jde PO mostě,
+# nahoře, viditelná) → necropovat. Jen příčné úseky (pod mostem) se přeruší.
+BRIDGE_CARRIED_PARALLEL_DEG = 25.0
+
+
+def _point_on_line_px(line_px: list[tuple[float, float]], cum: list[float],
+                      d: float) -> tuple[float, float, float, float]:
+    """Bod (x,y) + jednotková tangenta (tx,ty) linie v kumulativní vzdálenosti d [px]."""
+    for i in range(1, len(cum)):
+        if d <= cum[i] or i == len(cum) - 1:
+            seg = cum[i] - cum[i - 1]
+            f = 0.0 if seg < 1e-9 else (d - cum[i - 1]) / seg
+            x = line_px[i - 1][0] + f * (line_px[i][0] - line_px[i - 1][0])
+            y = line_px[i - 1][1] + f * (line_px[i][1] - line_px[i - 1][1])
+            tx, ty = line_px[i][0] - line_px[i - 1][0], line_px[i][1] - line_px[i - 1][1]
+            tlen = math.hypot(tx, ty) or 1.0
+            return x, y, tx / tlen, ty / tlen
+    return line_px[-1][0], line_px[-1][1], 1.0, 0.0
+
+
+def _interp_grid_at(line_grid: list[tuple[float, float]], cum: list[float],
+                    d: float) -> tuple[float, float]:
+    """Interpolovaný grid bod na kumulativní vzdálenosti d [px] (přesný okraj cutu)."""
+    for i in range(1, len(cum)):
+        if d <= cum[i] or i == len(cum) - 1:
+            seg = cum[i] - cum[i - 1]
+            f = 0.0 if seg < 1e-9 else (d - cum[i - 1]) / seg
+            return (line_grid[i - 1][0] + f * (line_grid[i][0] - line_grid[i - 1][0]),
+                    line_grid[i - 1][1] + f * (line_grid[i][1] - line_grid[i - 1][1]))
+    return line_grid[-1]
+
+
+def _crop_line_under_bridge(line_grid: list[tuple[float, float]],
                             cutter_lines_grid: list[list[tuple[float, float]]],
-                            crop_mm: float = 0.5
+                            half_w_mm: float = BRIDGE_CROP_HALFWIDTH_MM,
+                            parallel_deg: float = BRIDGE_CARRIED_PARALLEL_DEG
                             ) -> list[list[tuple[float, float]]]:
-    """Crossing strategy (pro most cutter): cropuje v okolí 1-2 bod-průsečíků.
+    """Most crop (verify Most.omap, Sez. 33): křížící linie pod mostem se PŘERUŠÍ v pásu
+    ±half_w_mm KOLMO od osy mostu. Nahrazuje dřívější crossing strategii (bod-průsečíky,
+    >2 → ignore), která selhávala na ZABAGED noise a cropovala jen ±0,5 mm kolem průsečíku
+    (linie vykukovala zpod závorek 512 v 0,75 mm).
 
-    - 0 průsečíků → paralel nebo mimo → ignore (line nebude cropována tímto cutterem)
-    - 1 průsečík → bod-křížení → cropuj ±crop_mm
-    - 2 průsečíky → line vstupuje a vystupuje z cutter koridoru (= jde POD mostem)
-      → cropuj **celý úsek mezi nimi** (+ ±crop_mm na obou koncích)
-    - > 2 průsečíků → paralelní souběh s ZABAGED mikro-nepřesnostmi → ignore
-      (= linie NA mostu = paralelně = nemá být cropována; falešné průsečíky z noise)
+    Úhlový filtr: úsek ~rovnoběžný s osou mostu (úhel < parallel_deg) = NESENÁ trať (jde
+    PO mostě, nahoře viditelná, jako oranžová silnice v Most.png) → NEcropovat. Jen příčné
+    úseky (pod mostem = voda/jiná cesta/železnice) se přeruší. Robustní vůči počtu průsečíků.
 
-    Použít pro: voda/cesty × mosty (most je NAD; co je POD = crop)."""
+    Použít pro: voda/cesty × mosty. (Tunely mají opačný filtr → `_crop_line_at_passages`.)"""
     if not cutter_lines_grid or len(line_grid) < 2:
         return [line_grid] if len(line_grid) >= 2 else []
-    cum = _cum_distance_px(line_grid)
-    crop_px = crop_mm * PX_PER_MM
-    cut_zones: list[tuple[float, float]] = []
     line_px = [_grid_to_px(gx, gy) for gx, gy in line_grid]
+    cutters_px = [[_grid_to_px(gx, gy) for gx, gy in cl]
+                  for cl in cutter_lines_grid if len(cl) >= 2]
+    if not cutters_px:
+        return [line_grid]
+    cum = _cum_distance_px(line_grid)
+    total = cum[-1]
+    half_w_px = half_w_mm * PX_PER_MM
+    cos_par = math.cos(math.radians(parallel_deg))
+    step = 0.2 * PX_PER_MM                          # vzorkovací krok podél linie (~0,2 mm)
+    # 1) vzorkuj podél linie → souvislé „inside" intervaly (perp < half_w AND příčný)
+    zones: list[tuple[float, float]] = []
+    in_zone, z_start, d = False, 0.0, 0.0
+    while d <= total + 1e-9:
+        x, y, tx, ty = _point_on_line_px(line_px, cum, min(d, total))
+        ux, uy, dist = _nearest_seg(x, y, cutters_px)
+        inside = dist < half_w_px and abs(tx * ux + ty * uy) <= cos_par
+        if inside and not in_zone:
+            in_zone, z_start = True, d
+        elif not inside and in_zone:
+            in_zone = False
+            zones.append((z_start, d))
+        d += step
+    if in_zone:
+        zones.append((z_start, total))
+    return _split_by_zones_interp(line_grid, cum, zones)
 
-    for cl in cutter_lines_grid:
-        # Najdi všechny průsečíky a spočti jejich kumulativní vzdálenost na line
-        ds: list[float] = []
-        for i in range(1, len(line_grid)):
-            p1, p2 = line_grid[i - 1], line_grid[i]
-            seg_len_px = math.hypot(line_px[i][0] - line_px[i - 1][0],
-                                    line_px[i][1] - line_px[i - 1][1])
-            dx_seg, dy_seg = p2[0] - p1[0], p2[1] - p1[1]
-            seg_len2_grid = dx_seg * dx_seg + dy_seg * dy_seg
-            if seg_len2_grid < 1e-12:
-                continue
-            for j in range(1, len(cl)):
-                q1, q2 = cl[j - 1], cl[j]
-                pt = _segment_intersection_pt(p1, p2, q1, q2)
-                if pt is not None:
-                    t1 = ((pt[0] - p1[0]) * dx_seg + (pt[1] - p1[1]) * dy_seg) / seg_len2_grid
-                    t1 = max(0.0, min(1.0, t1))
-                    ds.append(cum[i - 1] + t1 * seg_len_px)
-        ds.sort()
-        n = len(ds)
-        if n == 1:
-            d = ds[0]
-            cut_zones.append((d - crop_px, d + crop_px))
-        elif n == 2:
-            d1, d2 = ds
-            cut_zones.append((d1 - crop_px, d2 + crop_px))
-        # else: 0 = paralel/mimo, > 2 = paralel souběh → ignore
 
-    return _apply_cut_zones(line_grid, cum, cut_zones)
+def _split_by_zones_interp(line_grid: list[tuple[float, float]], cum: list[float],
+                           zones: list[tuple[float, float]]
+                           ) -> list[list[tuple[float, float]]]:
+    """Rozdělí line_grid podle cut zón (cum px intervaly) s INTERPOLOVANÝMI hraničními body
+    na okrajích zón (mezera nevykukuje ani nepřesahuje u řídkých linií). Sdílí most i tunel."""
+    if not zones:
+        return [line_grid] if len(line_grid) >= 2 else []
+    zones = sorted(zones)
+    merged = [zones[0]]
+    for z in zones[1:]:
+        if z[0] <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], z[1]))
+        else:
+            merged.append(z)
+    pts = [(cum[k], line_grid[k]) for k in range(len(line_grid))]
+    for a, b in merged:
+        pts.append((a, _interp_grid_at(line_grid, cum, a)))
+        pts.append((b, _interp_grid_at(line_grid, cum, b)))
+    pts.sort(key=lambda p: p[0])
+    EPS = 1e-6
+    segments: list[list[tuple[float, float]]] = []
+    cur: list[tuple[float, float]] = []
+    for dd, gp in pts:
+        if any(a + EPS < dd < b - EPS for a, b in merged):     # striktně vnitřní bod → vypustit
+            if len(cur) >= 2:
+                segments.append(cur)
+            cur = []
+        else:
+            cur.append(gp)
+    if len(cur) >= 2:
+        segments.append(cur)
+    return segments
+
+
+def _project_to_line(tx: float, ty: float, line_px: list[tuple[float, float]],
+                     cum: list[float]) -> tuple[float, float]:
+    """Projekce bodu (tx,ty) na polyline → (kumulativní vzdálenost projekce [px], vzdálenost
+    bodu od linie [px]). Přesný bod na úsečce (ne nejbližší vrchol)."""
+    best_d2, best_cum = float("inf"), 0.0
+    for i in range(1, len(line_px)):
+        x0, y0 = line_px[i - 1]
+        x1, y1 = line_px[i]
+        dx, dy = x1 - x0, y1 - y0
+        seg2 = dx * dx + dy * dy
+        if seg2 == 0.0:
+            continue
+        t = max(0.0, min(1.0, ((tx - x0) * dx + (ty - y0) * dy) / seg2))
+        cx, cy = x0 + t * dx, y0 + t * dy
+        d2 = (tx - cx) ** 2 + (ty - cy) ** 2
+        if d2 < best_d2:
+            best_d2 = d2
+            best_cum = cum[i - 1] + t * math.hypot(dx, dy)
+    return best_cum, math.sqrt(best_d2)
 
 
 def _crop_line_at_passages(line_grid: list[tuple[float, float]],
@@ -1686,61 +1719,34 @@ def _crop_line_at_passages(line_grid: list[tuple[float, float]],
                            near_mm: float = 2.0,
                            crop_mm: float = 0.5
                            ) -> list[list[tuple[float, float]]]:
-    """Passage strategy (pro tunel cutter): cropuje úsek, kde line „prochází tunelem".
+    """Passage strategy (pro tunel cutter): trať PROCHÁZEJÍCÍ tunelem se přeruší. Vjezdy
+    (konce tunel osy) se PROJEKTUJÍ přesně na trať (Sez. 33 fix: dřív snap na nejbližší
+    vrchol ustřihával až ~4 mm před vjezd místo crop_mm). Cut zóna = mezi projekcemi vjezdů
+    + crop_mm za každý vjezd (= trať viditelná až crop_mm před vstup, mezera celým tunelem).
 
-    Pro každý cutter (tunel) najde nejbližší body line k cutter START a cutter END.
-    Pokud oba jsou blízko (< near_mm), line **prochází** tunelem → cropuje úsek mezi
-    nimi (+ ±crop_mm na okrajích).
-
-    Použít pro: železnice/silnice × tunely (tunel je POD; co prochází tunelem = crop).
-    Funguje i pro paralelní souběh (tunel sleduje železnici) — passage detection nezávisí
-    na bod-průsečíku, jen na blízkosti endpoints."""
+    `near_mm` = max vzdálenost vjezdu od trati (zda trať tunelem prochází). Použít pro:
+    železnice/silnice × tunely. Interpolovaný okraj (jako most) → přesná mezera."""
     if not cutter_lines_grid or len(line_grid) < 2:
         return [line_grid] if len(line_grid) >= 2 else []
+    line_px = [_grid_to_px(gx, gy) for gx, gy in line_grid]
     cum = _cum_distance_px(line_grid)
     crop_px = crop_mm * PX_PER_MM
     near_px = near_mm * PX_PER_MM
-    near_px2 = near_px * near_px
-    cut_zones: list[tuple[float, float]] = []
-    line_px = [_grid_to_px(gx, gy) for gx, gy in line_grid]
-
+    zones: list[tuple[float, float]] = []
     for cl in cutter_lines_grid:
         if len(cl) < 2:
             continue
-        cl_start_px = _grid_to_px(cl[0][0], cl[0][1])
-        cl_end_px = _grid_to_px(cl[-1][0], cl[-1][1])
-
-        def closest_idx_d2(target: tuple[float, float]) -> tuple[int, float]:
-            best_d2 = float("inf")
-            best_i = -1
-            for i, p in enumerate(line_px):
-                d2 = (p[0] - target[0]) ** 2 + (p[1] - target[1]) ** 2
-                if d2 < best_d2:
-                    best_d2 = d2
-                    best_i = i
-            return best_i, best_d2
-
-        i_s, d_s2 = closest_idx_d2(cl_start_px)
-        i_e, d_e2 = closest_idx_d2(cl_end_px)
-        if d_s2 > near_px2 or d_e2 > near_px2:
-            continue                                # line nepokrývá cutter, mimo
-        d1 = cum[min(i_s, i_e)]
-        d2 = cum[max(i_s, i_e)]
-        if d2 - d1 < 1e-6:
-            continue                                # line se cutter dotýká jen v 1 bodě
-        cut_zones.append((d1 - crop_px, d2 + crop_px))
-
-    return _apply_cut_zones(line_grid, cum, cut_zones)
-
-
-def _crop_line_at_cutters(line_grid: list[tuple[float, float]],
-                          cutter_lines_grid: list[list[tuple[float, float]]],
-                          geo_bbox: tuple,
-                          crop_mm: float = 0.5
-                          ) -> list[list[tuple[float, float]]]:
-    """Legacy wrapper: deleguje na crossing strategy (pro most cutter).
-    Tunely se cropují přes `_crop_line_at_passages` (volá se zvlášť)."""
-    return _crop_line_at_crossings(line_grid, cutter_lines_grid, crop_mm)
+        s_px = _grid_to_px(cl[0][0], cl[0][1])
+        e_px = _grid_to_px(cl[-1][0], cl[-1][1])
+        d_s, dist_s = _project_to_line(s_px[0], s_px[1], line_px, cum)
+        d_e, dist_e = _project_to_line(e_px[0], e_px[1], line_px, cum)
+        if dist_s > near_px or dist_e > near_px:
+            continue                                # trať tunelem neprochází
+        lo, hi = min(d_s, d_e), max(d_s, d_e)
+        if hi - lo < 1e-6:
+            continue
+        zones.append((lo - crop_px, hi + crop_px))
+    return _split_by_zones_interp(line_grid, cum, zones)
 
 
 def _nearest_segment_tangent(bx: float, by: float,
@@ -2594,12 +2600,17 @@ def main() -> None:
     # vývojářská lokalita (--location) přepíše souřadnice + výsek per-lokalita (Sez. 31:
     # různé formáty landscape/portrait pro test ořezů). Jinak ruční --lat/--lon/--width-km/
     # --height-km. _apply_extent volá až sama funkce.
+    out_dir = args.out
     if args.location:
-        _, lat, lon, w_km, h_km = DEV_LOCATIONS[args.location]
+        name, lat, lon, w_km, h_km = DEV_LOCATIONS[args.location]
+        # --location ⇒ výstup do složky pojmenované dle lokality (název = SSoT pro STATISTICS.md),
+        # ledaže uživatel dal explicitní --out (≠ default "output").
+        if args.out == "output":
+            out_dir = name
     else:
         lat, lon, w_km, h_km = args.lat, args.lon, args.width_km, args.height_km
     out = synthesize_pseudorealistic_map(
-        lat, lon, w_km, h_km, only_real=args.only_real, out_dir=args.out,
+        lat, lon, w_km, h_km, only_real=args.only_real, out_dir=out_dir,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,

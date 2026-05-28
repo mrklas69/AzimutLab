@@ -223,18 +223,16 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(geom, str(code))
         if o:
             objs.append(o); n_rocks += 1
-    # Mosty (Sez. 32 6. iterace dle uživatelova Most.omap dema + zpětné vazby C):
-    # 1 ZABAGED Most linie → 2 PARALELNÍ line objekty 512 lemující osu mostu po stranách.
-    # KLÍČOVÉ: druhá paralelní linie má REVERZOVANÉ pořadí bodů (= opačná tangenta),
-    # aby start_symbol/end_symbol OOM kreslila šikmé čárky VEN z osy mostu (= „nožičky
-    # ven", uživatel E6/C). Bez reverze obě linie mají stejnou tangentu → start_symbol
-    # obou ve stejném absolutním směru → 1 z 2 šikmých čárek míří DOVNITŘ páru = špatně.
-    # Vzdálenost paralel = 2 × BRIDGE_PARALLEL_OFFSET_UM = 1,5 mm (Most.omap demo).
+    # Mosty (verify Most.png/Most.omap demo, Sez. 33): 1 ZABAGED Most linie → 2 PARALELNÍ
+    # line objekty 512 lemující osu po stranách (rozestup 2 × BRIDGE_PARALLEL_OFFSET_UM).
+    # Tunely (Sez. 33) se kreslí JINAK — 512 otočené o 90° na obou koncích = vjezdy (níže).
     BRIDGE_PARALLEL_OFFSET_UM = 750     # = 0,75 mm offset od centrální osy → 1,5 mm rozestup
+    TUNNEL_PORTAL_HALF_UM = 750         # = 0,75 mm → kolmá závorka vjezdu tunelu dlouhá 1,5 mm
 
     def _offset_polyline_left(coords_um: list[tuple[int, int]],
                               offset_um: int) -> list[tuple[int, int]]:
-        """Posune polyline o offset_um v levé normále k lokální tangenze (per-bod)."""
+        """Posune polyline o offset_um v levé normále k lokální tangenze (per-bod).
+        Záporný offset_um → pravá normála."""
         if len(coords_um) < 2:
             return list(coords_um)
         out: list[tuple[int, int]] = []
@@ -260,42 +258,56 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             out.append((round(ox), round(oy)))
         return out
 
+    def _bridge_parallels(center_coords_um: list[tuple[int, int]]
+                          ) -> tuple[list, list]:
+        """2 paralelní 512 linie lemující osu MOSTU, obě s nožičkami VEN od osy.
+        Klíč (verify Most.png demo, Sez. 33): jedna linie reverzovaná (opačná tangenta) +
+        offset na PRAVOU normálu (záporný). Tím start/end_symbol OOM vykreslí šikmé čárky
+        symetricky ven na obě strany. Sez. 32 měla offset na levou (kladný) → nožičky
+        dovnitř (= demo má levá strana osy reversed/pravá forward, kód to měl obráceně)."""
+        off = -BRIDGE_PARALLEL_OFFSET_UM
+        line_a = _offset_polyline_left(list(reversed(center_coords_um)), off)
+        line_b = _offset_polyline_left(center_coords_um, off)
+        return (line_a, line_b)
+
+    def _tunnel_portals(center_coords_um: list[tuple[int, int]]) -> list[list]:
+        """Tunel (uživatel Sez. 33): 512 se NEdělá jako paralely mostu, ale OTOČENÉ o 90°
+        na OBOU koncích osy = vjezdy (vstup/výstup tunelu). Pro každý konec krátká 512 linie
+        KOLMÁ k tangentě osy, centrovaná na koncovém bodě (délka 2× TUNNEL_PORTAL_HALF_UM)."""
+        if len(center_coords_um) < 2:
+            return []
+        portals: list[list] = []
+        for p_end, p_in in ((center_coords_um[0], center_coords_um[1]),
+                            (center_coords_um[-1], center_coords_um[-2])):
+            tx, ty = p_in[0] - p_end[0], p_in[1] - p_end[1]
+            tlen = math.hypot(tx, ty) or 1.0
+            nx, ny = -ty / tlen, tx / tlen                  # kolmice k ose tunelu
+            a = (round(p_end[0] + nx * TUNNEL_PORTAL_HALF_UM),
+                 round(p_end[1] + ny * TUNNEL_PORTAL_HALF_UM))
+            b = (round(p_end[0] - nx * TUNNEL_PORTAL_HALF_UM),
+                 round(p_end[1] - ny * TUNNEL_PORTAL_HALF_UM))
+            portals.append([a, b])
+        return portals
+
+    def _emit_512_line(coords_um: list[tuple[int, int]], code) -> None:
+        coord_str = ";".join(f"{x} {y}" for x, y in coords_um) + ";"
+        objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
+                    f'<coords count="{len(coords_um)}">{coord_str}</coords></object>')
+
+    # Most = 2 paralely podél osy; tunel = 2 kolmé závorky na vjezdech (otočené o 90°).
     for line, code in (bridge_features or []):
         center_coords_um = [paper(gx, gy) for gx, gy in line]
         if len(center_coords_um) < 2:
             continue
-        # Linie A: REVERSED direction, offset (= jedna strana osy mostu, „nožičky ven").
-        # Reverze tangenty → start/end_symbol OOM kreslí šikmé čárky VEN z osy mostu
-        # (= místo dovnitř, jak by tomu bylo se stejnou tangentou jako linie B).
-        # Sez. 32 7. iterace fix: v 6. iter jsem reverzoval špatnou ze 2 paralel
-        # → obě měly nožičky dovnitř; teď je to invertováno.
-        line_a = _offset_polyline_left(list(reversed(center_coords_um)),
-                                        BRIDGE_PARALLEL_OFFSET_UM)
-        # Linie B: ORIGINAL direction, offset (= druhá strana osy mostu, „nožičky ven").
-        # Original tangenta → start/end_symbol OOM kreslí šikmé čárky VEN (na své straně osy).
-        line_b = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
-        for offset_coords in (line_a, line_b):
-            coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
-            objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
-                        f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
+        for parallel in _bridge_parallels(center_coords_um):
+            _emit_512_line(parallel, code)
             n_bridges += 1
-    # Tunely (Sez. 32 7. iterace dle uživatelovy chyby B „prostor tunelu má být prázdný"):
-    # Emit tunel STEJNĚ jako most = 2 PARALELNÍ line objekty 512 s reverzací jedné z nich
-    # (= nožičky závorek ven). NE jedna centrální linie přes tunel — ta by kreslila tenkou
-    # černou osu skrz prostor tunelu (chyba B). Cropping železnice tunelem (passage strategy)
-    # vytvoří mezeru v železnici; 4 šikmé čárky (Linie A + Linie B start/end) tvoří
-    # hranatou závorku [ ] na vstupu a ] [ na výstupu tunelu.
     for line, code in (tunnel_features or []):
         center_coords_um = [paper(gx, gy) for gx, gy in line]
         if len(center_coords_um) < 2:
             continue
-        line_a = _offset_polyline_left(list(reversed(center_coords_um)),
-                                        BRIDGE_PARALLEL_OFFSET_UM)
-        line_b = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
-        for offset_coords in (line_a, line_b):
-            coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
-            objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
-                        f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
+        for portal in _tunnel_portals(center_coords_um):
+            _emit_512_line(portal, code)
             n_bridges += 1
     # Lávky (Sez. 32 zachováno): 512.2 Footbridge = bodový objekt (rotatable=true). Rotace
     # v RADIÁNECH (template ukládá v radiánech). Tuple (gx, gy, code, rot_rad).
