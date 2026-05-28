@@ -25,31 +25,31 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **206** | Gigantic boulder | 79 | 6 | 20 | 459 | 13 |
 | **207** | Boulder cluster | 146 | 178 | 132 | 171 | 9 |
 | **301** | Uncrossable body of water | 14 | 11 | 58 | 41 | 12 |
-| **304** | Crossable watercourse | 67 | 83 | 109 | 27 | 41 |
-| **305** | Small crossable watercourse | 107 | 118 | 147 | 90 | 88 |
-| **306** | Seasonal watercourse | 43 | 82 | 6 | 17 | 2 |
+| **304** | Crossable watercourse | 52 | 77 | 82 | 25 | 32 |
+| **305** | Small crossable watercourse | 107 | 118 | 146 | 90 | 84 |
+| **306** | Seasonal watercourse | 43 | 82 | 6 | 16 | 2 |
 | **501** | Paved area | · | · | 1 | · | · |
-| **502** | Wide road | 215 | 15 | 3178 | 171 | 29 |
-| **503** | Road | 194 | 187 | 300 | 324 | 177 |
-| **504** | Vehicle track | 464 | 99 | 230 | 393 | 251 |
-| **505** | Footpath | · | 9 | 87 | 2 | 1 |
+| **502** | Wide road | 209 | 15 | 3152 | 170 | 24 |
+| **503** | Road | 194 | 181 | 300 | 322 | 174 |
+| **504** | Vehicle track | 464 | 98 | 230 | 392 | 251 |
+| **505** | Footpath | · | 9 | 85 | 2 | 1 |
 | **506** | Small footpath | 39 | 61 | 182 | 145 | 36 |
-| **509** | Railway | · | · | 41 | 3 | 5 |
+| **509** | Railway | · | · | 40 | 3 | 5 |
 | **510** | Power line | 32 | 3 | 19 | 41 | 10 |
 | **521** | Building | 1078 | 124 | 8273 | 1265 | 299 |
 | **512** | Bridge/tunnel | 17 | 13 | 67 | 11 | 21 |
 | **512.2** | Footbridge | 7 | 5 | 11 | 2 | 5 |
-| **Σ** | Celkem objektů | 3296 | 1420 | 13693 | 4377 | 1413 |
+| **Σ** | Celkem objektů | 3275 | 1407 | 13636 | 4370 | 1392 |
 
 Z 24 sledovaných ISOM symbolů reálně používáme **24** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví Vrch/`): 2026-05-28 16:53:38
-- **NL** (`Nová Louka/`): 2026-05-28 16:53:47
-- **LS** (`Lidové sady/`): 2026-05-28 16:53:59
-- **HS** (`Hrubá Skála/`): 2026-05-28 16:54:10
-- **NV** (`Novina/`): 2026-05-28 16:53:28
+- **SV** (`Soví Vrch/`): 2026-05-28 17:12:15
+- **NL** (`Nová Louka/`): 2026-05-28 17:12:25
+- **LS** (`Lidové sady/`): 2026-05-28 17:12:37
+- **HS** (`Hrubá Skála/`): 2026-05-28 17:12:48
+- **NV** (`Novina/`): 2026-05-28 17:11:35
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-28 16:54:23.*
+*Tabulka regenerována `stats.py` v 2026-05-28 17:12:48.*

@@ -223,41 +223,56 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(geom, str(code))
         if o:
             objs.append(o); n_rocks += 1
-    # Mosty (Sez. 32 5. iterace dle uživatelova Most.omap dema): 1 ZABAGED Most linie
-    # → 2 PARALELNÍ line objekty 512, posunuté kolmo o ±BRIDGE_PARALLEL_OFFSET_UM (=0,75 mm)
-    # od centrální osy mostu. Uživatel ručně kreslí mosty takto v OOM — každá z 2 paralelních
-    # 512 linií vykreslí 1 šikmou čárku na konci (template id=125 standardní); 4 čárky
-    # dohromady tvoří hranatou závorku `[ ]` na obou koncích mostu (E2). Vzdálenost paralel
-    # = 1,5 mm = vizuální tloušťka mostu (Most.omap demo).
+    # Mosty (Sez. 32 6. iterace dle uživatelova Most.omap dema + zpětné vazby C):
+    # 1 ZABAGED Most linie → 2 PARALELNÍ line objekty 512 lemující osu mostu po stranách.
+    # KLÍČOVÉ: druhá paralelní linie má REVERZOVANÉ pořadí bodů (= opačná tangenta),
+    # aby start_symbol/end_symbol OOM kreslila šikmé čárky VEN z osy mostu (= „nožičky
+    # ven", uživatel E6/C). Bez reverze obě linie mají stejnou tangentu → start_symbol
+    # obou ve stejném absolutním směru → 1 z 2 šikmých čárek míří DOVNITŘ páru = špatně.
+    # Vzdálenost paralel = 2 × BRIDGE_PARALLEL_OFFSET_UM = 1,5 mm (Most.omap demo).
     BRIDGE_PARALLEL_OFFSET_UM = 750     # = 0,75 mm offset od centrální osy → 1,5 mm rozestup
+
+    def _offset_polyline_left(coords_um: list[tuple[int, int]],
+                              offset_um: int) -> list[tuple[int, int]]:
+        """Posune polyline o offset_um v levé normále k lokální tangenze (per-bod)."""
+        if len(coords_um) < 2:
+            return list(coords_um)
+        out: list[tuple[int, int]] = []
+        for i, (cx, cy) in enumerate(coords_um):
+            if i == 0:
+                dx = coords_um[1][0] - cx
+                dy = coords_um[1][1] - cy
+            elif i == len(coords_um) - 1:
+                dx = cx - coords_um[-2][0]
+                dy = cy - coords_um[-2][1]
+            else:
+                dx1 = cx - coords_um[i - 1][0]
+                dy1 = cy - coords_um[i - 1][1]
+                dx2 = coords_um[i + 1][0] - cx
+                dy2 = coords_um[i + 1][1] - cy
+                dx = (dx1 + dx2) / 2
+                dy = (dy1 + dy2) / 2
+            tlen = math.hypot(dx, dy) or 1.0
+            # Levá normála ke (lokální) tangentě
+            nx_perp, ny_perp = -dy / tlen, dx / tlen
+            ox = cx + offset_um * nx_perp
+            oy = cy + offset_um * ny_perp
+            out.append((round(ox), round(oy)))
+        return out
+
     for line, code in (bridge_features or []):
         center_coords_um = [paper(gx, gy) for gx, gy in line]
         if len(center_coords_um) < 2:
             continue
-        # Spočti normálu v každém bodě (= průměr normál sousedních segmentů) a posuň o offset.
-        # Per-bod kolmá normála = robustní i pro zakřivené mosty (multi-segment).
-        for side in (+1, -1):
-            offset_coords = []
-            for i, (cx, cy) in enumerate(center_coords_um):
-                if i == 0:
-                    dx = center_coords_um[1][0] - cx
-                    dy = center_coords_um[1][1] - cy
-                elif i == len(center_coords_um) - 1:
-                    dx = cx - center_coords_um[-2][0]
-                    dy = cy - center_coords_um[-2][1]
-                else:
-                    dx1 = cx - center_coords_um[i - 1][0]
-                    dy1 = cy - center_coords_um[i - 1][1]
-                    dx2 = center_coords_um[i + 1][0] - cx
-                    dy2 = center_coords_um[i + 1][1] - cy
-                    dx = (dx1 + dx2) / 2
-                    dy = (dy1 + dy2) / 2
-                tlen = math.hypot(dx, dy) or 1.0
-                # Normála kolmá k tangentě (vlevo)
-                nx_perp, ny_perp = -dy / tlen, dx / tlen
-                ox = cx + side * BRIDGE_PARALLEL_OFFSET_UM * nx_perp
-                oy = cy + side * BRIDGE_PARALLEL_OFFSET_UM * ny_perp
-                offset_coords.append((round(ox), round(oy)))
+        # Linie A: ORIGINAL direction, offset levou normálou (= jedna strana osy mostu)
+        line_a = _offset_polyline_left(center_coords_um, BRIDGE_PARALLEL_OFFSET_UM)
+        # Linie B: REVERSED direction, offset levou normálou v reversed frame
+        # (= efektivně pravá normála v originálu = druhá strana osy mostu).
+        # Reverze taky otáčí tangentu → start_symbol kreslí šikmou čárku na opačném konci
+        # a v opačném směru → 4 šikmé čárky pohromadě tvoří hranatou závorku `[ ]`.
+        line_b = _offset_polyline_left(list(reversed(center_coords_um)),
+                                        BRIDGE_PARALLEL_OFFSET_UM)
+        for offset_coords in (line_a, line_b):
             coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
             objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
                         f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
