@@ -1561,56 +1561,77 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
 # =====================================================================
 #  Mosty / tunely / lávky — fáze 1 (projekce reálných dat ZABAGED), Sez. 32 spec-driven
 # =====================================================================
+def _segment_intersection_pt(p1: tuple[float, float], p2: tuple[float, float],
+                              q1: tuple[float, float], q2: tuple[float, float]
+                              ) -> tuple[float, float] | None:
+    """Vrátí bod průsečíku DVOU ÚSEČEK p1-p2 a q1-q2 (v grid coords) nebo None.
+
+    Paralelní úsečky (= nemají vlastní bod průsečíku) vrátí None — KLÍČOVÉ pro cropping
+    silnice NA mostu (= paralelně s mostem → žádný průsečík → žádný crop). Bod průsečíku
+    se vrací JEN když obě parametry t1∈[0,1] a t2∈[0,1] (= průsečík uvnitř obou úseček)."""
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = q1
+    x4, y4 = q2
+    den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if abs(den) < 1e-9:
+        return None                                 # paralelní úsečky → žádný bod průsečíku
+    t1 = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
+    t2 = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
+    if 0 <= t1 <= 1 and 0 <= t2 <= 1:
+        return (x1 + t1 * (x2 - x1), y1 + t1 * (y2 - y1))
+    return None
+
+
 def _crop_line_at_cutters(line_grid: list[tuple[float, float]],
                           cutter_lines_grid: list[list[tuple[float, float]]],
                           geo_bbox: tuple,
                           crop_mm: float = 0.5
                           ) -> list[list[tuple[float, float]]]:
-    """Rozdělí `line_grid` na segmenty s vynechanými okolími průsečíků s `cutter_lines_grid`.
+    """Rozdělí `line_grid` na segmenty s vynechanými okolími KŘÍŽENÍ s `cutter_lines_grid`.
 
-    Pro každý bod `line_grid` se zjistí px vzdálenost k nejbližšímu segmentu kteréhokoli
-    `cutter_lines_grid` (= most/tunel). Pokud je < `crop_mm` v paper-space (= závorka
-    by se otiskla blízko), bod se vypustí — vrácený list obsahuje **více kratších polyline**
-    místo jedné celé (= linie přerušená v okolí závorky).
+    Sez. 32 5. iterace: změna ze vzdálenost-based na **line-line intersection** approach.
+    Uživatel mental model: cropuje se to, co „z půdorysu" není vidět (linie pod mostem /
+    v tunelu); linie NA mostu zůstává vidět. **Paralelní souběh** s mostem (= silnice na
+    mostu paralelně s mostem ZABAGED) **nemá průsečík** s mostem → bez cropování ✓.
 
-    Uživatel Sez. 32 E1: voda/cesty/železnice pod mostem jsou přerušeny ~0,5 mm před a za
-    závorkou (= mezera ~1 mm v okolí mostu). Implementace přes přepínač „blízko" po bodech.
+    Algorithm: najdi všechny bod-průsečíky line_grid × cutter_lines_grid; pro každý bod
+    line_grid spočti zda je v paper-space vzdálenosti < crop_mm od některého průsečíku;
+    pokud ano, vypusť bod (= rozsek polyline).
 
-    Vrací seznam polyline (každá ≥ 2 body); polyline obsahující jen 1 bod jsou vynechány."""
+    Vrací seznam polyline (každá ≥ 2 body)."""
     if not cutter_lines_grid or len(line_grid) < 2:
         return [line_grid] if len(line_grid) >= 2 else []
-    # Práh v px: 0,5 mm × PX_PER_MM. Vzdálenost v grid prostoru se převede přes _grid_to_px.
+
+    # 1) Najít všechny bod-průsečíky line × cutters (v grid coords)
+    intersect_pts_grid: list[tuple[float, float]] = []
+    for i in range(1, len(line_grid)):
+        p1, p2 = line_grid[i - 1], line_grid[i]
+        for cl in cutter_lines_grid:
+            for j in range(1, len(cl)):
+                q1, q2 = cl[j - 1], cl[j]
+                pt = _segment_intersection_pt(p1, p2, q1, q2)
+                if pt is not None:
+                    intersect_pts_grid.append(pt)
+    if not intersect_pts_grid:
+        return [line_grid]                          # žádné křížení (paralelní nebo daleko)
+
+    # 2) Převést průsečíky do px pro vzdálenostní test
+    intersect_pts_px = [_grid_to_px(gx, gy) for gx, gy in intersect_pts_grid]
     crop_px = crop_mm * PX_PER_MM
     crop_px2 = crop_px * crop_px
-    # Předpočet px souřadnic cutter segmentů (rychlejší than per-bod konverze)
-    cutters_px: list[list[tuple[float, float]]] = []
-    for cl in cutter_lines_grid:
-        cutters_px.append([_grid_to_px(gx, gy) for gx, gy in cl])
-    # Pro každý bod line_grid spočti, jestli je blízko nějakého cutter segmentu
-    def is_near(p_px: tuple[float, float]) -> bool:
-        bx, by = p_px
-        for cl in cutters_px:
-            for i in range(1, len(cl)):
-                x1, y1 = cl[i - 1]
-                x2, y2 = cl[i]
-                dx, dy = x2 - x1, y2 - y1
-                seg_len2 = dx * dx + dy * dy
-                if seg_len2 < 1e-9:
-                    continue
-                t = max(0.0, min(1.0, ((bx - x1) * dx + (by - y1) * dy) / seg_len2))
-                cx, cy = x1 + t * dx, y1 + t * dy
-                d2 = (bx - cx) ** 2 + (by - cy) ** 2
-                if d2 < crop_px2:
-                    return True
+
+    def is_near_any_intersection(p_px: tuple[float, float]) -> bool:
+        for ix, iy in intersect_pts_px:
+            if (p_px[0] - ix) ** 2 + (p_px[1] - iy) ** 2 < crop_px2:
+                return True
         return False
 
-    # Projít body line_grid; pokud is_near = True, "rozřezat" polyline v tomto bodě
+    # 3) Rozdělit polyline: body v okolí průsečíku vypustit, ostatní akumulovat do sub-polyline
     segments: list[list[tuple[float, float]]] = []
     current: list[tuple[float, float]] = []
     for gx, gy in line_grid:
-        p_px = _grid_to_px(gx, gy)
-        if is_near(p_px):
-            # Bod je v okolí mostu/tunelu — uzavři současný segment
+        if is_near_any_intersection(_grid_to_px(gx, gy)):
             if len(current) >= 2:
                 segments.append(current)
             current = []
@@ -1619,28 +1640,6 @@ def _crop_line_at_cutters(line_grid: list[tuple[float, float]],
     if len(current) >= 2:
         segments.append(current)
     return segments
-
-
-def _crop_features_at_bridges_tunnels(features: list[tuple],
-                                       bridge_lines_grid: list[list],
-                                       tunnel_lines_grid: list[list],
-                                       geo_bbox: tuple,
-                                       crop_mm: float = 0.5) -> list[tuple]:
-    """Aplikuje `_crop_line_at_cutters` na seznam (grid_polyline, code) featur (= cesty/voda/
-    železnice). Vrací nový seznam s rozsekanými polyline; každý rozsek = vlastní (grid, code).
-
-    Uživatel Sez. 32 E1+E4: linie pod mostem/tunelem se přerušuje. Pro most: voda+cesty+
-    železnice. Pro tunel: železnice+silnice (= co vede tunelem). MVP: stejné cutter pole
-    pro most i tunel = `bridge_lines_grid + tunnel_lines_grid`."""
-    all_cutters = bridge_lines_grid + tunnel_lines_grid
-    if not all_cutters:
-        return features
-    out: list[tuple] = []
-    for grid, code in features:
-        segs = _crop_line_at_cutters(grid, all_cutters, geo_bbox, crop_mm)
-        for s in segs:
-            out.append((s, code))
-    return out
 
 
 def _nearest_segment_tangent(bx: float, by: float,
@@ -2141,13 +2140,18 @@ def synthesize_pseudorealistic_map(
             "bridges_fetch",
             lambda: _fetch_bridges_tunnels_geometries(lat, lon, geo_bbox),
             ([], [], [], []), tolerant, layer_errors)
-    # cutter pole pro cropping (Sez. 32 E1+E4). DVĚ kategorie podle typu vrstvy:
-    # - voda/cesty: cropují MOSTY (most = nad vodou/cestou, přerušuje je) i TUNELY (přechody)
-    # - železnice: cropuje JEN TUNELY (most je často PARALELNĚ se železnicí v ZABAGEDu —
-    #   železnice JE NA mostu, ne pod ním; cropování by ji rozsekalo na celém viaduktu).
-    #   MVP omezení: silniční most NAD železnicí se neřeší (vzácné v lesních výsecích).
-    #   Sez. 33+: line-line intersection (jen skutečná křížení), ne vzdálenost.
-    cutter_lines_for_water_paths = bridge_grids + tunnel_grids
+    # cutter pole pro cropping (Sez. 32 5. iterace, uživatelův mental model „cropuje
+    # se to, co z půdorysu není vidět"). ZABAGED data ale mají paralelní souběhy
+    # (most ZABAGED sleduje stejnou trasu jako železnice/silnice na mostě) s mikro-
+    # nepřesnostmi → intersection-based crop dává falešné průsečíky → cropuje paralelu.
+    # Workaround per vrstva:
+    # - voda: cutter = MOSTY (most přes potok = crop; voda v tunelu = vzácné, ignorováno)
+    # - paths: cutter = MOSTY (silnice pod mostem = crop; silniční tunel = MVP omezení Sez. 33+)
+    # - railways: cutter = TUNELY (železnice v tunelu = crop; železnice na mostu = paralel, NE crop)
+    # = sjednoceno přes Z-úroveň cutter: MOST je NAD (cropuje co pod, = voda/cesty);
+    #   TUNEL je POD (cropuje co v něm = železnice typicky, případně silnice v silničním tunelu).
+    cutter_lines_for_water = bridge_grids
+    cutter_lines_for_paths = bridge_grids
     cutter_lines_for_railways = tunnel_grids
 
     # --- zpevněné plochy / kolejiště (ISOM 501): reálné ze ZABAGED REST (real-půlka, Sez. 28) ---
@@ -2176,7 +2180,7 @@ def synthesize_pseudorealistic_map(
         wdraw = ImageDraw.Draw(water_mask_img)
         water_line_features, water_area_features, water_info = _try_layer(
             "water",
-            lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox, cutter_lines_for_water_paths),
+            lambda: _generate_real_water(draw, wdraw, lat, lon, geo_bbox, cutter_lines_for_water),
             ([], [], []), tolerant, layer_errors)
         _log.info("  voda: %d (toky+plochy)", len(water_info))
 
@@ -2188,7 +2192,7 @@ def synthesize_pseudorealistic_map(
     if paths == "real":
         path_features, paths_info = _try_layer(
             "paths",
-            lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox, cutter_lines_for_water_paths),
+            lambda: _generate_real_paths(draw, pdraw, lat, lon, geo_bbox, cutter_lines_for_paths),
             ([], []), tolerant, layer_errors)
     else:
         # proc cesty (Dijkstra) jsou offline → žádné REST selhání, tolerance se netýká
@@ -2386,32 +2390,12 @@ def synthesize_pseudorealistic_map(
     # 202 = line_object (uzavřená polylinie obrysu, jako 304/305). Body = point_object (jako 109/110/111).
     rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
-    # Mosty (Sez. 32): linie 512 = line objekt. Template id=125 upraven Sez. 32 — zrušena
-    # centrovaná osa (line_width=0) + start_symbol/end_symbol mají PÁROVOU polovinu (NAD i POD osu)
-    # → OOM kreslí závorky lemující osu po obou stranách (uživatel E2, E3).
-    # Tunely: 2× point objekt 512.2 (kolmá čárka napříč osou) na obou koncích linie tunelu
-    # (vstup + výstup), rotace = kolmá k tangentě. NE line_symbol 512 (most je paralelní;
-    # uživatel E5: „tunel závorka je kolmá k ose"). Generator emituje 2 point objekty per tunel.
+    # Mosty (Sez. 32 5. iterace dle Most.omap dema): 1 ZABAGED Most → emit 2 PARALELNÍ
+    # line objekty 512 v omap_export (offset ±0,75 mm kolmo). Tunely → 1 line objekt 512
+    # (uživatelův template kreslí jednu závorku na konci, vstup+výstup symetrické).
+    # Lávka → 1 point objekt 512.2 s rotací (jako Sez. 32 dosud).
     bridge_omap_features = [(g, "512") for g, _ in bridge_features]
-    # Tunel → 2× point objekt 512.2 na koncích linie (vstup + výstup)
-    tunnel_point_omap_features: list[tuple] = []
-    for grid_line, _code in tunnel_features:
-        if len(grid_line) < 2:
-            continue
-        # Vstup tunelu: start linie, tangenta = bod[1] - bod[0]
-        gx0, gy0 = grid_line[0]
-        gx1, gy1 = grid_line[1]
-        # tangenta v px (převést přes _grid_to_px — ne, tangenta v grid je úměrná)
-        rot_in = math.atan2(gy1 - gy0, gx1 - gx0)
-        # Footbridge symbol 512.2 je rotatable point_symbol s rotation v radiánech;
-        # rot = úhel tangenty → kolmá čárka templatu se otočí kolmo k tangentě (✓ E5)
-        tunnel_point_omap_features.append((gx0, gy0, "512.2", rot_in))
-        # Výstup tunelu: end linie, tangenta opačně (z předposledního na poslední bod)
-        gxE, gyE = grid_line[-1]
-        gxP, gyP = grid_line[-2]
-        rot_out = math.atan2(gyE - gyP, gxE - gxP)
-        tunnel_point_omap_features.append((gxE, gyE, "512.2", rot_out))
-    # Lávka 512.2: bod s rotací = kolmá k vodě (Sez. 32 zachováno)
+    tunnel_omap_features = [(g, "512") for g, _ in tunnel_features]
     footbridge_omap_features = [(gx, gy, "512.2", rot) for gx, gy, _, rot in footbridge_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
@@ -2425,7 +2409,7 @@ def synthesize_pseudorealistic_map(
                              rock_point_features=rock_point_omap_features,
                              rock_area_features=rock_area_omap_features,
                              bridge_features=bridge_omap_features,
-                             tunnel_point_features=tunnel_point_omap_features,
+                             tunnel_features=tunnel_omap_features,
                              footbridge_features=footbridge_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,

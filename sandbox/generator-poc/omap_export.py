@@ -23,6 +23,7 @@ rostou dolů — stejná konvence jako contours.geojson).
 NEduplikuje Pic2Omap `db2omap` (ten jde z rastru přes .pgw/cv2; my z přesných polylinií).
 """
 
+import math
 import re
 from pathlib import Path
 
@@ -83,7 +84,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                rock_point_features: list[tuple] | None = None,
                rock_area_features: list[tuple] | None = None,
                bridge_features: list[tuple] | None = None,
-               tunnel_point_features: list[tuple] | None = None,
+               tunnel_features: list[tuple] | None = None,
                footbridge_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
@@ -222,22 +223,53 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(geom, str(code))
         if o:
             objs.append(o); n_rocks += 1
-    # Mosty (Sez. 32 oprava E1-E3): 512 = liniový objekt. Template id=125 upravený Sez. 32:
-    # line_width=0 (zrušena centrovaná osa = E3) + start/end_symbol mají PÁROVÉ elementy
-    # (NAD i POD osu = E2). OOM nakreslí závorky lemující most po obou stranách.
+    # Mosty (Sez. 32 5. iterace dle uživatelova Most.omap dema): 1 ZABAGED Most linie
+    # → 2 PARALELNÍ line objekty 512, posunuté kolmo o ±BRIDGE_PARALLEL_OFFSET_UM (=0,75 mm)
+    # od centrální osy mostu. Uživatel ručně kreslí mosty takto v OOM — každá z 2 paralelních
+    # 512 linií vykreslí 1 šikmou čárku na konci (template id=125 standardní); 4 čárky
+    # dohromady tvoří hranatou závorku `[ ]` na obou koncích mostu (E2). Vzdálenost paralel
+    # = 1,5 mm = vizuální tloušťka mostu (Most.omap demo).
+    BRIDGE_PARALLEL_OFFSET_UM = 750     # = 0,75 mm offset od centrální osy → 1,5 mm rozestup
     for line, code in (bridge_features or []):
+        center_coords_um = [paper(gx, gy) for gx, gy in line]
+        if len(center_coords_um) < 2:
+            continue
+        # Spočti normálu v každém bodě (= průměr normál sousedních segmentů) a posuň o offset.
+        # Per-bod kolmá normála = robustní i pro zakřivené mosty (multi-segment).
+        for side in (+1, -1):
+            offset_coords = []
+            for i, (cx, cy) in enumerate(center_coords_um):
+                if i == 0:
+                    dx = center_coords_um[1][0] - cx
+                    dy = center_coords_um[1][1] - cy
+                elif i == len(center_coords_um) - 1:
+                    dx = cx - center_coords_um[-2][0]
+                    dy = cy - center_coords_um[-2][1]
+                else:
+                    dx1 = cx - center_coords_um[i - 1][0]
+                    dy1 = cy - center_coords_um[i - 1][1]
+                    dx2 = center_coords_um[i + 1][0] - cx
+                    dy2 = center_coords_um[i + 1][1] - cy
+                    dx = (dx1 + dx2) / 2
+                    dy = (dy1 + dy2) / 2
+                tlen = math.hypot(dx, dy) or 1.0
+                # Normála kolmá k tangentě (vlevo)
+                nx_perp, ny_perp = -dy / tlen, dx / tlen
+                ox = cx + side * BRIDGE_PARALLEL_OFFSET_UM * nx_perp
+                oy = cy + side * BRIDGE_PARALLEL_OFFSET_UM * ny_perp
+                offset_coords.append((round(ox), round(oy)))
+            coord_str = ";".join(f"{x} {y}" for x, y in offset_coords) + ";"
+            objs.append(f'<object type="1" symbol="{sym[str(code)]}">'
+                        f'<coords count="{len(offset_coords)}">{coord_str}</coords></object>')
+            n_bridges += 1
+    # Tunely (uživatel Sez. 32: „512 tunel je OK" s upraveným template id=125): emit 1
+    # line objekt 512 přímo (jako bridge_features, ale BEZ paralelizace = jen 1 osa).
+    # Template kreslí osu + 1 šikmou čárku na konci linie → tunel má symetrický vstup/výstup.
+    # Cropping železnice tunelem zajišťuje E4 (railway nekreslí v úseku tunelu).
+    for line, code in (tunnel_features or []):
         o = line_object(line, str(code))
         if o:
             objs.append(o); n_bridges += 1
-    # Tunely (Sez. 32 oprava E5-E6): NEemitujeme jako line objekt (kolmá orientace je odlišná
-    # od mostu). Místo toho 2× point objekt 512.2 (kolmá čárka napříč osou) na obou koncích
-    # tunelu (vstup + výstup), rotace = tangenta ose tunelu (template 512.2 je rotatable
-    # → čárka se otočí kolmo k tangentě). Maska tříd je v rastru (BRIDGE_CLASS_TUNNEL).
-    for gx, gy, code, rot in (tunnel_point_features or []):
-        x, y = paper(gx, gy)
-        objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
-                    f'<coords count="1">{x} {y};</coords></object>')
-        n_bridges += 1
     # Lávky (Sez. 32 zachováno): 512.2 Footbridge = bodový objekt (rotatable=true). Rotace
     # v RADIÁNECH (template ukládá v radiánech). Tuple (gx, gy, code, rot_rad).
     for gx, gy, code, rot in (footbridge_features or []):
