@@ -1,9 +1,12 @@
 """
-zabaged.py — reálné cesty z ČÚZK ZABAGED® Polohopis (ArcGIS REST; UC2 konektor, real-půlka §4.9).
+zabaged.py — reálné vektorové prvky z ČÚZK ZABAGED® Polohopis (ArcGIS REST; UC2 konektor, real-půlka).
 
 Sourozenec dmr.py (NE kopie): dmr.py táhne reálný VÝŠKOPIS (DMR 5G, rastr/ImageServer),
-zabaged.py táhne reálné KOMUNIKACE (vektor, ArcGIS REST query). Oba berou tentýž výsek přes sdílený
-dmr.build_bbox() → reálné cesty padnou bezešvě na tentýž terén jako vrstevnice z DMR.
+zabaged.py táhne reálné POLOHOPISNÉ VEKTORY (ArcGIS REST query). Od cest (§4.9, Sez. 16) postupně
+přibyly: voda (toky+plochy, 17), budovy (18), el. vedení + stožáry (24), železnice/tramvaj +
+kolejiště (28+31), řopíky + státní hranice (27), skály/balvany (30), mosty/tunely/lávky (32-33).
+Vše bere tentýž výsek přes sdílený dmr.build_bbox() → reálné prvky padnou bezešvě na tentýž terén
+jako vrstevnice z DMR. Mapování ZABAGED→ISOM dělají `map_*_to_isom` funkce (po verify atributů).
 
 Zdroj: ČÚZK ZABAGED Polohopis, ArcGIS REST MapServer `/query` (open data, CC BY 4.0 —
 atribuce povinná). `f=geojson` → GeoJSON přímo (žádný GML parsing, izomorfní s contours.geojson).
@@ -69,9 +72,10 @@ LAYER_IDS = {
 # zpravidla PO existující cestě/pěšině → duplikovala by liniovou síť (rozhodnuto Sez. 16).
 # (Silnice/Ulice jsou v lese vzácné, ale patří do sítě, kde výsek zasáhne okraj obce.)
 # Silnice_neevidovaná = účelové/lesní asfaltky mimo silniční evidenci — v lese ČASTÉ a pro
-# OB klíčové (Sez. 23: chyběla páteřní asfaltka Bedřichov→Nová louka). Most/Silnice_ve_výstavbě
-# zatím vynecháno (most = LINIE → ISOM 512 Bridge, kandidát na doplnění, ne bod jak dříve mylně
-# uvedeno; výstavba ve výsecích vzácná). Plný katalog 149 vrstev: docs/kb/zabaged-isom-catalog.md.
+# OB klíčové (Sez. 23: chyběla páteřní asfaltka Bedřichov→Nová louka). Most je samostatná
+# liniová vrstva → ISOM 512 (BRIDGE_LAYERS, Sez. 32, NE bod jak dříve mylně uvedeno);
+# Silnice_ve_výstavbě zatím vynechána (ve výsecích vzácná). Plný katalog 149 vrstev:
+# docs/kb/zabaged-isom-catalog.md.
 PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
 
 # Železnice + tramvaj (Sez. 28+31, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED:

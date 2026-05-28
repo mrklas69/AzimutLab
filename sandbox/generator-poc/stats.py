@@ -44,7 +44,7 @@ SYMBOLS = [
     ("301",   "Uncrossable body of water"),
     ("304",   "Crossable watercourse"),
     ("305",   "Small crossable watercourse"),
-    ("306",   "Seasonal watercourse"),
+    ("306",   "Minor seasonal water channel"),
     # Komunikace (§4.9)
     ("501",   "Paved area"),
     ("502",   "Wide road"),

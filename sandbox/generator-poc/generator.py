@@ -197,7 +197,7 @@ ISOM_SEASONAL_CHANNEL = 306        # občasný tok → čárkovaná modrá
 ISOM_UNCROSSABLE_WATER = 301       # vodní plocha (rybník/tůň) → modrá výplň + břehová linie
 WATER_NAME = {ISOM_CROSSABLE_WATERCOURSE: "Crossable watercourse",
               ISOM_SMALL_WATERCOURSE: "Small crossable watercourse",
-              ISOM_SEASONAL_CHANNEL: "Minor/seasonal water channel",
+              ISOM_SEASONAL_CHANNEL: "Minor seasonal water channel",
               ISOM_UNCROSSABLE_WATER: "Uncrossable body of water"}
 # ISOM kód → třída v mask_water.png (0 = pozadí). Toky 1-3, plocha 4.
 WATER_CLASS = {ISOM_CROSSABLE_WATERCOURSE: 1, ISOM_SMALL_WATERCOURSE: 2,
@@ -313,19 +313,28 @@ BRIDGE_CLASS_BRIDGE = 1
 BRIDGE_CLASS_TUNNEL = 2
 BRIDGE_CLASS_FOOTBRIDGE = 3
 
-# Geometrie závorky 512 (PDF spec str. 32). Délky v paper µm; rastr = µm × PX_PER_MM/1000.
-BRIDGE_BRACKET_LEN_UM = 400              # délka šikmé čárky (0,4 mm)
-BRIDGE_BRACKET_OFFSET_UM = 250           # vzdálenost paty čárky od osy (0,25 mm = pol. 0,5 mm rozestupu)
-BRIDGE_BRACKET_ANGLE_DEG = 60            # úhel šikmé čárky vůči podélné ose mostu
-BRIDGE_LINE_WIDTH_UM = 180               # tloušťka čáry (osa + závorky), 0,18 mm
-# Rastr verze (px): konstanty z µm × PX_PER_MM/1000. Min. 1-2 px pro viditelnost.
-BRIDGE_BRACKET_LEN_PX = max(2, round(BRIDGE_BRACKET_LEN_UM * PX_PER_MM / 1000))
-BRIDGE_BRACKET_OFFSET_PX = max(1, round(BRIDGE_BRACKET_OFFSET_UM * PX_PER_MM / 1000))
+# Geometrie symbolu 512 — verify-against-source template_classic.omap id=125 + Most.png demo
+# (Sez. 33/35). Rastr (px-tuned) REPLIKUJE, co OOM vykreslí ze 2 objektů 512 v .omap
+# (omap_export._bridge_parallels): most = 2 paralely lemující osu (±0,75 mm) + na koncích nožička
+# 512. Nožička = template start/end_symbol „(-450,-654)→0,0" / „0,0→(450,-654)" µm: složka podél
+# osy VEN (450 µm) + kolmá VEN od centerline (654 µm) → 4 nožičky tvoří [ ] kolem úseku křížení.
+# Délky v paper µm; rastr = µm × PX_PER_MM/1000. (Dřív Sez. 32: šikmé čárky 60° z osy — kresba
+# se rozcházela s .omap, sjednoceno Sez. 35.)
+BRIDGE_LINE_WIDTH_UM = 270               # tloušťka baseline + nožiček (template 512 line_width=270, 0,27 mm)
+BRIDGE_PARALLEL_OFFSET_UM = 750          # offset paralely od osy mostu (= omap_export.BRIDGE_PARALLEL_OFFSET_UM, ±0,75 mm)
+BRIDGE_LEG_ALONG_UM = 450                # nožička: složka podél osy ven (template start/end_symbol)
+BRIDGE_LEG_PERP_UM = 654                 # nožička: složka kolmo ven od osy (template 654 µm)
+TUNNEL_PORTAL_HALF_UM = 750              # tunel: půl-délka kolmé závorky vjezdu (= omap_export.TUNNEL_PORTAL_HALF_UM, 1,5 mm)
 BRIDGE_LINE_WIDTH_PX = max(2, round(BRIDGE_LINE_WIDTH_UM * PX_PER_MM / 1000))
+BRIDGE_PARALLEL_OFFSET_PX = max(1, round(BRIDGE_PARALLEL_OFFSET_UM * PX_PER_MM / 1000))
+BRIDGE_LEG_ALONG_PX = max(1, round(BRIDGE_LEG_ALONG_UM * PX_PER_MM / 1000))
+BRIDGE_LEG_PERP_PX = max(2, round(BRIDGE_LEG_PERP_UM * PX_PER_MM / 1000))
+TUNNEL_PORTAL_HALF_PX = max(2, round(TUNNEL_PORTAL_HALF_UM * PX_PER_MM / 1000))
 
-# Lávka 512.2: kolmá čárka přes vodu/cestu (template id=127). Délka 1,25 mm × 0,25 mm tloušťka.
-FOOTBRIDGE_HALF_LEN_UM = 625             # polovina délky čárky (= ±625 µm v template)
-FOOTBRIDGE_WIDTH_UM = 250                # tloušťka čárky (0,25 mm)
+# Lávka 512.2: kolmá čárka přes vodu/cestu (template id=127, coords 0,-937→0,938 = ±937 µm,
+# line_width 375). Rastr na template-věrné hodnoty (Sez. 35; dřív 625/250 µm = drift od template).
+FOOTBRIDGE_HALF_LEN_UM = 937             # polovina délky čárky (template ±937 µm)
+FOOTBRIDGE_WIDTH_UM = 375                # tloušťka čárky (template 0,375 mm)
 FOOTBRIDGE_HALF_LEN_PX = max(3, round(FOOTBRIDGE_HALF_LEN_UM * PX_PER_MM / 1000))
 FOOTBRIDGE_WIDTH_PX = max(2, round(FOOTBRIDGE_WIDTH_UM * PX_PER_MM / 1000))
 
@@ -710,88 +719,86 @@ def _draw_railway(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     _draw_line_symbol(draw, rdraw, curve_px, C_BLACK, mode, width, dash, RAILWAY_CLASS[code])
 
 
-def _draw_bridge_brackets(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                          curve_px: list[tuple[float, float]], mask_class: int) -> None:
-    """Závorky ISOM 512 na obou koncích linie (most nebo tunel — sdílí symbol).
+def _offset_polyline_px(pts: list[tuple[float, float]], offset: float) -> list[tuple[float, float]]:
+    """Posun polyline o `offset` px po LEVÉ normále lokální tangenty (per-bod); záporný offset =
+    pravá normála. Rastrový protějšek omap_export._offset_polyline_left (tam µm) — jiná jednotka
+    i modul, proto vlastní kopie (cross-module sdílení by znamenalo kruhový import generator↔omap)."""
+    n = len(pts)
+    if n < 2:
+        return list(pts)
+    out: list[tuple[float, float]] = []
+    for i in range(n):
+        cx, cy = pts[i]
+        if i == 0:
+            dx, dy = pts[1][0] - cx, pts[1][1] - cy
+        elif i == n - 1:
+            dx, dy = cx - pts[-2][0], cy - pts[-2][1]
+        else:
+            dx = (pts[i + 1][0] - pts[i - 1][0]) / 2.0
+            dy = (pts[i + 1][1] - pts[i - 1][1]) / 2.0
+        tlen = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / tlen, dx / tlen          # levá normála k lokální tangentě
+        out.append((cx + offset * nx, cy + offset * ny))
+    return out
 
-    Spec ISOM 2017-2 PDF str. 32: pár šikmých čárek pod úhlem 60° vůči ose, symetricky
-    NAD i POD osou. Délka čárky 0,4 mm, pata vzdálená od osy 0,25 mm (= 0,5 mm vnitřní
-    rozestup mezi dvěma stranami závorky).
 
-    Geometrie čárky: vychází z bodu (pata) na vzdálenosti `BRIDGE_BRACKET_OFFSET_PX` od
-    osy (kolmo k tangentě), směřuje pod úhlem 60° dál ven od osy, délka `BRIDGE_BRACKET_LEN_PX`.
-    Pro každý konec mostu kreslíme 2 čárky (jednu nad osou + jednu pod = pár závorky).
-    """
-    if len(curve_px) < 2:
-        return
-    cos_a = math.cos(math.radians(BRIDGE_BRACKET_ANGLE_DEG))
-    sin_a = math.sin(math.radians(BRIDGE_BRACKET_ANGLE_DEG))
-    # Pro každý konec (start: idx 0 s tangentou k idx 1; end: idx -1 s tangentou od idx -2)
-    for end_idx, neighbor_idx in ((0, 1), (-1, -2)):
-        ex, ey = curve_px[end_idx]
-        nx, ny = curve_px[neighbor_idx]
-        # Tangenta podél osy (od end směrem dovnitř mostu, tj. neighbor − end)
-        tdx, tdy = nx - ex, ny - ey
-        tlen = math.hypot(tdx, tdy) or 1.0
-        # Jednotková tangenta (inward, do mostu) a normála (kolmá, doleva)
-        ux, uy = tdx / tlen, tdy / tlen
-        # Levá normála: rotace tangenty o +90° (v rastrových souřadnicích y dolů)
-        nx_perp, ny_perp = -uy, ux
-        # Pro každou stranu osy (above = +, below = -) nakreslíme šikmou čárku
-        for side in (+1, -1):
-            # Pata čárky: na vzdálenosti BRIDGE_BRACKET_OFFSET_PX od osy kolmo
-            foot_x = ex + side * BRIDGE_BRACKET_OFFSET_PX * nx_perp
-            foot_y = ey + side * BRIDGE_BRACKET_OFFSET_PX * ny_perp
-            # Vrchol čárky: od paty pod úhlem 60° (vně osy = -tangenta + normála)
-            # Sklon 60° vně: složka kolmá ven = sin(60°), složka podélná podél osy ven = cos(60°)
-            # „Ven" znamená od osy mostu pryč (= away from mostu — opačně od inward tangenty)
-            tip_x = foot_x + BRIDGE_BRACKET_LEN_PX * (-cos_a * ux + side * sin_a * nx_perp)
-            tip_y = foot_y + BRIDGE_BRACKET_LEN_PX * (-cos_a * uy + side * sin_a * ny_perp)
-            draw.line([(foot_x, foot_y), (tip_x, tip_y)],
-                      fill=C_BLACK, width=BRIDGE_LINE_WIDTH_PX)
-            mdraw.line([(foot_x, foot_y), (tip_x, tip_y)],
-                       fill=mask_class, width=BRIDGE_LINE_WIDTH_PX)
+def _draw_bridge_leg(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                     parallel: list[tuple[float, float]], at_start: bool, side: int) -> None:
+    """Nožička 512 na jednom konci paralely (template start/end_symbol). Vede z koncového bodu
+    podél osy VEN z mostu (BRIDGE_LEG_ALONG_PX) a kolmo VEN od centerline (BRIDGE_LEG_PERP_PX na
+    stranu `side`). 4 nožičky obou paralel tvoří [ ] kolem úseku křížení (Most.png demo)."""
+    if at_start:
+        (ex, ey), (nx, ny) = parallel[0], parallel[1]
+    else:
+        (ex, ey), (nx, ny) = parallel[-1], parallel[-2]
+    tdx, tdy = nx - ex, ny - ey                 # tangenta DOVNITŘ mostu (ke druhému bodu)
+    tlen = math.hypot(tdx, tdy) or 1.0
+    ux, uy = tdx / tlen, tdy / tlen
+    lnx, lny = -uy, ux                          # levá normála tangenty dovnitř
+    # tip: podél osy ven (= -tangenta dovnitř) + kolmo ven od osy (strana `side`)
+    tip_x = ex - ux * BRIDGE_LEG_ALONG_PX + side * lnx * BRIDGE_LEG_PERP_PX
+    tip_y = ey - uy * BRIDGE_LEG_ALONG_PX + side * lny * BRIDGE_LEG_PERP_PX
+    draw.line([(ex, ey), (tip_x, tip_y)], fill=C_BLACK, width=BRIDGE_LINE_WIDTH_PX)
+    mdraw.line([(ex, ey), (tip_x, tip_y)], fill=BRIDGE_CLASS_BRIDGE, width=BRIDGE_LINE_WIDTH_PX)
 
 
 def _draw_bridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                  curve_px: list[tuple[float, float]]) -> None:
-    """Most (ISOM 512): JEN závorky na obou koncích linie, ŽÁDNÁ plná osa.
+    """Most (ISOM 512): 2 paralely lemující osu (±0,75 mm) + nožičky 512 ven na koncích = [ ].
 
-    Uživatel Sez. 32 chyba E3: „512 NENÍ centrovaná v ose linie komunikace, ale lemuje
-    ji po stranách s mezerou (~0,5 mm)." Most je reprezentován silnicí/železnicí 502/509
-    ve vlastní vrstvě, která už je nakreslená; symbol 512 přidá jen závorky vymezující
-    začátek a konec mostu (lemují osu po stranách)."""
+    Replikuje, co OOM vykreslí ze 2 objektů 512 v .omap (omap_export._bridge_parallels): baseline
+    každé paralely + na obou koncích nožička podél osy ven a kolmo ven od centerline. Nesená trať
+    (silnice/železnice) prochází středem viditelně; závorky vymezují úsek mostu. Verify Most.png
+    demo (Sez. 33/35). Dřív (Sez. 32) rastr kreslil šikmé čárky 60° z osy → nesedělo s .omap."""
     if len(curve_px) < 2:
         return
-    # Závorky na obou koncích (paralelně s osou, dle E2/E3) — žádná plná osa mostu
-    _draw_bridge_brackets(draw, mdraw, curve_px, BRIDGE_CLASS_BRIDGE)
+    for side in (+1, -1):                       # paralela na každé straně osy mostu
+        parallel = _offset_polyline_px(curve_px, side * BRIDGE_PARALLEL_OFFSET_PX)
+        draw.line(parallel, fill=C_BLACK, width=BRIDGE_LINE_WIDTH_PX)
+        mdraw.line(parallel, fill=BRIDGE_CLASS_BRIDGE, width=BRIDGE_LINE_WIDTH_PX)
+        _draw_bridge_leg(draw, mdraw, parallel, at_start=True, side=side)
+        _draw_bridge_leg(draw, mdraw, parallel, at_start=False, side=side)
 
 
 def _draw_tunnel(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                  curve_px: list[tuple[float, float]]) -> None:
-    """Tunel (ISOM 512, kolmé závorky na obou koncích): kolmá čárka přes osu.
+    """Tunel (ISOM 512): kolmé závorky na vjezdech (osa otočená 90°), trať mezi nimi přerušená.
 
-    Uživatel Sez. 32 chyba E5: tunel závorka je KOLMÁ k ose komunikace (ne paralelní
-    jako most). E6: párová = vstup + výstup. MVP varianta: 2× kolmá čárka stejná jako
-    footbridge 512.2 (single dash 1,25 × 0,25 mm), jedna na vstupu, jedna na výstupu.
-    Bez nožiček (Sez. 33+: doplnit `[`-bracket s patami ven, pokud OOM verify žádá)."""
+    Replikuje omap_export._tunnel_portals: na obou koncích osy krátká KOLMÁ čára ±0,75 mm
+    (= vjezd/výjezd tunelu), trať uvnitř je už ořezaná (_crop_line_at_passages). Verify Sez. 33
+    (ortofoto). Sjednoceno s .omap konstantou TUNNEL_PORTAL_HALF (dřív si půjčoval FOOTBRIDGE_*)."""
     if len(curve_px) < 2:
         return
-    # Pro každý konec tunelu (start + end) nakresli 1 kolmou čárku napříč osou
     for end_idx, neighbor_idx in ((0, 1), (-1, -2)):
         ex, ey = curve_px[end_idx]
         nx, ny = curve_px[neighbor_idx]
         tdx, tdy = nx - ex, ny - ey
         tlen = math.hypot(tdx, tdy) or 1.0
-        # Normála k tangentě (= směr kolmé čárky)
-        nx_perp, ny_perp = -tdy / tlen, tdx / tlen
-        # Kolmá čárka: ±FOOTBRIDGE_HALF_LEN_PX podél normály
-        p1 = (ex - FOOTBRIDGE_HALF_LEN_PX * nx_perp,
-              ey - FOOTBRIDGE_HALF_LEN_PX * ny_perp)
-        p2 = (ex + FOOTBRIDGE_HALF_LEN_PX * nx_perp,
-              ey + FOOTBRIDGE_HALF_LEN_PX * ny_perp)
-        draw.line([p1, p2], fill=C_BLACK, width=FOOTBRIDGE_WIDTH_PX)
-        mdraw.line([p1, p2], fill=BRIDGE_CLASS_TUNNEL, width=FOOTBRIDGE_WIDTH_PX)
+        nx_perp, ny_perp = -tdy / tlen, tdx / tlen      # kolmice k ose tunelu
+        p1 = (ex - TUNNEL_PORTAL_HALF_PX * nx_perp, ey - TUNNEL_PORTAL_HALF_PX * ny_perp)
+        p2 = (ex + TUNNEL_PORTAL_HALF_PX * nx_perp, ey + TUNNEL_PORTAL_HALF_PX * ny_perp)
+        draw.line([p1, p2], fill=C_BLACK, width=BRIDGE_LINE_WIDTH_PX)
+        mdraw.line([p1, p2], fill=BRIDGE_CLASS_TUNNEL, width=BRIDGE_LINE_WIDTH_PX)
 
 
 def _draw_footbridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -858,20 +865,15 @@ def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 def _draw_boulder_cluster(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                           cx: float, cy: float) -> None:
-    """Bodová skupina balvanů (ISOM 207): plný černý trojúhelník vrcholem dolů + GT maska.
+    """Bodová skupina balvanů (ISOM 207): plný černý trojúhelník vrcholem nahoru + GT maska.
 
-    Template_classic.omap: 3 body (-400 231; 400 231; 0 -462) — base 0,8 mm, výška 0,693 mm,
-    orientace „sever" (= dva vrcholy nahoře, jeden DOLŮ). V mapovém paper-space (y up) je
-    -462 dolů od středu; na rastru (y down) tedy +462 → vrchol směřuje DOLŮ v paper sense,
-    ale na rastru je TROJÚHELNÍK S VRCHOLEM NAHORU. Ne, vlastně paper-space y-up → vrchol
-    dolů = -y; po překlopení do rastru (y down) je vrchol nahoru. Držíme TEMPLATE orientaci:
-    base nahoře (paper +y) → na rastru DOLE; vrchol dole (paper -y) → na rastru NAHOŘE."""
+    Template_classic.omap id 36: 3 body (-400,231),(400,231),(0,-462) µm, base 0,8 mm, výška
+    0,693 mm. V OOM paper-space (i v rastru) y roste DOLŮ → vrchol (y=-462) je NAHOŘE, base
+    (y=+231) DOLE. Držíme tuto orientaci. Poměr výšky 231:462 = 1:2 → těžiště ≈ ve středu (cx,cy)."""
     hb = BOULDER_CLUSTER_HALF_BASE_PX            # polovina base
     h = BOULDER_CLUSTER_HEIGHT_PX                # výška (vrchol → base)
-    # paper-space (template): (-400, +231), (+400, +231), (0, -462). Rastr y-flip → y se mění
-    # znaménkem. Base = řádek y = +231 paper = -231 rastr → NAHOŘE v paper. Pro KISS rovnoramenný:
-    # vrchol NAHOŘE (cx, cy - 2h/3), base DOLE [cx-hb, cy+h/3; cx+hb, cy+h/3] — třetina nahoru,
-    # dvě třetiny dolů ≈ těžiště ve středu (cx, cy). Template má 231:462 = 1:2 (centrální moment).
+    # rovnoramenný trojúhelník: vrchol NAHOŘE (cy - 2h/3), base DOLE (cy + h/3) — třetina výšky
+    # nad střed, dvě třetiny pod → těžiště ≈ střed (cx, cy). Sedí s template poměrem 231:462.
     apex = (cx, cy - 2 * h / 3)
     base_l = (cx - hb, cy + h / 3)
     base_r = (cx + hb, cy + h / 3)
@@ -2080,8 +2082,10 @@ def synthesize_pseudorealistic_map(
     reálné vrstvy ji vynechá místo pádu celé mapy; vynechané vrstvy se zapíšou do
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
-    Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → bodové symboly extrémů
-    (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → el. vedení (510) → železnice (509) → budovy (521 navrch). Je to VĚDOMÁ generátorová volba pro
+    Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → pomocné vrstevnice (103) →
+    bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → el. vedení
+    (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
+    lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
     naopak POD hnědou vrstevnicí), patří do OOM Colors okna = uživatelova doména, ne rastr.
@@ -2101,33 +2105,20 @@ def synthesize_pseudorealistic_map(
     # only_real (veřejné API/CLI) → pseudorealistic (interní doménový pojem, fáze 2 dekorace).
     # Převod na hranici drží zbytek kódu (i _generate_real_powerlines/_build_meta) beze změny.
     pseudorealistic = not only_real
-    if paths == "real" and terrain != "real":
-        raise ValueError("--paths real vyžaduje --terrain real (reálné cesty potřebují "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if water == "real" and terrain != "real":
-        raise ValueError("--water real vyžaduje --terrain real (reálná voda potřebuje "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if buildings == "real" and terrain != "real":
-        raise ValueError("--buildings real vyžaduje --terrain real (reálné budovy potřebují "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if powerlines == "real" and terrain != "real":
-        raise ValueError("--powerlines real vyžaduje --terrain real (reálné el. vedení potřebuje "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if railways == "real" and terrain != "real":
-        raise ValueError("--railways real vyžaduje --terrain real (reálná železnice potřebuje "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if paved == "real" and terrain != "real":
-        raise ValueError("--paved real vyžaduje --terrain real (reálná zpevněná plocha potřebuje "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if ropiky == "real" and terrain != "real":
-        raise ValueError("--ropiky real vyžaduje --terrain real (řopíky ze ZABAGED potřebují "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if rocks == "real" and terrain != "real":
-        raise ValueError("--rocks real vyžaduje --terrain real (reálné skály/balvany potřebují "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if bridges == "real" and terrain != "real":
-        raise ValueError("--bridges real vyžaduje --terrain real (reálné mosty/tunely/lávky "
-                         "potřebují S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    # Všechny reálné vrstvy potřebují S-JTSK georef výseku (sdílený build_bbox) — noise terén je
+    # v lokálních metrech bez georef, reálná data by se neměla na co napárovat. Jedna validace pro
+    # všechny vrstvy (DRY): (CLI flag, zvolený mode, popis vrstvy do hlášky).
+    for flag, mode, popis in (("--paths", paths, "reálné cesty"), ("--water", water, "reálná voda"),
+                              ("--buildings", buildings, "reálné budovy"),
+                              ("--powerlines", powerlines, "reálné el. vedení"),
+                              ("--railways", railways, "reálná železnice"),
+                              ("--paved", paved, "reálná zpevněná plocha"),
+                              ("--ropiky", ropiky, "řopíky ze ZABAGED"),
+                              ("--rocks", rocks, "reálné skály/balvany"),
+                              ("--bridges", bridges, "reálné mosty/tunely/lávky")):
+        if mode == "real" and terrain != "real":
+            raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
+                             "georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
     rng = np.random.default_rng(seed)
@@ -2371,11 +2362,12 @@ def synthesize_pseudorealistic_map(
             ([], []), tolerant, layer_errors)
         _log.info("  řopíky: %d", len(ropik_info))
 
-    # --- skály / balvany (ISOM 204/207/202/206): reálné ze ZABAGED REST (real-půlka, Sez. 30) ---
+    # --- skály / balvany (ISOM 204/207/206): reálné ze ZABAGED REST (real-půlka, Sez. 30) ---
     # Rastr z-order: ÚPLNĚ NAVRCH (po budovách+řopících) — replikuje OOM color order, kde
-    # 202/204/206/207 mají vyšší prioritu (=draw nahoru) než 521 Building. Hruboskalsko: skály
+    # 204/206/207 mají vyšší prioritu (=draw nahoru) než 521 Building. Hruboskalsko: skály
     # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
-    # Jen --rocks real. Hybridní 202 vs 206 řeší map_rock_area_to_isom podle plochy polygonu.
+    # Jen --rocks real. KISS vrstva → jeden symbol: Skalní_útvary vždy → 206 (map_rock_area_to_isom);
+    # hybridní 202/206 podle plochy bylo Sez. 30 zavrženo (rozhodování bez datového podkladu).
     rock_point_features: list[tuple] = []
     rock_area_features: list[tuple] = []
     rocks_info: list[dict] = []
@@ -2491,8 +2483,8 @@ def synthesize_pseudorealistic_map(
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
-    # skály/balvany (Sez. 30): body 204/207 + plochy 202/206. Plochy 206 = area_object (jako 501/521),
-    # 202 = line_object (uzavřená polylinie obrysu, jako 304/305). Body = point_object (jako 109/110/111).
+    # skály/balvany (Sez. 30): body 204/207 + plochy 206. Plocha 206 = area_object (jako 501/521),
+    # body 204/207 = point_object (jako 109/110/111).
     rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
     # Mosty (Sez. 32 5. iterace dle Most.omap dema): 1 ZABAGED Most → emit 2 PARALELNÍ
@@ -2574,7 +2566,7 @@ def main() -> None:
                         "(real vyžaduje --terrain real; jinde než u hranic 0 prvků)")
     p.add_argument("--rocks", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Osamělý_balvan/Skupina_balvanů/Skalní_útvary "
-                        "→ ISOM 204/207/202/206 (default), off = bez skal "
+                        "→ ISOM 204/207/206 (default), off = bez skal "
                         "(real vyžaduje --terrain real; v plochém terénu 0 prvků)")
     p.add_argument("--bridges", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Most/Tunel/Lávka → ISOM 512+512.2 (default), "

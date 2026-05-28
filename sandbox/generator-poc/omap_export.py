@@ -10,10 +10,11 @@ Zisk oproti od-nuly:
     (line_symbol) — místo dřívějšího jednotného zjednodušeného kruhu;
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
-Skládáme tedy jen <objects> (vrstevnice 101/102, cesty 502-506, voda 304/305/306 + plocha
-301.1, budovy 521, body 109/110/111); barvy/symboly/georef/view přebíráme z template beze
-změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení template
-v OOM — id NEjsou pořadová: 503→110, 505→112).
+Skládáme tedy jen <objects> (vrstevnice 101/102 + pomocné 103, cesty 502-506, voda 304/305/306
++ plocha 301.1, zpevněné plochy 501, železnice 509, el. vedení 510, budovy 521, body 109/110/111,
+skály 204/207 + plochy 206, mosty/tunely 512 + lávky 512.2); barvy/symboly/georef/view přebíráme
+z template beze změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení
+template v OOM — id NEjsou pořadová: 503→110, 505→112).
 
 Georef: template má Local CRS (paper-space); jeho původní scale (1:15000) přepisujeme na
 generátorové MAP_SCALE (1:10000, nález Sez. 26 — viz write_omap). Object coords jsou v µm na
