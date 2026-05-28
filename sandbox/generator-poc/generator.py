@@ -292,40 +292,15 @@ BOULDER_CLUSTER_HALF_BASE_PX = max(2, round(0.4 * PX_PER_MM))  # 207 — polovin
 BOULDER_CLUSTER_HEIGHT_PX = max(2, round(0.7 * PX_PER_MM))     # 207 — výška trojúhelníku (vrchol dolů)
 
 
-# ---------- Mosty a lávky (Sez. 31, real-půlka §8.5) ----------
-# 2 ISOM symboly z 3 ZABAGED vrstev — KISS (vrstva/kategorie → jeden symbol):
-#   512   Bridge/tunnel  — linie + V-křídla na obou koncích (Most)
-#   512.2 Footbridge     — kolmá čárka (Lávka linie + Lávka bod)
-# Mapování viz zabaged.map_bridge_to_isom (→ 512) / map_footbridge_to_isom (→ 5122).
-# 5122 = int alias ISOM kódu „512.2" (string s tečkou; omap_export ho mapuje na „512.2").
-# Verify-against-source (template_classic.omap, Sez. 31):
-#   512: line_symbol type=2, line_width=180 µm (0,18 mm), color=2 (černá);
-#        start_symbol/end_symbol = úseček (-300,-436)→(0,0) a (0,0)→(300,-436), tj. šikmé V-křídlo
-#        0,3 mm do strany × 0,44 mm zpět (úhel ~35° vůči ose).
-#   512.2: point_symbol rotatable=true, kolmá čárka 0→±625 µm (= 1,25 mm celkem) × 0,25 mm tlusté.
-ISOM_BRIDGE = 512                  # most pro vozidla/železnici → linie + V-křídla na koncích
-ISOM_FOOTBRIDGE = 5122             # lávka pro pěší (= ISOM 512.2) → kolmá čárka, rotace k vodě
-BRIDGE_NAME = {ISOM_BRIDGE: "Bridge", ISOM_FOOTBRIDGE: "Footbridge"}
-# ISOM kód → třída v mask_bridges.png (multi-class: 1=most 512, 2=lávka 512.2). 0 = pozadí.
-BRIDGE_CLASS = {ISOM_BRIDGE: 1, ISOM_FOOTBRIDGE: 2}
-
-# Render parametry (template autoritativní, rastr px-tuned — princip render-px-tuned vs .omap věrný).
-# Symbol 512 v OB konvenci (oprava Sez. 31 po Censure uživatele): **4 krátké rovnoběžné čárky
-# vně osy cesty** (jedna na začátku NAD osou + jedna POD, jedna na konci NAD + jedna POD =
-# „=  =" tvar na obou koncích). Žádná středová linie — cesta/železnice už je nakreslená pod
-# symbolem. Template coords `-300 -436`: 300 µm podél tangenty (= délka rovnoběžné čárky),
-# 436 µm kolmo k tangentě (= offset čárky od osy cesty). Tj. WING_LEN je „back" 300, WING_OFFSET
-# je „out" 436 — vlastní symbol 512 je v paper-space na JEDNÉ straně osy a OOM render je
-# implicitně mirroruje (= klasická OB bridge konvence: dvě rovnoběžné čárky vně osy).
-BRIDGE_WING_LEN_PX = max(6, round(1.3 * PX_PER_MM))          # délka kolmé čárky (1,3 mm rastr-laděno; template 0,3 mm)
-BRIDGE_WING_OFFSET_PX = max(3, round(0.6 * PX_PER_MM))       # offset čárky kolmo OD osy (0,6 mm rastr; template 0,44 mm)
-BRIDGE_WIDTH_PX = 2                                          # tloušťka čárky (0,18 mm × PX_PER_MM ≈ 0,8 → 2 viditelně)
-# POZN. (paměť `render-px-tuned-omap-authoritative`): konstanty zvětšené proti template kvůli
-# čitelnosti v rastru (1,3 / 0,6 mm vs template 0,3 / 0,44 mm). OOM .omap nese věrný 512 symbol
-# → renderuje autoritativně z template; rastr je feeder pro UC5 a potřebuje viditelné symboly.
-# Lávka (512.2): 0,25 mm × 1,25 mm = ~1,15 × 5,7 px → ladíme na 2 × 6 px (viditelně).
-FOOTBRIDGE_WIDTH_PX = max(2, round(0.25 * PX_PER_MM))        # tloušťka kolmé čárky (0,25 mm)
-FOOTBRIDGE_HALF_LEN_PX = max(3, round(0.625 * PX_PER_MM))    # poloviční délka kolmé čárky (template 625 µm)
+# ---------- Mosty/tunely/lávky (ISOM 512) — ODLOŽENO ----------
+# Sez. 31 implementace rollbacknuta v Sez. 32 po 3 iteracích renderu, žádná dle spec.
+# Verify-against-source ISOM 2017-2 Rev 6 PDF str. 32: symbol 512 Bridge/tunnel = pár závorek
+# `[ ]` na obou koncích osy (2 šikmé čárky pod 60° symetricky NAD i POD osu, délka 0,4 mm,
+# rozestup 0,5 mm). Template `template_classic.omap` symbol id=125 má jen polovinu páru
+# (start/end_symbol pouze nad osou) → OOM render nesedl. Nová implementace bude spec-driven
+# až po úpravě template (přidat zrcadlovou polovinu) nebo přepisem na 2× bodový symbol 512.1
+# (Bridge minimum size, M-tvar) na koncích linie. Lávka 512.2 = single dash (1,25 mm kolmá
+# čárka) byla geometricky správně, ale rollback v balíku — vrátí se s mostem.
 
 
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
@@ -706,72 +681,6 @@ def _draw_railway(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     _draw_line_symbol(draw, rdraw, curve_px, C_BLACK, mode, width, dash, RAILWAY_CLASS[code])
 
 
-def _draw_bridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                 curve_px: list[tuple[float, float]]) -> None:
-    """Most/tunel (ISOM 512): 4 krátké KOLMÉ čárky vně osy cesty (Sez. 31 oprava 2x).
-
-    OB konvence (verify s uživatelem Sez. 31): most vyznačený DVĚMA páry krátkých čárek
-    KOLMÝCH k ose cesty, zrcadlově nad i pod osou. ASCII:
-
-        |  |              ← horní pár (nad osou: na začátku + na konci mostu)
-        |  |
-    ====|==|====           cesta
-        |  |
-        |  |              ← dolní pár (pod osou, zrcadlově)
-
-    Žádná středová linie — cesta/železnice je již nakreslená pod symbolem. Stejný symbol
-    pro most i tunel (template description: „Bridges and tunnels are represented using the
-    same basic symbols"). První interpretace Sez. 31 (V-křídla na osu) byla špatná: template
-    start/end_symbol je JEDNA POLOVINA symetrického páru a OOM ho zrcadlí kolem osy linie.
-
-    Template coords `-300 -436` v paper-space: 300 µm „back" podél tangenty (kde leží
-    bod čárky), 436 µm kolmo (offset od osy). Pro render kolmé čárky: 300 µm = offset
-    od osy zakončení čárky vzdálenější od cesty, 436 µm = offset bližšího konce.
-    Render: kolmá čárka od bodu (off od osy) k bodu (off+seg od osy)."""
-    if len(curve_px) < 2:
-        return
-    width = BRIDGE_WIDTH_PX
-    cls = BRIDGE_CLASS[ISOM_BRIDGE]
-    seg = BRIDGE_WING_LEN_PX            # délka kolmé čárky (~0,3 mm)
-    off = BRIDGE_WING_OFFSET_PX         # offset čárky od osy cesty (~0,44 mm = "vně cesty")
-    # Pro každý konec mostu (start + end) nakresli 2 KOLMÉ čárky (nad+pod osou).
-    for end_idx, prev_idx in ((0, 1), (-1, -2)):
-        ex, ey = curve_px[end_idx]
-        px2, py2 = curve_px[prev_idx]
-        # tangenta podél osy mostu (směr není důležitý — kolmé čárky jsou stejné z obou stran)
-        tdx, tdy = px2 - ex, py2 - ey
-        tlen = math.hypot(tdx, tdy) or 1.0
-        # normála (kolmá k tangentě) — jednotková
-        nx_perp, ny_perp = -tdy / tlen, tdx / tlen
-        # Kolmé čárky: od bodu (off od osy) k bodu (off+seg od osy), na obou stranách cesty
-        for side in (+1, -1):
-            base_x = ex + side * off * nx_perp              # bližší konec čárky (off od osy)
-            base_y = ey + side * off * ny_perp
-            tip_x = ex + side * (off + seg) * nx_perp       # vzdálenější konec (off+seg)
-            tip_y = ey + side * (off + seg) * ny_perp
-            draw.line([(base_x, base_y), (tip_x, tip_y)], fill=C_BLACK, width=width)
-            mdraw.line([(base_x, base_y), (tip_x, tip_y)], fill=cls, width=width)
-
-
-def _draw_footbridge_point(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                           cx: float, cy: float, rot_rad: float) -> None:
-    """Bodová lávka (ISOM 512.2): kolmá čárka v poloze (cx, cy) rotovaná o rot_rad rad.
-
-    Template_classic.omap (Sez. 31): point_symbol rotatable=true, polyline (0,-625) →
-    (0,625) µm = vertikální čárka 1,25 mm tlustá 0,25 mm. Čárka se kreslí podél osy
-    lávky (= kolmo k vodě pod ní). `rot_rad` = úhel orientace osy lávky vůči +x rastru;
-    typicky se nastavuje kolmo k nejbližšímu vodnímu toku (řešeno volajícím — paralela
-    řopíků orientovaných k hranici)."""
-    half = FOOTBRIDGE_HALF_LEN_PX
-    cos_r = math.cos(rot_rad)
-    sin_r = math.sin(rot_rad)
-    p1 = (cx - half * cos_r, cy - half * sin_r)
-    p2 = (cx + half * cos_r, cy + half * sin_r)
-    cls = BRIDGE_CLASS[ISOM_FOOTBRIDGE]
-    draw.line([p1, p2], fill=C_BLACK, width=FOOTBRIDGE_WIDTH_PX)
-    mdraw.line([p1, p2], fill=cls, width=FOOTBRIDGE_WIDTH_PX)
-
-
 def _draw_area_symbol(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                       ring_px: list[tuple[float, float]],
                       fill: tuple, outline: tuple, mask_class: int) -> None:
@@ -1026,14 +935,14 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
                 water_mode: str, paved_mode: str, buildings_mode: str, powerlines_mode: str,
-                railways_mode: str, rocks_mode: str, bridges_mode: str,
+                railways_mode: str, rocks_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_formlines: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], water_info: list[dict], paved_info: list[dict],
                 building_info: list[dict], powerlines_info: list[dict],
                 railways_info: list[dict], rocks_info: list[dict],
-                bridges_info: list[dict], omap_info: dict,
+                omap_info: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
@@ -1050,7 +959,6 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     used_railway_codes = sorted({r["symbol"] for r in railways_info})
     used_paved_codes = sorted({p["symbol"] for p in paved_info})
     used_rock_codes = sorted({r["symbol"] for r in rocks_info})
-    used_bridge_codes = sorted({b["symbol"] for b in bridges_info})
     return {
         "seed": seed,
         # pseudorealistic = fáze 2 (dekorace symbolů nad rámec tvrdých dat) zapnuta; False =
@@ -1170,22 +1078,6 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": rocks_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if rocks_mode == "real" else {}),
-        # mosty/lávky (real-půlka, Sez. 31): Most→512 + Lávka linie+bod→512.2. KISS, kategorie
-        # → jeden symbol (jako budovy→521). Sekce jen když bridges_mode != off; symboly/třídy
-        # dynamicky ze SKUTEČNĚ použitých kódů. Pozor: 5122 v `symbols` exportu znamená „512.2".
-        **({"bridges": {
-            "count": len(bridges_info),
-            "mask": "mask_bridges.png",
-            "source": "cuzk_zabaged",
-            "symbols": {("512.2" if c == ISOM_FOOTBRIDGE else str(c)): BRIDGE_NAME[c]
-                        for c in used_bridge_codes},
-            "classes": {"0": "pozadí",
-                        **{str(BRIDGE_CLASS[c]):
-                            f"{'512.2' if c == ISOM_FOOTBRIDGE else c} {BRIDGE_NAME[c]}"
-                            for c in used_bridge_codes}},
-            "items": bridges_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if bridges_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -1515,120 +1407,6 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     return rock_point_features, rock_area_features, rocks_info
 
 
-def _nearest_segment_tangent(bx: float, by: float,
-                             lines_px: list[list[tuple[float, float]]]
-                             ) -> tuple[float, float] | None:
-    """Pro bod (bx, by) najde nejbližší segment v `lines_px` a vrátí jeho tangentu jednotkovou.
-
-    Vrací None, když `lines_px` prázdné. Použito pro orientaci lávky kolmo k nejbližšímu
-    vodnímu toku (Sez. 31; paralela `_ropik_outward` PCA, ale jednodušší — lávka má jen
-    jeden tok pod sebou, ne lokální klastr). Segment = sousední dvojice bodů polyline."""
-    best_d2 = float("inf")
-    best_dir: tuple[float, float] | None = None
-    for line in lines_px:
-        for i in range(1, len(line)):
-            x1, y1 = line[i - 1]
-            x2, y2 = line[i]
-            dx, dy = x2 - x1, y2 - y1
-            seg_len2 = dx * dx + dy * dy
-            if seg_len2 < 1e-9:
-                continue
-            # projekce bodu (bx,by) na segment: t∈[0,1] → kolmá vzdálenost
-            t = max(0.0, min(1.0, ((bx - x1) * dx + (by - y1) * dy) / seg_len2))
-            cx, cy = x1 + t * dx, y1 + t * dy
-            d2 = (bx - cx) ** 2 + (by - cy) ** 2
-            if d2 < best_d2:
-                best_d2 = d2
-                seg_len = math.sqrt(seg_len2)
-                best_dir = (dx / seg_len, dy / seg_len)
-    return best_dir
-
-
-def _generate_real_bridges(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                           lat: float, lon: float, geo_bbox: tuple,
-                           water_lines_px: list[list[tuple[float, float]]]
-                           ) -> tuple[list, list, list]:
-    """Reálné mosty a lávky (real-půlka, Sez. 31): Most→512 + Lávka→512.2 ze ZABAGED REST.
-
-    Most = LineString (most přes vodu/komunikaci) → linie + V-křídla. Lávka má 2 ZABAGED
-    vrstvy (linie + bod); render obou → 512.2 (kolmá čárka). Bodová lávka nemá orientaci
-    v atributech → otáčí se kolmo k nejbližšímu vodnímu toku (`water_lines_px` jsou px
-    polylinie z `_generate_real_water` — bez nich fallback rot=0 = horizontální čárka).
-    Liniová lávka renderuje 512.2 čárku UPROSTŘED linie kolmo na osu lávky (lávka VEDE
-    PŘES vodu — středová poloha = nad osou toku).
-
-    Vrací (bridge_features [(grid, ISOM_BRIDGE)], footbridge_features [(gx, gy, ISOM_FOOTBRIDGE)],
-    bridges_info). Most je liniový → grid polyline; lávka = body → (gx, gy)."""
-    from zabaged import (fetch_bridges, fetch_footbridges,
-                         map_bridge_to_isom, map_footbridge_to_isom)
-
-    bridge_features: list[tuple] = []           # (grid_polyline, 512) pro .omap
-    footbridge_features: list[tuple] = []       # (gx, gy, 5122) pro .omap (point objekty)
-    bridges_info: list[dict] = []
-
-    # 1) Mosty (Most, linie) → 512. RAW kreslení polyline + V-křídla na koncích.
-    for f in fetch_bridges(lat, lon, GW, GH, TILE_M):
-        code = map_bridge_to_isom(f["layer"], f["props"])
-        for line in f["lines"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            _draw_bridge(draw, mdraw, px)
-            bridge_features.append((grid, code))
-            bridges_info.append({"symbol": code, "symbol_name": BRIDGE_NAME[code],
-                                 "kind": "line", "layer": f["layer"],
-                                 "jmeno": f["props"].get("jmeno")})
-
-    # 2) Lávky → 512.2. Linie + bod (Sez. 31 probe Novina: 0 + 1 = 1 prvek).
-    line_feats, points = fetch_footbridges(lat, lon, GW, GH, TILE_M)
-    code_fb = map_footbridge_to_isom("Lávka (bod)", {})  # 5122
-
-    # 2a) Lávky linie: kolmá čárka uprostřed osy lávky (kolmo na osu lávky =
-    # rovnoběžně s tangentou v polovině) → osa čárky vznikne rotací podle tangenty.
-    for f in line_feats:
-        for line in f["lines"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 2:
-                continue
-            # střed linie = polovina celkové délky
-            mid_i = len(px) // 2
-            cx, cy = px[mid_i]
-            # tangenta v poloviční pozici (= směr lávky); čárka 512.2 je rovnoběžná s lávkou
-            prev_i = max(0, mid_i - 1)
-            next_i = min(len(px) - 1, mid_i + 1)
-            dx = px[next_i][0] - px[prev_i][0]
-            dy = px[next_i][1] - px[prev_i][1]
-            rot = math.atan2(dy, dx)
-            _draw_footbridge_point(draw, mdraw, cx, cy, rot)
-            gx_mid, gy_mid = grid[mid_i]
-            footbridge_features.append((gx_mid, gy_mid, code_fb, rot))
-            bridges_info.append({"symbol": code_fb, "symbol_name": BRIDGE_NAME[code_fb],
-                                 "kind": "line", "layer": f["layer"],
-                                 "jmeno": f["props"].get("jmeno")})
-
-    # 2b) Lávky body: orientace kolmo k nejbližšímu vodnímu toku (tangenta vody → osa
-    # lávky kolmá → rot = tangenta_vody + 90°). Bez vody fallback rot=0.
-    for x, y in points:
-        gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
-        px_b, py_b = _grid_to_px(gx, gy)
-        tg = _nearest_segment_tangent(px_b, py_b, water_lines_px)
-        if tg is None:
-            rot = 0.0    # fallback: horizontální čárka (žádná voda ve výseku)
-        else:
-            # lávka KOLMO k vodě → osa lávky je normála toku, čárka 512.2 je rovnoběžná
-            # s lávkou (template orientace), tj. rot = úhel normály = atan2(-tx, ty).
-            tx, ty = tg
-            rot = math.atan2(-tx, ty)
-        _draw_footbridge_point(draw, mdraw, px_b, py_b, rot)
-        footbridge_features.append((gx, gy, code_fb, rot))
-        bridges_info.append({"symbol": code_fb, "symbol_name": BRIDGE_NAME[code_fb],
-                             "kind": "point", "layer": "Lávka (bod)"})
-
-    return bridge_features, footbridge_features, bridges_info
-
-
 # =====================================================================
 #  Řopíky / lehké opevnění LO37 — fáze 1 (projekce reálných dat), asset placement (Sez. 27)
 # =====================================================================
@@ -1787,7 +1565,6 @@ def synthesize_pseudorealistic_map(
         terrain: str = "real", paths: str = "real", water: str = "real",
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
-        bridges: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -1865,9 +1642,6 @@ def synthesize_pseudorealistic_map(
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if rocks == "real" and terrain != "real":
         raise ValueError("--rocks real vyžaduje --terrain real (reálné skály/balvany potřebují "
-                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
-    if bridges == "real" and terrain != "real":
-        raise ValueError("--bridges real vyžaduje --terrain real (reálné mosty/lávky potřebují "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
@@ -2110,35 +1884,11 @@ def synthesize_pseudorealistic_map(
         else:
             _log.info("  skály: 0")
 
-    # --- mosty + lávky (ISOM 512 / 512.2): reálné ze ZABAGED REST (real-půlka, Sez. 31) ---
-    # Rastr z-order: ÚPLNĚ NAVRCH (po skály) — most kreslí přes komunikaci/vodu i přes
-    # skály ve výseku (visuálně dominantní liniový prvek). Lávka je drobná. Bodová lávka
-    # se orientuje kolmo k nejbližšímu vodnímu toku → potřebuje water_line_features v px
-    # (převést z grid → px). Bez vody (--water off) → fallback rot=0 (horizontální čárka).
-    # Jen --bridges real. V lesních výsecích bez mostů/lávek = 0 prvků (žádný šum).
-    bridge_features: list[tuple] = []
-    footbridge_features: list[tuple] = []
-    bridges_info: list[dict] = []
-    bridge_mask_img: Image.Image | None = None
-    if bridges == "real":
-        bridge_mask_img = Image.new("L", (W, H), 0)      # GT maska mostů/lávek (§8.1, multi-class)
-        bdraw_bridges = ImageDraw.Draw(bridge_mask_img)
-        # vodní toky v px pro orientaci lávky (převod grid → px)
-        water_lines_px = [[_grid_to_px(gx, gy) for gx, gy in grid]
-                          for grid, _ in water_line_features]
-        bridge_features, footbridge_features, bridges_info = _try_layer(
-            "bridges",
-            lambda: _generate_real_bridges(draw, bdraw_bridges, lat, lon, geo_bbox, water_lines_px),
-            ([], [], []), tolerant, layer_errors)
-        # souhrn po symbolech (KISS, paralela skály)
-        by_code = {}
-        for it in bridges_info:
-            by_code[it["symbol"]] = by_code.get(it["symbol"], 0) + 1
-        if by_code:
-            parts = [f"{BRIDGE_NAME[c]}({c}):{n}" for c, n in sorted(by_code.items())]
-            _log.info("  mosty: %d (%s)", len(bridges_info), ", ".join(parts))
-        else:
-            _log.info("  mosty: 0")
+    # --- mosty/tunely/lávky (ISOM 512): ODLOŽENO. Sez. 31 rollback Sez. 32 ---
+    # Spec ISOM 2017-2 Rev 6 (str. 32): symbol 512 = pár závorek `[ ]` na koncích osy
+    # (2 šikmé čárky pod 60° symetricky nad+pod osou). Template má jen polovinu páru →
+    # OOM render nesedl. Spec-driven implementace přijde po úpravě template / přepisem
+    # na bodový symbol 512.1 na koncích linie. Lávka 512.2 (single dash) vrátí se s mostem.
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
@@ -2178,8 +1928,6 @@ def synthesize_pseudorealistic_map(
         paved_mask_img.save(out / "mask_paved.png")                         # zpevněné plochy (GT)
     if rock_mask_img is not None:
         rock_mask_img.save(out / "mask_rocks.png")                          # skály/balvany (GT, multi-class)
-    if bridge_mask_img is not None:
-        bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/lávky (GT, multi-class)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -2209,11 +1957,6 @@ def synthesize_pseudorealistic_map(
     # 202 = line_object (uzavřená polylinie obrysu, jako 304/305). Body = point_object (jako 109/110/111).
     rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
-    # mosty/lávky (Sez. 31): linie 512 = line_object (otevřený path, OOM renderuje V-křídla
-    # autoritativně z line_symbol). Body 512.2 = point_object s rotací (OOM renderuje kolmou
-    # čárku autoritativně z point_symbol; rotace = orientace lávky). 5122 → string „512.2".
-    bridge_omap_features = [(g, "512") for g, _ in bridge_features]
-    footbridge_omap_features = [(gx, gy, "512.2", rot) for gx, gy, _, rot in footbridge_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
@@ -2224,23 +1967,21 @@ def synthesize_pseudorealistic_map(
                              paved_features=paved_omap_features,
                              formline_features=formline_omap_features,
                              rock_point_features=rock_point_omap_features,
-                             rock_area_features=rock_area_omap_features,
-                             bridge_features=bridge_omap_features,
-                             footbridge_features=footbridge_omap_features)
+                             rock_area_features=rock_area_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,
-                       rocks, bridges,
+                       rocks,
                        pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, len(formline_features), n_paths, paths_info, point_symbols, water_info,
-                       paved_info, building_info, powerlines_info, railways_info, rocks_info, bridges_info,
+                       paved_info, building_info, powerlines_info, railways_info, rocks_info,
                        omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
     _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d "
-              "(pomocné %d) · vedení %d · železnice %d · skály %d · mosty %d · body %d · .omap objektů %d", out, len(building_info),
+              "(pomocné %d) · vedení %d · železnice %d · skály %d · body %d · .omap objektů %d", out, len(building_info),
               len(ropik_info), len(water_info), len(paved_info), n_paths, len(contour_features),
               len(formline_features), len(powerlines_info), len(railways_info),
-              len(rocks_info), len(bridges_info), len(point_symbols),
+              len(rocks_info), len(point_symbols),
               omap_counts["objects"])
     return out
 
@@ -2286,10 +2027,6 @@ def main() -> None:
                    help="real = ČÚZK ZABAGED Osamělý_balvan/Skupina_balvanů/Skalní_útvary "
                         "→ ISOM 204/207/202/206 (default), off = bez skal "
                         "(real vyžaduje --terrain real; v plochém terénu 0 prvků)")
-    p.add_argument("--bridges", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED Most + Lávka → ISOM 512 / 512.2 (default), "
-                        "off = bez mostů (real vyžaduje --terrain real; lávka se orientuje "
-                        "kolmo k nejbližšímu vodnímu toku, --water real doporučeno)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -2319,7 +2056,7 @@ def main() -> None:
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
-        rocks=args.rocks, bridges=args.bridges,
+        rocks=args.rocks,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 
