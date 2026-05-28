@@ -43,6 +43,8 @@ LAYER_IDS = {
     "Cesta": 83, "Pěšina": 82, "Silnice__dálnice": 79,
     "Silnice_neevidovaná": 80, "Ulice": 84,
     "Železniční_trať": 75, "Železniční_vlečka": 76, "Kolejiště": 122,
+    "Tramvajová dráha": 71,            # (Sez. 31) jméno s MEZEROU, ne WFS escape s podtržítkem
+
     "Vodní_tok": 93, "Vodní_plocha": 132, "Pozemní_nádrž": 107,
     "Budova_jednotlivá_nebo_blok_budov__plocha_": 99,
     "Elektrické_vedení": 88, "Stožár_elektrického_vedení": 87,
@@ -54,6 +56,12 @@ LAYER_IDS = {
     "Osamělý_balvan__skála__skalní_suk": 10,
     "Skupina_balvanů__bod_": 12,
     "Skalní_útvary": 130,
+    # Mosty/lávky (Sez. 31, probe_bridges.py na Novině 50.76°N 14.96°E).
+    # POZOR: Lávka má v REST jméno **s mezerou a závorkou** (`Lávka (linie)`/`Lávka (bod)`),
+    # NE WFS escape s podtržítky jako v katalogu Sez. 23. Most je přímo „Most".
+    "Most": 73,
+    "Lávka (linie)": 67,
+    "Lávka (bod)": 66,
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -65,13 +73,16 @@ LAYER_IDS = {
 # uvedeno; výstavba ve výsecích vzácná). Plný katalog 149 vrstev: docs/kb/zabaged-isom-catalog.md.
 PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná", "Ulice")
 
-# Železnice (Sez. 28, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED
+# Železnice + tramvaj (Sez. 28+31, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED:
 # `Železniční_trať` (id 75) = osy hlavních tratí; `Železniční_vlečka` (76) = průmyslové/nádražní
-# vlečky (přidáno na žádost uživatele — u nádraží zhušťují kolejovou síť). Obě → ISOM 509
-# (map_railway_to_isom, vždy 509, jako budovy→521/vedení→510). `Tramvajová_dráha` (71, urbánní)
-# vynecháno. POZN.: „deset kolejí vedle sebe" u nádraží NEJSOU linie — ZABAGED je generalizuje
-# do plochy `Kolejiště` (→ PAVED_AREA_LAYERS, 501). Katalog: docs/kb/zabaged-isom-catalog.md (sekce 3).
-RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka")
+# vlečky; **`Tramvajová dráha` (71) = městská tramvaj** (Sez. 31, oprava Sez. 28 vynechání:
+# tramvajová točna LS chyběla, ISOM 509 nerozlišuje tramvaj od železnice — vše „Railway").
+# Všechny tři → ISOM 509 (map_railway_to_isom, vždy 509, KISS jako budovy→521/vedení→510).
+# Pozn.: jméno tramvajové vrstvy v REST je `Tramvajová dráha` s MEZEROU (ne WFS escape
+# s podtržítky jako železnice — paralela Lávka Sez. 31; ČÚZK má historicky obě konvence).
+# POZN.: „deset kolejí vedle sebe" u nádraží NEJSOU linie — ZABAGED je generalizuje do plochy
+# `Kolejiště` (→ PAVED_AREA_LAYERS, 501). Katalog: docs/kb/zabaged-isom-catalog.md (sekce 3).
+RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka", "Tramvajová dráha")
 
 # Kolejiště / zpevněné plochy (Sez. 28, real-půlka, plošná — izomorfní s vodní plochou/budovou).
 # ZABAGED `Kolejiště` (id 122, plocha) = nádražní kolejová plocha (Liberec hl. n. ~19 ha jako
@@ -122,6 +133,22 @@ STATE_BORDER_CODE = "1"            # vyzn_zsh_k hodnota pro státní hranici
 BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové „turisticky významné"
 BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů
 ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
+
+# Mosty a lávky (Sez. 31, real-půlka, liniová+bodová). Verify-against-source
+# (probe_bridges.py na Novině 50.76°N 14.96°E, severní Čechy / Lužické hory):
+# `Most` (id 73, LineString) v 3×2 km výseku = 4 prvky (2 kamenné železniční viadukty
+# — Novinský 199 m, Malý 143 m + 2 silniční přemostění 4–6 m); atributy `premost_p` (co
+# se přemosťuje), `material_p` (železobeton / „neznámý" — kámen číselník nerozlišuje),
+# `silnice` × `kod_zelez` (rozlišuje silniční vs železniční), `delka_prem`/`celk_sir_m`/
+# `v_m_n_ter` (rozměry), `jmeno` 2/4 pojmenované. ISOM 512 (Bridge/tunnel) ale rozlišuje
+# jen most pro vozidla (512) vs pro pěší (512.2 Footbridge) — silniční/železniční je
+# stejná osa → vše → 512 (KISS, izomorfní s vrstvou → symbol).
+# `Lávka` má v REST DVĚ vrstvy (linie+bod, ne jen jednu): `Lávka (linie)` (67) pro
+# definované linie pěších lávek, `Lávka (bod)` (66) pro bodovou variantu (typicky krátká
+# lávka). Obě → 512.2 Footbridge. Atributy chudé (jen ID + jmeno=None na probe).
+BRIDGE_LAYERS = ("Most",)                       # most pro vozidla/železnici → 512
+FOOTBRIDGE_LINE_LAYERS = ("Lávka (linie)",)     # lávka jako linie → 512.2
+FOOTBRIDGE_POINT_LAYERS = ("Lávka (bod)",)      # lávka jako bod → 512.2
 
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
@@ -465,6 +492,62 @@ def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
+                  tile_m: float = 1000.0,
+                  cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné mosty (Most) pro výsek (lat, lon) jako seznam liniových features.
+
+    Každý prvek: {"layer", "props": atributy ZABAGED, "lines": [[(x,y)..]]} — `lines` je
+    seznam polylinií v S-JTSK metrech (LineString rozbalen do single-line listu). Mapování
+    na ISOM (map_bridge_to_isom → 512) se dělá výš, po verify atributů (Sez. 31).
+
+    Izomorfní s fetch_railways/fetch_paths (linie). Tentýž výsek (sdílený build_bbox) →
+    most sedne na komunikaci (železnice/silnice) i na vodní tok pod sebou."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in BRIDGE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
+                      tile_m: float = 1000.0,
+                      cache_dir: str | Path | None = None
+                      ) -> tuple[list[dict], list[tuple[float, float]]]:
+    """Vrátí reálné lávky (Lávka linie + bod) pro výsek (lat, lon): (line_feats, points).
+
+    `line_feats` = liniové lávky: [{"layer", "props", "lines": [[(x,y)..]]}]
+    `points` = bodové lávky: [(x, y), ...] v S-JTSK metrech
+    — ZABAGED má lávku jako 2 oddělené vrstvy podle geometrie (Sez. 31 probe). Mapování
+    obou → 512.2 Footbridge (map_footbridge_to_isom). Atributy chudé (bod jen ID).
+
+    Bodové lávky NEnesou orientaci (žádný atribut směru) → render rotuje kolmo k nejbližšímu
+    vodnímu toku (řešeno v generator.py, ne tady; paralela řopíků orientovaných k hranici).
+    Izomorfní s fetch_water (linie + plochy) a fetch_bunkers (body)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    line_feats: list[dict] = []
+    points: list[tuple[float, float]] = []
+    for layer in FOOTBRIDGE_LINE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                line_feats.append({"layer": layer, "props": feat.get("properties", {}),
+                                   "lines": lines})
+    for layer in FOOTBRIDGE_POINT_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            points.extend(_geom_to_points(feat.get("geometry") or {}))
+    return line_feats, points
+
+
 def map_path_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -496,11 +579,12 @@ def map_path_to_isom(layer: str, props: dict) -> int:
 
 
 def map_railway_to_isom(layer: str, props: dict) -> int:
-    """Mapuje ZABAGED železniční trať na ISOM 2017-2 liniový symbol (kód).
+    """Mapuje ZABAGED železniční trať / tramvaj na ISOM 2017-2 liniový symbol (kód).
 
-    `Železniční_trať` → **509 Railway** (vždy; KISS, jako budovy→521 / vedení→510). ISOM
-    nerozlišuje trať podle počtu kolejí / elektrizace → jeden symbol. Vlečka (Železniční_vlečka)
-    by také byla 509, ale zatím se netáhne (viz RAILWAY_LAYERS).
+    `Železniční_trať` / `Železniční_vlečka` / `Tramvajová dráha` → **509 Railway** (vždy; KISS,
+    jako budovy→521 / vedení→510). ISOM nerozlišuje trať podle počtu kolejí / elektrizace /
+    tramvaje vs vlaku → jeden symbol. Sez. 31: oprava Sez. 28, kde tramvaj byla vynechána jako
+    „urbánní" — chybělo to na LS (točna Lidové sady).
 
     Pozor (verify-against-source, Sez. 28): symbol 509 je v template_classic.omap kombinovaný
     (type=16: černé čárky + bílý „pražcový" knockout), NE prostá linie jako vedení 510. Konektor
@@ -605,6 +689,32 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
     pro každý polygon (ne hybridní 202/206 podle plochy — drift v rozhodování bez datového
     podkladu). Pro malé výchozy 206 zhrubne, ale zachová izomorfismus s budovami/vodou."""
     return 206
+
+
+def map_bridge_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED most na ISOM 2017-2 liniový symbol (kód).
+
+    `Most` → **512 Bridge/tunnel** (vždy; KISS, jako budovy→521 / vedení→510 / železnice→509).
+    Verify Sez. 31 (probe_bridges.py na Novině): `Most` rozlišuje silniční (`silnice`) vs
+    železniční (`kod_zelez`), ale ISOM 512 nedělí podle tohoto — 512 je pro vozidla
+    (osobně/železničně), 512.2 Footbridge je pro pěší (= odlišná vrstva `Lávka`). Materiál
+    (`material_p`) nese železobeton vs „neznámý" (kámen se v číselníku nerozlišuje, kamenné
+    viadukty mají material_p='neznámý'), ale ISOM neřeší materiál vůbec. Vrací holý ISOM
+    kód (int) — render zná generator.py (žádný cyklický import)."""
+    return 512
+
+
+def map_footbridge_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED lávku (linie nebo bod) na ISOM 2017-2 symbol (kód).
+
+    `Lávka (linie)` i `Lávka (bod)` → **512.2 Footbridge** (vždy; KISS). Sez. 31. ISOM 512.2
+    je v template `point_symbol` (kolmá čárka 1,25 mm × 0,25 mm) — pro liniovou variantu
+    render replikuje na začátku/uprostřed/konci linie (řeší generator.py, ne konektor).
+    Atributy chudé (probe: bodová lávka má jen ID + jmeno=None) → žádné dělení. Vrací holý
+    ISOM kód (int / float — 512.2 zachycuje sub-symbol v ISOM, nebo 5122 jako int)."""
+    # 512.2 v ISOM kódu znamená sub-symbol — vracíme float pro věrnost (omap_export
+    # umí matchovat dle stringu kódu, ne int). Pokud generator vyžaduje int, použít int.
+    return 5122   # = ISOM kód 512.2 jako int (sub-symbol; bez tečky → DRY s ostatními ints)
 
 
 def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:

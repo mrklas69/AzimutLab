@@ -37,11 +37,14 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
 USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506",
               "304", "305", "306", "301.1", "521", "510", "509", "501", "109", "110", "111",
-              "204", "206", "207")    # skály/balvany Sez. 30 (204 bod, 207 bod, 206 plocha)
+              "204", "206", "207",       # skály/balvany Sez. 30 (204 bod, 207 bod, 206 plocha)
+              "512", "512.2")            # mosty/lávky Sez. 31 (512 linie, 512.2 bod)
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 # Skály: 204 Boulder je kruh (rotace nemá smysl), 207 Boulder cluster je trojúhelník
 # orientovaný na sever (template: „symbol is orientated to north") → ani jeden nerotuje.
-ROTATABLE_CODES = frozenset({"110"})
+# Sez. 31: 512.2 Footbridge je point_symbol rotatable=true v template (kolmá čárka přes
+# vodu — orientace přebrána z generátoru jako úhel kolmý k toku).
+ROTATABLE_CODES = frozenset({"110", "512.2"})
 
 # Plošné (area) ISOM kódy generátoru — OOM vyplní plošný symbol JEN u uzavřeného path
 # (poslední bod nese close flag). Liniové kódy (vrstevnice/cesty/vodní toky) zůstávají
@@ -79,7 +82,9 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                paved_features: list[tuple] | None = None,
                formline_features: list[tuple] | None = None,
                rock_point_features: list[tuple] | None = None,
-               rock_area_features: list[tuple] | None = None) -> dict:
+               rock_area_features: list[tuple] | None = None,
+               bridge_features: list[tuple] | None = None,
+               footbridge_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -99,6 +104,12 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     207 Boulder cluster); emit jako point_symbols, ale samostatný kanál (paralela s ropíky).
     `rock_area_features` (volitelné, Sez. 30) = [(ring grid, code 206)] — plošné skalní útvary
     (206 Gigantic boulder); uzavřený path s close flagem jako budova/voda (type=4 area symbol).
+    `bridge_features` (volitelné, Sez. 31) = [(line grid, code 512)] — mosty (Most ZABAGED);
+    liniový objekt (otevřený path), OOM vykreslí V-křídla z line_symbol autoritativně.
+    `footbridge_features` (volitelné, Sez. 31) = [(gx, gy, code "512.2")] — lávky (Lávka linie+bod);
+    BODOVÝ objekt (type=0) — pro liniovou variantu se v generátoru bere střed osy, čímž OOM kresí
+    point_symbol s rotací. (Otevřená cesta: pokud se ukáže, že liniová lávka má být path se symbolem
+    podél, přidá se line_object varianta.)
     `point_symbols` = [{symbol, gx, gy}] (ISOM 109/110/111). `scale` = jmenovatel měřítka.
     `ortho_template` (volitelné, Sez. 26) = {name, img_w, img_h, opacity} → připne obrázek
     `name` jako PODKLADOVÝ (background) template: paper-space, vycentrovaný na origin (jako
@@ -147,7 +158,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
 
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
-    n_formlines = n_rocks = 0
+    n_formlines = n_rocks = n_bridges = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -217,6 +228,21 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(geom, str(code))
         if o:
             objs.append(o); n_rocks += 1
+    # mosty (Sez. 31): 512 Bridge/tunnel = liniový objekt (otevřený path); OOM vykreslí
+    # V-křídla na koncích autoritativně z line_symbol (start_symbol + end_symbol v template).
+    for line, code in (bridge_features or []):
+        o = line_object(line, str(code))
+        if o:
+            objs.append(o); n_bridges += 1
+    # lávky (Sez. 31): 512.2 Footbridge = bodový objekt (type=0) s rotací (point_symbol
+    # rotatable=true). Rotace v RADIÁNECH (template ukládá rotation="0" u rotatable objektů
+    # bez jednotky — verify-against-source: OOM 0.9.6 source ukládá radiány). Tuple 4-tice
+    # (gx, gy, code, rot_rad) — rot = úhel kolmý k nejbližšímu vodnímu toku (generátor).
+    for gx, gy, code, rot in (footbridge_features or []):
+        x, y = paper(gx, gy)
+        objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
+                    f'<coords count="1">{x} {y};</coords></object>')
+        n_bridges += 1
 
     # vložení objektů do prázdného <objects count="0"> template (jediný výskyt — ověřeno)
     objects_open = f'<objects count="{len(objs)}">{"".join(objs)}'
@@ -267,5 +293,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     out_path.write_text(doc, encoding="utf-8")
     return {"contours": n_contours, "formlines": n_formlines, "paths": n_paths, "water": n_water,
             "buildings": n_buildings, "powerlines": n_powerlines, "railways": n_railways,
-            "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
+            "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks, "bridges": n_bridges,
             "points": n_points, "objects": len(objs)}
