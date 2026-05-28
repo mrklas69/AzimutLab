@@ -307,6 +307,7 @@ DEV_LOCATIONS: dict[str, tuple[str, float, float]] = {
     "SV": ("Sovi vrch",   DEF_LAT,    DEF_LON),       # Lužické hory (default, terénně mapováno)
     "NL": ("Nova louka",  50.8140386, 15.1579069),    # Jizerské hory
     "LS": ("Lidove sady", 50.7773244, 15.0811114),    # Liberec (městsko-lesní pod Ještědem)
+    "HS": ("Hruba Skala", 50.5487708, 15.1835128),    # Hruboskalsko (pískovcové skalní město — test skal Sez. 30)
 }
 
 
