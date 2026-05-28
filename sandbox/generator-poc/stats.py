@@ -2,7 +2,7 @@
 
 Pro každou lokalitu (sandbox/generator-poc/<dirname>/) přečte:
 - meta.json: počty symbolů ze sekcí (paths/water/buildings/powerlines/railways/paved/rocks/
-  point_symbols) — každá items má `symbol: int` (např. 503, 304),
+  bridges/point_symbols) — každá items má `symbol: int` (např. 503, 304, 5122=512.2),
 - contours.geojson: vrstevnice 101/102/103 (každý feature má properties.code),
 - mtime meta.json: čas poslední regenerace.
 
@@ -26,9 +26,8 @@ LOCATIONS = [
     ("NV", "Novina",      "Novina / Lužické hory"),
 ]
 
-# ISOM symboly + popis (v pořadí kategorií: terén → skály → voda → komunikace → stavby).
-# Sloupec „Symbol" má kód s tečkou tam, kde ISOM dělí sub-symboly. Mosty 512/512.2 odloženy
-# (Sez. 32 rollback Sez. 31) — doplnit se vrátí, až bude spec-driven implementace.
+# ISOM symboly + popis (v pořadí kategorií: terén → skály → voda → komunikace → stavby
+# → mosty/lávky). Sloupec „Symbol" má kód s tečkou tam, kde ISOM dělí sub-symboly.
 SYMBOLS = [
     # Terén (§4.5, §4.10)
     ("101",   "Contour"),
@@ -57,13 +56,18 @@ SYMBOLS = [
     ("510",   "Power line"),
     # Stavby (§4.12)
     ("521",   "Building"),
+    # Mosty / tunely / lávky (§4.12, Sez. 32 spec-driven)
+    ("512",   "Bridge/tunnel"),
+    ("512.2", "Footbridge"),
 ]
 
 
 def _normalize_code(sym) -> str:
-    """Sjednotí kód na string s tečkou: int 304 → „304" (rezerva pro budoucí sub-symboly)."""
+    """Sjednotí kód na string s tečkou: int 5122 → „512.2", int 304 → „304"."""
     if sym is None:
         return ""
+    if sym == 5122:               # ISOM_FOOTBRIDGE alias (= ISOM 512.2)
+        return "512.2"
     if sym == 3011:               # případný 301.1 alias (rezerva, dnes se neukládá)
         return "301.1"
     return str(sym)
@@ -92,7 +96,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts.update(_count_contours(folder / "contours.geojson"))
     # 2) items z 8 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "water", "paved", "buildings", "powerlines",
-                    "railways", "rocks"):
+                    "railways", "rocks", "bridges"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1

@@ -56,6 +56,13 @@ LAYER_IDS = {
     "Osamělý_balvan__skála__skalní_suk": 10,
     "Skupina_balvanů__bod_": 12,
     "Skalní_útvary": 130,
+    # Mosty / tunely / lávky (Sez. 32 znovu, spec-driven po rollbacku Sez. 31).
+    # REST jména: Most + Tunel s podtržítky/bez (Most = jedno slovo, OK), Lávka má MEZERU
+    # a závorky (`Lávka (linie)`/`Lávka (bod)`, NE WFS-styl `Lávka__linie_`).
+    "Most": 73,
+    "Tunel": 74,
+    "Lávka (linie)": 67,
+    "Lávka (bod)": 66,
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -128,14 +135,20 @@ BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové
 BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů
 ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
 
-# Mosty/tunely/lávky (ISOM 512) — odloženo. Sez. 31 implementace rollbacknuta v Sez. 32 po
-# 3 iteracích renderu, žádná dle spec. Důvod rollbacku: verify-against-source ISOM 2017-2
-# Rev 6 PDF str. 32 ukazuje 512 jako PÁR závorek `[ ]` na obou koncích osy (šikmé čárky
-# pod 60° symetricky NAD i POD osu), template `template_classic.omap` symbol id=125 má
-# jen polovinu (start/end_symbol pouze nad osou) → OOM render nesedl. Lávka 512.2 jako
-# single dash (template id=127) byla geometricky správně, ale rollback dělaný v balíku.
-# Nová implementace bude spec-driven (po úpravě template nebo přepisem na bodový symbol
-# 512.1 na koncích linie). Layer IDs: Most=73, Tunel=74, Lávka (linie)=67, Lávka (bod)=66.
+# Mosty / tunely / lávky (Sez. 32 znovu, spec-driven po rollbacku Sez. 31).
+# Verify-against-source: foto reálných OB map (uživatel) + ISOM 2017-2 PDF str. 32 + Q&A.
+# Klíčové rozhodnutí Sez. 32: most a tunel sdílí ISOM 512 ALE mají SHODNÝ LAYOUT (závorky
+# JEN na koncích linie), liší se jen viditelností trati mezi závorkami:
+#   Most  = trať PLNÁ mezi závorkami (silnice/železnice viditelná, jen závorky vymezují vstup/výstup)
+#   Tunel = trať VYNECHANÁ mezi závorkami (terén skrz, jako bys trať „smazal" v daném úseku)
+# Lávka = single dash (template 512.2, kolmá čárka 1,25 mm × 0,25 mm) — pro krátké lávky bez cesty.
+# `Most` (id 73, LineString) a `Tunel` (id 74, LineString) jsou samostatné ZABAGED vrstvy
+# (NE ve stejném balíku — Sez. 31 fail). `Lávka (linie)` (67) + `Lávka (bod)` (66) = 2 vrstvy
+# stejného typu lávky podle geometrické reprezentace.
+BRIDGE_LAYERS = ("Most",)                                # most → 512 (osa plná, závorky na koncích)
+TUNNEL_LAYERS = ("Tunel",)                               # tunel → 512 (osa vynechaná, závorky na koncích)
+FOOTBRIDGE_LINE_LAYERS = ("Lávka (linie)",)              # lávka linie → 512.2 (single dash)
+FOOTBRIDGE_POINT_LAYERS = ("Lávka (bod)",)               # lávka bod → 512.2 (single dash)
 
 
 def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
@@ -479,6 +492,78 @@ def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
+                  tile_m: float = 1000.0,
+                  cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné mosty (ZABAGED `Most` linie) pro výsek jako seznam liniových features.
+
+    Each item: {"layer", "props", "lines": [[(x,y)..]]} — `lines` jsou polylinie v S-JTSK
+    metrech (LineString → single-line list, MultiLineString rozbalen). Mapování na ISOM
+    (`map_bridge_to_isom` → 512) řeší generator.py. Izomorfní s fetch_railways.
+    Sez. 32: most a tunel jsou ODDĚLENÉ funkce (`fetch_bridges` vs `fetch_tunnels`), na
+    rozdíl od Sez. 31 sloučení — render se liší (most = osa plná, tunel = osa vynechaná)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in BRIDGE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_tunnels(lat: float, lon: float, gw: int, gh: int,
+                  tile_m: float = 1000.0,
+                  cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné tunely (ZABAGED `Tunel` linie) pro výsek jako seznam liniových features.
+
+    Izomorfní s fetch_bridges. Tunel a most sdílí ISOM 512, ale render se liší (most osa
+    plná, tunel vynechaná) → konektor je dělí, aby generator.py znal který je který."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in TUNNEL_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
+                      tile_m: float = 1000.0,
+                      cache_dir: str | Path | None = None
+                      ) -> tuple[list[dict], list[tuple[float, float]]]:
+    """Vrátí reálné lávky (ZABAGED `Lávka (linie)` + `Lávka (bod)`) pro výsek.
+
+    Vrací (line_feats, points):
+      - line_feats = liniové lávky: [{"layer", "props", "lines": [[(x,y)..]]}]
+      - points = bodové lávky: [(x, y), ...] v S-JTSK metrech
+    Obě → ISOM 512.2 Footbridge (single dash, template id=127). Bodová lávka NEnese
+    orientaci v atributech → render rotuje kolmo k nejbližšímu vodnímu toku."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    line_feats: list[dict] = []
+    points: list[tuple[float, float]] = []
+    for layer in FOOTBRIDGE_LINE_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                line_feats.append({"layer": layer, "props": feat.get("properties", {}),
+                                   "lines": lines})
+    for layer in FOOTBRIDGE_POINT_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            points.extend(_geom_to_points(feat.get("geometry") or {}))
+    return line_feats, points
+
+
 def map_path_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -620,6 +705,36 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
     pro každý polygon (ne hybridní 202/206 podle plochy — drift v rozhodování bez datového
     podkladu). Pro malé výchozy 206 zhrubne, ale zachová izomorfismus s budovami/vodou."""
     return 206
+
+
+def map_bridge_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED most (linie) na ISOM 2017-2 symbol (kód).
+
+    `Most` → **512 Bridge/tunnel** (vždy; KISS). Sez. 32 spec-driven: ISOM 2017-2 PDF
+    str. 32 + foto reálné OB mapy ukazují most jako symbol 512 s **závorkami JEN na
+    koncích linie** (= start_symbol + end_symbol v line_symbol), trať mezi nimi viditelná."""
+    return 512
+
+
+def map_tunnel_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED tunel (linie) na ISOM 2017-2 symbol (kód).
+
+    `Tunel` → **512 Bridge/tunnel** (vždy; KISS, stejný symbol jako most). Sez. 32 spec-
+    driven: ISOM 2017-2 PDF str. 32 doslovně *„Bridges and tunnels are represented using
+    the same basic symbols."* Foto reálné OB mapy: závorky na koncích, trať mezi nimi
+    VYNECHANÁ (= úplně mizí, terén viditelný skrz; ne dashed). Generator vykreslí oba módy
+    odlišně (most = osa plná, tunel = osa vynechaná), ZABAGED→ISOM kódování je shodné."""
+    return 512
+
+
+def map_footbridge_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED lávku (linie nebo bod) na ISOM 2017-2 symbol (kód).
+
+    `Lávka (linie)` i `Lávka (bod)` → **512.2 Footbridge** (vždy; KISS). Template
+    `template_classic.omap` id=127 = point_symbol rotatable, kolmá čárka 1,25 mm × 0,25 mm
+    = spec-konformní single dash. Sez. 32: vrátí 5122 jako int alias (string „512.2" se
+    sub-tečkou se převede v omap_export podle ROTATABLE_CODES)."""
+    return 5122   # = ISOM kód 512.2 jako int (DRY s ostatními ints)
 
 
 def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
