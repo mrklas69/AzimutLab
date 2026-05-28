@@ -52,7 +52,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Cesta` | linie | 503 / 504 | ✓ | `povrch_k` Z/T → 503 Road; jinak → 504 Vehicle track |
 | `Pěšina` | linie | 505 / 506 | ✓ | `TYPUSKOM_K` 026 → 505 Footpath; jinak → 506 Small footpath |
 | `Silnice_ve_výstavbě` | linie | 503 Road | ◐ | rozestavěná; vzácná, na OB se hotově nezakresluje → spíš vynechat |
-| `Lesní_průsek` | linie | 508 Narrow ride | ◐ | průsek = klasický OB liniový objekt, relevantní |
+| `Lesní průsek` | linie | 508 Narrow ride | ✓ | **Sez. 36** (id 16, REST jméno s MEZEROU); KISS vždy 508; bez runnability pozadí (vegetace=UC5). SV 46 / NL 119 / LS 20 / HS 16 / NV 44 |
 | `Turistická_trasa` | linie | — | ✗ | overlay značení vedené PO existující cestě → duplikace sítě (Sez. 16) |
 | `Parkoviště__odpočívka` | plocha | 501 Paved area | ○ | zpevněná plocha u okraje lesa |
 | `Křižovatka_úrovňová` | bod | — | ✗ | atributový bod silniční sítě, ne kreslený objekt |
@@ -273,7 +273,7 @@ Seřazeno podle vizuální návratnosti pro OB lesní mapu (✓ `Elektrické_ved
 
 1. **`Most` → 512 Bridge/tunnel** — linie; spolu s `Lávka__linie_` → 512.2 Footbridge.
 2. ~~`Osamělý_balvan…` → 204 + `Skupina_balvanů__bod_` → 207 + `Skalní_útvary` → 206~~ (HOTOVO Sez. 30, `--rocks`; KISS vrstva → jeden symbol).
-3. **`Lesní_průsek` → 508 Narrow ride** — průseky strukturují les.
+3. ~~`Lesní průsek` → 508 Narrow ride~~ (HOTOVO Sez. 36, `--rides`; KISS vždy 508, bez runnability pozadí).
 4. **`Kříž__sloup…` → 530/531** + **`Mohyla__pomník…` → 526/530** + ~~`Bunkr`~~ (HOTOVO Sez. 27 = asset řopík) + **`Věž…` → 524** — bodové orientační prvky.
 5. **`Zeď` → 513 Wall** — liniový objekt.
 6. **`Bažina__močál` → 308 Marsh** — pokud se vrátíme k mokřadům.

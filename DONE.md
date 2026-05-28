@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 36 (2026-05-29) — Lesní průseky (ISOM 508 Narrow ride) ze ZABAGED
+- [x] **Lesní průseky `--rides real` → ISOM 508 Narrow ride.** ZABAGED `Lesní průsek` (id 16, REST jméno
+      s MEZEROU jako tramvaj/lávka), liniová, izomorfní s railways/powerlines. KISS vždy 508 (bez
+      kategoriálního atributu — verify SV 46 prvků). Render černá čárkovaná dash 3,0/break 0,375 mm
+      (dlouhé čárky, odliší od pěšiny 505). **Runnability pozadí NEKRESLENO** (vegetace = UC5 predikce
+      ne data, ISOM „without background" varianta).
+- [x] **Foundations před kódem** (verify-against-source): spec 508 z template id 115 + probe layer ID/atributy
+      PŘED implementací (paměti `isom-spec-before-render`, `geometric-selfcheck-before-oom`) → 0 slepých iterací.
+- [x] **Implementace** (mirror railways): `zabaged.fetch_forest_rides`/`map_ride_to_isom`, generator
+      `_draw_ride`/`_generate_real_rides`/`--rides`/`mask_rides.png`/meta sekce, omap liniový kanál 508,
+      stats 508, `batch.py` off obě větve (lekce B1 Sez. 35 — call-sites).
+- [x] **Verify:** proc baseline 65 drží, průseky SV 46/NL 119/LS 20/HS 16/NV 44, vizuál čárkovaná 508 OK,
+      všech 5 lokalit přegenerováno + STATISTICS.
+- [x] **Propagace:** architecture UC2, spec §4.9i, katalog ◐→✓, oba sub-READMEs, hlavní README status
+      (dorovnán k dnešku — chyběly i skály 30 + mosty 31-33). Nález: `GLOSSARY.md` v repu chybí (ač v checklistu).
+
 ## Sezení 35 (2026-05-28) — %AUDIT:CODE (LOC práh) + sjednocení rastru mostů/tunelů s .omap + fix batch noise
 - [x] **%AUDIT:CODE** (LOC práh ≥500 překročen 3,5× = net +1756 LOC od Sez. 27). Přečteny sám
       generator/omap_export/stats/batch/palette + 3 konektory; kód zdravý, dominanta = drift komentářů.

@@ -55,9 +55,9 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
 - Od průzkumu k běžícím konektorům (Sez. 16–33): **`connectors/`** = první sdílená kódová
   složka mimo sandbox (drobný krok B→A). `dmr.py` (DMR 5G výškopis, ArcGIS ImageServer),
-  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + voda + budovy + vedení + železnice +
-  kolejiště + skály + mosty/tunely + řopíky), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
-  Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--water/
+  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
+  železnice + kolejiště + skály + mosty/tunely + řopíky), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--rides/--water/
   --buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky real`; form lines z DMR).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)

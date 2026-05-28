@@ -13,6 +13,9 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
   - `real` — **reálné komunikace z ČÚZK ZABAGED (ArcGIS REST)** (real-půlka §4.9, Sez. 16; `zabaged.py`),
     mapované na plnou ISOM hierarchii **502-506** (silnice/cesta zpevněná/vozová/pěšina) podle
     typu a povrchu. Vyžaduje `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
+- **lesní průseky** — `--rides real` (Sez. 36; týž `zabaged.py`): `Lesní průsek` → ISOM **508 Narrow ride**
+  (průhled lesem bez vyšlapané cesty; černá čárkovaná 3,0/0,375 mm). KISS vždy 508; runnability pozadí se
+  nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
   (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
   (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen
@@ -93,9 +96,9 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
-| `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` | masky reálných vrstev 510 / 509 / 501 / 204·206·207 / 512·512.2 (každá jen při své `--…real`) |
+| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 (každá jen při své `--…real`) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + řopíky + body 109/110/111, plná ISOM knihovna) |
+| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack

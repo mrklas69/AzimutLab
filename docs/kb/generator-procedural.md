@@ -279,6 +279,17 @@ jako **bodový orientační prvek** (NE budova 521) — vložený `asset/ropik_1
 „čelním zasypaným náspem VEN" k nejbližší **státní hranici** (`Hranice správní jednotky` `vyzn_zsh_k='1'`,
 univerzální ČR). Fáze 1 (projekce reálných dat), ne pseudorealistická dekorace. Vyžaduje `--terrain real`.
 
+### 4.9i Lesní průseky (real-půlka, Sez. 36)
+**✅ Reálné průseky:** `--rides real` vezme `Lesní průsek` (id 16, REST jméno s MEZEROU jako tramvaj/lávka)
+ze ZABAGED Polohopis REST (`zabaged.fetch_forest_rides`, `map_ride_to_isom`) → ISOM **508 Narrow ride** =
+průhled lesem BEZ zřetelné vyšlapané cesty (ISOM odlišuje od cest 503–506). KISS, vrstva → vždy 508 (bez
+kategoriálního atributu — verify SV 46 prvků). Liniová, izomorfní s cestami: render mode `"dashed"`
+(`_draw_ride`), dash/break z template 508 = **3,0 / 0,375 mm** (dlouhé čárky, malé mezery → „skoro plná",
+odliší od pěšiny 505 7,0/4,0). GT `mask_rides.png`. Z-order: po cestách, před vedením. **Runnability pozadí
+(žlutá/zelená dle prostupnosti) se NEKRESLÍ** — vegetace není v datech (gate Sez. 3), je to UC5 predikce ne
+projekce → ISOM varianta „without background". Vyžaduje `--terrain real`. Hustota: SV 46 / NL 119 / LS 20 /
+HS 16 / NV 44.
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 
