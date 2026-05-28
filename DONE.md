@@ -54,6 +54,33 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       13 mostů. LS (6×4 km) **40 železnic** (15 trat+vleček + 25 tramvaj nová), 76 mostů.
       Kanonika `Novina/`, `Hrubá Skála/` (square), `Lidové sady/` (tramvaj) regenerována v plné variantě.
 
+## Sezení 30 (2026-05-28) — Skály/balvany (ISOM 204/207/206) ze ZABAGED
+- [x] **Skály/balvany `--rocks real`** (real-půlka, 3 ZABAGED vrstvy → 3 ISOM symboly, KISS „vrstva =
+      jeden symbol" jako budovy→521 / vedení→510). Verify-against-source `temp/probe_rocks.py` na Hrubé
+      Skále PŘED kódem: `Osamělý_balvan__skála__skalní_suk` (bod, 6) → **204 Boulder**;
+      `Skupina_balvanů__bod_` (bod, 168) → **207 Boulder cluster**; `Skalní_útvary` (plocha, 411) →
+      **206 Gigantic boulder**. Žádná vrstva nenese typ/velikost/výšku (jen `jmeno`) → per-feature
+      rozhodování by nemělo datový podklad.
+- [x] **Hybridní 202/206 ZAVRŽEN + Chaikin smoothing ZAVRŽEN** (drift po stěně argumentů, 2 otočky
+      uživatele): (1) `Shape_Area` ukázala ~120 vrcholů / 32×32 m → polygony „už pěkné" → Chaikin smazán
+      (RAW jako voda/budovy); (2) práh 500 m² pro 202↔206 byl hádaný (žádný atribut ho neopodstatnil) →
+      vše → 206 plná plocha. Smazány `_chaikin_smooth`, `ISOM_CLIFF_PASSABLE`, `_draw_cliff_line`,
+      `_polygon_area_sjtsk`; 202 z `USED_CODES`. Potvrzení lekce „generalizuj jen s důkazem" (Sez. 27).
+- [x] **Implementace**: `connectors/zabaged.py` (`LAYER_IDS` +10/12/130, `BOULDER_LAYERS`/
+      `BOULDER_CLUSTER_LAYERS`/`ROCK_AREA_LAYERS`, `fetch_boulders`/`fetch_boulder_clusters`/
+      `fetch_rock_areas`, `map_*_to_isom`→204/207/206); `generator.py` (ISOM 204/206/207, `_draw_boulder`
+      kruh 0,4 mm / `_draw_boulder_cluster` trojúhelník 0,8×0,7 mm / `_draw_gigantic_boulder` wrapper
+      `_draw_area_symbol`, `_generate_real_rocks`, `mask_rocks.png` 3-class, `--rocks {off,real}`, z-order
+      úplně navrch); `omap_export.py` (`USED_CODES` +204/206/207, `AREA_CODES` +206, `rock_point_features`/
+      `rock_area_features`).
+- [x] **Verify (ve `.venv`):** Hrubá Skála 5,9×4 km **585 skal** (204:6 / 207:168 / 206:411, sedí na probe
+      přesně; pískovcové věže dominují); NL 6×4 km **200 skal** (204:16 / 207:178 / 206:6). proc baseline
+      nedotčen (rocks jen real). Branžový precedent: Karttapullautin (bod→204/205, plocha→206, plná výplň).
+- [x] **Post-script (3 cleanup commity):** `HS` doplněn do `DEV_LOCATIONS` (`--location HS`); regen do
+      CZ-named složek (`output_X/` špatná konvence, smazáno); **Censure! `--no-ortho`** smazal ortofoto
+      podklady kanonik → regen v plné variantě. Pravidlo → paměť: **kanonické DEV_LOCATIONS = vždy plný
+      režim, nikdy `--no-ortho`**.
+
 ## Sezení 29 (2026-05-28) — Pomocné vrstevnice (form lines, ISOM 103) z DMR
 - [x] **ISOM 103 = Form line** (verify-against-source, ne hádání): uživatel zmínil „103", ověřeno v
       `template_classic.omap` — 103 = **Form line** (pomocná vrstevnice), NE slope line (ta je 101.1 / 103.1).

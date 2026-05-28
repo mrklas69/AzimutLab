@@ -1,6 +1,6 @@
 # KB — ZABAGED Polohopis → ISOM 2017-2 (katalog vrstev)
 
-Kompletní katalog **všech 149 feature typů** ČÚZK ZABAGED® Polohopis WFS a jejich
+Kompletní katalog **všech 149 feature typů** ČÚZK ZABAGED® Polohopis a jejich
 mapování na ISOM 2017-2. U každé vrstvy je buď cílový ISOM symbol, **nebo důvod, proč
 ji nekreslíme**. Princip (Sez. 23, uživatel): *„stojíme o všechna data z geoportálu,
 ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
@@ -12,15 +12,18 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 > Konektor: `connectors/zabaged.py` · souhrn zdroje + licence: `data-sources.md` ·
 > ISOM sémantika: `isom-issprom.md`.
 
-**Endpoint:** `https://ags.cuzk.gov.cz/arcgis/services/ZABAGED_POLOHOPIS/MapServer/WFSServer`
-· **CRS:** EPSG:5514 (S-JTSK) · **Formát:** GeoJSON · **Licence:** CC BY 4.0 (atribuce)
+**Runtime endpoint (Sez. 26, přechod WFS→REST):** `https://ags.cuzk.gov.cz/arcgis/rest/services/ZABAGED_POLOHOPIS/MapServer/<id>/query`
+(dotaz podle numerického ID vrstvy, `LAYER_IDS` v konektoru) · **Zdroj katalogu:** `GetCapabilities`
+(WFS, výčet 149 typů) · **CRS:** EPSG:5514 (S-JTSK) · **Formát:** GeoJSON · **Licence:** CC BY 4.0 (atribuce)
 **Celkem:** 149 feature typů — **57 bodů / 45 linií / 47 ploch**.
 
-> Názvy vrstev jsou doslovné WFS `typeName` (oddělovače = podtržítka, `__` = závorka/dvojité).
-> Lze je zkopírovat přímo do `PATH_LAYERS` apod. v konektoru.
+> Názvy ve sloupci „Vrstva" jsou doslovné **WFS `typeName`** z `GetCapabilities` (oddělovače =
+> podtržítka, `__` = závorka/dvojité). **Pozor (Sez. 31):** REST `MapServer` u některých vrstev
+> používá jiný display name (s mezerami/závorkami, např. `Lávka (linie)` ≠ WFS `Lávka__linie_`) —
+> v konektoru se vrstvy adresují **numerickým ID** (`LAYER_IDS`), ne názvem; nový záznam ověř `?f=json`.
 
 ## Legenda stavu
-- **✓ použito** — konektor táhne dnes (Sez. 16–23).
+- **✓ použito** — konektor táhne dnes (Sez. 16–33).
 - **◐ kandidát** — relevantní pro OB les, k doplnění (prioritní seznam viz konec).
 - **○ možné** — okrajově relevantní (vzácné ve výsecích / nízká priorita).
 - **✗ mimo doménu** — administrativa / POI / urbánní / vegetace gate; nekreslíme (důvod v pozn.).

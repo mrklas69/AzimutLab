@@ -24,6 +24,15 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 = globální %DOCS + commit pravidla. Projektová specifika:
 - Diář: docs/diary/YYYY-MM-DD.md, index DIARY.md. Více sezení/den =
   sekce `## Sezení N` v témže souboru (nikdy ne suffix b/c/d).
+- **Propagace do VŠECH vrstev (Sez. 34, root-cause %CALIBRATE):** zápis do `DIARY.md`+diáře
+  nestačí. Projdi checklist a propiš dnešní změnu, kam patří (conceptual integrity, SLAP):
+  - **Přidal/změnil reálnou vrstvu?** → `DONE.md` (záznam) + `architecture.md` UC2 (výčet `--…real`)
+    + spec `generator-procedural.md` (sekce §4.9*) + `GLOSSARY.md` (termín) + README (status) +
+    oba README (`connectors/`, `generator-poc/`) + `zabaged-isom-catalog.md` (stav vrstvy).
+  - **Migrace/přejmenování (typ WFS→REST)?** → grep celý strom, ne jen dotčený soubor (drift Sez. 26
+    přežil 7 sezení v 5 docs → audit Sez. 34).
+  - **Po `%END` ověř:** každé `## Sezení N` v diáři má řádek v `DIARY.md` indexu **i** v `DONE.md`
+    (Sez. 30 vypadlo z obou — audit Sez. 34).
 - Identita sezení = datum + pořadí v daném dni.
 - Měnil-li se kód: dva commity (feat/fix → docs(session)), pak push. V deštníkové
   fázi je „kód" často jen KB/docs → jeden commit `docs(session)` stačí.

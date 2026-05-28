@@ -122,45 +122,22 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
   **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
   sparse-GT past. Reálný terén (ČÚZK DMR 5G) dosazen přes `--terrain real` (§8.5, hotovo Sez. 5).
-- **Reálné cesty/komunikace ze ZABAGED (UC2 → UC4-II). → DONE (Sez. 16).** Realizováno: `zabaged.py`
-  (WFS, GeoJSON), `--paths real`, mapování ZABAGED→ISOM 502-506. Vše, co tato úvaha předpovídala,
-  sedlo: vysoká věrnost (cesty vedou údolími na reálném terénu), přesná GT z vektoru, real-only,
-  mapování ne 1:1 (povrch/udržovanost → sjízdnost). Detail: `data-sources.md` + spec §4.9/§9.
-  Procedurální §4.9 = noise-půlka, ZABAGED = real-půlka (izomorfní s výškopisem noise/real).
-  Pozn.: „ze ZM5" byl omyl — ZM5 je zrušený rastr (1.7.2023 → ZTM5), vektor je v ZABAGEDu.
-  **Voda → DONE (Sez. 17).** Realizováno týmž konektorem (`fetch_water`): `Vodní_tok` →
-  toky ISOM 304/305/306 (dle stálý/občasný/pojmenovaný; podzemní skip), `Vodní_plocha` → 301.
-  **Pramen 312 vynechán** — `Zdroj_podzemních_vod` 0 ve výřezu (nevymýšlet, co v datech není).
-  Proc hydro jádro D8 = DROP (budoucí noise-půlka, nemíchat osy). Detail: `data-sources.md`.
-  **Budovy → DONE (Sez. 18).** Týž konektor (`fetch_buildings`): `Budova_..._plocha_` → ISOM **521**
-  (plošný černý symbol, izomorfní s vodní plochou 301). Bodová vrstva budov prázdná → netáhne se.
-  Vodojem → taky 521 (rozhodnutí uživatele-mapéra). Real-půlka kompletní pro cesty+voda+budovy.
+- **Reálné vrstvy ze ZABAGED (UC2 → UC4-II). → DONE (Sez. 16–33).** Realizováno přes `zabaged.py`
+  (ArcGIS REST, GeoJSON) jako **real-půlka** generátoru: cesty 502-506 (Sez. 16), voda 301/304-306
+  (Sez. 17), budovy 521 (Sez. 18), vedení 510 (Sez. 24), řopíky (Sez. 27), železnice 509 + kolejiště
+  501 (Sez. 28), skály 204/206/207 (Sez. 30), mosty/tunely 512 + lávky 512.2 (Sez. 31-33). Vše, co
+  úvaha předpovídala, sedlo: vysoká věrnost, přesná GT z vektoru, real-only, mapování ne 1:1
+  (fyzický stav → ISOM). Detail: DONE + spec §4.9* + `zabaged-isom-catalog.md`. (Lekce „ze ZM5" byl
+  omyl — ZM5 zrušený rastr 1.7.2023; vektor je v ZABAGEDu. Proc hydro jádro D8 = budoucí noise-půlka.)
 
 ## Kartografická generalizace budov — ZAVRŽENO (Sez. 27)
 
-**Celá generalizace budov byla zavržena (Sez. 27): budovy se kreslí RAW jako voda.** Domněnka, že
-„feeder se učí číst GENERALIZOVANOU mapu", se nepotvrdila — generalizace KOMOLILA skutečný tvar
-(budova 1028994: 15 vrcholů → 5 zkomolených; lichoběžníky z obdélníků; špatná orientace malých).
-Voda byla od začátku dokonalá právě proto, že raw. **Zásada → CLAUDE.md: generalizuj jen s důkazem,
-raw je default.** Historie přístupů (smazáno ~430 LOC + `diagnose_displacement.py`):
-
-- **Úroveň 1 (Sez. 18, ZAVRŽENO Sez. 27):** min. velikost 0,5 mm (`_enforce_min_size`), Douglas-Peucker
-  obrys (`_simplify_polyline`). Komolilo malé budovy na obdélníky + DP dělalo lichoběžníky.
-- **Úroveň 1b — pravoúhlost budov (implementováno Sez. 27, ZAVRŽENO):** dominantní osa + tolerantní snap
-  hran ±15° na 90° + rekonstrukce rohů (verify LS: 96,4 % hran near-orto, 214 výjimek zachováno). Fungovalo
-  na syntetice, ale na reálných footprintech ubíralo věrnost → uživatel „kresli jako vodu".
-- **Úroveň 2 — displacement (Sez. 22, ZAVRŽENO Sez. 27):** odsazení budov od pevné sítě (cesty+toky=kotva) a od
-  sebe na ISOM 0,4 mm (≈1,83 px). `resolve_displacement` — greedy kolmé odsazení (mezera k OKRAJI),
-  budova↔budova symetricky, strop 0,8 mm, 8 iterací. Budova = tuhé těleso → translace celého ringu.
-  - **Krok 0 (Sez. 21):** Č. Švýcarsko ~28/99 v kolizi, dominuje budova↔cesta, shluky budov ~0
-    → greedy stačí (ne NP-hard relaxace). **Pořadí: L1 (tvar) → L2 (poloha).**
-  - **Inverze kontroly = LOKÁLNÍ** (Sez. 22 nález proti odhadu Sez. 21): z-order kreslí budovy poslední
-    → pevná síť hotová → split jen budov (`_collect_real_buildings`+`_resolve_and_draw_buildings`),
-    žádný přepis `generate()`.
-  - **GT konzistence:** posun na px geometrii → render + maska + OMAP z téže geometrie (jako L1).
-  - **Datová korekce „1–2 iterace" → 8** (Sez. 22): při 2 budova↔budova regresuje (14→16, odsazení od
-    cest tlačí budovy k sobě); plató od ~6. Verify `diagnose_displacement.py` (před/po): síť 14→1, dotyk 1→0.
-  - **Zbytkové (odloženo):** vodní plochy do kotvy (zatím jen toky, shoda s krokem 0); ladění stropu.
+**Celá generalizace budov zavržena: budovy se kreslí RAW jako voda.** Domněnka „feeder se učí číst
+GENERALIZOVANOU mapu" se nepotvrdila — generalizace KOMOLILA tvar/polohu. Smazáno ~430 LOC tří úrovní:
+**L1** min. velikost + Douglas-Peucker obrys (Sez. 18), **L1b** orthogonalizace/pravoúhlost (Sez. 27),
+**L2** displacement od pevné sítě 8 iterací (Sez. 21-22, vč. `diagnose_displacement.py`). **Zásada →
+CLAUDE.md: generalizuj jen s důkazem, raw je default** (voda byla dokonalá právě proto, že raw).
+Detail v DONE (Sez. 18/22/27) + GLOSSARY „kartografická generalizace".
 
 ## OOM draw order = priorita barev (Sez. 18, zafixováno)
 
@@ -177,22 +154,8 @@ klony (*White over green*, *Black below brown*…) jsou jeho součást — nelad
 - **Anotační kanál uživatel → AI:** čísla kontrol **ISOM 704** v separátním `.omap` (ne v `map.omap`,
   který se přepisuje); čtečka 704 → až bude první vstup (foundations — nestavět bez konzumenta).
 
-- **Reálné cesty + vodstvo z INSPIRE (UC2 → UC4-II, navrženo Sez. 14).** Uživatel navrhl dosadit
-  reálné cesty z **INSPIRE Transport Networks (TN)** a vodu z **INSPIRE Hydrography (HY)** jako
-  vektorovou vrstvu → ISOM symboly (502-507 / 301-305) + GT maska (rozhodnuto: vektor, ne podklad).
-  > **Aktualizace (Sez. 16): cesty realizovány přes ZABAGED nativní, NE INSPIRE TN** (viz bod výše).
-  > Důvod: ZABAGED má bohatší kategorizaci komunikací pro les + tatáž `ags.cuzk.gov.cz` doména jako
-  > DMR + GeoJSON output. INSPIRE TN = harmonizovaná EU verze téhož → zbytečná abstrakce. **INSPIRE HY
-  > voda: rozhodnuto Sez. 17 = ZABAGED nativní** (jako cesty), ne INSPIRE HY (zbytečná harmonizovaná abstrakce).
-  **Past (oponováno):** navržené URL byly **WMS** (`WMS_INSPIRE_TN/HY`) = rastr (obrázek), z něj by
-  se vektor musel segmentovat — ztrátový UC4-III problém. Správně **WFS** (`WFS_INSPIRE_TN/HY`, GML
-  vektor) nebo INSPIRE download. Izomorfní s lekcí ZM5-rastr/ZABAGED-vektor (výše).
-  - **Vztah k ZABAGED úvaze (výše):** TN je harmonizovaná EU verze téhož, co ZABAGED Polohopis
-    (komunikace) — dva zdroje téhož; rozhodnout, který (ZABAGED nativní vs INSPIRE harmonizovaný).
-  - **Vztah k procedurální větvi:** INSPIRE HY voda je **data-driven alternativa** k plánovanému
-    procedurálnímu **D8 hydro jádru** (toky/jezera/bažiny z výškopisu, stupeň 1). Nemíchat: proc =
-    noise-půlka, INSPIRE = real-půlka.
-  - **Cena/podmínky:** nový WFS konektor (první reálný UC2 konektor — dosud „research only"),
-    GML parsing, mapování kategorií → ISOM (ne 1:1), **real-only** (georef S-JTSK), licence INSPIRE
-    ČÚZK ověřit do KB. **Foundations:** velký kus → dedikované příští sezení, ne přílepek (rozhodnuto
-    Sez. 14: zatím jen zápis sem, UC2 konektor samostatně).
+- **Reálné cesty + vodstvo z INSPIRE (UC2, navrženo Sez. 14) — VYŘEŠENO ve prospěch ZABAGED nativního.**
+  Cesty (Sez. 16) i voda (Sez. 17) realizovány přes **ZABAGED nativní, NE INSPIRE TN/HY** — ZABAGED má
+  bohatší kategorizaci pro les, tatáž `ags.cuzk.gov.cz` doména + GeoJSON; INSPIRE = harmonizovaná EU verze
+  téhož = zbytečná abstrakce. **Trvalá lekce (oponováno):** navržené INSPIRE URL byly **WMS** (rastr) — pro
+  vektor → ISOM je třeba **WFS/REST** (jinak ztrátová segmentace), izomorfní s lekcí ZM5-rastr/ZABAGED-vektor.

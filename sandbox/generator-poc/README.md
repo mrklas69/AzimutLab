@@ -10,16 +10,29 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
 - **cesty** — dvě větve (`--paths`):
   - `proc` (default) — procedurální **Dijkstra least-cost** (§9, Sez. 13), hlavní plná (ISOM
     **503**) / vedlejší čárkovaná (ISOM **505**); cesty traverzují svah, nešplhají přes vrcholy,
-  - `real` — **reálné komunikace z ČÚZK ZABAGED WFS** (real-půlka §4.9, Sez. 16; `zabaged.py`),
+  - `real` — **reálné komunikace z ČÚZK ZABAGED (ArcGIS REST)** (real-půlka §4.9, Sez. 16; `zabaged.py`),
     mapované na plnou ISOM hierarchii **502-506** (silnice/cesta zpevněná/vozová/pěšina) podle
     typu a povrchu. Vyžaduje `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
   (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
-  (modrá výplň + břeh). Vyžaduje `--terrain real`. Pramen **312** (ze `Zdroj_podzemních_vod`, v demo
-  výřezu žádný). Procedurální voda (hydro jádro D8) zatím ne,
+  (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen
+  **312** (ze `Zdroj_podzemních_vod`, v demo výřezu žádný). Procedurální voda (hydro jádro D8) zatím ne,
 - **budovy** — `--buildings real` (real-půlka, Sez. 18; týž `zabaged.py`): `Budova_..._plocha_` →
-  ISOM **521 Building** (plošný černý symbol). Vyžaduje `--terrain real`. **Kartografická generalizace
-  Úroveň 1** (min. velikost 0,5 mm, zjednodušení obrysu Douglas-Peucker 0,3 mm — z ISOM rozměrů),
+  ISOM **521 Building** (plošný černý symbol). Vyžaduje `--terrain real`. **Kreslené RAW jako voda**
+  (Sez. 27 — generalizace L1 i displacement L2 zavrženy, komolily tvar/polohu; *generalizuj jen s důkazem*),
+- **pomocné vrstevnice** — form lines ISOM **103** (Sez. 29; derivace z DMR, ne ZABAGED — jen `--terrain real`),
+  kde mírný svah AND zakřivený terén; min. délka 3 mm,
+- **el. vedení** — `--powerlines real` (Sez. 24): `Elektrické_vedení` → ISOM **510** (příčky na reálných
+  sloupech `Stožár_elektrického_vedení`),
+- **železnice** — `--railways real` (Sez. 28+31): `Železniční_trať`+`_vlečka`+`Tramvajová dráha` → ISOM
+  **509** (kombinovaný symbol, bílý knockout),
+- **kolejiště / zpevněné plochy** — `--paved real` (Sez. 28): `Kolejiště` → ISOM **501 Paved area** (plocha
+  s obrysem; „10 kolejí" je v datech jedna plocha, ne linie),
+- **skály/balvany** — `--rocks real` (Sez. 30): `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**,
+  `Skalní_útvary` (plocha)→**206** (KISS vrstva = jeden symbol),
+- **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
+  `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
+- **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).
@@ -29,10 +42,11 @@ První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specif
   symbolová knihovna. Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
 
 **Přestavba (Sezení 11):** generátor stavíme „znovu a lépe", vrstvu po vrstvě, s
-důrazem na vizuální věrnost. Plošné vrstvy (vegetace, paseky, bažiny, balvany) byly
-vědomě **zahozeny** (vypadaly uměle → kazily by domain gap feederu); historie v gitu.
-Záměrně zatím NEobsahuje: vegetaci/bažiny/balvany, tratě, rýhy, **procedurální** vodu
-(reálná ze ZABAGED je, Sez. 17), severník. (Pramen 312 je v konektoru, v demo výřezu chybí.)
+důrazem na vizuální věrnost. **Procedurální (noise-půlka)** plošné vrstvy (vegetace, paseky, bažiny,
+balvany) byly vědomě **zahozeny** (vypadaly uměle → kazily by domain gap feederu); historie v gitu.
+Skály/balvany se od Sez. 30 kreslí **reálně** ze ZABAGED (204/207/206), tedy jen v real-půlce.
+Záměrně zatím NEobsahuje: **procedurální** vegetaci/bažiny/rýhy, **procedurální** vodu (reálná ze
+ZABAGED je, Sez. 17), purpurovou závodní trať (§4.13), severník. (Pramen 312 je v konektoru, v demo výřezu chybí.)
 
 ## Cíl
 
@@ -51,9 +65,10 @@ obchází sparse-GT past z Pic2Omap.
 .venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out "sandbox\generator-poc\Soví vrch"
 # jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
 
-# reálné cesty + voda + budovy z ČÚZK ZABAGED WFS (real-půlka; vyžadují --terrain real):
-.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --paths real --water real --buildings real --out "sandbox\generator-poc\Soví vrch"
-# komunikace, voda i budovy pro výsek se cachují do .zabaged_cache/
+# reálné vrstvy z ČÚZK ZABAGED (ArcGIS REST; real-půlka; vyžadují --terrain real):
+.venv\Scripts\python.exe sandbox\generator-poc\generator.py --location SV
+# (--location nastaví lat/lon/rozměr a zapne všechny reálné vrstvy; viz DEV_LOCATIONS: SV/NL/LS/HS/NV)
+# data pro výsek se cachují do .zabaged_cache/
 ```
 
 Každý běh píše i `map.omap` (template-based nad `template_classic.omap` — otevři v OOM).
@@ -77,19 +92,22 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_water.png` | multi-class maska vody (1=304 / 2=305 / 3=306 / 4=301; jen `--water real`) |
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
-| `contours.geojson` | **vektor** vrstevnic (LineString + ISOM symbol 101/102; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + cesty 502-506 + voda 301/304-306 + budovy 521 + body 109/110/111, plná ISOM knihovna) |
+| `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
+| `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` | masky reálných vrstev 510 / 509 / 501 / 204·206·207 / 512·512.2 (každá jen při své `--…real`) |
+| `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
+| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
 
 ## Stack
 
-Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy terén/cesty/
-voda/budovy, WGS→S-JTSK). Venv v kořeni repa (`.venv`). Konektory reálných dat žijí v **`connectors/`**
-v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy — sourozenci, sdílejí
-`dmr.build_bbox`); generátor si jejich složku přidá na `sys.path` (Sez. 16, vytaženo ze sandboxu).
+Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK).
+Venv v kořeni repa (`.venv`). Konektory reálných dat žijí v **`connectors/`** v kořeni LAB
+(`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení + železnice + kolejiště + skály +
+mosty/tunely + řopíky, `ortofoto.py` podklad — sourozenci, sdílejí `dmr.build_bbox`); generátor si
+jejich složku přidá na `sys.path` (Sez. 16, vytaženo ze sandboxu).
 
-Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (cesty + voda + budovy), obojí open data
-**CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).
+Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (vektorové vrstvy) + ORTOFOTO (podklad), vše
+open data **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).
 
 ## Determinismus
 

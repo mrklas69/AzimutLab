@@ -174,7 +174,7 @@ hustot ⇒ geometricky konzistentní.
 14 kroků se zahodí. Vykreslení vyhlazenou křivkou modře. **Počátek toku se uloží
 pro pramen** (4.10).
 **✅ Reálná voda (Sez. 17, real-půlka):** `--water real` vezme skutečnou hydrografii z **ČÚZK
-ZABAGED Polohopis WFS** (`zabaged.fetch_water`, týž konektor jako cesty) pro tentýž výsek jako
+ZABAGED Polohopis (ArcGIS REST)** (`zabaged.fetch_water`, týž konektor jako cesty) pro tentýž výsek jako
 DMR. Vyžaduje `--terrain real`. **Vodní_tok** → ISOM **304** (pojmenovaný stálý) / **305**
 (bezejmenný stálý) / **306** (občasný, čárkovaný); podzemní toky se nekreslí. **Vodní_plocha** →
 **301** (modrá výplň + břeh). Pramen **312 Spring** se táhne ze `Zdroj_podzemních_vod` (v demo
@@ -194,7 +194,7 @@ vrstevnicích, před bodovými symboly.
 **✅ Terénně vázané vedení (Sez. 13):** přímý splajn s jitterem nahrazen **Dijkstra
 least-cost** trasou (§9) — viz tam. Cesty traverzují svah místo přes vrchol.
 **✅ Reálné cesty (Sez. 16, real-půlka):** `--paths real` nahradí procedurální Dijkstra
-**reálnými komunikacemi z ČÚZK ZABAGED Polohopis WFS** (`zabaged.py`, viz `data-sources.md`).
+**reálnými komunikacemi z ČÚZK ZABAGED Polohopis (ArcGIS REST)** (`zabaged.py`, viz `data-sources.md`).
 Vyžaduje `--terrain real` — sdílí výsek s DMR vrstevnicemi (`dmr.build_bbox`) → cesty sednou
 na terén. Plná ISOM hierarchie **502-506** (silnice / cesta zpevněná / vozová / pěšina) dle
 typu a povrchu (mapování `zabaged.map_path_to_isom`). Izomorfní s výškopisem: noise↔proc cesty,
@@ -202,7 +202,7 @@ real↔ZABAGED cesty. (Procedurální §4.9 = noise-půlka, ZABAGED = real-půlk
 
 ### 4.9b Budovy / stavby (real-půlka, Sez. 18)
 **✅ Reálné budovy:** `--buildings real` vezme `Budova_jednotlivá_nebo_blok_budov__plocha_` ze
-ZABAGED Polohopis WFS (`zabaged.fetch_buildings`, týž konektor jako cesty/voda) pro tentýž výsek
+ZABAGED Polohopis (ArcGIS REST) (`zabaged.fetch_buildings`, týž konektor jako cesty/voda) pro tentýž výsek
 → ISOM **521 Building** (plošný černý symbol, výplň + obrys; `map_building_to_isom`). Bodová vrstva
 budov je v lesních výsecích prázdná → netáhne se (jako pramen 312). Render `_draw_area_symbol`
 (sdílený s vodní plochou 301 — voda modrá, budova černá). GT `mask_buildings.png`. Vyžaduje
@@ -220,7 +220,7 @@ template. Plošné symboly (301.1, 521) potřebují v `.omap` UZAVŘENÝ path (c
 je OOM nevyplní (`omap_export.area_object`, Sez. 18). Detail: GLOSSARY „Draw order / priorita barev".
 
 ### 4.9c El. vedení (real-půlka, Sez. 24)
-**✅ Reálné el. vedení:** `--powerlines real` vezme `Elektrické_vedení` ze ZABAGED Polohopis WFS
+**✅ Reálné el. vedení:** `--powerlines real` vezme `Elektrické_vedení` ze ZABAGED Polohopis (ArcGIS REST)
 (`zabaged.fetch_powerlines`, týž konektor) pro tentýž výsek → ISOM **510 Power line** (tenká černá
 linie; `map_powerline_to_isom`). Vyžaduje `--terrain real`. Liniová vrstva, izomorfní s cestami.
 Atribut `NAPETI` je v datech prázdný → bez rozlišení 510/511 Major power line (vše 510, KISS).
@@ -254,6 +254,31 @@ Paved area** (`map_paved_to_isom`). Plošná, izomorfní s budovou/vodní plocho
 do jedné plochy `Kolejiště` (Liberec hl. n. ~19 ha). V `.omap` jako **kombinovaný 501 (s obrysovou linií)**,
 ne 501.1 (čistá plocha bez obrysu) — do kolejiště se nevstupuje, bounding line je významová (ISOM crossability).
 
+### 4.9f Skály a balvany (real-půlka, Sez. 30)
+**✅ Reálné skály:** `--rocks real` vezme ze ZABAGED Polohopis (ArcGIS REST) tři vrstvy → tři ISOM symboly
+(KISS „vrstva = jeden symbol", izomorfní s budovy→521): `Osamělý_balvan__skála__skalní_suk` (bod) →
+**204 Boulder** (kruh 0,4 mm); `Skupina_balvanů__bod_` (bod) → **207 Boulder cluster** (trojúhelník
+0,8×0,7 mm, vrchol nahoře); `Skalní_útvary` (plocha) → **206 Gigantic boulder** (`_draw_area_symbol`,
+černá výplň + obrys). GT `mask_rocks.png` (3-class). Z-order: úplně navrch (po budovách+řopících =
+OOM priorita skály > budovy). **Žádná vrstva nenese typ/velikost/výšku (jen `jmeno`)** → per-feature
+rozhodování (hybridní 202/206) i Chaikin smoothing ZAVRŽENY (bez datového podkladu; *generalizuj jen
+s důkazem*). Vyžaduje `--terrain real`. (Pozn.: procedurální balvany §4.11 = zahozená noise-půlka, Sez. 11.)
+
+### 4.9g Mosty / tunely / lávky (real-půlka, Sez. 31–33)
+**✅ Reálné mosty:** `--bridges real` vezme ze ZABAGED (ArcGIS REST) `Most` (id 73), `Tunel` (id 74) a
+`Lávka (linie)`/`Lávka (bod)` (id 67/66). **Most → 2 paralelní linie ISOM 512** offsetnuté na pravou normálu
+osy (= hranatá závorka „[ ]" z default OOM template, verify proti uživatelovu `Most.omap` demu) + **buffer
+crop nesené trati pod mostem** ±1,25 mm kolmo, s úhlovým filtrem (∥ osa < 25° = nesená trať, necropuje se).
+**Tunel → 512 otočené o 90°** = krátké kolmé závorky na obou vjezdech (`_tunnel_portals`) + passage crop trati
+projekcí vjezdu na trať (mezera 0,5 mm). **Lávka → bodový symbol 512.2 Footbridge** (rotace kolmo k toku).
+GT `mask_bridges.png`. Geometrický self-check proti demu/datům PŘED OOM verify (paměť `geometric-selfcheck-before-oom`).
+
+### 4.9h Řopíky (real-půlka, Sez. 26–27)
+**✅ Reálné řopíky:** `--ropiky real` vezme `Bunkr` (`typbunkr_k='LO37'`, čs. lehké opevnění vz. 37) ze ZABAGED
+jako **bodový orientační prvek** (NE budova 521) — vložený `asset/ropik_10000.omap` (asset pattern), orientovaný
+„čelním zasypaným náspem VEN" k nejbližší **státní hranici** (`Hranice správní jednotky` `vyzn_zsh_k='1'`,
+univerzální ČR). Fáze 1 (projekce reálných dat), ne pseudorealistická dekorace. Vyžaduje `--terrain real`.
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 
@@ -284,7 +309,9 @@ seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10, z-order opraven 
 > a v 112+ jsou teď Pit / Broken ground / Prominent landform). Ověřeno proti oficiálnímu
 > OOM symbol setu `ISOM 2017-2_10000.omap`. Cesty: 503 Road, 505 Footpath (vedlejší čárkovaná, Sez. 15).
 
-### 4.11 Balvany a skalní stupně (`rock`)
+### 4.11 Balvany a skalní stupně (`rock`) — ⚠ ZAVRŽENO (noise-půlka, Sez. 11)
+> Procedurální balvany vypadaly uměle (kazily by domain gap feederu) → zahozeny při přestavbě
+> Sez. 11. Reálné skály/balvany ze ZABAGED viz §4.9f (`--rocks real`). Ponecháno jako spec vize.
 - Balvany: `round(rock*120)` černých teček, přijetí s pravděpodobností
   `0.25 + slope*0.9` (hustěji ve strmém terénu).
 - Skalní stupně (cliffs): `round(rock*5)` v nejstrmějších buňkách, krátká černá

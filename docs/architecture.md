@@ -53,11 +53,12 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 ČÚZK ZABAGED/ZTM, geoportál. Najít vhodné mapové portály/podklady/databáze.
 - Krmí UC4-II (inspirované souřadnicemi) a UC4-III (georef podklady).
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
-- Od průzkumu k běžícím konektorům (Sez. 16–18): **`connectors/`** = první sdílená kódová
+- Od průzkumu k běžícím konektorům (Sez. 16–33): **`connectors/`** = první sdílená kódová
   složka mimo sandbox (drobný krok B→A). `dmr.py` (DMR 5G výškopis, ArcGIS ImageServer),
-  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + voda + budovy + vedení + řopíky).
-  Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument
-  (`--terrain/--paths/--water/--buildings/--powerlines/--ropiky real`).
+  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + voda + budovy + vedení + železnice +
+  kolejiště + skály + mosty/tunely + řopíky), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--water/
+  --buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky real`; form lines z DMR).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

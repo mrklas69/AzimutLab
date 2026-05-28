@@ -8,9 +8,11 @@ jsou samostatný enabler (zrcadlí UC2 v DAGu).
 | Modul | Zdroj | Co vrací | Protokol |
 |-------|-------|----------|----------|
 | `dmr.py` | ČÚZK DMR 5G | výškopis (float32 grid) | ArcGIS ImageServer `exportImage` |
-| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + voda + budovy (GeoJSON) | WFS 2.0.0 `GetFeature` |
+| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
+| `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
 
-**Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor (cesty + voda + budovy). Sdílí
+**Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor (komunikace + voda + budovy +
+vedení + železnice + kolejiště + skály + mosty/tunely + řopíky), `ortofoto` = rastr/podklad. Sdílí
 `dmr.build_bbox` (tentýž S-JTSK výsek → data z různých zdrojů sednou na sebe bez dalšího
 georef). Oba na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`) viz `data-sources.md`.
 
