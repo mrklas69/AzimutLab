@@ -262,6 +262,36 @@ PAVED_NAME = {ISOM_PAVED: "Paved area"}
 PAVED_CLASS = {ISOM_PAVED: 1}
 
 
+# ---------- Skály a balvany (Sez. 30, real-půlka §8.5) ----------
+# 3 ISOM symboly z 3 ZABAGED vrstev — KISS, vrstva = jeden symbol (jako budovy→521 / vedení→510):
+#   204 Boulder           — bod (Osamělý_balvan)
+#   207 Boulder cluster   — bod (Skupina_balvanů__bod_)
+#   206 Gigantic boulder  — plocha (Skalní_útvary, plná černá plocha)
+# Hybridní 202/206 podle plochy (zvažováno Sez. 30, Q2) ZAVRŽENO uživatelem v průběhu sezení:
+# „rozhodování bez datového podkladu" — ZABAGED nemá atribut typu/výšky, práh by byl hádaný.
+# Drift po stěně argumentů („proč jsou některé plné a jiné jen obrys?") → návrat ke KISS:
+# Skalní_útvary jsou VŽDY 206 (plná plocha), nezávisle na velikosti.
+# Smoothing polygonů (původní A2 záměr) také ZAVRŽEN: ZABAGED polygony jsou už dostatečně
+# detailní (Shape_Length 680 m / Shape_Area 5289 m² = ~120 vrcholů). RAW je default.
+ISOM_BOULDER = 204                 # 204 Boulder — bodový balvan, plný černý kruh
+ISOM_GIGANTIC_BOULDER = 206        # 206 Gigantic boulder — skalní útvar v půdorysu, černá výplň
+ISOM_BOULDER_CLUSTER = 207         # 207 Boulder cluster — bodová skupina balvanů, černý trojúhelník
+ROCK_NAME = {ISOM_BOULDER: "Boulder", ISOM_GIGANTIC_BOULDER: "Gigantic boulder",
+             ISOM_BOULDER_CLUSTER: "Boulder cluster"}
+# ISOM kód → třída v mask_rocks.png (0 = pozadí). 3 třídy (jedna maska pro celou kategorii).
+ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3}
+
+# Render parametry (template_classic.omap autoritativní, rastr ladíme pro viditelnost — princip
+# Sez. 28/29 „render px-tuned vs .omap věrný"). Vše v µm × PX_PER_MM/1000:
+#   204 inner_radius=200 → 0,2 mm poloměr (= 0,4 mm průměr) → 0,917 px → 1 px viditelně mizí,
+#                          ladíme na 2 px (= 0,44 mm), OOM stejně renderuje 0,4 mm věrně.
+#   207 počet bodů 3 v template (-400 231; 400 231; 0 -462), base 0,8 mm, výška 0,693 mm →
+#                          base 4 px, výška 3 px (vrchol DOLŮ, jako template orientace).
+BOULDER_RADIUS_PX = max(2, round(0.4 * PX_PER_MM))           # 204 — kruh
+BOULDER_CLUSTER_HALF_BASE_PX = max(2, round(0.4 * PX_PER_MM))  # 207 — polovina base trojúhelníku
+BOULDER_CLUSTER_HEIGHT_PX = max(2, round(0.7 * PX_PER_MM))     # 207 — výška trojúhelníku (vrchol dolů)
+
+
 # ---------- Reálný terén (§8.5, Option 2): výchozí souřadnice dlaždice ----------
 # Soví vrch (Lužické hory, povodí Svitávky) — vlastní terénně mapovaná oblast uživatele
 # (proto výchozí lokalita; zná tu ground-truth). Členitý terén vhodný pro OB.
@@ -672,6 +702,53 @@ def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
     _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BROWN, PAVED_CLASS[code])
 
 
+def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                  cx: float, cy: float) -> None:
+    """Bodový balvan (ISOM 204): plný černý kruh + GT maska (třída ROCK_CLASS[204]).
+
+    Template_classic.omap: inner_radius="200" (= 0,2 mm poloměr, 0,4 mm průměr). Rastr
+    ladíme na BOULDER_RADIUS_PX (≈ 2 px, viditelné) — .omap nese věrný 0,4 mm symbol,
+    OOM ho vykreslí autoritativně (princip render-px-tuned vs .omap věrný, Sez. 28/29)."""
+    r = BOULDER_RADIUS_PX
+    bbox = (cx - r, cy - r, cx + r, cy + r)
+    draw.ellipse(bbox, fill=C_BLACK)
+    mdraw.ellipse(bbox, fill=ROCK_CLASS[ISOM_BOULDER])
+
+
+def _draw_boulder_cluster(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                          cx: float, cy: float) -> None:
+    """Bodová skupina balvanů (ISOM 207): plný černý trojúhelník vrcholem dolů + GT maska.
+
+    Template_classic.omap: 3 body (-400 231; 400 231; 0 -462) — base 0,8 mm, výška 0,693 mm,
+    orientace „sever" (= dva vrcholy nahoře, jeden DOLŮ). V mapovém paper-space (y up) je
+    -462 dolů od středu; na rastru (y down) tedy +462 → vrchol směřuje DOLŮ v paper sense,
+    ale na rastru je TROJÚHELNÍK S VRCHOLEM NAHORU. Ne, vlastně paper-space y-up → vrchol
+    dolů = -y; po překlopení do rastru (y down) je vrchol nahoru. Držíme TEMPLATE orientaci:
+    base nahoře (paper +y) → na rastru DOLE; vrchol dole (paper -y) → na rastru NAHOŘE."""
+    hb = BOULDER_CLUSTER_HALF_BASE_PX            # polovina base
+    h = BOULDER_CLUSTER_HEIGHT_PX                # výška (vrchol → base)
+    # paper-space (template): (-400, +231), (+400, +231), (0, -462). Rastr y-flip → y se mění
+    # znaménkem. Base = řádek y = +231 paper = -231 rastr → NAHOŘE v paper. Pro KISS rovnoramenný:
+    # vrchol NAHOŘE (cx, cy - 2h/3), base DOLE [cx-hb, cy+h/3; cx+hb, cy+h/3] — třetina nahoru,
+    # dvě třetiny dolů ≈ těžiště ve středu (cx, cy). Template má 231:462 = 1:2 (centrální moment).
+    apex = (cx, cy - 2 * h / 3)
+    base_l = (cx - hb, cy + h / 3)
+    base_r = (cx + hb, cy + h / 3)
+    pts = [apex, base_l, base_r]
+    draw.polygon(pts, fill=C_BLACK)
+    mdraw.polygon(pts, fill=ROCK_CLASS[ISOM_BOULDER_CLUSTER])
+
+
+def _draw_gigantic_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                           ring_px: list[tuple[float, float]]) -> None:
+    """Masivní skalní formace (ISOM 206 Gigantic boulder): plná černá plocha + GT maska.
+
+    Template_classic.omap (id 35): `area_symbol inner_color="2" min_area="0" patterns="0"`
+    = jen plná černá výplň (žádný pattern, žádný obrys jiné barvy). Mirror _draw_building_area,
+    jen třída masky jiná (ROCK_CLASS[206])."""
+    _draw_area_symbol(draw, mdraw, ring_px, C_BLACK, C_BLACK, ROCK_CLASS[ISOM_GIGANTIC_BOULDER])
+
+
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
                             out_path: Path) -> int:
     """Zapíše vrstevnice jako GeoJSON FeatureCollection (vektor, §9). Vrací počet linií.
@@ -845,13 +922,13 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
                 water_mode: str, paved_mode: str, buildings_mode: str, powerlines_mode: str,
-                railways_mode: str,
+                railways_mode: str, rocks_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_formlines: int, n_paths: int, paths_info: list[dict],
                 point_symbols: list[dict], water_info: list[dict], paved_info: list[dict],
                 building_info: list[dict], powerlines_info: list[dict],
-                railways_info: list[dict], omap_info: dict,
+                railways_info: list[dict], rocks_info: list[dict], omap_info: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
@@ -867,6 +944,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
     used_powerline_codes = sorted({p["symbol"] for p in powerlines_info})
     used_railway_codes = sorted({r["symbol"] for r in railways_info})
     used_paved_codes = sorted({p["symbol"] for p in paved_info})
+    used_rock_codes = sorted({r["symbol"] for r in rocks_info})
     return {
         "seed": seed,
         # pseudorealistic = fáze 2 (dekorace symbolů nad rámec tvrdých dat) zapnuta; False =
@@ -973,6 +1051,19 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             "items": railways_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }} if railways_mode == "real" else {}),
+        # skály/balvany (real-půlka, Sez. 30): 3 ISOM symboly ze 3 ZABAGED vrstev. KISS,
+        # vrstva → jeden symbol (jako budovy → 521). Sekce jen když rocks_mode != off;
+        # symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
+        **({"rocks": {
+            "count": len(rocks_info),
+            "mask": "mask_rocks.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): ROCK_NAME[c] for c in used_rock_codes},
+            "classes": {"0": "pozadí",
+                        **{str(ROCK_CLASS[c]): f"{c} {ROCK_NAME[c]}" for c in used_rock_codes}},
+            "items": rocks_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }} if rocks_mode == "real" else {}),
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -1241,6 +1332,67 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
     return area_features, paved_info
 
 
+def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float,
+                         geo_bbox: tuple) -> tuple[list, list, list]:
+    """Reálné skály a balvany (real-půlka, Sez. 30): MVP rozsah 204/207/206 ze ZABAGED.
+
+    Tři vrstvy ZABAGED → tři ISOM symboly (KISS, vrstva → jeden symbol jako budovy→521):
+      Osamělý_balvan__skála__skalní_suk  → 204 Boulder            (bod, plný černý kruh)
+      Skupina_balvanů__bod_              → 207 Boulder cluster    (bod, plný černý trojúhelník)
+      Skalní_útvary                      → 206 Gigantic boulder   (plná černá plocha)
+
+    Smoothing polygonů (původní A2) i hybridní 202/206 podle plochy (zvažováno Q2) ZAVRŽENO
+    uživatelem v průběhu sezení: ZABAGED polygony jsou už dost detailní (~120 vrcholů na 32×32 m
+    polygon → plynulý obrys), a hybridní rozhodování nemělo datový podklad (vrstva nese jen
+    `jmeno`, žádný typ/výška). Drift po stěně argumentů → KISS jedno mapování per vrstva.
+
+    Vrací (rock_point_features [(gx, gy, code)], rock_area_features [(grid_ring, code)], rocks_info).
+    Body a plochy oddělené (paralela s vodou: line_features / area_features) — .omap export
+    je řeší různými objekty (point_object vs area)."""
+    from zabaged import (fetch_boulders, fetch_boulder_clusters, fetch_rock_areas,
+                         map_boulder_to_isom, map_boulder_cluster_to_isom, map_rock_area_to_isom)
+
+    rock_point_features: list[tuple] = []      # (gx, gy, code) — body 204/207
+    rock_area_features: list[tuple] = []       # (grid_ring, code) — plochy 206
+    rocks_info: list[dict] = []
+
+    # 1) Osamělé balvany → 204. Bod ZABAGED v S-JTSK → grid → px → kruh.
+    for x, y in fetch_boulders(lat, lon, GW, GH, TILE_M):
+        code = map_boulder_to_isom("Osamělý_balvan__skála__skalní_suk", {})
+        gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
+        px, py = _grid_to_px(gx, gy)
+        _draw_boulder(draw, rdraw, px, py)
+        rock_point_features.append((gx, gy, code))
+        rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "point",
+                           "layer": "Osamělý_balvan__skála__skalní_suk"})
+
+    # 2) Skupiny balvanů (bod) → 207 Boulder cluster
+    for x, y in fetch_boulder_clusters(lat, lon, GW, GH, TILE_M):
+        code = map_boulder_cluster_to_isom("Skupina_balvanů__bod_", {})
+        gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
+        px, py = _grid_to_px(gx, gy)
+        _draw_boulder_cluster(draw, rdraw, px, py)
+        rock_point_features.append((gx, gy, code))
+        rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "point",
+                           "layer": "Skupina_balvanů__bod_"})
+
+    # 3) Skalní útvary (polygon) → 206 Gigantic boulder (vždy, plná plocha)
+    for f in fetch_rock_areas(lat, lon, GW, GH, TILE_M):
+        code = map_rock_area_to_isom(f["layer"], f["props"])
+        for ring in f["rings"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            _draw_gigantic_boulder(draw, rdraw, px)
+            rock_area_features.append((grid, code))
+            rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
+                               "layer": f["layer"]})
+
+    return rock_point_features, rock_area_features, rocks_info
+
+
 # =====================================================================
 #  Řopíky / lehké opevnění LO37 — fáze 1 (projekce reálných dat), asset placement (Sez. 27)
 # =====================================================================
@@ -1398,7 +1550,7 @@ def synthesize_pseudorealistic_map(
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
         terrain: str = "real", paths: str = "real", water: str = "real",
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
-        railways: str = "real", ropiky: str = "real",
+        railways: str = "real", ropiky: str = "real", rocks: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -1473,6 +1625,9 @@ def synthesize_pseudorealistic_map(
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     if ropiky == "real" and terrain != "real":
         raise ValueError("--ropiky real vyžaduje --terrain real (řopíky ze ZABAGED potřebují "
+                         "S-JTSK georef výseku; noise terén je v lokálních metrech).")
+    if rocks == "real" and terrain != "real":
+        raise ValueError("--rocks real vyžaduje --terrain real (reálné skály/balvany potřebují "
                          "S-JTSK georef výseku; noise terén je v lokálních metrech).")
     # Požadavek je jen DETERMINISMUS (stejný seed + parametry → stejná mapa), proto
     # stačí korektní numpy generátor (PCG64); bitová shoda s JS referencí netřeba.
@@ -1689,6 +1844,32 @@ def synthesize_pseudorealistic_map(
             ([], []), tolerant, layer_errors)
         _log.info("  řopíky: %d", len(ropik_info))
 
+    # --- skály / balvany (ISOM 204/207/202/206): reálné ze ZABAGED REST (real-půlka, Sez. 30) ---
+    # Rastr z-order: ÚPLNĚ NAVRCH (po budovách+řopících) — replikuje OOM color order, kde
+    # 202/204/206/207 mají vyšší prioritu (=draw nahoru) než 521 Building. Hruboskalsko: skály
+    # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
+    # Jen --rocks real. Hybridní 202 vs 206 řeší map_rock_area_to_isom podle plochy polygonu.
+    rock_point_features: list[tuple] = []
+    rock_area_features: list[tuple] = []
+    rocks_info: list[dict] = []
+    rock_mask_img: Image.Image | None = None
+    if rocks == "real":
+        rock_mask_img = Image.new("L", (W, H), 0)        # GT maska skal/balvanů (§8.1), multi-class
+        rdraw_rocks = ImageDraw.Draw(rock_mask_img)
+        rock_point_features, rock_area_features, rocks_info = _try_layer(
+            "rocks",
+            lambda: _generate_real_rocks(draw, rdraw_rocks, lat, lon, geo_bbox),
+            ([], [], []), tolerant, layer_errors)
+        # souhrn po symbolech (KISS: counter via dict — info je už klasifikované)
+        by_code: dict[int, int] = {}
+        for it in rocks_info:
+            by_code[it["symbol"]] = by_code.get(it["symbol"], 0) + 1
+        if by_code:
+            parts = [f"{ROCK_NAME[c]}({c}):{n}" for c, n in sorted(by_code.items())]
+            _log.info("  skály: %d (%s)", len(rocks_info), ", ".join(parts))
+        else:
+            _log.info("  skály: 0")
+
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -1725,6 +1906,8 @@ def synthesize_pseudorealistic_map(
         railway_mask_img.save(out / "mask_railways.png")                    # železnice (GT)
     if paved_mask_img is not None:
         paved_mask_img.save(out / "mask_paved.png")                         # zpevněné plochy (GT)
+    if rock_mask_img is not None:
+        rock_mask_img.save(out / "mask_rocks.png")                          # skály/balvany (GT, multi-class)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -1750,6 +1933,10 @@ def synthesize_pseudorealistic_map(
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
+    # skály/balvany (Sez. 30): body 204/207 + plochy 202/206. Plochy 206 = area_object (jako 501/521),
+    # 202 = line_object (uzavřená polylinie obrysu, jako 304/305). Body = point_object (jako 109/110/111).
+    rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
+    rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
     from omap_export import write_omap
     omap_counts = write_omap(contour_features, path_features, point_symbols,
                              water_omap_features, building_omap_features,
@@ -1758,18 +1945,23 @@ def synthesize_pseudorealistic_map(
                              ortho_template=ortho_template, ropik_features=ropik_features,
                              railway_features=railway_omap_features,
                              paved_features=paved_omap_features,
-                             formline_features=formline_omap_features)
+                             formline_features=formline_omap_features,
+                             rock_point_features=rock_point_omap_features,
+                             rock_area_features=rock_area_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, water, paved, buildings, powerlines, railways,
+                       rocks,
                        pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, len(formline_features), n_paths, paths_info, point_symbols, water_info,
-                       paved_info, building_info, powerlines_info, railways_info, omap_info, layer_errors)
+                       paved_info, building_info, powerlines_info, railways_info, rocks_info,
+                       omap_info, layer_errors)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
     _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · vrstevnice %d "
-              "(pomocné %d) · vedení %d · železnice %d · body %d · .omap objektů %d", out, len(building_info),
+              "(pomocné %d) · vedení %d · železnice %d · skály %d · body %d · .omap objektů %d", out, len(building_info),
               len(ropik_info), len(water_info), len(paved_info), n_paths, len(contour_features),
-              len(formline_features), len(powerlines_info), len(railways_info), len(point_symbols),
+              len(formline_features), len(powerlines_info), len(railways_info),
+              len(rocks_info), len(point_symbols),
               omap_counts["objects"])
     return out
 
@@ -1810,6 +2002,10 @@ def main() -> None:
     p.add_argument("--ropiky", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Bunkr LO37 → asset řopík (default), off = bez řopíků "
                         "(real vyžaduje --terrain real; jinde než u hranic 0 prvků)")
+    p.add_argument("--rocks", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED Osamělý_balvan/Skupina_balvanů/Skalní_útvary "
+                        "→ ISOM 204/207/202/206 (default), off = bez skal "
+                        "(real vyžaduje --terrain real; v plochém terénu 0 prvků)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -1839,6 +2035,7 @@ def main() -> None:
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
+        rocks=args.rocks,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 
