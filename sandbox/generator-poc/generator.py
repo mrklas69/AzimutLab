@@ -310,10 +310,19 @@ BRIDGE_NAME = {ISOM_BRIDGE: "Bridge", ISOM_FOOTBRIDGE: "Footbridge"}
 BRIDGE_CLASS = {ISOM_BRIDGE: 1, ISOM_FOOTBRIDGE: 2}
 
 # Render parametry (template autoritativní, rastr px-tuned — princip render-px-tuned vs .omap věrný).
-# Šířka 0,18 mm = 0,83 px → ladíme na 2 px (viditelně), OOM renderuje 0,18 mm věrně.
-BRIDGE_WIDTH_PX = 2                                          # tloušťka centrální linie mostu (rastr)
-BRIDGE_WING_OUT_PX = max(2, round(0.3 * PX_PER_MM))          # vidlice „do strany" (0,3 mm ≈ 1,4 → 2 px)
-BRIDGE_WING_BACK_PX = max(2, round(0.44 * PX_PER_MM))        # vidlice „za konec" zpět (0,44 mm ≈ 2 px)
+# Symbol 512 v OB konvenci (oprava Sez. 31 po Censure uživatele): **4 krátké rovnoběžné čárky
+# vně osy cesty** (jedna na začátku NAD osou + jedna POD, jedna na konci NAD + jedna POD =
+# „=  =" tvar na obou koncích). Žádná středová linie — cesta/železnice už je nakreslená pod
+# symbolem. Template coords `-300 -436`: 300 µm podél tangenty (= délka rovnoběžné čárky),
+# 436 µm kolmo k tangentě (= offset čárky od osy cesty). Tj. WING_LEN je „back" 300, WING_OFFSET
+# je „out" 436 — vlastní symbol 512 je v paper-space na JEDNÉ straně osy a OOM render je
+# implicitně mirroruje (= klasická OB bridge konvence: dvě rovnoběžné čárky vně osy).
+BRIDGE_WING_LEN_PX = max(6, round(1.3 * PX_PER_MM))          # délka kolmé čárky (1,3 mm rastr-laděno; template 0,3 mm)
+BRIDGE_WING_OFFSET_PX = max(3, round(0.6 * PX_PER_MM))       # offset čárky kolmo OD osy (0,6 mm rastr; template 0,44 mm)
+BRIDGE_WIDTH_PX = 2                                          # tloušťka čárky (0,18 mm × PX_PER_MM ≈ 0,8 → 2 viditelně)
+# POZN. (paměť `render-px-tuned-omap-authoritative`): konstanty zvětšené proti template kvůli
+# čitelnosti v rastru (1,3 / 0,6 mm vs template 0,3 / 0,44 mm). OOM .omap nese věrný 512 symbol
+# → renderuje autoritativně z template; rastr je feeder pro UC5 a potřebuje viditelné symboly.
 # Lávka (512.2): 0,25 mm × 1,25 mm = ~1,15 × 5,7 px → ladíme na 2 × 6 px (viditelně).
 FOOTBRIDGE_WIDTH_PX = max(2, round(0.25 * PX_PER_MM))        # tloušťka kolmé čárky (0,25 mm)
 FOOTBRIDGE_HALF_LEN_PX = max(3, round(0.625 * PX_PER_MM))    # poloviční délka kolmé čárky (template 625 µm)
@@ -699,47 +708,49 @@ def _draw_railway(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
 
 def _draw_bridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                  curve_px: list[tuple[float, float]]) -> None:
-    """Most (ISOM 512): černá středová linie + V-křídla na obou koncích + GT maska.
+    """Most/tunel (ISOM 512): 4 krátké KOLMÉ čárky vně osy cesty (Sez. 31 oprava 2x).
 
-    Template_classic.omap (Sez. 31): line_symbol type=2 + start/end_symbol kreslí šikmou
-    úsečku 0,3 mm do strany × 0,44 mm zpět od konce (úhel ~35° vůči ose). Symbol je
-    SYMETRICKÝ kolem osy — render kreslí V-křídla na OBĚ strany cesty (na rastru to
-    vypadá jako »—«). OOM .omap nese věrný symbol → renderuje autoritativně (princip
-    render-px-tuned vs .omap věrný, Sez. 28/29).
+    OB konvence (verify s uživatelem Sez. 31): most vyznačený DVĚMA páry krátkých čárek
+    KOLMÝCH k ose cesty, zrcadlově nad i pod osou. ASCII:
 
-    Most LEŽÍ NA komunikaci (silnice/železnice) → kreslí se PO komunikacích jako jejich
-    překryv, ne místo nich. Středová čára je 0,18 mm (= 1 px → ladíme 2 px); v rastru
-    propadá komunikace pod ní (železnice 509 vede pod mostem nepřerušeně — verify v OOM
-    .omap je autoritativní)."""
+        |  |              ← horní pár (nad osou: na začátku + na konci mostu)
+        |  |
+    ====|==|====           cesta
+        |  |
+        |  |              ← dolní pár (pod osou, zrcadlově)
+
+    Žádná středová linie — cesta/železnice je již nakreslená pod symbolem. Stejný symbol
+    pro most i tunel (template description: „Bridges and tunnels are represented using the
+    same basic symbols"). První interpretace Sez. 31 (V-křídla na osu) byla špatná: template
+    start/end_symbol je JEDNA POLOVINA symetrického páru a OOM ho zrcadlí kolem osy linie.
+
+    Template coords `-300 -436` v paper-space: 300 µm „back" podél tangenty (kde leží
+    bod čárky), 436 µm kolmo (offset od osy). Pro render kolmé čárky: 300 µm = offset
+    od osy zakončení čárky vzdálenější od cesty, 436 µm = offset bližšího konce.
+    Render: kolmá čárka od bodu (off od osy) k bodu (off+seg od osy)."""
     if len(curve_px) < 2:
         return
     width = BRIDGE_WIDTH_PX
     cls = BRIDGE_CLASS[ISOM_BRIDGE]
-    # 1) Středová linie podél osy mostu
-    draw.line(curve_px, fill=C_BLACK, width=width)
-    mdraw.line(curve_px, fill=cls, width=width)
-    # 2) V-křídla na obou koncích (symetricky kolem osy = 4 krátké úsečky celkem)
-    back = BRIDGE_WING_BACK_PX
-    out_px = BRIDGE_WING_OUT_PX
-    # konec START: tangenta směrem DO mostu = curve_px[1] - curve_px[0]
-    for end_idx, prev_idx, sign in ((0, 1, 1), (-1, -2, -1)):
+    seg = BRIDGE_WING_LEN_PX            # délka kolmé čárky (~0,3 mm)
+    off = BRIDGE_WING_OFFSET_PX         # offset čárky od osy cesty (~0,44 mm = "vně cesty")
+    # Pro každý konec mostu (start + end) nakresli 2 KOLMÉ čárky (nad+pod osou).
+    for end_idx, prev_idx in ((0, 1), (-1, -2)):
         ex, ey = curve_px[end_idx]
         px2, py2 = curve_px[prev_idx]
-        # tangenta směrem ven z mostu (od end ke konci linie). Sign=+1 pro start (předch.
-        # ve směru), sign=-1 pro end (předch. proti směru) → tangenta vždy směřuje ven.
-        tdx, tdy = (ex - px2) * sign, (ey - py2) * sign
+        # tangenta podél osy mostu (směr není důležitý — kolmé čárky jsou stejné z obou stran)
+        tdx, tdy = px2 - ex, py2 - ey
         tlen = math.hypot(tdx, tdy) or 1.0
-        tx, ty = tdx / tlen, tdy / tlen          # tangenta jednotková (ven)
-        nx_perp, ny_perp = -ty, tx                # normála (jedna strana)
-        # křídla: z koncového bodu (ex,ey) o `back` zpět do mostu, pak ± `out_px` na strany
-        bx = ex - back * tx
-        by = ey - back * ty
-        wing1 = (bx + out_px * nx_perp, by + out_px * ny_perp)
-        wing2 = (bx - out_px * nx_perp, by - out_px * ny_perp)
-        draw.line([wing1, (ex, ey)], fill=C_BLACK, width=width)
-        draw.line([wing2, (ex, ey)], fill=C_BLACK, width=width)
-        mdraw.line([wing1, (ex, ey)], fill=cls, width=width)
-        mdraw.line([wing2, (ex, ey)], fill=cls, width=width)
+        # normála (kolmá k tangentě) — jednotková
+        nx_perp, ny_perp = -tdy / tlen, tdx / tlen
+        # Kolmé čárky: od bodu (off od osy) k bodu (off+seg od osy), na obou stranách cesty
+        for side in (+1, -1):
+            base_x = ex + side * off * nx_perp              # bližší konec čárky (off od osy)
+            base_y = ey + side * off * ny_perp
+            tip_x = ex + side * (off + seg) * nx_perp       # vzdálenější konec (off+seg)
+            tip_y = ey + side * (off + seg) * ny_perp
+            draw.line([(base_x, base_y), (tip_x, tip_y)], fill=C_BLACK, width=width)
+            mdraw.line([(base_x, base_y), (tip_x, tip_y)], fill=cls, width=width)
 
 
 def _draw_footbridge_point(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,

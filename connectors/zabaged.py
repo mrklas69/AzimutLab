@@ -62,6 +62,7 @@ LAYER_IDS = {
     "Most": 73,
     "Lávka (linie)": 67,
     "Lávka (bod)": 66,
+    "Tunel": 74,                       # (Sez. 31, oprava po Censure) ISOM 512 = most i tunel
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -134,8 +135,8 @@ BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové
 BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů
 ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
 
-# Mosty a lávky (Sez. 31, real-půlka, liniová+bodová). Verify-against-source
-# (probe_bridges.py na Novině 50.76°N 14.96°E, severní Čechy / Lužické hory):
+# Mosty, tunely a lávky (Sez. 31, real-půlka, liniová+bodová). Verify-against-source
+# (probe_bridges.py + probe_tunnel.py na Novině 50.76°N 14.96°E, severní Čechy / Lužické hory):
 # `Most` (id 73, LineString) v 3×2 km výseku = 4 prvky (2 kamenné železniční viadukty
 # — Novinský 199 m, Malý 143 m + 2 silniční přemostění 4–6 m); atributy `premost_p` (co
 # se přemosťuje), `material_p` (železobeton / „neznámý" — kámen číselník nerozlišuje),
@@ -143,10 +144,16 @@ ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony 
 # `v_m_n_ter` (rozměry), `jmeno` 2/4 pojmenované. ISOM 512 (Bridge/tunnel) ale rozlišuje
 # jen most pro vozidla (512) vs pro pěší (512.2 Footbridge) — silniční/železniční je
 # stejná osa → vše → 512 (KISS, izomorfní s vrstvou → symbol).
+# `Tunel` (id 74, LineString) v 3×5 km výseku Novina = 4 prvky (Karlovský tunel I 314 m
+# + Karlovský II 48 + Kryštofský 48 + U myslivny 40, vše železniční trať 086). Template
+# description: „Bridges and tunnels are represented using the same basic symbols" → JEDEN
+# symbol pro obě kategorie (KISS). Tunel přidán Sez. 31 po nálezu uživatele („před Karlovem
+# vede dlouhým tunelem, ale mapujeme po povrchu"). MVP: stejný render jako most, trať
+# pod tunelem zůstává plně viditelná (TODO: dashed čárkovaná trať pod tunelem).
 # `Lávka` má v REST DVĚ vrstvy (linie+bod, ne jen jednu): `Lávka (linie)` (67) pro
 # definované linie pěších lávek, `Lávka (bod)` (66) pro bodovou variantu (typicky krátká
 # lávka). Obě → 512.2 Footbridge. Atributy chudé (jen ID + jmeno=None na probe).
-BRIDGE_LAYERS = ("Most",)                       # most pro vozidla/železnici → 512
+BRIDGE_LAYERS = ("Most", "Tunel")               # most i tunel → 512 (ISOM stejný symbol)
 FOOTBRIDGE_LINE_LAYERS = ("Lávka (linie)",)     # lávka jako linie → 512.2
 FOOTBRIDGE_POINT_LAYERS = ("Lávka (bod)",)      # lávka jako bod → 512.2
 
@@ -692,15 +699,16 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
 
 
 def map_bridge_to_isom(layer: str, props: dict) -> int:
-    """Mapuje ZABAGED most na ISOM 2017-2 liniový symbol (kód).
+    """Mapuje ZABAGED most/tunel na ISOM 2017-2 liniový symbol (kód).
 
-    `Most` → **512 Bridge/tunnel** (vždy; KISS, jako budovy→521 / vedení→510 / železnice→509).
+    `Most` i `Tunel` → **512 Bridge/tunnel** (vždy; KISS, jako budovy→521 / vedení→510 /
+    železnice→509). Template description: „Bridges and tunnels are represented using the
+    same basic symbols" → jeden ISOM symbol pro obě kategorie. Tunel přidán Sez. 31 po
+    nálezu uživatele (Karlovský tunel I 314 m železniční trati 086 v Novině chyběl).
     Verify Sez. 31 (probe_bridges.py na Novině): `Most` rozlišuje silniční (`silnice`) vs
-    železniční (`kod_zelez`), ale ISOM 512 nedělí podle tohoto — 512 je pro vozidla
-    (osobně/železničně), 512.2 Footbridge je pro pěší (= odlišná vrstva `Lávka`). Materiál
-    (`material_p`) nese železobeton vs „neznámý" (kámen se v číselníku nerozlišuje, kamenné
-    viadukty mají material_p='neznámý'), ale ISOM neřeší materiál vůbec. Vrací holý ISOM
-    kód (int) — render zná generator.py (žádný cyklický import)."""
+    železniční (`kod_zelez`), ale ISOM 512 nedělí podle tohoto. Materiál (`material_p`)
+    nese železobeton vs „neznámý" (kámen číselník nerozlišuje), ale ISOM neřeší materiál
+    vůbec. Vrací holý ISOM kód (int) — render zná generator.py (žádný cyklický import)."""
     return 512
 
 
