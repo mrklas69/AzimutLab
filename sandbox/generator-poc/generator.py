@@ -953,6 +953,53 @@ def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | 
     return len(geo_features)
 
 
+def _world_file_coeffs(bbox: tuple) -> tuple[float, float, float, float, float, float]:
+    """Koeficienty ESRI world filu (.pgw) pro rgb.png: pixel → world (S-JTSK metry).
+
+    Rastr je grid-north-up, osově zarovnaný se S-JTSK — mapování _grid_to_px ∘ _sjtsk_to_grid
+    je čistý scale+translate BEZ rotace (`x = xmin + px·A`, `y = ymax + py·E`), takže rotační
+    členy (B, D) jsou nulové. Reálné OB mapy mají v .pgw rotaci o grivaci (jsou magnetic-north-up);
+    generátor ji nemá (Sez. 37). World file odkazuje STŘED levého horního pixelu → +0,5 px offset.
+    Vrací (A, D, B, E, C, F) v pořadí řádků .pgw.
+    """
+    xmin, ymin, xmax, ymax = bbox
+    a = (xmax - xmin) / W          # m/px, osa x (kladné)
+    e = -(ymax - ymin) / H         # m/px, osa y (záporné: py roste dolů → y klesá; sever nahoře)
+    c = xmin + 0.5 * a             # x středu levého horního pixelu
+    f = ymax + 0.5 * e             # y středu levého horního pixelu
+    return a, 0.0, 0.0, e, c, f
+
+
+def _write_world_file(out_path: Path, bbox: tuple) -> None:
+    """Zapíše world file (.pgw) k rgb.png — 6 řádků A,D,B,E,C,F (viz _world_file_coeffs).
+
+    Jen reálný terén (S-JTSK georef); volá se po uložení rgb.png. Umožní georeferencovaný
+    overlay generátoru proti reálné mapě v GIS (holistický verify-against-source, Sez. 37).
+    """
+    a, d, b, e, c, f = _world_file_coeffs(bbox)
+    out_path.write_text(f"{a:.10f}\n{d:.10f}\n{b:.10f}\n{e:.10f}\n{c:.4f}\n{f:.4f}\n",
+                        encoding="utf-8")
+
+
+def _georef_meta(bbox: tuple, crs_epsg: int | None) -> dict:
+    """Georef blok pro meta.json: CRS, bbox výseku, world file, orientace severu.
+
+    Real (crs 5514) → S-JTSK bbox + .pgw odkaz + rozlišení; noise → lokální metry, bez world
+    filu. `north="grid"` dokumentuje, že rastr NENÍ rotován na magnetický sever (grivace
+    neaplikována, Sez. 37) — reálné OB mapy jsou magnetic-north-up (rotace nesená v jejich .pgw).
+    """
+    if crs_epsg is None:
+        return {"crs": "local_m", "bbox": [round(v, 2) for v in bbox], "north": "grid"}
+    return {
+        "crs": f"EPSG:{crs_epsg}",
+        "bbox_sjtsk": [round(v, 3) for v in bbox],
+        "pixel_size_m": round((bbox[2] - bbox[0]) / W, 4),
+        "world_file": "rgb.pgw",
+        "north": "grid",            # grivace neaplikována (Sez. 37) — viz _world_file_coeffs
+        "grivation_deg": None,
+    }
+
+
 def _polygon_area(pts: np.ndarray) -> float:
     """Plocha uzavřeného polygonu (shoelace), absolutní, v jednotkách vstupu na druhou.
 
@@ -2496,6 +2543,11 @@ def synthesize_pseudorealistic_map(
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     img.save(out / "rgb.png")
+    # world file (.pgw) pro rgb.png — georef rastru do S-JTSK (Sez. 37). Jen reálný terén
+    # (crs_epsg != None); u noise je výsek lokální (žádné reálné umístění). Grid-north-up, bez
+    # rotace o grivaci → overlay s reálnou (magnetic-north-up) mapou v GIS odhalí náklon i posun.
+    if crs_epsg is not None:
+        _write_world_file(out / "rgb.pgw", geo_bbox)
     # ortofoto podklad (verify proti realitě, Sez. 26): reálný letecký snímek TÉHOŽ výseku
     # (ČÚZK, sdílený build_bbox → pixel-zarovnané s rgb.png i s .omap objekty). Jen reálný
     # terén (potřebuje S-JTSK georef výseku); u noise se přeskočí. Rozlišení = plátno (W×H).
@@ -2596,6 +2648,9 @@ def synthesize_pseudorealistic_map(
                        point_symbols, water_info,
                        paved_info, building_info, powerlines_info, railways_info, rocks_info, bridges_info,
                        omap_info, layer_errors)
+    # georef výseku (Sez. 37): S-JTSK bbox + odkaz na .pgw + orientace severu. Injektováno zde
+    # (ne přes _build_meta) — _build_meta už má 26 parametrů (A1 monolit), nezhoršovat smell.
+    meta["georef"] = _georef_meta(geo_bbox, crs_epsg)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
     _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "
