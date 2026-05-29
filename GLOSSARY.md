@@ -11,7 +11,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   barvy, priority. Cílová sémantika projektu. Detail: `docs/kb/isom-issprom.md`. Pozor: Rev 6
   **přečíslovalo bodové symboly** (109/110/111 vs staré 2017 112/113/115 — Sez. 13). **Pozor 2: reálné
   české OB mapy (vč. Soví vrch v `resources/`) bývají v ISOM 2000 číslování** — kolize významů kódů s 2017-2
-  (526=budova vs 521, 508=nevýrazná pěšina vs 508 Narrow ride, 509=průsek vs 509 Railway; Sez. 37, [[domain-gap]]).
+  (526=budova vs 521=High stone wall, 508 Less distinct path↔Narrow ride, 509 Narrow ride↔Railway; Sez. 37,
+  [[domain-gap]]). Čísla se **recyklují** → **jediný tvrdý marker verze = `526` Building** (v 2017-2 neexistuje;
+  empirie Sez. 38: 4/6 map v `resources/` = ISOM 2000). Crosswalk hotový: [[crosswalk]]. Generátor deklaruje
+  verzi v `meta["isom"]` + `.omap` `<notes>` (ochrana proti záměně, Sez. 38).
 - **ISSprOM** — sesterská norma pro sprintové / městské mapy (2019-2). Stejný kód ≠
   stejný symbol napříč ISOM/ISSprOM (např. budovy black vs gray).
 - **Vrstevnice** (contour) — izolinie výškového pole, spojnice bodů stejné nadmořské
@@ -206,6 +209,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 ## Nástroje a knihovny
 
 - **OOM** (OpenOrienteering Mapper) — open-source editor OB map; cílový formát `.omap`.
+  Symbol set je **vyměnitelný `.omap` soubor** („Nahrát symboly ze souboru"), ne závislost na verzi SW.
+- **Crosswalk (`.crt`)** — cross-reference table mapující symboly mezi sadami (ISOM verze, ISSprOM, OSM).
+  Klíčový: `docs/kb/ISOM2000-ISOM 2017-2.crt` (OpenOrienteering, GPL) mapuje `<kód 2017-2>  <kód 2000>`.
+  Mapuje přes **sémantiku** (význam), ne kód-na-kód — čísla se mezi verzemi recyklují (viz [[ISOM]]).
+  Sez. 38.
 - **OCAD** — komerční SW pro tvorbu map; formát `.ocd`.
 - **Karttapullautin** — generátor OB podkladů z klasifikovaného LiDAR mračna (vrstevnice +
   vegetace). Stojí za projekty MapAnt. Survey: `RESEARCH.md`.

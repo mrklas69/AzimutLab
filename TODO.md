@@ -21,10 +21,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
 - [ ] *(odloženo, noise-půlka)* Hydrologické jádro z flow accumulation (D8, §9): toky (§4.8) → prameny (§4.10) → jezera/rybníky (sink-fill deprese) → bažiny. **Sez. 17: voda realizována reálně (ZABAGED), D8 = procedurální protějšek do budoucna (nemíchat osy).**
 - [ ] *(drobnost, vylepšení form line Sez. 29)* **souvislé smyčky** — form line jsou teď krátké úseky/obloučky (per-pixel maska). ISOM-věrnější by byly souvislé smyčky kolem lokálních kopečků/depresí (jiný přístup než maska). MVP uzavřen (uživatel), tohle až kdyby vadilo. Prahy `FORMLINE_*` jsou laděné na NL — ověřit i na SV/LS.
 - [ ] *(drobnost, nález Sez. 30)* **`Skupina_balvanů__linie_` → 208 Boulder field** + **`Sesuv_půdy__suť` → 210 Stony ground** — odložené vrstvy. Na Hrubé Skále 3 / 0 prvků (marginální). 208 = buffer linie → plocha s ISOM area pattern (trojúhelníky). 210 = verify v lokalitě s sutěmi (Jeseníky / Krkonoše Sněžka). Když bude, doplnit `BOULDER_FIELD_LINE_LAYERS` / `STONY_GROUND_LAYERS` v zabaged.py.
-- [!] *(strategie, nález Sez. 37)* **ISOM 2000 ↔ 2017-2 domain gap** — reálná Soví vrch (terénní mapování
-  uživatele) je v **ISOM 2000** číslování, generátor v **2017-2** → kolize významů (526=budova, 508/509 posun,
-  112/113/115). Pokud cílový korpus reálných map (cesta B, UC5) je převážně ISOM2000, syntetika 2017-2 = systematický
-  posun kódů. **%THINK kandidát PŘED kódem** (verify: kolik map v které verzi). Detail IDEAS „ISOM 2000 ↔ 2017-2".
+- [~] *(strategie, nález Sez. 37; %THINK + částečně adresováno Sez. 38)* **ISOM 2000 ↔ 2017-2 domain gap.**
+  **HOTOVO Sez. 38:** (a) ověřeno empiricky **4/6 reálných map v `resources/` = ISOM 2000** (tvrdý marker =
+  `526` Building; `521`/`112`/`113` se recyklují → Sez. 37 detekce byla kontaminovaná, oprava); (b) **crosswalk
+  nalezen hotový** — OOM `docs/kb/ISOM2000-ISOM 2017-2.crt` (GPL) → nevyrábět; (c) **deklarace verze ve výstupu**
+  (`meta["isom"]` + template `<notes>` s varováním) → naše mapy se hlásí k 2017-2. **ZBÝVÁ:** pravá otázka —
+  liší se verze i VIZUÁLNĚ (render budov/cest/tečkování), nebo jen čísly (→ crosswalk stačí)? Pak rozhodnout
+  směr (crosswalk vrstva / ISOM2000 výstupní režim / nechat na trénink). Detail IDEAS „ISOM 2000 ↔ 2017-2".
 - [ ] *(verify nástroj, Sez. 37)* **`compare_real_vs_gen.py` zatím jen Soví vrch** (jediná lokalita s reálnou
   mapou ⋂ `DEV_LOCATIONS`). STAT 2 je hrubá (barevná, 2,18 m/px). Prohloubení: **vektor-na-vektor přes crosswalk**
   (ověřit volbu ISOM symbolu, ne jen placement barvy) — recall mezery (voda 40 %, černá 49 %) rozpadnout po vrstvách.

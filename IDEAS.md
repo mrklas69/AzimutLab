@@ -111,15 +111,29 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   ne přílepek (foundations). Spouštěč: až bude ISOM jádro pevné a vznikne potřeba sprintu.
   Pozn.: Lidové sady (LS) zatím generujeme jako **classic ISOM** (městsko-lesní výsek — natrénuje
   i hustou zástavbu); ISSprOM verze je tato budoucí položka.
-- **ISOM 2000 ↔ 2017-2 domain gap (Sez. 37, %THINK kandidát).** Strojové porovnání generátoru s živě
-  mapovanou Soví vrch odhalilo: **reálná mapa je v ISOM 2000 číslování, generátor v ISOM 2017-2.** Posun
-  není kosmetický — kolize významů: `526`=budova (gen 521), `508`=nevýrazná pěšina (gen 508 = lesní průsek!),
-  `509`=průsek (gen 509 = železnice!), `112/113/115`=kupky/prohlubně (gen 109/110/111). Pokud jsou **cílové
-  reálné mapy** (korpus pro UC5 fine-tuning, cesta B) převážně v ISOM 2000, syntetika v 2017-2 zavádí
-  systematický posun kódů → domain gap na úrovni sémantiky symbolů. **Možnosti:** (a) crosswalk vrstva
-  (mapování 2000↔2017 v obou směrech), (b) volitelný ISOM2000 výstupní režim (jiný template + přemapování),
-  (c) nechat 2017-2 a crosswalk řešit až při tréninku. **Rozhodnout, kolik reálných map je v které verzi**
-  (verify napříč korpusem) — než sáhnout na kód. Nezaměňovat s [[issprom]] (jiná disciplína, ne jen číslování).
+- **ISOM 2000 ↔ 2017-2 domain gap (Sez. 37 nález, %THINK + částečně adresováno Sez. 38).** Strojové
+  porovnání generátoru s živě mapovanou Soví vrch odhalilo: **reálná mapa je v ISOM 2000 číslování, generátor
+  v ISOM 2017-2.** Posun není kosmetický — čísla se **recyklují s jiným významem**: `526`=budova v 2000 (gen
+  2017-2 `521`), `508`=nevýrazná pěšina v 2000 (gen 508 = Narrow ride), `509`=Narrow ride v 2000 (gen 509 =
+  Railway), `515`=Railway v 2000. Pokud je **cílový korpus reálných map** (UC5 fine-tuning, cesta B) převážně
+  ISOM 2000, syntetika 2017-2 zavádí systematický posun → domain gap na úrovni sémantiky symbolů.
+  **Ověřeno/uděláno Sez. 38** (verify-against-source ze staženého ISOM 2000 PDF spec + OOM `.crt`):
+  - **Detekce verze Sez. 37 byla kontaminovaná** — bral jsem `521=budova` jako 2017 marker, jenže v ISOM 2000
+    je `521 = High stone wall`; `112/113` nejsou exkluzivní 2000 (v 2017-2 = Pit/Broken ground). **Jediný tvrdý
+    diskriminátor = `526` Building** (v 2017-2 neexistuje). Empirie použitých objektů: **4/6 map v `resources/`
+    = ISOM 2000** (jen Blatná nejednoznačná, SampleMap bez budov).
+  - **Crosswalk NEVYRÁBĚT — existuje hotový:** OOM `docs/kb/ISOM2000-ISOM 2017-2.crt` (168 ř., GPL, Kai Pastor),
+    formát `<kód 2017-2>  <kód 2000>`; nezávisle potvrdil ruční crosswalk ze spec. Mapuje přes sémantiku, ne
+    kód-na-kód naivně (čísla se recyklují → naivní mapování by prohodilo zeď↔budovu).
+  - **Deklarace verze ve výstupu hotová** — `meta["isom"]` + template `<notes>` (varování + odkaz na `.crt`)
+    → naše mapy se hlásí k 2017-2, konflikt „hádání z čísel" u nich eliminován.
+  - **Symbol set = vyměnitelný `.omap`** (postřeh uživatele „Nahrát symboly ze souboru") — verze není závislost
+    na verzi OOM. Náš `template_classic.omap` == oficiální OOM ISOM 2017-2 1:10000 set (line_width ověřeno).
+  - **PRAVÁ OTEVŘENÁ OTÁZKA (Sez. 39):** je gap jen v ČÍSLECH (→ crosswalk řeší, triviálně), nebo i ve
+    VIZUÁLNÍM vzhledu renderu (budovy/cesty/tečkování — to crosswalk NEŘEŠÍ, model UC5 čte pixely)? Empiricky
+    ověřitelné: `resources/` (2000) vs `template_classic` (2017-2). **Až pak** rozhodnout směr: (a) crosswalk
+    vrstva nad výstupem, (b) ISOM2000 výstupní režim (2. set + přemapování kódů přes `.crt`), (c) nechat na
+    trénink. Nezaměňovat s [[issprom]] (jiná disciplína, ne jen číslování).
 - **Grivace v generátoru — `--grivation` (Sez. 37, nápad uživatele).** Generátor renderuje grid-north-up
   (S-JTSK osy); reálné OB mapy jsou **magnetic-north-up** (georef nese rotaci o grivaci = konvergence +
   magnetická deklinace; SV −11,4°). Kotva už v kódu (`meta.georef.north="grid"`, `grivation_deg:null`).

@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 38 (2026-05-29) — %THINK ISOM 2000↔2017-2 → deklarace verze ve výstupu
+- [x] **Deklarace ISOM verze v každém výstupu** (ochrana proti záměně 2000↔2017-2). `generator.py`:
+      helper `_isom_meta()` (izomorfní s `_georef_meta`, injektován mimo `_build_meta` kvůli A1) →
+      `meta["isom"] = {version:"2017-2", scale:10000, symbol_set}`. `template_classic.omap` `<notes>`:
+      deklarace verze + **varování před číselným konfliktem** (521=Building ne High stone wall; Narrow
+      ride 509→508; Railway 515→509) + odkaz na crosswalk `.crt` → **dědí se do každého `.omap`**.
+- [x] **Template NEvyměněn za cizí soubor — verify dokázal, že nemá smysl.** Náš `template_classic.omap`
+      je **100% geometricky identický s oficiálním OOM ISOM 2017-2 (1:10000) setem** (všechny `line_width`
+      sedí; stažený 15000 set lišil ×1,5 = jen měřítko). Výměna by rozbila injekci objektů/ortofota
+      (`<objects count="0">` cizí formát) + zmenšila symboly 1,5×. Lekce „měň jen s důkazem" (CLAUDE.md).
+- [x] **Reference do KB** (CLAUDE.md: KB nese licenci): `docs/kb/ISOM2000-ISOM 2017-2.crt` (autoritativní
+      crosswalk, GPL, OpenOrienteering/Kai Pastor) + `docs/kb/isom-2000-spec.pdf` (IOF, withdrawn; archiv
+      ELTE). Crosswalk **nezávisle potvrdil** ruční crosswalk ze spec (3 jisté páry: Building 521↔526,
+      Narrow ride 508↔509, Railway 509↔515).
+- [x] **%THINK destilát + korekce Sez. 37.** Jediný tvrdý diskriminátor verze = `526` Building (v 2017-2
+      neexistuje); `521`/`112`/`113` se recyklují s jiným významem → Sez. 37 marker byl kontaminovaný.
+      Empirie použitých objektů: **4/6 reálných map v `resources/` = ISOM 2000.** Pravá otevřená osa
+      (Sez. 39): liší se verze i VIZUÁLNĚ (render), nebo jen čísly (→ crosswalk stačí)?
+- [x] **Verify:** proc baseline 65 drží (aditivní změna); `isom` blok 2017-2/10000 ve všech 5 lokalitách
+      i v noise; 5 lokalit přegenerováno (počty drží: SV 46/NL 119/LS 20/HS 16/NV 44 průseků). Vizuál
+      záměrně beze změny (deklarace textová).
+
 ## Sezení 37 (2026-05-29) — Georef výstupu (rgb.pgw + meta) + strojové porovnání s živou mapou
 - [x] **Emit `rgb.pgw` + georef do `meta.json`** (enabler). `generator.py`: 3 helpery u `_write_contours_geojson`
       — `_world_file_coeffs` (pixel→S-JTSK = čistý scale+translate → rotační členy 0, +0,5 px na střed UL pixelu),

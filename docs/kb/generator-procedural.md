@@ -415,7 +415,8 @@ funkce generate(seed, params):
      (jen `--buildings real`, Sez. 18). Masky `mask_veg/rock` byly se svými vrstvami zahozeny
      (Sez. 11, viz §4); `mask_water` se vrátila Sez. 17 jako reálná (ZABAGED), ne procedurální,
    - `meta.json` — seed, parametry, seznam bodových značek se souřadnicemi a typem
-     (hotová detekční anotace ve stylu COCO/YOLO).
+     (hotová detekční anotace ve stylu COCO/YOLO); blok `georef` (S-JTSK bbox + `.pgw`, Sez. 37)
+     a `isom` (deklarace verze symbolů `2017-2` + měřítko, Sez. 38 — ochrana proti záměně s ISOM 2000).
 2. **Objem a diverzita.** Kombinatorika 5 parametrů × seed ⇒ prakticky neomezený
    dataset. Pro pokrytí stylů varíruj i paletu (drobné posuny odstínů), tloušťky
    čar a ekvidistanci.
