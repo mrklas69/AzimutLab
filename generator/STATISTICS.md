@@ -39,20 +39,28 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **508** | Narrow ride | 46 | 119 | 20 | 16 | 44 |
 | **509** | Railway | · | · | 40 | 3 | 5 |
 | **510** | Power line | 32 | 3 | 19 | 41 | 10 |
-| **521** | Building | 1170 | 133 | 9123 | 1445 | 331 |
+| **521** | Building | 1171 | 133 | 9124 | 1449 | 331 |
+| **523** | Ruin | 8 | · | 7 | 5 | · |
 | **512** | Bridge/tunnel | 17 | 13 | 67 | 11 | 21 |
 | **512.2** | Footbridge | 7 | 5 | 11 | 2 | 5 |
-| **Σ** | Celkem objektů | 5578 | 1724 | 34813 | 6845 | 2100 |
+| **524** | High tower | 6 | 1 | 30 | 9 | 1 |
+| **526** | Cairn | 4 | 13 | 21 | 9 | · |
+| **530** | Prominent man-made feature | 33 | 8 | 53 | 50 | 5 |
+| **417** | Prominent large tree | 38 | 1 | 12 | 9 | 1 |
+| **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
+| **513** | Wall | 16 | 8 | 136 | 17 | 10 |
+| **416** | Distinct vegetation boundary | 83 | 4 | 47 | 121 | 18 |
+| **Σ** | Celkem objektů | 5838 | 1794 | 35513 | 7446 | 2240 |
 
-Z 27 sledovaných ISOM symbolů reálně používáme **27** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 35 sledovaných ISOM symbolů reálně používáme **35** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-29 18:47:37
-- **NL** (`Nová Louka/`): 2026-05-29 18:47:57
-- **LS** (`Lidové sady/`): 2026-05-29 18:45:05
-- **HS** (`Hrubá Skála/`): 2026-05-29 18:48:20
-- **NV** (`Novina/`): 2026-05-29 18:48:36
+- **SV** (`Soví vrch/`): 2026-05-29 22:18:52
+- **NL** (`Nová Louka/`): 2026-05-29 22:24:35
+- **LS** (`Lidové sady/`): 2026-05-29 22:26:16
+- **HS** (`Hrubá Skála/`): 2026-05-29 22:27:09
+- **NV** (`Novina/`): 2026-05-29 22:27:45
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-29 18:49:17.*
+*Tabulka regenerována `stats.py` v 2026-05-29 22:28:17.*

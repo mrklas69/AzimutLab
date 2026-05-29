@@ -59,13 +59,15 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   výškopis, ArcGIS ImageServer),
   `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
   železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41 +
-  areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42),
+  areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42 +
+  **Sez. 43 systematický audit katalogu: zámek/hrad → 521, zřícenina → 523, věž/vodojem/silo/… → 524, mohyla → 526,
+  kříž → 530, strom → 417, sráz → 104, zeď/hradba → 513, liniová vegetace → 416** — `--landmarks`/`--linefeatures`),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
   zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
   paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
-  --surfaces real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
+  --surfaces/--landmarks/--linefeatures real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

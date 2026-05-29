@@ -84,7 +84,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Železniční_vlečka` | linie | 509 Railway | ✓ | **POUŽITO Sez. 28** (id 76; u nádraží svazek kolejí) |
 | `Lanová_dráha__lyžařský_vlek` | linie | 510 Power line, cableway or skilift | ○ | hory / lyž. areály |
 | `Stožár_lanové_dráhy` | bod | 510 (carrying mast) | ○ | stožár lanovky |
-| `Tramvajová_dráha` | linie | (509 Railway) | ✗ | urbánní |
+| `Tramvajová_dráha` | linie | 509 Railway | ✓ | **POUŽITO Sez. 31** (`--railways`, id 71; oprava Sez. 28 vynechání — tramvajová točna LS chyběla; 509 nerozlišuje tramvaj od železnice). LS 25 |
 | `Metro` | linie | — | ✗ | podzemní / urbánní |
 | `Kolejiště` | plocha | 501 Paved area | ✓ | **POUŽITO Sez. 28** (`--paved`, id 122; „10 kolejí" = plocha, ne linie; do kolejiště se nevstupuje → 501 s obrysem) |
 | `Areál_železniční_stanice__zastávky` | plocha | — | ✗ | urbánní |
@@ -147,7 +147,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Vstup_do_jeskyně` | bod | 203.2 Cave | ○ | jeskyně = OB objekt |
 | `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom (skalní stěna) |
 | `Ústí_šachty__štoly` | bod | (203.2 Cave) | ○ | důlní ústí (umělé) |
-| `Stupeň__sráz` | linie | 104 Earth bank | ○ | terénní stupeň/sráz (zemní) |
+| `Stupeň__sráz` | linie | 104 Earth bank | ✓ | **Sez. 43** (`--linefeatures`, id 95 → 104 plná linie + jednostranné ticky; zemní sráz, NE skalní 201). **Σ981 = nejčastější dosud netáhnutá**. SV 71 / LS 393 / HS 377 |
 | `Rokle__výmol` | linie | 107 Erosion gully / 108 | ○ | erozní rýha |
 | `Kótovaný_bod` | bod | 603.0 Spot height | ○ | výšková kóta |
 | `Pata_terénního_útvaru` | linie | — | ✗ | pomocná linie (pata svahu), ne ISOM symbol |
@@ -166,7 +166,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Trvalý_travní_porost` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, louka → žlutá); odstín 401 vs 403 = gate nuance, KISS 401 |
 | `Udržovaná_zeleň` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, park → žlutá) |
 | `Ovocný_sad__zahrada` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 413 Orchard (zelené tečky) = druhá vlna |
-| `Liniová_vegetace` | linie | 416 Distinct vegetation boundary | ○ | mez / živý plot / řada stromů |
+| `Liniová_vegetace` | linie | 416 Distinct vegetation boundary | ✓ | **Sez. 43** (`--linefeatures`, id 15 → 416 zelená čárkovaná; `typveg`=stromořadí/mez/živý plot). Liniový orient. prvek, NE plošná průchodnost → mimo vegetace gate. SV 83 / HS 121 (Σ273) |
 | `Vinice` | plocha | (414 Vineyard) | ✗ | vzácné v OB lese |
 | `Chmelnice` | plocha | (414 obdoba) | ✗ | vzácné |
 | `Hranice_užívání_půdy` | linie | (415 cultivation boundary) | ✗ | administrativní hranice využití |
@@ -179,43 +179,43 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
 | `Budova_jednotlivá_nebo_blok_budov__plocha_` | plocha | 521 Building | ✓ | plošná budova (vč. vodojemu zemního) |
-| `Rozvalina__zřícenina` | plocha | 523 Ruin | ◐ | zřícenina = OB objekt |
-| `Budova_jednotlivá_nebo_blok_budov__bod_` | bod | (521) | ✗ | v lesních výsecích prázdná (Sez. 18) |
+| `Rozvalina__zřícenina` | plocha | 523 Ruin | ✓ | **Sez. 43** (`--buildings`, id 103; čárkovaný obrys bez výplně; `podtypob`=rozvalina). Milštejn ad. SV 8 / LS 7 / HS 5 (Σ20) |
+| `Budova_jednotlivá_nebo_blok_budov__bod_` | bod | (521) | ✗ | v lesních výsecích prázdná (Sez. 18; probe Sez. 43: 0 ve všech 5) |
 | `Kůlna__skleník__fóliovník__přístřešek` | plocha | 521 Building | ✓ | **Sez. 42** (audit; přidáno do `BUILDING_AREA_LAYERS` → 521, drobné stavby; LS budovy 8273→9123) |
-| `Hrad` | plocha | 521 Building | ○ | historická stavba |
-| `Zámek` | plocha | 521 Building | ○ | historická stavba |
-| `Věžovitá_stavba` | plocha | 524 High tower | ○ | věžovitá stavba (plošná) |
-| `Tribuna` | plocha | — | ✗ | stadion, urbánní |
-| `Stavební_objekt_GIA` | plocha | — | ✗ | technický |
+| `Hrad` | plocha | 521 Building | ✓ | **Sez. 43** (`--buildings`, id 101 → 521 jako budova; HS 3) |
+| `Zámek` | plocha | 521 Building | ✓ | **Sez. 43** (`--buildings`, id 102 → 521; **domov mládeže Krompach na SV** = bývalý zámek, 1882 m²; Σ3) |
+| `Věžovitá_stavba` | plocha | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 100; footprint ~3 m² → centroid → 524 bod, ne 521; Σ9) |
+| `Tribuna` | plocha | — | ✗ | stadion, urbánní (probe Sez. 43: LS 2, jinde 0) |
+| `Stavební_objekt_GIA` | plocha | — | ✗ | technický overlay vlastnictví (IČO; Σ813 ale ne mapový obsah) |
 | `Stavební_objekt_zakrytý` | plocha | — | ✗ | technický |
-| `Skládka` | plocha | — | ✗ | skládka |
+| `Skládka` | plocha | — | ✗ | skládka (probe Sez. 43: 0 ve všech 5) |
 | `Úložné_místo` | plocha | — | ✗ | technický |
-| `Areál_účelové_zástavby` | plocha | — | ✗ | urbánní areál |
-| `Heliport` | plocha | — | ✗ | speciál |
+| `Areál_účelové_zástavby` | plocha | 520 / 501 | ✓ | **Sez. 42** — viz sekce 8 (id 114, `typzast_k`); duplikátní řádek (zde dříve mylně ✗ „urbánní") sjednocen Sez. 43 |
+| `Heliport` | plocha | — | ✗ | speciál (probe Sez. 43: LS 1) |
 
 ## 10. Bodové umělé / orientační prvky (ISOM 52x–53x, 417)
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Kříž__sloup_kulturního_významu` | bod | 530/531 Prominent man-made feature | ◐ | boží muka / kříž = klasický OB objekt |
-| `Mohyla__pomník__náhrobek` | bod | 526 Cairn / 530 Prom. man-made | ◐ | mohyla / pomník = OB objekt |
+| `Kříž__sloup_kulturního_významu` | bod | 530 Prominent man-made feature | ✓ | **Sez. 43** (`--landmarks`, id 24 → 530 ring; boží muka/kříž). SV 33 / LS 53 / HS 50 (Σ149) |
+| `Mohyla__pomník__náhrobek` | bod | 526 Cairn | ✓ | **Sez. 43** (`--landmarks`, id 25 → 526; mohyla/pomník/náhrobek). Σ47 |
 | `Bunkr` | bod | asset (řopík) | ✓ | **použito Sez. 27** — LO37 → asset `ropik_10000.omap`, orientace k st. hranici (NE prostý 521) |
-| `Věž__věžovitá_nástavba` | bod | 524 High tower | ◐ | rozhledna / věž = výrazný OB bod |
-| `Vodojem_věžový` | bod | 524 High tower | ○ | vodárenská věž (zemní vodojem → 521, Sez. 18) |
-| `Větrný_mlýn` | bod | 524 High tower / 526 | ○ | historický objekt |
-| `Větrný_motor` | bod | 524 High tower | ○ | větrná elektrárna (velký orientační bod) |
-| `Silo` | bod | 524 High tower / 526 | ○ | silo |
-| `Těžní_věž` | bod | 524 High tower | ○ | důlní věž |
-| `Tovární_komín` | bod | (524 / 526) | ✗ | průmysl |
-| `Lyžařský_můstek` | linie | — | ✗ | speciál |
+| `Věž__věžovitá_nástavba` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 26 → 524; `podtypob`=věž kostela/kaple). SV 5 / LS 23 (Σ37) |
+| `Vodojem_věžový` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 27 → 524; **0 v 5 výsecích**, mapováno pro úplnost) |
+| `Větrný_mlýn` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 32 → 524; **0 v 5 výsecích**, pro úplnost) |
+| `Větrný_motor` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 33 → 524; **0 v 5** kromě LS 1, pro úplnost) |
+| `Silo` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 28 → 524; **0 v 5 výsecích**, pro úplnost) |
+| `Těžní_věž` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 30 → 524; **0 v 5 výsecích**, pro úplnost) |
+| `Tovární_komín` | bod | (524 / 526) | ○ | průmysl (probe Sez. 43: LS 12, SV 1; zvážit → 524 druhá vlna) |
+| `Lyžařský_můstek` | linie | — | ✗ | speciál (probe Sez. 43: LS 1, jinde 0) |
 
 ## 11. Bariéry a ohrazení (ISOM 105, 513–518)
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Zeď` | linie | 513 Wall | ◐ | zeď = OB liniový objekt |
-| `Hradba__val__bašta__opevnění` | linie | 105 Earth wall / 513 Wall | ○ | historické opevnění / val |
-| `Zábrana` | bod | (519 Crossing point) | ○ | závora / zábrana |
+| `Zeď` | linie | 513 Wall | ✓ | **Sez. 43** (`--linefeatures`, id 39 → 513 plná linie; `typzed` null → KISS). SV 16 / LS 136 (Σ172) |
+| `Hradba__val__bašta__opevnění` | linie | 513 Wall | ✓ | **Sez. 43** (`--linefeatures`, id 38 → 513; kamenné historické opevnění). HS 15 (zřícenina hradu) |
+| `Zábrana` | bod | (519 Crossing point) | ○ | závora / zábrana (probe Sez. 43: Σ104, LS 66 — zvážit → 519 druhá vlna) |
 
 ## 12. Hranice, chráněná území a POI (administrativa — vše ✗)
 
@@ -263,24 +263,32 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | ~27 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště (28) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land louka/park/pole/sad→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály účelové zástavby 114→520/501, kůlny 105→521 (Sez. 42, audit land-cover)** + **RÚIAN privátní pozemky→520 (Sez. 42, mimo ZABAGED — viz `ruian.py`)** |
-| ◐ kandidát | ~10 | **viz akční seznam níže** (+ `Ostatní_plocha_v_sídlech` drobná mezera) |
-| ○ možné | ~30 | okrajově relevantní (vzácné / nízká priorita) |
-| ✗ mimo doménu | ~100 | administrativa, POI, urbánní, vegetace gate |
+| ✓ použito | ~40 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513, liniová vegetace→416** |
+| ◐ kandidát | ~6 | bažina 308, pramen 312, jeskyně 203.2, hráz 528, nádrž 311, lom 201 (viz akční seznam) |
+| ○ možné | ~20 | okrajově relevantní (brod 519, podjezd 519, lanovka 510, vodopád 313, komín 524, zábrana 519, …) |
+| ✗ mimo doménu | ~80 | administrativa, POI, geodetické body, urbánní, vegetace gate, pomocné kreslicí linie |
 
-### Akční seznam kandidátů (◐) — priorita doplnění do konektoru
+> **Verify-against-source data-driven (Sez. 43):** výskyt VŠECH 149 vrstev změřen napříč 5
+> DEV_LOCATIONS (`returnCountOnly`, `temp/probe_all_layers.py`) → stav každého řádku se opírá
+> o reálný počet, ne odhad od stolu. Censure! (potřetí) „chybí X → to nemapujeme": tabulka teď
+> garantuje, že u KAŽDÉ vrstvy s ISOM ekvivalentem je buď implementace, NEBO tvrdý doložený důvod
+> (vegetace gate / administrativa / 0 výskytů v 5 reprezentativních výsecích). Paměť `geoportal-data-completeness`.
 
-Seřazeno podle vizuální návratnosti pro OB lesní mapu (✓ `Elektrické_vedení` hotovo Sez. 24):
+### Akční seznam kandidátů (◐) — zbývá doplnit (priorita dle výskytu)
 
-1. **`Most` → 512 Bridge/tunnel** — linie; spolu s `Lávka__linie_` → 512.2 Footbridge.
-2. ~~`Osamělý_balvan…` → 204 + `Skupina_balvanů__bod_` → 207 + `Skalní_útvary` → 206~~ (HOTOVO Sez. 30, `--rocks`; KISS vrstva → jeden symbol).
-3. ~~`Lesní průsek` → 508 Narrow ride~~ (HOTOVO Sez. 36, `--rides`; KISS vždy 508, bez runnability pozadí).
-4. **`Kříž__sloup…` → 530/531** + **`Mohyla__pomník…` → 526/530** + ~~`Bunkr`~~ (HOTOVO Sez. 27 = asset řopík) + **`Věž…` → 524** — bodové orientační prvky.
-5. **`Zeď` → 513 Wall** — liniový objekt.
-6. **`Bažina__močál` → 308 Marsh** — pokud se vrátíme k mokřadům.
-7. **`Zdroj_podzemních_vod` → 312 Spring** — pramen (ve výsecích vzácný).
-8. ~~`Železniční_trať` → 509 Railway~~ (HOTOVO Sez. 28, `--railways`; `_vlečka` taky).
+1. **`Bažina__močál` → 308 Marsh** (id 131, Σ31; NV 15 / HS 10) — crossable marsh, klasický OB prvek.
+2. **`Zdroj_podzemních_vod` → 312 Spring** (id 19, Σ65) — pramen.
+3. **`Vstup_do_jeskyně`/`Ústí_šachty` → 203.2 Cave** (id 11/34, Σ8+1).
+4. **`Přehradní_hráz__jez` → 528 Prominent line feature** (id 22, Σ13).
+5. **`Nadzemní_zásobní_nádrž` → 311 Well/tank** (id 108, Σ8) + **`Povrchová_těžba__lom` → 201 Impassable cliff** (id 118, Σ1).
+6. **`Rašeliniště__plocha_` → 308** (id 18, NL 8) — spolu s bažinou.
+7. *(○ druhá vlna)* brod/podjezd → 519, lanovka+stožár → 510, vodopád → 313, kótovaný bod (viz níže).
 
-> Každý kandidát = nová vrstva v `PATH_LAYERS` / nová `*_LAYERS` + mapovací funkce + render
-> styl + verify-against-source na reálném výseku (atributy → ISOM před renderem). Po ověření
-> přesunout řádek na ✓ a doplnit do `data-sources.md`.
+**Kótovaný bod (id 9, Σ353) — SKIP s odůvodněním (Sez. 43):** vrstva nese JEN atribut `vyska`
+(nadm. výška), žádný typ ani fyzickou značku → je to **virtuální výškopisný bod**, ne fyzický objekt
+v krajině (na rozdíl od šrafované nivelační značky). OB mapy výškové kóty zpravidla nekreslí (zahltily
+by mapu čísly). ISOM 603 Spot height by byl technicky možný, ale obsahově nevhodný → vědomě nekreslíme.
+(Geodetické body bodového pole 6/7/8 jsou naopak fyzické čepy, ale = geodetická infrastruktura, ✗.)
+
+> Každý kandidát = nová vrstva v `*_LAYERS` + mapovací funkce + render styl + verify-against-source
+> na reálném výseku (atributy → ISOM před renderem). Po ověření přesunout řádek na ✓ a doplnit do `data-sources.md`.

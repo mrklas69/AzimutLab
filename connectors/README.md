@@ -8,7 +8,7 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | Modul | Zdroj | Co vrací | Protokol |
 |-------|-------|----------|----------|
 | `dmr.py` | ČÚZK DMR 5G | výškopis (float32 grid) | ArcGIS ImageServer `exportImage` |
-| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) + areály účelové zástavby + kůlny (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
+| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) + areály účelové zástavby + kůlny + **zámek/hrad/zřícenina + bodové orient. prvky (kříž/mohyla/věž/strom) + liniové (sráz/zeď/vegetace), Sez. 43** (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
 | `ruian.py` | ČÚZK RÚIAN (katastr) | katastrální parcely podle druhu pozemku → privátní pozemky (zahrada+zastavěná) → olivová 520 (GeoJSON) | ArcGIS REST `RUIAN/MapServer/5/query` (Sez. 42) |
 | `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
 | `arcgis.py` | — (sdílený základ) | nízkoúrovňový ArcGIS REST transport: paging+cache+GeoJSON parsery (DRY pro `zabaged`+`ruian`, Sez. 42) | — |

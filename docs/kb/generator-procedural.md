@@ -321,6 +321,24 @@ pokryvu (Sez. 42): SV 2140 / NL 174 / LS 20159 / HS 2268 / NV 603. **Verify Sez.
 otevřený prostor gen **0 % → 35.8 %** (real 34.7 %); Sez. 42 přidalo privátní pozemky + areály (LS centrum souvisle
 olivové s žlutými parky = test uživatele „střed Liberce olivový s výjimkou parků").
 
+### 4.9k Bodové orientační prvky (real-půlka, Sez. 43)
+**✅ `--landmarks real`** vezme bodové ZABAGED vrstvy → ISOM 52x-53x + 417 (KISS vrstva → jeden symbol,
+`zabaged.map_landmark_to_isom`): kříž/sloup kult. významu → **530** (ring), mohyla/pomník/náhrobek → **526 Cairn**,
+věž/věžovitá nástavba + vodojem věžový + silo + těžní věž + větrný mlýn/motor + (plošná) věžovitá stavba (centroid)
+→ **524 High tower**, významný/osamělý strom → **417 Prominent large tree** (zelený kroužek, mimo vegetace gate —
+liniový/bodový orient. prvek, ne plošná průchodnost). Render `_draw_landmark` (524 kříž+tečka / 526 kroužek+tečka /
+530 kroužek / 417 zelený kroužek); multi-class `mask_landmarks.png`. Bodové objekty type 0 v .omap. Vyžaduje
+`--terrain real`. Výskyt: SV 81 / LS ~99 (kříž 33/strom 38/věž 6/cairn 4 na SV). Nulové vrstvy (vodojem/silo/…)
+mapovány pro úplnost (jinde se vyskytnou — princip „nic užitečného nevypadne").
+
+### 4.9l Liniové orientační prvky (real-půlka, Sez. 43)
+**✅ `--linefeatures real`** vezme liniové ZABAGED vrstvy → ISOM (KISS, `zabaged.map_line_feature_to_isom`):
+stupeň/sráz → **104 Earth bank** (plná černá linie + jednostranné kolmé ticky; orientace na nižší stranu svahu =
+TODO, chce DMR sklon; Σ981 = nejčastější dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná),
+liniová vegetace (stromořadí/mez/živý plot) → **416 Distinct vegetation boundary** (zelená čárkovaná). Render
+`_draw_line_feature` (wrapper nad `_draw_line_symbol` + ticky pro 104); multi-class `mask_linefeatures.png`. Liniové
+objekty v .omap (OOM kreslí symbol z definice). Vyžaduje `--terrain real`. Výskyt SV: sráz 71 / vegetace 83 / zeď 16.
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 

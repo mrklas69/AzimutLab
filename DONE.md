@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 43 (2026-05-29) — Systematický audit katalogu: 14 chybějících ZABAGED vrstev → ISOM
+- [x] **Root cause domova mládeže (verify-against-source).** Akutní nález uživatele: budova domova mládeže
+      (SV/Krompach) chybí. Probe → ČÚZK vede **zámek** ve VLASTNÍ vrstvě `Zámek` (id 102), netáhli jsme ji (jen
+      `Budova_..._plocha_` 99); domov mládeže = bývalý zámek. Probe historických staveb na SV odhalil i **8 zřícenin
+      (Milštejn)**, 1 věžovitou stavbu, 5 věží.
+- [x] **Censure! potřetí → data-driven audit celého katalogu.** Opakovaný antipattern „chybí X → to nemapujeme"
+      (parkoviště 41/areály 42/zámek 43). Lék: **probe VŠECH 149 vrstev × 5 DEV_LOCATIONS** (`returnCountOnly`,
+      `temp/probe_all_layers.py`) → výskyt rozhoduje, ne odhad. Nalezeno 14 netáhnutých vrstev s ISOM ekvivalentem
+      + chyby konzistence (tramvaj táhnu od Sez. 31 ale řádek ✗; areál duplikát). Paměť `geoportal-data-completeness`.
+- [x] **Dávka 1 — budovové stavby** (do `--buildings`, žádný nový flag): `Zámek`/`Hrad` → 521 (mirror budov);
+      `Rozvalina, zřícenina` → **523 Ruin** (čárkovaný obrys bez výplně, 2. třída mask_buildings, mirror skály).
+      Oprava bugu: omap export hardcodoval „521" → zřícenina by vypadla jako budova.
+- [x] **Dávka 2 — bodové orient. prvky** (nový `--landmarks`, `mask_landmarks` multi-class): kříž → **530** ring,
+      mohyla → **526** cairn, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor → **524** (kříž+tečka), strom →
+      **417** (zelený kroužek, `C_GREEN3`). Nulové vrstvy mapovány pro úplnost. Mirror `--rocks`.
+- [x] **Dávka 3 — liniové orient. prvky** (nový `--linefeatures`, `mask_linefeatures` multi-class): sráz →
+      **104 Earth bank** (plná + jednostranné ticky; Σ981 = nejčastější dosud netáhnutá), zeď/hradba → **513 Wall**,
+      liniová vegetace → **416** (zelená čárkovaná). Mirror `--powerlines`/`--rides`.
+- [x] **Kótovaný bod — SKIP doložený.** Nese jen `vyska` (virtuální výškopis, ne fyzická značka v krajině) →
+      ne ISOM 603 (volba uživatele „virtuální → okomentovat skip"). Doloženo v katalogu.
+- [x] **Katalog kompletně zrevidován.** 14 vrstev ◐/○→✓, konzistence (tramvaj/areál duplikát), nulové doloženy
+      „0 v 5 výsecích", ✓ count ~27→~40, data-driven probe poznámka. SSoT „nic užitečného nevypadne".
+- [x] **Verify:** proc baseline 65 drží (behavior-preserving), py_compile OK, 5 lokalit regen (počty sedí na probe:
+      SV orient. 81 + liniové 170; budovy +zámek+8 zřícenin; LS 9131), STATISTICS +8 symbolů, vizuál SV (domov
+      mládeže = zámek se kreslí). batch.py OBĚ větve nové vrstvy off (lekce B1).
+
 ## Sezení 42 (2026-05-29) — Olivová 520 z katastru (RÚIAN) + areály účelové zástavby + audit land-cover
 - [x] **%THINK olivová 520 + probe RÚIAN** (verify-against-source, foundations před kódem). Nápad uživatele:
       olivovou (zákaz vstupu) volí mapař na soukromé pozemky u domů → vzít z katastru parcely se stavbou.

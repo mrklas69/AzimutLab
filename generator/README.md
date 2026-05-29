@@ -44,6 +44,12 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
   **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520, asfalt 408/409 → 501). Kůlny (105)
   → 521. Parkoviště + asfalt → 501 přes `--paved`. **Z-order vespod** (podklad pod
   vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
+- **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`
+  → **523 Ruin** (čárkovaný obrys bez výplně). ČÚZK je vede zvlášť, ne v `Budova_99` (domov mládeže = bývalý zámek),
+- **bodové orient. prvky** — `--landmarks real` (Sez. 43, audit katalogu): kříž→**530**, mohyla→**526**,
+  věž/vodojem/silo/těžní/mlýn/motor/věžovitá stavba→**524**, významný strom→**417** (zelený kroužek),
+- **liniové orient. prvky** — `--linefeatures real` (Sez. 43): sráz→**104 Earth bank** (plná + jednostranné ticky),
+  zeď/hradba→**513 Wall**, liniová vegetace→**416** (zelená čárkovaná),
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).

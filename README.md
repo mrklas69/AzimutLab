@@ -33,8 +33,13 @@ one yellow"; ISOM 520 olive out-of-bounds = cemetery ∪ private land ∪ utilit
 → 501 via `--paved`; drawn at the very bottom of the z-order, forest stays white = vegetation gate); and — since
 session 42 — real **private land** as olive 520 from a second ČÚZK source, **RÚIAN cadastre** (`ruian.py`: parcels
 of land-use type garden + built-up area → off-limits to runners), plus utility-zoning compounds (ZABAGED layer 114:
-schools/sports grounds/barracks/industry → 520, asphalt transport areas → 501) and small structures (sheds → 521).
-`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+surfaces+points
+schools/sports grounds/barracks/industry → 520, asphalt transport areas → 501) and small structures (sheds → 521);
+and — since session 43 (a **systematic catalogue audit** triggered by a missing chateau = youth hostel: the user's
+recurring "it's missing / we don't map that" anti-pattern, fixed for good by data-driven counts of all 149 layers
+across the 5 dev locations) — castles/chateaux → 521, **ruins** → 523 (Milštejn et al., dashed outline),
+towers/water-towers/silos/… → 524, cairns/memorials → 526, crosses/wayside shrines → 530, prominent trees → 417
+(`--landmarks`), and earth banks → 104, walls/ramparts → 513, linear vegetation → 416 (`--linefeatures`).
+`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+surfaces+landmarks+linefeatures+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
@@ -86,7 +91,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 | UC | Name | Scope | Status |
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
-| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover, RÚIAN cadastre parcels; full 149-layer catalogue) |
+| UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, session 43) |
 | UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
