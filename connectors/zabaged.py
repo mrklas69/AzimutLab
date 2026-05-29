@@ -25,13 +25,17 @@ y ≈ -1000 tis = northing). Axis order REST odpovědi (in/outSR=5514) se ověř
 (vizuál sedí na terén) i diagnostikou (main).
 """
 
-import json
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
 # Sdílený výsek s výškopisem (izomorfismus, bezešvost) — build_bbox je public (Sez. 8).
 from dmr import build_bbox
+# Sdílený nízkoúrovňový ArcGIS REST transport (Sez. 42, DRY se sourozencem ruian.py): paging+
+# cache+error smyčka + GeoJSON geom parsery. Parsery se importují pod původními `_geom_to_*`
+# jmény → call-sites beze změny (behavior-preserving refaktor).
+from arcgis import (fetch_geojson_layer,
+                    geom_to_lines as _geom_to_lines,
+                    geom_to_polygons as _geom_to_polygons,
+                    geom_to_points as _geom_to_points)
 
 # REST endpoint ZABAGED Polohopis MapServer (Sez. 26: přechod z WFS). WFS GetFeature tvrdě
 # uřezával na 1000 obj/dotaz a startIndex paging byl rozbitý (Sez. 25); REST query má strop
@@ -77,6 +81,11 @@ LAYER_IDS = {
     "Ovocný sad, zahrada": 135,
     "Orná půda a ostatní dále nespecifikované plochy": 138,
     "Trvalý travní porost": 139,
+    # Areál účelové zástavby (Sez. 42, audit land-cover): oplocené areály v sídlech (škola,
+    # hřiště, sportovní areál, stadión, kasárna, průmysl, garáže, autobusové nádraží, …) — atribut
+    # typzast_k rozliší typ (62 hodnot). Kůlna/přístřešek = drobné stavby → 521 (mirror budov).
+    "Areál účelové zástavby": 114,
+    "Kůlna, skleník, fóliovník, přístřešek": 105,
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -142,7 +151,25 @@ WATER_AREA_LAYERS = ("Vodní_plocha", "Pozemní_nádrž")
 # bodová (`_bod_`) je v lesních OB výsecích prázdná (ověřeno — 0 features na Sovím vrchu),
 # proto se táhne jen plošná (izomorfní s Vodní_plocha). Pramen-like vynechání bodové
 # vrstvy = „nevymýšlet, co v datech není" (jako Zdroj_podzemních_vod, Sez. 17).
-BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",)
+# Sez. 42 (audit land-cover): přidána `Kůlna, skleník, fóliovník, přístřešek` (id 105) = drobné
+# stavby (přístřešky, skleníky, kůlny — časté v zahrádkářských koloniích) → taky 521 (KISS, mirror
+# budov; drobné, ale reálné). Obě vrstvy plošné, mapuje map_building_to_isom (DRY přes tuto konstantu).
+BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",
+                        "Kůlna, skleník, fóliovník, přístřešek")
+
+# Areál účelové zástavby (Sez. 42, audit land-cover, real-půlka, plošná). ZABAGED `Areál účelové
+# zástavby` (id 114) = oplocené areály v sídlech, atribut `typzast_k` rozlišuje 62 typů (1xx průmysl/
+# zemědělství, 2xx kultura/školství, 3xx sport/rekreace, 4xx technické/dopravní). Mapování dle typu
+# (map_utility_area_to_isom):
+#   asfaltové dopravní plochy (autobusové nádraží 408, čerpací stanice 409) → 501 Paved area
+#   VŠE ostatní (škola, hřiště, sport, stadión, kasárna, průmysl, garáže, nemocnice, zahrádk. osada…)
+#     → 520 Area which shall not be entered (olivová — oplocený areál, kam běžci nesmí; volba Sez. 42)
+# Řeší testovací nálezy LS Sez. 42 (bílá hřiště/školy/kasárna/autobusové nádraží). Render se podle
+# ISOM kódu rozdělí mezi surfaces (520) a paved (501) kanál — viz generator._generate_real_*.
+UTILITY_AREA_LAYERS = ("Areál účelové zástavby",)
+# typzast_k asfaltových dopravních ploch → 501 (zbytek → 520). KISS množina: jen jednoznačně
+# zpevněné dopravní areály (Sez. 42, volba uživatele „asfaltové → 501"); jemnější rozlišení = druhá vlna.
+PAVED_AREAL_TYPZAST = {"408", "409"}   # 408 autobusové nádraží, 409 čerpací stanice pohonných hmot
 
 # El. vedení (Sez. 24, real-půlka). Liniová vrstva (ověřeno DescribeFeatureType: MultiLineString),
 # izomorfní s komunikacemi. Stožáry (`Stožár_elektrického_vedení`) jsou bodová vrstva — nesou
@@ -192,61 +219,20 @@ def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
                  cache_dir: Path) -> dict:
     """Stáhne jednu vrstvu jako GeoJSON FeatureCollection (REST query + paging, cache na disk).
 
-    `bbox` = (xmin, ymin, xmax, ymax) v S-JTSK (z build_bbox). REST `MapServer/<id>/query`
-    s envelope filtrem vrátí prvky protínající výsek; `f=geojson` → tatáž struktura jako
-    dřív WFS (parsery `_geom_to_*` beze změny). Server omezuje dávku na `_PAGE` (2000), proto
-    **paging smyčka** přes `resultOffset` (Sez. 26: spolehlivý, na rozdíl od rozbitého WFS
-    startIndex) — bez ní by velká města (LS) přišla o objekty nad strop.
+    `bbox` = (xmin, ymin, xmax, ymax) v S-JTSK (z build_bbox). Mapuje ZABAGED vrstvu NAME→ID
+    (LAYER_IDS) a deleguje na sdílený `arcgis.fetch_geojson_layer` (Sez. 42, DRY paging+cache
+    se sourozencem ruian.py). REST `MapServer/<id>/query` s envelope filtrem vrátí prvky
+    protínající výsek; `f=geojson` → tatáž struktura jako dřív WFS (parsery `_geom_to_*` beze
+    změny). Server omezuje dávku na `_PAGE` (2000) → paging přes resultOffset (Sez. 26).
 
-    Cache key má prefix `zbg_rest_` (odlišení od staré WFS cache, která mohla být uříznutá
-    na 1000); stejný výsek → stejný soubor (batch netáhne opakovaně). Izomorfní s dmr cache.
+    Cache key má prefix `zbg_rest_<layer>` (odlišení od staré WFS cache i od RÚIAN cache);
+    formát klíče zachován z dřívějška → existující cache se NEinvaliduje. Izomorfní s dmr cache.
     """
-    xmin, ymin, xmax, ymax = bbox
-    # cache: souřadnice na celé metry stačí na jednoznačnost výseku
-    key = f"zbg_rest_{layer}_{int(xmin)}_{int(ymin)}_{int(xmax)}_{int(ymax)}.geojson"
-    cpath = cache_dir / key
-    if cpath.exists():
-        return json.loads(cpath.read_text(encoding="utf-8"))
-
     lid = LAYER_IDS.get(layer)
     if lid is None:
         raise ValueError(f"Vrstva {layer!r} nemá REST layer ID (doplň do LAYER_IDS).")
-    base = {
-        "geometry": f"{xmin},{ymin},{xmax},{ymax}",
-        "geometryType": "esriGeometryEnvelope",
-        "inSR": "5514", "outSR": "5514",
-        "spatialRel": "esriSpatialRelIntersects",
-        "where": "1=1", "outFields": "*", "f": "geojson",
-    }
-    # paging: stahuj dávky po _PAGE, dokud server vrací plnou dávku (poslední je kratší)
-    features: list[dict] = []
-    offset = 0
-    while True:
-        params = {**base, "resultOffset": str(offset), "resultRecordCount": str(_PAGE)}
-        url = f"{_REST_SERVER}/{lid}/query?{urllib.parse.urlencode(params)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            ctype = resp.headers.get("Content-Type", "")
-            raw = resp.read()
-        text = raw.decode("utf-8", "replace")
-        # při chybě ArcGIS vrací JSON {"error": {...}} (ne GeoJSON FeatureCollection)
-        if "json" not in ctype.lower() and not text.lstrip().startswith("{"):
-            raise RuntimeError(
-                f"ZABAGED REST nevrátil JSON pro vrstvu {layer!r} (id={lid}, "
-                f"Content-Type={ctype!r}). Odpověď: {text[:400]}"
-            )
-        fc = json.loads(text)
-        if isinstance(fc.get("error"), dict):
-            raise RuntimeError(f"ZABAGED REST chyba pro {layer!r} (id={lid}): {fc['error']}")
-        batch = fc.get("features", [])
-        features.extend(batch)
-        if len(batch) < _PAGE:        # neúplná dávka = poslední → konec
-            break
-        offset += _PAGE
-    result = {"type": "FeatureCollection", "features": features}
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cpath.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
-    return result
+    return fetch_geojson_layer(_REST_SERVER, lid, bbox, cache_dir,
+                               page_size=_PAGE, cache_key=f"zbg_rest_{layer}")
 
 
 def fetch_paths(lat: float, lon: float, gw: int, gh: int,
@@ -666,6 +652,28 @@ def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_utility_areas(lat: float, lon: float, gw: int, gh: int,
+                        tile_m: float = 1000.0,
+                        cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné areály účelové zástavby (114) pro výsek jako plošné features.
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech.
+    `props` nese `typzast_k`/`typzast_p` (typ areálu) → map_utility_area_to_isom rozliší 520
+    (areály) vs 501 (asfaltové dopravní plochy). Izomorfní s fetch_cemeteries. Render rozdělí
+    generator podle ISOM kódu mezi surfaces (520) a paved (501) kanál (Sez. 42)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in UTILITY_AREA_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
+    return out
+
+
 def map_path_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -751,6 +759,20 @@ def map_cemetery_to_isom(layer: str, props: dict) -> int:
     return 520
 
 
+def map_utility_area_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED areál účelové zástavby (114) na ISOM 2017-2 plošný symbol (kód, Sez. 42).
+
+    Klíč = `typzast_k` (typ areálu, 62 hodnot). Asfaltové dopravní plochy (408 autobusové nádraží,
+    409 čerpací stanice) → **501 Paved area** (zpevněná); VŠE ostatní (škola, hřiště, sport, stadión,
+    kasárna, průmysl, garáže, nemocnice, zahrádkářská osada, …) → **520 Area which shall not be
+    entered** (olivová — oplocený areál, kam běžci nesmí; volba uživatele Sez. 42). `typzast_k` je
+    v datech int → porovnání přes str(). Render rozdělí generator podle kódu (520→surfaces, 501→paved).
+    """
+    if str(props.get("typzast_k")) in PAVED_AREAL_TYPZAST:
+        return 501
+    return 520
+
+
 def map_water_to_isom(layer: str, props: dict) -> int | None:
     """Mapuje ZABAGED vodní prvek na ISOM 2017-2 kód (int), nebo None = nekreslit.
 
@@ -787,12 +809,13 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
     `druhbud` = „budova blíže neurčená" (104×) / „vodojem zemní" (1×); `jmeno` None.
     Vodojem zemní mapuje uživatel (terénní mapér Soví vrchu) také na 521 — v rastru se
     chová jako malá budova (rozhodnutí Sez. 18). Mapování:
-      Budova_..._plocha_ (jakýkoli druhbud) → 521 Building (plošný černý symbol)
+      Budova_..._plocha_ (jakýkoli druhbud)  → 521 Building (plošný černý symbol)
+      Kůlna, skleník, fóliovník, přístřešek  → 521 Building (Sez. 42, drobné stavby)
 
     Bez rozlišení podle `druhbud` (KISS — jen jeden druh na výřezu navíc). Vrací holý
     ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
     """
-    if layer == "Budova_jednotlivá_nebo_blok_budov__plocha_":
+    if layer in BUILDING_AREA_LAYERS:    # budovy + kůlny/přístřešky (Sez. 42) → 521 (DRY s konstantou)
         return 521
     return None
 
@@ -870,47 +893,9 @@ def map_footbridge_to_isom(layer: str, props: dict) -> int:
     return 5122   # = ISOM kód 512.2 jako int (DRY s ostatními ints)
 
 
-def _geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
-    """Rozbalí GeoJSON geometrii na seznam polylinií [(x,y), ...] (S-JTSK metry).
-
-    ZABAGED komunikace jsou LineString nebo MultiLineString. Bod/plocha se ignorují.
-    """
-    gtype = geom.get("type")
-    coords = geom.get("coordinates")
-    if gtype == "LineString":
-        return [[(float(x), float(y)) for x, y, *_ in coords]] if coords else []
-    if gtype == "MultiLineString":
-        return [[(float(x), float(y)) for x, y, *_ in part] for part in coords if part]
-    return []
-
-
-def _geom_to_polygons(geom: dict) -> list[list[tuple[float, float]]]:
-    """Rozbalí GeoJSON plochu na seznam vnějších prstenců [(x,y), ...] (S-JTSK metry).
-
-    Vodní plochy ZABAGED jsou Polygon nebo MultiPolygon. Bereme jen vnější prstenec
-    (coords[0]) každého polygonu; vnitřní díry (ostrovy) zatím ignorujeme — malé
-    rybníky/tůně je nemají. Linie/bod se ignorují.
-    """
-    gtype = geom.get("type")
-    coords = geom.get("coordinates")
-    if gtype == "Polygon":
-        return [[(float(x), float(y)) for x, y, *_ in coords[0]]] if coords else []
-    if gtype == "MultiPolygon":
-        return [[(float(x), float(y)) for x, y, *_ in poly[0]] for poly in coords if poly]
-    return []
-
-
-def _geom_to_points(geom: dict) -> list[tuple[float, float]]:
-    """Rozbalí GeoJSON bodovou geometrii na seznam bodů [(x,y), ...] (S-JTSK metry).
-
-    Stožáry el. vedení jsou Point (příp. MultiPoint). Linie/plocha se ignorují."""
-    gtype = geom.get("type")
-    coords = geom.get("coordinates")
-    if gtype == "Point":
-        return [(float(coords[0]), float(coords[1]))] if coords else []
-    if gtype == "MultiPoint":
-        return [(float(x), float(y)) for x, y, *_ in coords] if coords else []
-    return []
+# Pozn.: geom parsery `_geom_to_lines/_geom_to_polygons/_geom_to_points` byly přesunuty do
+# sdíleného `arcgis.py` (Sez. 42, DRY se sourozencem ruian.py) a importují se nahoře pod
+# původními jmény (`geom_to_* as _geom_to_*`) — call-sites zůstaly beze změny.
 
 
 def _diagnostics(lat: float, lon: float) -> None:

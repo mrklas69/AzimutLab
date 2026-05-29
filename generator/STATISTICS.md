@@ -29,8 +29,8 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **305** | Small crossable watercourse | 107 | 119 | 148 | 90 | 88 |
 | **306** | Minor seasonal water channel | 43 | 82 | 6 | 17 | 2 |
 | **401** | Open land | 267 | 33 | 1101 | 361 | 103 |
-| **520** | Area that shall not be entered | 2 | 1 | 4 | 4 | · |
-| **501** | Paved area | 1 | 1 | 52 | 3 | 1 |
+| **520** | Area that shall not be entered | 1873 | 141 | 19058 | 1907 | 500 |
+| **501** | Paved area | 1 | 1 | 59 | 3 | 1 |
 | **502** | Wide road | 212 | 15 | 3192 | 170 | 29 |
 | **503** | Road | 195 | 181 | 301 | 325 | 180 |
 | **504** | Vehicle track | 466 | 98 | 231 | 393 | 253 |
@@ -39,20 +39,20 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **508** | Narrow ride | 46 | 119 | 20 | 16 | 44 |
 | **509** | Railway | · | · | 40 | 3 | 5 |
 | **510** | Power line | 32 | 3 | 19 | 41 | 10 |
-| **521** | Building | 1078 | 124 | 8273 | 1265 | 299 |
+| **521** | Building | 1170 | 133 | 9123 | 1445 | 331 |
 | **512** | Bridge/tunnel | 17 | 13 | 67 | 11 | 21 |
 | **512.2** | Footbridge | 7 | 5 | 11 | 2 | 5 |
-| **Σ** | Celkem objektů | 3615 | 1575 | 14902 | 4762 | 1568 |
+| **Σ** | Celkem objektů | 5578 | 1724 | 34813 | 6845 | 2100 |
 
 Z 27 sledovaných ISOM symbolů reálně používáme **27** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-29 16:52:08
-- **NL** (`Nová Louka/`): 2026-05-29 16:52:26
-- **LS** (`Lidové sady/`): 2026-05-29 16:53:17
-- **HS** (`Hrubá Skála/`): 2026-05-29 16:53:39
-- **NV** (`Novina/`): 2026-05-29 16:53:56
+- **SV** (`Soví vrch/`): 2026-05-29 18:47:37
+- **NL** (`Nová Louka/`): 2026-05-29 18:47:57
+- **LS** (`Lidové sady/`): 2026-05-29 18:45:05
+- **HS** (`Hrubá Skála/`): 2026-05-29 18:48:20
+- **NV** (`Novina/`): 2026-05-29 18:48:36
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-29 16:54:04.*
+*Tabulka regenerována `stats.py` v 2026-05-29 18:49:17.*
