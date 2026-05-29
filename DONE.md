@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 42 (2026-05-29) — Olivová 520 z katastru (RÚIAN) + areály účelové zástavby + audit land-cover
+- [x] **%THINK olivová 520 + probe RÚIAN** (verify-against-source, foundations před kódem). Nápad uživatele:
+      olivovou (zákaz vstupu) volí mapař na soukromé pozemky u domů → vzít z katastru parcely se stavbou.
+      Probe: **RÚIAN** běží na témže ČÚZK ArcGIS serveru, vrstva 5 `Parcela` má `druhpozemkukod` (codedValue
+      doména ze serveru), `f=geojson` (izomorfní se ZABAGED), maxRec 1 000 000. **Pravidlo: druh ∈ {5 zahrada,
+      13 zastavěná plocha a nádvoří} → 520**. Licence: veřejná open data zák. 111/2009 Sb. SV: 649+1212 parcel.
+- [x] **Olivová 520 z RÚIAN** (nový konektor `ruian.py`, sourozenec). `fetch_private_land` (`where druhpozemkukod
+      IN (5,13)`) + `map_private_land_to_isom`→520. Třetí zdroj do `_generate_real_surfaces` (z-order: olivová NAD
+      žlutou → zahrada přemaže žlutý sad). 520 už plně zapojená (Sez. 41) → žádná změna draw/mask/omap/meta, jen víc
+      prvků. `ISOM_CEMETERY`→`ISOM_OUT_OF_BOUNDS` (propsáno všude, 0 reziduí). Verify LS: centrum města souvisle
+      olivové s žlutými parky (test uživatele „střed Liberce olivový s výjimkou parků" ✓).
+- [x] **DRY refaktor — `arcgis.py`** (volba uživatele DRY > duplikace). Zobecněn `zabaged._fetch_layer` + geom
+      parsery → sdílený `fetch_geojson_layer(server, layer_id, …)` + `geom_to_*` (cache-key zachován → cache se
+      neinvalidovala). `zabaged.py` i `ruian.py` ho sdílí (precedent `dmr.build_bbox`). Behavior-preserving.
+- [x] **Test LS → 4 nálezy opraveny + audit land-cover.** (1) **Jméno mapy** `map.omap`→`<lokalita>.omap`
+      (`out.name`, orphany smazány). (2+3+4) Systematický audit **47 plošných ZABAGED vrstev** vs mapováno odhalil
+      klíčovou mezeru **114 Areál účelové zástavby** (177 na LS) — řeší bílá hřiště/školy/kasárna (`typzast_k` 62
+      typů): asfalt (408 autobus. nádraží/409 čerpačka) → **501**, vše ostatní → **520** olivová. Rozdělení 114 dle
+      ISOM kódu mezi surfaces (520) a paved (501) kanál. Plus **105 kůlny/přístřešky → 521** (LS budovy 8273→9123).
+      Audit: 151 GIA (overlay vlastnictví) + 4 (CHKO) = skip; vegetace 140/142/144 = vědomě bílá (gate); drobné
+      mezery (115 ostatní plocha, zřícenina, zámek, tribuna…) → katalog/TODO.
+- [x] **Verify** — `py_compile` celý balík OK; **proc baseline 65 drží**; refaktor behavior-preserving (SV 269 ploch);
+      5 lokalit přegenerováno (pokryv SV 2140 / NL 174 / LS 20159 / HS 2268 / NV 603; LS areály 170 olivová + 7 asfalt,
+      kůlny +850); STATISTICS regen; vizuál OK (SV zahrady u domů, LS centrum olivové). Korekce uživatele: ISOM barvy
+      jsou normované (z palety), neladí se okem (paměť `isom-colors-from-palette-not-eye`).
+
 ## Sezení 41 (2026-05-29) — %AUDIT:CODE + plošný pokryv (surfaces): mapa dostala barvy
 - [x] **%AUDIT:CODE** (LOC práh, 4981 ř. tracked). Kód zdravý, 0 kritických; dominanta = drift komentářů po
       refaktorech (paměť `slap-symbol-rewrite-comments`). Opraveno: **D1** crt název `ISOM2000-ISOM 2017-2.crt`

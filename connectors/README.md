@@ -8,13 +8,15 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | Modul | Zdroj | Co vrací | Protokol |
 |-------|-------|----------|----------|
 | `dmr.py` | ČÚZK DMR 5G | výškopis (float32 grid) | ArcGIS ImageServer `exportImage` |
-| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
+| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) + areály účelové zástavby + kůlny (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
+| `ruian.py` | ČÚZK RÚIAN (katastr) | katastrální parcely podle druhu pozemku → privátní pozemky (zahrada+zastavěná) → olivová 520 (GeoJSON) | ArcGIS REST `RUIAN/MapServer/5/query` (Sez. 42) |
 | `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
+| `arcgis.py` | — (sdílený základ) | nízkoúrovňový ArcGIS REST transport: paging+cache+GeoJSON parsery (DRY pro `zabaged`+`ruian`, Sez. 42) | — |
 
-**Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor (komunikace + lesní průseky + voda +
-budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv), `ortofoto` = rastr/podklad. Sdílí
-`dmr.build_bbox` (tentýž S-JTSK výsek → data z různých zdrojů sednou na sebe bez dalšího
-georef). Oba na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`) viz `data-sources.md`.
+**Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor topografie (ZABAGED), `ruian` = vektor
+katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `ortofoto` = rastr/podklad. Sdílí `dmr.build_bbox` (tentýž S-JTSK
+výsek → data z různých zdrojů sednou na sebe bez dalšího georef) i `arcgis.fetch_geojson_layer` (společný REST
+transport pro `zabaged`+`ruian`). Vše na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`/`ruian`) viz `data-sources.md`.
 
 **Licence:** ČÚZK open data **CC BY 4.0** (atribuce povinná — katalog + detail v
 [`docs/kb/data-sources.md`](../docs/kb/data-sources.md)).
@@ -22,4 +24,4 @@ georef). Oba na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`) viz `
 **Stav (fáze B):** skripty na `sys.path`, ne instalovaný balík. Konzument
 (`generator/generator.py`) si tuto složku přidá na `sys.path` (KISS). Produkční
 balík/instalace přijde s monorepem (fáze A). Cache stažených dat (`.dmr_cache/`,
-`.zabaged_cache/`) je gitignored — reálná ČÚZK data do gitu nepatří.
+`.zabaged_cache/`, `.ruian_cache/`, `.ortofoto_cache/`) je gitignored — reálná ČÚZK data do gitu nepatří.

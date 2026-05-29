@@ -54,14 +54,18 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 ČÚZK ZABAGED/ZTM, geoportál. Najít vhodné mapové portály/podklady/databáze.
 - Krmí UC4-II (inspirované souřadnicemi) a UC4-III (georef podklady).
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
-- Od průzkumu k běžícím konektorům (Sez. 16–33): **`connectors/`** = první sdílená kódová
+- Od průzkumu k běžícím konektorům (Sez. 16–42): **`connectors/`** = první sdílená kódová
   složka mimo sandbox (drobný krok B→A; vedle ní dnes `generator/`, Sez. 39). `dmr.py` (DMR 5G
   výškopis, ArcGIS ImageServer),
   `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
-  železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41),
-  `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
-  Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--rides/--water/
-  --buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/--surfaces real`; form lines z DMR).
+  železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41 +
+  areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42),
+  **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
+  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
+  paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
+  (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
+  --surfaces real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

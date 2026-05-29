@@ -92,14 +92,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NEJSOU linie — ZABAGED je generalizuje do jedné plochy `Kolejiště`** (Liberec hl. n. ~19 ha). V `.omap`
   jako **kombinovaný 501 (s obrysem)**, ne 501.1 bez obrysu — **do kolejiště se nevstupuje**, bounding line
   je významová (rozhodnutí uživatele, Sez. 28; viz [[crossability]]). Sym id 105 (501.1 = id 106, čistá plocha).
-- **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41):
-  reálná plošná půlka ze ZABAGED → dva ISOM symboly. **Open land → 401** (plná ŽLUTÁ, bez obrysu): louka
+- **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41-42):
+  reálná plošná půlka ze ZABAGED + RÚIAN → ISOM symboly. **Open land → 401** (plná ŽLUTÁ, bez obrysu): louka
   (`Trvalý travní porost`) + park (`Udržovaná zeleň`) + pole (`Orná půda…`) + sad/zahrada (`Ovocný sad, zahrada`)
   — **KISS „open land jako jedna žlutá"** (druh je v datech, ale MVP vše → 401; ISOM-věrné pole 412 / sad 413
-  s patternem = druhá vlna). **Hřbitov → 520 Area that shall not be entered** (plná OLIVOVÁ; ISOM nemá vlastní
-  hřbitov → out-of-bounds). Render `_draw_surface_area` (`outline=None`), barvy `C_YELLOW`/`C_OLIVE`, maska
-  `mask_surfaces.png` (multi-class 1/2). **Z-order: ÚPLNĚ VESPOD** (podklad pod vrstevnicemi; les = bílá default,
-  vegetace gate). Parkoviště → 501 přes `--paved`. Zelená (hustník 406–410) zůstává za [[vegetace-gate]] (UC5).
+  s patternem = druhá vlna). **Olivová → 520 Area which shall not be entered** (plná OLIVOVÁ, zákaz vstupu —
+  „zelená" v hantýrce orienťáků), **tři zdroje (Sez. 42):** hřbitov (`Hřbitov` ZABAGED, ISOM nemá vlastní) ∪
+  **privátní pozemek u domu** (RÚIAN parcely druhu zahrada+zastavěná, viz [[druh-pozemku]]) ∪ **oplocené areály
+  účelové zástavby** (ZABAGED `Areál účelové zástavby` 114 mimo asfaltové typy — škola/hřiště/sport/stadión/
+  kasárna/průmysl…). **Asfaltové dopravní areály** (autobusové nádraží/čerpací stanice, `typzast_k` 408/409) +
+  parkoviště + kolejiště → **501** přes `--paved` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved).
+  Kůlny/přístřešky (`Kůlna…` 105) → 521 přes budovy. Render `_draw_surface_area` (`outline=None`), barvy
+  `C_YELLOW`/`C_OLIVE`, maska `mask_surfaces.png` (multi-class 1=open/2=olivová). **Z-order: ÚPLNĚ VESPOD**
+  (olivová NAD žlutou — privátní zahrada přemaže žlutý sad), les = bílá default = [[vegetace-gate]] (UC5).
 - **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
   301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
   (přebrodit/překročit); plný obrys nepřekonatelné plochy (301, kolejiště 501) = bariéra. Generátor to honoruje
@@ -112,7 +117,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔ `--paved off|real` ↔
   `--buildings off|real` ↔ `--powerlines off|real` ↔ `--railways off|real` ↔ `--rides off|real` ↔
   `--rocks off|real` ↔ `--bridges off|real` ↔ `--ropiky off|real` ↔ `--surfaces off|real`. Nemíchat
-  zdroje napříč osou.
+  zdroje napříč osou. (Reálná půlka od Sez. 42 čerpá i z **RÚIAN** katastru, ne jen ZABAGED — viz [[RÚIAN]].)
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
@@ -129,6 +134,22 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   jako open data **CC BY 4.0**. Detail + katalog: `docs/kb/data-sources.md`.
 - **ZABAGED®** — Základní báze geografických dat; vektorová topografická *databáze*
   (polohopis + výškopis). Zdroj pravdy, ze kterého se renderují mapy.
+- **RÚIAN** — Registr územní identifikace, adres a nemovitostí (ČÚZK). **Druhý ČÚZK datový zdroj
+  generátoru** (Sez. 42, modul `connectors/ruian.py`; týž ArcGIS REST server jako ZABAGED, jiný
+  MapServer). Veřejná otevřená data dle zák. 111/2009 Sb., bezúplatně. Konzumujeme vrstvu `Parcela`
+  (katastrální parcely) kvůli [[druh-pozemku]] → olivová 520. Transport sdílí s `zabaged.py` přes
+  `arcgis.py`.
+- **Druh pozemku** <a name="druh-pozemku"></a> — katastrální klasifikace parcely v RÚIAN
+  (pole `druhpozemkukod`, codedValue doména ověřená ze serveru, Sez. 42): 2 orná · 3 chmelnice ·
+  4 vinice · **5 zahrada** · 6 ovocný sad · 7,8 trvalý travní porost · 10 lesní pozemek · 11 vodní
+  plocha · **13 zastavěná plocha a nádvoří** · 14 ostatní plocha. **Pravidlo olivové 520:** druh
+  ∈ {5, 13} = privátní pozemek u domu, kam běžci nesmí (řeší ~80 % případů jako živý mapař; proximita
+  k zástavbě nesena implicitně druhem — pole/louka daleko od domů mají jiný druh). Limit: oplocené
+  louky/pole u domů (druh 2/7) zůstanou žluté (TODO „oplocené volné terény").
+- **Areál účelové zástavby** — ZABAGED plošná vrstva (id 114) oplocených areálů v sídlech; atribut
+  `typzast_k` rozlišuje 62 typů (škola/hřiště/sport/stadión/kasárna/průmysl/garáže/autobusové nádraží…).
+  Generátor (Sez. 42): asfaltové dopravní plochy (408 autobusové nádraží, 409 čerpací stanice) → 501,
+  vše ostatní → 520 olivová (oplocený = zákaz vstupu). Řeší „bílá hřiště/kasárna" (test LS Sez. 42).
 - **ZTM** — Základní topografická mapa (ZTM5–ZTM250); hotové kartografické *dílo* (rastr).
 - **DMR 5G** — Digitální model reliéfu 5. generace; LiDAR výškopis terénu (ground-only),
   přesnost ~0,18 m. Zdroj reálného terénu pro `--terrain real` (modul `dmr.py`).

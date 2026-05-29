@@ -170,8 +170,9 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Vinice` | plocha | (414 Vineyard) | ✗ | vzácné v OB lese |
 | `Chmelnice` | plocha | (414 obdoba) | ✗ | vzácné |
 | `Hranice_užívání_půdy` | linie | (415 cultivation boundary) | ✗ | administrativní hranice využití |
-| `Ostatní_plocha_v_sídlech` | plocha | — | ✗ | urbánní |
-| `Hřbitov` | plocha | 520 Area that shall not be entered | ✓ | **Sez. 41** (`--surfaces`, olivová out-of-bounds); ISOM nemá vlastní hřbitov → 520 (verify template) |
+| `Ostatní_plocha_v_sídlech` | plocha | (501 / 520?) | ◐ | drobná mezera (audit Sez. 42; bez atributů, 9 prvků LS) — k dořešení |
+| `Hřbitov` | plocha | 520 Area that shall not be entered | ✓ | **Sez. 41** (`--surfaces`, olivová); ISOM nemá vlastní hřbitov → 520. **Olivová 520 má od Sez. 42 i RÚIAN privátní pozemky + areály 114** |
+| `Areál_účelové_zástavby` | plocha | 520 / 501 | ✓ | **Sez. 42** (audit land-cover; `--surfaces`). `typzast_k` 62 typů: asfalt (408 autobus. nádraží/409 čerpačka) → 501, vše ostatní (škola/hřiště/sport/kasárna/průmysl…) → 520. Řeší „bílá hřiště/kasárna" (test LS) |
 
 ## 9. Budovy a stavby plošné (ISOM 521–525)
 
@@ -180,7 +181,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Budova_jednotlivá_nebo_blok_budov__plocha_` | plocha | 521 Building | ✓ | plošná budova (vč. vodojemu zemního) |
 | `Rozvalina__zřícenina` | plocha | 523 Ruin | ◐ | zřícenina = OB objekt |
 | `Budova_jednotlivá_nebo_blok_budov__bod_` | bod | (521) | ✗ | v lesních výsecích prázdná (Sez. 18) |
-| `Kůlna__skleník__fóliovník__přístřešek` | plocha | 521 Building / 522 Canopy | ○ | drobná stavba / přístřešek |
+| `Kůlna__skleník__fóliovník__přístřešek` | plocha | 521 Building | ✓ | **Sez. 42** (audit; přidáno do `BUILDING_AREA_LAYERS` → 521, drobné stavby; LS budovy 8273→9123) |
 | `Hrad` | plocha | 521 Building | ○ | historická stavba |
 | `Zámek` | plocha | 521 Building | ○ | historická stavba |
 | `Věžovitá_stavba` | plocha | 524 High tower | ○ | věžovitá stavba (plošná) |
@@ -262,8 +263,8 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | ~24 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště (28) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land louka/park/pole/sad→401, hřbitov→520, parkoviště→501 (Sez. 41)** |
-| ◐ kandidát | 11 | **viz akční seznam níže** |
+| ✓ použito | ~27 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště (28) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land louka/park/pole/sad→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály účelové zástavby 114→520/501, kůlny 105→521 (Sez. 42, audit land-cover)** + **RÚIAN privátní pozemky→520 (Sez. 42, mimo ZABAGED — viz `ruian.py`)** |
+| ◐ kandidát | ~10 | **viz akční seznam níže** (+ `Ostatní_plocha_v_sídlech` drobná mezera) |
 | ○ možné | ~30 | okrajově relevantní (vzácné / nízká priorita) |
 | ✗ mimo doménu | ~100 | administrativa, POI, urbánní, vegetace gate |
 

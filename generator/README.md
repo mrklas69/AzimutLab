@@ -38,15 +38,17 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
-- **plošný pokryv** — `--surfaces real` (Sez. 41): open land (louka/park/pole/sad) → ISOM **401** (plná žlutá,
-  KISS „open land jako jedna žlutá"; pole 412 / sad 413 s patternem = druhá vlna) + hřbitov → **520 Area shall
-  not be entered** (olivová out-of-bounds). Parkoviště → 501 přes `--paved`. **Z-order vespod** (podklad pod
-  vrstevnicemi; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
+- **plošný pokryv** — `--surfaces real` (Sez. 41-42): open land (louka/park/pole/sad) → ISOM **401** (plná žlutá,
+  KISS „open land jako jedna žlutá"; pole 412 / sad 413 s patternem = druhá vlna) + **olivová 520 Area which shall
+  not be entered** ze tří zdrojů (Sez. 42): hřbitov + **RÚIAN privátní pozemky** (zahrada+zastavěná, `ruian.py`) +
+  **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520, asfalt 408/409 → 501). Kůlny (105)
+  → 521. Parkoviště + asfalt → 501 přes `--paved`. **Z-order vespod** (podklad pod
+  vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).
 - **vektor** — `contours.geojson` (ISOM **101/102** linie, georef S-JTSK pro real terén) a
-  `map.omap` (vždy; §9; `omap_export.py`). OMAP je **template-based** nad vlastním čistým ISOM
+  `<lokalita>.omap` (vždy; §9; `omap_export.py`; název = výstupní složka, Sez. 42). OMAP je **template-based** nad vlastním čistým ISOM
   2017-2 template `template_classic.omap` → věrná geometrie bodů (110 elipsa, 111 oblouk) + plná
   symbolová knihovna. Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
 
@@ -81,7 +83,7 @@ obchází sparse-GT past z Pic2Omap.
 # data pro výsek se cachují do connectors/.zabaged_cache/
 ```
 
-Každý běh píše i `map.omap` (template-based nad `template_classic.omap` — otevři v OOM).
+Každý běh píše i `<lokalita>.omap` (název = výstupní složka, Sez. 42; template-based nad `template_classic.omap` — otevři v OOM).
 
 Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 
@@ -104,9 +106,9 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
-| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 / 401·520 (každá jen při své `--…real`; surfaces multi-class 1=open land, 2=hřbitov) |
+| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 / 401·520 (každá jen při své `--…real`; surfaces multi-class 1=open land, 2=olivová zákaz vstupu) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
-| `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 + řopíky + body 109/110/111, plná ISOM knihovna) |
+| `<lokalita>.omap` | OpenOrienteering Mapper mapa (vždy; název = výstupní složka, Sez. 42; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 (olivová: hřbitov + RÚIAN privátní + areály 114) + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu + blok `georef` (S-JTSK bbox, pixel_size_m, world_file, north, grivation_deg) |
 
 Verify nástroj: **`compare_real_vs_gen.py`** — strojové porovnání generátoru se živě mapovanou OB mapou
@@ -118,8 +120,9 @@ gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shod
 Python 3.12+ · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK).
 Venv v kořeni LAB (`.venv`) — sdílený pro `generator/` i `connectors/`. Konektory reálných dat žijí
 v **`connectors/`** v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení +
-železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv, `ortofoto.py` podklad — sourozenci, sdílejí
-`dmr.build_bbox`); generátor si jejich složku přidá na `sys.path` (Sez. 16).
+železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv + areály 114/kůlny 105, `ruian.py` katastr
+(privátní pozemky → olivová 520, Sez. 42), `ortofoto.py` podklad — sourozenci, sdílejí `dmr.build_bbox` i
+`arcgis.py` REST transport); generátor si jejich složku přidá na `sys.path` (Sez. 16).
 
 Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (vektorové vrstvy) + ORTOFOTO (podklad), vše
 open data **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).

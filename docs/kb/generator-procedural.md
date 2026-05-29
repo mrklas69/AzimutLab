@@ -291,25 +291,35 @@ odliší od pěšiny 505 7,0/4,0). GT `mask_rides.png`. Z-order: po cestách, p�
 projekce → ISOM varianta „without background". Vyžaduje `--terrain real`. Hustota: SV 46 / NL 119 / LS 20 /
 HS 16 / NV 44.
 
-### 4.9j Plošný pokryv / land-cover (real-půlka, Sez. 41)
-**✅ Reálný pokryv:** `--surfaces real` vezme ze ZABAGED Polohopis REST plošné pokryvové vrstvy a mapuje na
-DVA ISOM symboly (`zabaged.fetch_open_land` / `fetch_cemeteries`, `map_open_land_to_isom` / `map_cemetery_to_isom`):
+### 4.9j Plošný pokryv / land-cover (real-půlka, Sez. 41-42)
+**✅ Reálný pokryv:** `--surfaces real` vezme plošné pokryvové vrstvy a mapuje na ISOM symboly (`zabaged.fetch_open_land`
+/ `fetch_cemeteries` / `fetch_utility_areas` + `ruian.fetch_private_land`, mappery `map_*_to_isom`):
 - **Open land → ISOM 401** (plná ŽLUTÁ, bez obrysu): `Trvalý travní porost` (louka) + `Udržovaná zeleň` (park)
   + `Orná půda…` (pole) + `Ovocný sad, zahrada`. **KISS volba uživatele „open land jako jedna žlutá"** — druh
   JE v datech (různé vrstvy), ale MVP všechny → 401. ISOM-věrné **pole → 412 Cultivated** (žlutá + černý vzor) /
   **sad → 413 Orchard** (žlutá + zelené tečky) = **odložená druhá vlna** (pattern render). Odstín 401 vs 403
   Rough open (průchodnost) = vegetace-gate nuance → KISS 401.
-- **Hřbitov → ISOM 520 Area that shall not be entered** (plná OLIVOVÁ): ISOM 2017-2 nemá vlastní hřbitovní
-  symbol (verify template) → 520 out-of-bounds, tak se hřbitov na OB mapě kreslí.
+- **Olivová → ISOM 520 Area which shall not be entered** (plná OLIVOVÁ, zákaz vstupu — „zelená" v hantýrce
+  orienťáků). **Tři zdroje (Sez. 42):**
+  - **Hřbitov** (`Hřbitov` ZABAGED): ISOM 2017-2 nemá vlastní hřbitovní symbol (verify template) → 520.
+  - **Privátní pozemek u domu** (RÚIAN katastr, `ruian.fetch_private_land`): parcely `druhpozemkukod ∈ {5 zahrada,
+    13 zastavěná plocha a nádvoří}` → 520. Živý mapař maluje olivovou tam, kam běžci nesmí (soukromé zahrady/dvory);
+    druh pozemku to nese deterministicky (~80 % případů). Limit: oplocené louky/pole u domů (druh 2/7) zůstanou
+    žluté — viz TODO „oplocené volné terény".
+  - **Oplocené areály účelové zástavby** (ZABAGED `Areál účelové zástavby` 114, `map_utility_area_to_isom`):
+    škola/hřiště/sport/stadión/kasárna/průmysl/garáže/nemocnice/zahrádkářská osada… → 520 (oplocený = zákaz vstupu).
+- **Asfaltové dopravní areály → ISOM 501** (přes paved kanál): `Areál účelové zástavby` typu `408 autobusové
+  nádraží` / `409 čerpací stanice` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Parkoviště
+  (`Parkoviště, odpočívka` 123) + kolejiště taktéž 501 přes `--paved`.
+- **Drobné stavby → ISOM 521** (přes budovy): `Kůlna, skleník, fóliovník, přístřešek` (105) → 521 (Sez. 42).
 
-Plošné, izomorfní s vodní plochou/budovou/kolejištěm: render `_draw_area_symbol` s `outline=None` (open land ani
-out-of-bounds nemají bounding line), barva dle `SURFACE_FILL` (`C_YELLOW` / `C_OLIVE`). Jedna multi-class GT
-`mask_surfaces.png` (1=open land, 2=hřbitov). **Z-order: ÚPLNĚ VESPOD** (první kresba na bílé plátno = podklad
-pod vrstevnicemi i vším ostatním; les zůstává bílá = default, vegetace gate). Parkoviště (`Parkoviště, odpočívka`
-id 123) jde přes `--paved` → 501 (DRY s kolejiště). Vyžaduje `--terrain real`. Hustota open land+hřbitov:
-SV 269 / NL 34 / LS 1105 / HS 365 / NV 103. **Verify Sez. 41** (`compare_real_vs_gen` SV): otevřený prostor
-gen **0 % → 35.8 %** (real 34.7 %) — zaplnil recall mezeru Sez. 37; precision/recall ~55 % (projekce ≠ ruční
-generalizace kartografa). `C_OLIVE` je zatím aproximace (doladit okem — příští téma).
+Plošné, izomorfní s vodní plochou/budovou/kolejištěm: render `_draw_area_symbol` s `outline=None`, barva dle
+`SURFACE_FILL` (`C_YELLOW` / `C_OLIVE` — **barvy normované ISOM, z palety, neladí se okem**). Jedna multi-class GT
+`mask_surfaces.png` (1=open land, 2=olivová). **Z-order: ÚPLNĚ VESPOD** (podklad pod vrstevnicemi; olivová NAD
+žlutou — privátní zahrada přemaže žlutý sad; les zůstává bílá = vegetace gate). Vyžaduje `--terrain real`. Hustota
+pokryvu (Sez. 42): SV 2140 / NL 174 / LS 20159 / HS 2268 / NV 603. **Verify Sez. 41** (`compare_real_vs_gen` SV):
+otevřený prostor gen **0 % → 35.8 %** (real 34.7 %); Sez. 42 přidalo privátní pozemky + areály (LS centrum souvisle
+olivové s žlutými parky = test uživatele „střed Liberce olivový s výjimkou parků").
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

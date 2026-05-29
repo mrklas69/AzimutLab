@@ -26,7 +26,8 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27, železnice+kolejiště Sez. 28)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27, železnice+kolejiště Sez. 28, plošný pokryv Sez. 41, areály účelové zástavby 114 + kůlny 105 Sez. 42)** |
+| **RÚIAN** (Registr územní identifikace, adres a nemovitostí) | vektor: katastrální parcely (druh pozemku), stavební objekty, adresy, správní hranice | ČR | **ArcGIS REST** `RUIAN/MapServer` (týž server jako ZABAGED) | **veřejná otevřená data, zák. 111/2009 Sb., bezúplatně** (atribuce ČÚZK) | ✓ **použito Sez. 42 (`connectors/ruian.py`: parcely druhu zahrada+zastavěná → olivová 520 privátní pozemek)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
 | **DMP OK** | model povrchu z **obrazové korelace** (fotogrammetrie), GSD 0,2 m, RGB+NIR | ČR (2024+, postupně) | ATOM (LAZ), WMS | CC BY 4.0 | ✓ prozkoumáno |
