@@ -92,6 +92,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NEJSOU linie — ZABAGED je generalizuje do jedné plochy `Kolejiště`** (Liberec hl. n. ~19 ha). V `.omap`
   jako **kombinovaný 501 (s obrysem)**, ne 501.1 bez obrysu — **do kolejiště se nevstupuje**, bounding line
   je významová (rozhodnutí uživatele, Sez. 28; viz [[crossability]]). Sym id 105 (501.1 = id 106, čistá plocha).
+- **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41):
+  reálná plošná půlka ze ZABAGED → dva ISOM symboly. **Open land → 401** (plná ŽLUTÁ, bez obrysu): louka
+  (`Trvalý travní porost`) + park (`Udržovaná zeleň`) + pole (`Orná půda…`) + sad/zahrada (`Ovocný sad, zahrada`)
+  — **KISS „open land jako jedna žlutá"** (druh je v datech, ale MVP vše → 401; ISOM-věrné pole 412 / sad 413
+  s patternem = druhá vlna). **Hřbitov → 520 Area that shall not be entered** (plná OLIVOVÁ; ISOM nemá vlastní
+  hřbitov → out-of-bounds). Render `_draw_surface_area` (`outline=None`), barvy `C_YELLOW`/`C_OLIVE`, maska
+  `mask_surfaces.png` (multi-class 1/2). **Z-order: ÚPLNĚ VESPOD** (podklad pod vrstevnicemi; les = bílá default,
+  vegetace gate). Parkoviště → 501 přes `--paved`. Zelená (hustník 406–410) zůstává za [[vegetace-gate]] (UC5).
 - **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
   301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
   (přebrodit/překročit); plný obrys nepřekonatelné plochy (301, kolejiště 501) = bariéra. Generátor to honoruje
@@ -100,9 +108,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   část [[projekce-vs-predikce|predikce]] (UC5), ne vždy atribut v datech.
 - **noise-půlka / real-půlka** — dvě paralelní datové osy generátoru: *syntetická* (fraktální
   šum / procedurální cesty) vs *reálná* (ČÚZK DMR 5G výškopis / ZABAGED komunikace + voda + budovy
-  + vedení + železnice + kolejiště). Izomorfní: `--terrain noise|real` ↔ `--paths proc|real` ↔
-  `--water off|real` ↔ `--paved off|real` ↔ `--buildings off|real` ↔ `--powerlines off|real` ↔
-  `--railways off|real`. Nemíchat zdroje napříč osou.
+  + vedení + železnice + kolejiště + lesní průseky + skály + mosty/tunely/lávky + řopíky). Izomorfní:
+  `--terrain noise|real` ↔ `--paths proc|real` ↔ `--water off|real` ↔ `--paved off|real` ↔
+  `--buildings off|real` ↔ `--powerlines off|real` ↔ `--railways off|real` ↔ `--rides off|real` ↔
+  `--rocks off|real` ↔ `--bridges off|real` ↔ `--ropiky off|real` ↔ `--surfaces off|real`. Nemíchat
+  zdroje napříč osou.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
 
@@ -214,7 +224,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **OOM** (OpenOrienteering Mapper) — open-source editor OB map; cílový formát `.omap`.
   Symbol set je **vyměnitelný `.omap` soubor** („Nahrát symboly ze souboru"), ne závislost na verzi SW.
 - **Crosswalk (`.crt`)** — cross-reference table mapující symboly mezi sadami (ISOM verze, ISSprOM, OSM).
-  Klíčový: `docs/kb/ISOM2000-ISOM 2017-2.crt` (OpenOrienteering, GPL) mapuje `<kód 2017-2>  <kód 2000>`.
+  Klíčový: `docs/kb/ISOM2000-ISOM2017-2.crt` (OpenOrienteering, GPL) mapuje `<kód 2017-2>  <kód 2000>`.
   Mapuje přes **sémantiku** (význam), ne kód-na-kód — čísla se mezi verzemi recyklují (viz [[ISOM]]).
   Sez. 38.
 - **OCAD** — komerční SW pro tvorbu map; formát `.ocd`.

@@ -129,7 +129,7 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
     je `521 = High stone wall`; `112/113` nejsou exkluzivní 2000 (v 2017-2 = Pit/Broken ground). **Jediný tvrdý
     diskriminátor = `526` Building** (v 2017-2 neexistuje). Empirie použitých objektů: **4/6 map v `resources/`
     = ISOM 2000** (jen Blatná nejednoznačná, SampleMap bez budov).
-  - **Crosswalk NEVYRÁBĚT — existuje hotový:** OOM `docs/kb/ISOM2000-ISOM 2017-2.crt` (168 ř., GPL, Kai Pastor),
+  - **Crosswalk NEVYRÁBĚT — existuje hotový:** OOM `docs/kb/ISOM2000-ISOM2017-2.crt` (168 ř., GPL, Kai Pastor),
     formát `<kód 2017-2>  <kód 2000>`; nezávisle potvrdil ruční crosswalk ze spec. Mapuje přes sémantiku, ne
     kód-na-kód naivně (čísla se recyklují → naivní mapování by prohodilo zeď↔budovu).
   - **Deklarace verze ve výstupu hotová** — `meta["isom"]` + template `<notes>` (varování + odkaz na `.crt`)

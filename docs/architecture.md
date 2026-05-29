@@ -58,9 +58,10 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   složka mimo sandbox (drobný krok B→A; vedle ní dnes `generator/`, Sez. 39). `dmr.py` (DMR 5G
   výškopis, ArcGIS ImageServer),
   `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
-  železnice + kolejiště + skály + mosty/tunely + řopíky), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41),
+  `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--rides/--water/
-  --buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky real`; form lines z DMR).
+  --buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/--surfaces real`; form lines z DMR).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

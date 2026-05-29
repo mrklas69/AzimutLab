@@ -54,7 +54,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Silnice_ve_výstavbě` | linie | 503 Road | ◐ | rozestavěná; vzácná, na OB se hotově nezakresluje → spíš vynechat |
 | `Lesní průsek` | linie | 508 Narrow ride | ✓ | **Sez. 36** (id 16, REST jméno s MEZEROU); KISS vždy 508; bez runnability pozadí (vegetace=UC5). SV 46 / NL 119 / LS 20 / HS 16 / NV 44 |
 | `Turistická_trasa` | linie | — | ✗ | overlay značení vedené PO existující cestě → duplikace sítě (Sez. 16) |
-| `Parkoviště__odpočívka` | plocha | 501 Paved area | ○ | zpevněná plocha u okraje lesa |
+| `Parkoviště__odpočívka` | plocha | 501 Paved area | ✓ | **Sez. 41** (`--paved`, id 123; DRY s kolejiště → 501) |
 | `Křižovatka_úrovňová` | bod | — | ✗ | atributový bod silniční sítě, ne kreslený objekt |
 | `Křižovatka_mimoúrovňová` | bod | — | ✗ | atributový bod silniční sítě |
 | `Uzlový_bod_silniční_sítě__ostatní_` | bod | — | ✗ | topologický uzel sítě, ne objekt |
@@ -162,16 +162,16 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Lesní_půda_s_kosodřevinou` | plocha | (410 fight) | ✗ gate | druh ≠ průchodnost |
 | `Lesní_půda_s_křovinatým_porostem` | plocha | (406–410) | ✗ gate | druh ≠ průchodnost |
 | `Významný_nebo_osamělý_strom__lesík` | bod | 417 Prominent large tree | ◐ | osamělý strom = OB objekt |
-| `Orná_půda_a_ostatní_dále_nespecifikované_plochy` | plocha | 412 Cultivated land | ○ | pole na okraji lesa |
-| `Trvalý_travní_porost` | plocha | 401 / 403 Open land | ○ | louka |
-| `Udržovaná_zeleň` | plocha | 401 / 403 Open land | ○ | park / udržovaná zeleň |
-| `Ovocný_sad__zahrada` | plocha | 413 Orchard | ○ | sad / zahrada |
+| `Orná_půda_a_ostatní_dále_nespecifikované_plochy` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 412 Cultivated (pattern) = druhá vlna |
+| `Trvalý_travní_porost` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, louka → žlutá); odstín 401 vs 403 = gate nuance, KISS 401 |
+| `Udržovaná_zeleň` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, park → žlutá) |
+| `Ovocný_sad__zahrada` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 413 Orchard (zelené tečky) = druhá vlna |
 | `Liniová_vegetace` | linie | 416 Distinct vegetation boundary | ○ | mez / živý plot / řada stromů |
 | `Vinice` | plocha | (414 Vineyard) | ✗ | vzácné v OB lese |
 | `Chmelnice` | plocha | (414 obdoba) | ✗ | vzácné |
 | `Hranice_užívání_půdy` | linie | (415 cultivation boundary) | ✗ | administrativní hranice využití |
 | `Ostatní_plocha_v_sídlech` | plocha | — | ✗ | urbánní |
-| `Hřbitov` | plocha | — | ○ | hřbitov; ISOM zvláštní oplocená plocha |
+| `Hřbitov` | plocha | 520 Area that shall not be entered | ✓ | **Sez. 41** (`--surfaces`, olivová out-of-bounds); ISOM nemá vlastní hřbitov → 520 (verify template) |
 
 ## 9. Budovy a stavby plošné (ISOM 521–525)
 
@@ -262,7 +262,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | 12 | cesty (Cesta, Pěšina, Silnice__dálnice, Silnice_neevidovaná, Ulice) + voda (Vodní_tok, Vodní_plocha, **Pozemní_nádrž/koupaliště Sez. 27**) + budovy (Budova…plocha) + vedení (Elektrické_vedení + Stožár_… Sez. 24) + **řopíky (Bunkr LO37 Sez. 27)** |
+| ✓ použito | ~24 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště (28) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land louka/park/pole/sad→401, hřbitov→520, parkoviště→501 (Sez. 41)** |
 | ◐ kandidát | 11 | **viz akční seznam níže** |
 | ○ možné | ~30 | okrajově relevantní (vzácné / nízká priorita) |
 | ✗ mimo doménu | ~100 | administrativa, POI, urbánní, vegetace gate |

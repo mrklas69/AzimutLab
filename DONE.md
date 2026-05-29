@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 41 (2026-05-29) — %AUDIT:CODE + plošný pokryv (surfaces): mapa dostala barvy
+- [x] **%AUDIT:CODE** (LOC práh, 4981 ř. tracked). Kód zdravý, 0 kritických; dominanta = drift komentářů po
+      refaktorech (paměť `slap-symbol-rewrite-comments`). Opraveno: **D1** crt název `ISOM2000-ISOM 2017-2.crt`
+      (s mezerou) → bez mezery — **oprava Sez. 40 byla NEúplná** (mezera přežila v `generator.py:1019`, **template
+      `<notes>`** propisované do každého `map.omap`, GLOSSARY, IDEAS); **D2** docstring `_draw_footbridge` 625/250→
+      937/375 µm (zaostal za Sez. 35); **D3** „hybridní 202/206" reziduum v `zabaged.py` ×2 (zavrženo Sez. 30);
+      **K1** stats „8 sekcí"→9; **K2** `_nearest_segment_tangent` → wrapper nad `_nearest_seg` (DRY, −18 ř.);
+      **K3** GLOSSARY výčet os. A1 monolit nepovýšen (čitelný, „až bolí").
+- [x] **Plošný pokryv `--surfaces real`** (Sez. 41, „konečně barvy"). %THINK → probe (verify-against-source):
+      kompletní land-cover inventář ZABAGED + render struktura z template (plná výplň = tutovka, pattern = práce).
+      **Volba uživatele „open land jako jedna žlutá":** louka/park/pole/sad (139/134/138/135) → ISOM **401** plná
+      žlutá (`C_YELLOW` konečně ožila); hřbitov (116) → **520** olivová out-of-bounds (`C_OLIVE` nová, aproximace);
+      parkoviště (123) → **501** přes `--paved` (DRY). ISOM-věrné pole 412 / sad 413 (pattern) = vědomá druhá vlna.
+      Izomorfní s vodní plochou/budovou: `fetch_open_land`/`fetch_cemeteries`, `map_*_to_isom`, `_generate_real_surfaces`,
+      `_draw_surface_area` (outline=None), multi-class `mask_surfaces.png` (1=open, 2=hřbitov), omap area 401/520,
+      meta injekce (mimo `_build_meta` — A1, precedent Sez. 37/38). **Z-order ÚPLNĚ VESPOD** (podklad pod vrstevnicemi;
+      les = bílá default = vegetace gate). `batch.py` surfaces="off" obě větve (lekce B1 Sez. 35).
+- [x] **Verify** — `py_compile` OK; **proc baseline 65 drží** (regrese); 5 lokalit přegenerováno (pokryv SV 269 /
+      NL 34 / LS 1105 / HS 365 / NV 103, sedí na probe); STATISTICS regen; vizuál OK (žlutá vespod, z-order sedí).
+      **`compare_real_vs_gen` SV: otevřený prostor gen 0 % → 35.8 %** (real 34.7 %) — zaplnil recall mezeru Sez. 37;
+      precision/recall ~55 % (projekce ≠ ruční generalizace kartografa). Zelená (hustník) zůstává 0 % = vegetace gate (UC5).
+
 ## Sezení 40 (2026-05-29) — Kapitalizace DEV_LOCATIONS + %THINK ISOM 2000↔2017-2 (verzní gap zavřen)
 - [x] **Kapitalizace `DEV_LOCATIONS` sjednocena** (carry-over Sez. 39). Verify odhalil, že to nebyl plošný
       chaos, ale **jediný překlep**: `Soví Vrch` → `Soví vrch` (vrch = terénní útvar → druhé slovo malé dle

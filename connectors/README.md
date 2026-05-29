@@ -8,11 +8,11 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | Modul | Zdroj | Co vrací | Protokol |
 |-------|-------|----------|----------|
 | `dmr.py` | ČÚZK DMR 5G | výškopis (float32 grid) | ArcGIS ImageServer `exportImage` |
-| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
+| `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
 | `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
 
 **Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor (komunikace + lesní průseky + voda +
-budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky), `ortofoto` = rastr/podklad. Sdílí
+budovy + vedení + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv), `ortofoto` = rastr/podklad. Sdílí
 `dmr.build_bbox` (tentýž S-JTSK výsek → data z různých zdrojů sednou na sebe bez dalšího
 georef). Oba na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`) viz `data-sources.md`.
 

@@ -26,9 +26,12 @@ at a station are one area in the data, not lines), and — since session 29 — 
 not as intermediate contours, per the ISOM rule); — since session 30 — real rocks/boulders
 (`--rocks real`, ISOM 204/207/206); — sessions 31–33 — real bridges/tunnels/footbridges
 (`--bridges real`, ISOM 512/512.2, raster unified with the `.omap` two-parallels layout in session 35);
-and — since session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
-dashed line, no runnability background as vegetation is a UC5 prediction, not data). `zabaged.py`
-(sibling of `dmr.py`) is the first real UC2 connector. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+points
+and — session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
+dashed line, no runnability background as vegetation is a UC5 prediction, not data); and — since session 41 —
+real land cover (`--surfaces real`: open land meadow/park/field/orchard → ISOM 401 yellow, KISS "open land as
+one yellow"; cemetery → ISOM 520 olive out-of-bounds; car parks → 501 via `--paved`; drawn at the very bottom of
+the z-order, forest stays white = vegetation gate). `zabaged.py`
+(sibling of `dmr.py`) is the first real UC2 connector. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+surfaces+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
@@ -114,7 +117,7 @@ docs/
     zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces real
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
