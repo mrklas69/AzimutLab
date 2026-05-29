@@ -111,6 +111,24 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   ne přílepek (foundations). Spouštěč: až bude ISOM jádro pevné a vznikne potřeba sprintu.
   Pozn.: Lidové sady (LS) zatím generujeme jako **classic ISOM** (městsko-lesní výsek — natrénuje
   i hustou zástavbu); ISSprOM verze je tato budoucí položka.
+- **ISOM 2000 ↔ 2017-2 domain gap (Sez. 37, %THINK kandidát).** Strojové porovnání generátoru s živě
+  mapovanou Soví vrch odhalilo: **reálná mapa je v ISOM 2000 číslování, generátor v ISOM 2017-2.** Posun
+  není kosmetický — kolize významů: `526`=budova (gen 521), `508`=nevýrazná pěšina (gen 508 = lesní průsek!),
+  `509`=průsek (gen 509 = železnice!), `112/113/115`=kupky/prohlubně (gen 109/110/111). Pokud jsou **cílové
+  reálné mapy** (korpus pro UC5 fine-tuning, cesta B) převážně v ISOM 2000, syntetika v 2017-2 zavádí
+  systematický posun kódů → domain gap na úrovni sémantiky symbolů. **Možnosti:** (a) crosswalk vrstva
+  (mapování 2000↔2017 v obou směrech), (b) volitelný ISOM2000 výstupní režim (jiný template + přemapování),
+  (c) nechat 2017-2 a crosswalk řešit až při tréninku. **Rozhodnout, kolik reálných map je v které verzi**
+  (verify napříč korpusem) — než sáhnout na kód. Nezaměňovat s [[issprom]] (jiná disciplína, ne jen číslování).
+- **Grivace v generátoru — `--grivation` (Sez. 37, nápad uživatele).** Generátor renderuje grid-north-up
+  (S-JTSK osy); reálné OB mapy jsou **magnetic-north-up** (georef nese rotaci o grivaci = konvergence +
+  magnetická deklinace; SV −11,4°). Kotva už v kódu (`meta.georef.north="grid"`, `grivation_deg:null`).
+  **Dvě izomorfní polohy (různí konzumenti):** (1) `.omap` jako **metadata** — nastavit georeferencing na
+  reálný Křovák (ref_point + PROJ) + atributy `declination`/`grivation` jako kartograf → OOM zobrazí mapu
+  magnetic-north-up a dokreslí čáry severu sám (conceptual-integrity správně pro vektor); (2) **rotace rastru**
+  `rgb.png` o grivaci + zapečený `.pgw` (až bude rastrový konzument — UC4-III sken / UC3 / UC5). Grivaci buď
+  zadat (`--grivation`), nebo dopočítat (konvergence z pyproj `get_factors` + deklinace z geomag. modelu).
+  Pro samotný verify-overlay NEPOTŘEBA (georef rotaci dorovná) — je to feature pro věrnost výstupu.
 - **Zánik noise (Option 1) větve — predikce uživatele (Sez. 25, „sázka").** Reframe Sez. 23 udělal
   z real-prediktoru hlavní směr; noise (fraktální šum) byla úplně první PoC. Uživatel sází, že
   keyword-only ocas (`seed/rug/det/terrain/paths/…`) jednou zmizí. Pravděpodobně ano — až UC5 feeder

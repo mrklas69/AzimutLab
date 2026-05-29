@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 37 (2026-05-29) — Georef výstupu (rgb.pgw + meta) + strojové porovnání s živou mapou
+- [x] **Emit `rgb.pgw` + georef do `meta.json`** (enabler). `generator.py`: 3 helpery u `_write_contours_geojson`
+      — `_world_file_coeffs` (pixel→S-JTSK = čistý scale+translate → rotační členy 0, +0,5 px na střed UL pixelu),
+      `_write_world_file` (6 řádků, jen reálný terén), `_georef_meta` (real → S-JTSK bbox+pixel_size+world_file+
+      `north:"grid"`+`grivation_deg:null`; noise → `local_m`). Georef injektován do volajícího, NE přes `_build_meta`
+      (26 parametrů, A1 — nezhoršovat). Verify: `.pgw` ručně ověřen (C=xmin+½A, F=ymax+½E, B=D=0); proc 65 drží;
+      všech 5 lokalit přegenerováno (mají `.pgw`).
+- [x] **`compare_real_vs_gen.py`** (probe, strojové porovnání gen ↔ živá mapa, zatím Soví vrch). STAT 1 sémantický
+      crosswalk + pokrytí, STAT 2 prostorová shoda po ISOM barvách (forward-map + tol). 2 bugy chyceny vlastním
+      verify: int16 overflow v klasifikaci barev + ztráta tenkých linií nearest-vzorkováním → forward-mapování.
+- [x] **Headline nález: ISOM 2000 (reálná SV) vs ISOM 2017-2 (gen)** — naivní kód-na-kód selhává (526=budova vs 521;
+      508=nevýrazná pěšina vs náš průsek; 509=průsek vs naše železnice; 112/113/115 vs 109/110/111). 9/11 schopností
+      gen má sémantický protějšek. Mezery: vegetace 262 obj / 70 ha (UC5), skály/srázy 142, ploty 31, bodové umělé 22.
+- [x] **Verify-against-source: grivace** — world-file rotace reálných map = grivace, ověřeno proti `.omap` `grivation`
+      na desetinu ° (SV 11,4 / Blatná 11,9 / Slovanka 3,75 = UTM u poledníku). **Závěr: co umíme z tvrdých dat,
+      umisťujeme správně** (vrstevnice precision 84 % / recall 66 %; voda/černá placement 71-81 %) **a nevymýšlíme si.**
+- [x] **Nález:** `GLOSSARY.md` existuje (root), Sez. 36 hlásilo chybu kvůli kontrole špatného path (`docs/`).
+
 ## Sezení 36 (2026-05-29) — Lesní průseky (ISOM 508 Narrow ride) ze ZABAGED
 - [x] **Lesní průseky `--rides real` → ISOM 508 Narrow ride.** ZABAGED `Lesní průsek` (id 16, REST jméno
       s MEZEROU jako tramvaj/lávka), liniová, izomorfní s railways/powerlines. KISS vždy 508 (bez

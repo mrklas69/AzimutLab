@@ -21,6 +21,16 @@ Spec: `docs/kb/generator-procedural.md` · kód: `sandbox/generator-poc/`
 - [ ] *(odloženo, noise-půlka)* Hydrologické jádro z flow accumulation (D8, §9): toky (§4.8) → prameny (§4.10) → jezera/rybníky (sink-fill deprese) → bažiny. **Sez. 17: voda realizována reálně (ZABAGED), D8 = procedurální protějšek do budoucna (nemíchat osy).**
 - [ ] *(drobnost, vylepšení form line Sez. 29)* **souvislé smyčky** — form line jsou teď krátké úseky/obloučky (per-pixel maska). ISOM-věrnější by byly souvislé smyčky kolem lokálních kopečků/depresí (jiný přístup než maska). MVP uzavřen (uživatel), tohle až kdyby vadilo. Prahy `FORMLINE_*` jsou laděné na NL — ověřit i na SV/LS.
 - [ ] *(drobnost, nález Sez. 30)* **`Skupina_balvanů__linie_` → 208 Boulder field** + **`Sesuv_půdy__suť` → 210 Stony ground** — odložené vrstvy. Na Hrubé Skále 3 / 0 prvků (marginální). 208 = buffer linie → plocha s ISOM area pattern (trojúhelníky). 210 = verify v lokalitě s sutěmi (Jeseníky / Krkonoše Sněžka). Když bude, doplnit `BOULDER_FIELD_LINE_LAYERS` / `STONY_GROUND_LAYERS` v zabaged.py.
+- [!] *(strategie, nález Sez. 37)* **ISOM 2000 ↔ 2017-2 domain gap** — reálná Soví vrch (terénní mapování
+  uživatele) je v **ISOM 2000** číslování, generátor v **2017-2** → kolize významů (526=budova, 508/509 posun,
+  112/113/115). Pokud cílový korpus reálných map (cesta B, UC5) je převážně ISOM2000, syntetika 2017-2 = systematický
+  posun kódů. **%THINK kandidát PŘED kódem** (verify: kolik map v které verzi). Detail IDEAS „ISOM 2000 ↔ 2017-2".
+- [ ] *(verify nástroj, Sez. 37)* **`compare_real_vs_gen.py` zatím jen Soví vrch** (jediná lokalita s reálnou
+  mapou ⋂ `DEV_LOCATIONS`). STAT 2 je hrubá (barevná, 2,18 m/px). Prohloubení: **vektor-na-vektor přes crosswalk**
+  (ověřit volbu ISOM symbolu, ne jen placement barvy) — recall mezery (voda 40 %, černá 49 %) rozpadnout po vrstvách.
+- [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
+  mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
+  (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".
 - [ ] *(architektura, nález A1 %AUDIT:CODE Sez. 35)* **`generator.py` monolit (2623 ř., +1238 od Sez. 27)** —
   konstanty + souřadnice + Dijkstra + kreslicí helpery + 11 vrstev + meta + CLI v jednom souboru;
   `_build_meta` 26 parametrů = symptom. Kandidát na rozdělení (`draw_helpers.py` / `real_layers.py` /

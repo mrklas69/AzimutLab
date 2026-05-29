@@ -407,7 +407,8 @@ funkce generate(seed, params):
 
 1. **Ground-truth zdarma.** Při vykreslování každé vrstvy ji zároveň renderuj do
    samostatného kanálu/masky. Výstup jedné instance:
-   - `rgb.png` — finální mapa (vstup modelu),
+   - `rgb.png` — finální mapa (vstup modelu); u `--terrain real` i `rgb.pgw` (world file, georef
+     rastru do S-JTSK, grid-north-up bez grivace — Sez. 37),
    - `mask_contours.png`; `mask_paths.png` (multi-class, proc 1=503 / 2=505, real +502/504/506,
      Sez. 11/15); `mask_symbols.png` (multi-class knoll/depression z generalizace §4.10, Sez. 10);
      `mask_water.png` (multi-class toky/plocha, jen `--water real`, Sez. 17); `mask_buildings.png`

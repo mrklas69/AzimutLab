@@ -9,7 +9,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **ISOM** (International Specification for Orienteering Maps) — norma pro klasické
   lesní OB mapy (**verze 2017-2, nejnovější — Rev 6 z 2024**, příští až ISOM2030). Symboly,
   barvy, priority. Cílová sémantika projektu. Detail: `docs/kb/isom-issprom.md`. Pozor: Rev 6
-  **přečíslovalo bodové symboly** (109/110/111 vs staré 2017 112/113/115 — Sez. 13).
+  **přečíslovalo bodové symboly** (109/110/111 vs staré 2017 112/113/115 — Sez. 13). **Pozor 2: reálné
+  české OB mapy (vč. Soví vrch v `resources/`) bývají v ISOM 2000 číslování** — kolize významů kódů s 2017-2
+  (526=budova vs 521, 508=nevýrazná pěšina vs 508 Narrow ride, 509=průsek vs 509 Railway; Sez. 37, [[domain-gap]]).
 - **ISSprOM** — sesterská norma pro sprintové / městské mapy (2019-2). Stejný kód ≠
   stejný symbol napříč ISOM/ISSprOM (např. budovy black vs gray).
 - **Vrstevnice** (contour) — izolinie výškového pole, spojnice bodů stejné nadmořské
@@ -134,8 +136,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **INSPIRE** — směrnice EU pro harmonizovaná geodata; ČÚZK publikuje témata jako služby.
   Relevantní: **TN** (Transport Networks — dopravní sítě) pro reálné cesty, **HY**
   (Hydrography — vodstvo) pro reálnou vodu. Data-driven zdroj pro UC4-II (viz IDEAS).
-- **georef** (georeferencování) — přiřazení world souřadnic geometrii. `contours.geojson`
-  je u `--terrain real` georeferencován v S-JTSK.
+- **georef** (georeferencování) — přiřazení world souřadnic geometrii. U `--terrain real`:
+  `contours.geojson` v S-JTSK, **`rgb.pgw`** ([[world-file]]) k rastru `rgb.png` + blok `georef`
+  v `meta.json` (S-JTSK bbox, `pixel_size_m`, `north`, `grivation_deg`). Sez. 37.
+- **World file** (`.pgw`/`.jgw`/…) — ESRI textová georeference rastru: 6 řádků afinní transformace
+  pixel→world (A, D, B, E, C, F; C/F = střed levého horního pixelu). Rotační členy (D, B) ≠ 0 = rastr
+  pootočený vůči osám CRS. Generátorový `rgb.pgw` je **grid-north-up → rotace 0**; reálné OB mapy mají
+  v `.pgw` rotaci o [[grivace|grivaci]] (magnetic-north-up). Sez. 37.
+- **Grivace** (grid-magnetic angle, angl. *grivation*) — úhel mezi **severem mapové sítě** (grid north)
+  a **magnetickým severem** = konvergence poledníků + magnetická deklinace. OB mapy se kreslí magnetic-
+  north-up → jejich georef do S-JTSK (Křovák) nese rotaci = grivaci (Soví vrch −11,4°; UTM u středového
+  poledníku ~ jen deklinace, Slovanka −3,8°). Reálný `.omap` ji nese atributy `declination`/`grivation`,
+  rastr `.pgw` jako rotaci — ověřeno shodné na desetinu ° (Sez. 37). Generátor grivaci zatím NEaplikuje
+  (grid-north-up) → feature `--grivation` v IDEAS.
 
 - **Ortofoto podklad** — letecký snímek výseku (ČÚZK ORTOFOTO MapServer `arcgis1`, CC BY 4.0,
   `connectors/ortofoto.py`, dlaždicování nad 4096 px) připnutý do `.omap` jako podkladový template

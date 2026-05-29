@@ -90,6 +90,7 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | Soubor | Obsah |
 |--------|-------|
 | `rgb.png` | finální mapa (vstup modelu) |
+| `rgb.pgw` | world file — georef rastru do S-JTSK (jen `--terrain real`; grid-north-up, rotace 0 = bez grivace) |
 | `mask_contours.png` | binární maska vrstevnic |
 | `mask_paths.png` | multi-class maska cest (1=503 / 2=505 / 3=502 / 4=504 / 5=506; proc dělá 1+2, real 2-6 dle dat) |
 | `mask_water.png` | multi-class maska vody (1=304 / 2=305 / 3=306 / 4=301; jen `--water real`) |
@@ -99,7 +100,11 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 (každá jen při své `--…real`) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
 | `map.omap` | OpenOrienteering Mapper mapa (vždy; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + řopíky + body 109/110/111, plná ISOM knihovna) |
-| `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu |
+| `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu + blok `georef` (S-JTSK bbox, pixel_size_m, world_file, north, grivation_deg) |
+
+Verify nástroj: **`compare_real_vs_gen.py`** — strojové porovnání generátoru se živě mapovanou OB mapou
+z `resources/` (zatím Soví vrch). STAT 1 = symbolový crosswalk + pokrytí (pozor: reálné mapy bývají ISOM 2000,
+gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shoda po ISOM barvách (georef přes `.pgw`). Sez. 37.
 
 ## Stack
 
