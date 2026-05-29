@@ -5,7 +5,8 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella). First real code (since session 4): a procedural synthetic-map
-generator in `sandbox/generator-poc/` — feeds UC5 training with free ground-truth. Being rebuilt
+generator in `generator/` (promoted from `sandbox/generator-poc/` in session 39) — feeds UC5
+training with free ground-truth. Being rebuilt
 "better, layer by layer" (session 11): currently contours + terrain-aware paths (§9, Dijkstra
 least-cost — traverse slopes, don't climb) + knoll/depression point symbols (ISOM 2017-2 codes
 109/110/111); vegetation/marsh/boulders were dropped (looked artificial → would hurt the feeder's
@@ -34,19 +35,21 @@ clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geo
 any location & aspect ratio; resolution held constant) and `zabaged.py` fetches the full relevant set of ZABAGED
 layers, not a curated subset (e.g. `Silnice_neevidovaná` — unregistered/forest asphalt roads, previously missing;
 **complete 149-layer ZABAGED→ISOM catalogue in `docs/kb/zabaged-isom-catalog.md`**, session 24) —
-the real branch is conceptually a *map predictor* (`synthesize_pseudorealistic_map`): projection of available
+the real branch is conceptually a *map predictor* (`generate_map`): projection of available
 geodata now, AI prediction of missing symbols from similar localities later (UC5). Session 24 also split the real
 branch into two toggleable phases (`pseudorealistic`, default on; `--only-real` off): **phase 1 = projection** of
 hard data, **phase 2 = pseudorealistic decoration** of symbols not in the data (today: even power-line ticks
 where no pylon is recorded; future: vegetation). Session 25 realised the long-planned rename
 `generate()` → `synthesize_pseudorealistic_map(lat, lon, w_km, h_km, only_real=False, out_dir, *, …)`
+(renamed back to `generate_map` in session 39 — "generator" won out in conversation, and it is the
+umbrella for future generators, not just this synthesis)
 (the noise/Option-1 branch + per-layer toggles kept as a keyword-only tail) and added `--location`
 dev shortcuts (`DEV_LOCATIONS`: Soví vrch / Nová louka / Lidové sady, all at 6×4 km; Lidové sady
 rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future task). Verify-against-source
 on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request — **fixed in session 26 by
 switching `zabaged.py` from WFS to ArcGIS REST `MapServer/<id>/query`** with reliable `resultOffset` paging
 (dense towns now complete: SV 1078, LS 8273 buildings). Session 27 added a `logging` progress/summary to
-`synthesize_pseudorealistic_map` (CLI shows it; batch stays quiet).**
+`generate_map` (CLI shows it; batch stays quiet).**
 
 ## What this is
 
@@ -55,7 +58,7 @@ orienteering map → vector `.omap`). Where Pic2Omap is one pipeline, AzimutLab 
 workbench around it: data connectors, models that "understand" maps, generators,
 restoration — and the knowledgebase that ties them together.
 
-It starts deliberately small (a knowledgebase + sandbox) and is designed to **grow into
+It starts deliberately small (a knowledgebase + experiments) and is designed to **grow into
 a monorepo** that eventually absorbs Pic2Omap as one app. Foundations before curtains.
 
 ## Use cases (the map)
@@ -85,7 +88,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 UC4-III is the project's summit and currently lives in Pic2Omap. Full UC4-I
 (plausible-random, not a random pile of ISOM symbols) is still the hardest goal — but as a
 **synthetic-data generator with free ground-truth it became an enabler-feeder for UC5**
-(session 4 reframe), no longer "the very end". PoC: `sandbox/generator-poc/`.
+(session 4 reframe), no longer "the very end". Code: `generator/`.
 
 ## Relationship to Pic2Omap
 
@@ -112,10 +115,13 @@ docs/
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
   zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky real
-sandbox/               # UC1: isolated experiments, one folder each
-  generator-poc/       #   first code: procedural OB-map generator (contours + paths + water + buildings + extremum symbols + masks)
-                       #     consumes connectors/ for real terrain, paths, water & buildings; adds them to sys.path
-                       #     + template_classic.omap: clean ISOM 2017-2 template for .omap export
+generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
+  generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
+                       #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
+                       #   template_classic.omap: clean ISOM 2017-2 template for .omap export
+asset/                 # shared map assets (řopík pillbox .omap)
+resources/             # real OB maps — input/reference (gitignored, 3rd-party copyright)
+maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)
 IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
 RESEARCH.md            # survey of existing tools / methods
 GLOSSARY.md            # project terminology

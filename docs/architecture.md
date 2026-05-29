@@ -1,10 +1,10 @@
 # Architektura — AzimutLab
 
 **Status**: Deštník fáze B; první reálný kód (Sezení 4, 2026-05-23) — syntetický
-generátor (`sandbox/generator-poc/`) jako UC4-I/UC5 enabler-feeder; UC2 konektory reálných
+generátor (`generator/`) jako UC4-I/UC5 enabler-feeder; UC2 konektory reálných
 geodat (`connectors/`, Sez. 16–18) běží. Kanonický popis UC DAGu a vrstvení.
 **Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, implementace
-(`sandbox/generator-poc/`) z něj vychází.
+(`generator/`) z něj vychází.
 
 AzimutLab není jedna aplikace — je to **deštník nad pěti use-casy, které tvoří
 orientovaný graf závislostí (DAG), ne plochý seznam.** Tahle struktura určuje pořadí
@@ -41,10 +41,11 @@ prací: enablery před aplikacemi.
 
 ### UC1 — Knowledgebase + Sandbox (META) · MVP
 Shromáždit informace, důležité odkazy a know-how pro orienteering kartografii.
-Sandbox pro experimenty, každý ve vlastní složce. **Toto je první základ** — nejlevnější,
+Místo pro experimenty (každý ve vlastní složce). **Toto je první základ** — nejlevnější,
 nejnižší riziko, a místo, kam ostatní UC zapisují svoje nálezy.
 - `docs/kb/` = referenční katalog (data-sources, isom-issprom, tools-models).
-- `sandbox/` = izolované experimenty.
+- Složka `sandbox/` zrušena (Sez. 39) — měla jediného obyvatele (`generator-poc`), který dozrál
+  na pilíř `generator/`. Až vznikne nový experiment, založí se ad-hoc (YAGNI: nedržet prázdný obal).
 - Hranice domény: **zatím čistě orienteering** (ISOM/ISSprOM). Zobecnění na
   OSM/Google Maps je vědomě odložené — viz „Čekající rozhodnutí".
 
@@ -54,7 +55,8 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 - Krmí UC4-II (inspirované souřadnicemi) a UC4-III (georef podklady).
 - **Každý zdroj nese licenci** (sloupec v `docs/kb/data-sources.md`).
 - Od průzkumu k běžícím konektorům (Sez. 16–33): **`connectors/`** = první sdílená kódová
-  složka mimo sandbox (drobný krok B→A). `dmr.py` (DMR 5G výškopis, ArcGIS ImageServer),
+  složka mimo sandbox (drobný krok B→A; vedle ní dnes `generator/`, Sez. 39). `dmr.py` (DMR 5G
+  výškopis, ArcGIS ImageServer),
   `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
   železnice + kolejiště + skály + mosty/tunely + řopíky), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox`. Generátor (UC4-I) je první konzument (`--terrain/--paths/--rides/--water/
@@ -77,7 +79,7 @@ inpainting).
 - **I. plausible-random** — náhodné, ale realisticky vyhlížející mapy (ne náhodný
   soubor ISOM symbolů; terén/vrstevnice musí dávat smysl). Plná verze zůstává nejtěžší,
   ale **jako generátor trénovacích dat s ground-truth zdarma je to enabler-feeder pro UC5**
-  (reframe Sez. 4) — ne „úplný konec". PoC: `sandbox/generator-poc/`, metoda:
+  (reframe Sez. 4) — ne „úplný konec". Kód: `generator/` (pilíř, povýšen ze sandboxu Sez. 39), metoda:
   `docs/kb/generator-procedural.md` (skalární pole → vrstvy; reálný terén §8.5 = `--terrain real`,
   ČÚZK DMR 5G, hotovo Sez. 5).
 - **II. inspirované** — mapou (obrázkem) nebo souřadnicemi konkrétní lokality (→ UC2).

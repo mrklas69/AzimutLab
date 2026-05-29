@@ -15,7 +15,7 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    IDEAS/TODO pruning ≥12, %CALIBRATE ≥15. Práh překročen o ≥2 → první bod sezení.
    (Pozn.: cadence počítej od posledního výskytu daného auditu v diáři — od založení,
    pokud žádný (%CALIBRATE/pruning poprvé Sez. 17). %AUDIT:CODE reálně spouští LOC
-   práh ≥500, ne počet sezení — `generator-poc/` + `connectors/` už mají kód.)
+   práh ≥500, ne počet sezení — `generator/` + `connectors/` už mají kód.)
 3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP.
 4. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
@@ -28,7 +28,7 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
   nestačí. Projdi checklist a propiš dnešní změnu, kam patří (conceptual integrity, SLAP):
   - **Přidal/změnil reálnou vrstvu?** → `DONE.md` (záznam) + `architecture.md` UC2 (výčet `--…real`)
     + spec `generator-procedural.md` (sekce §4.9*) + `GLOSSARY.md` (termín) + README (status) +
-    oba README (`connectors/`, `generator-poc/`) + `zabaged-isom-catalog.md` (stav vrstvy)
+    oba README (`connectors/`, `generator/`) + `zabaged-isom-catalog.md` (stav vrstvy)
     + **CALL-SITES kódu**: `batch.py` OBĚ větve (noise i real) — nová vrstva s default `real`
       MUSÍ být v batch volání explicitně `"off"`, jinak noise větev padne na validaci a real ji
       zbytečně stahuje (Sez. 35 B1: `rocks`/`bridges` to nedostaly → crash, nezachycen 30→34).

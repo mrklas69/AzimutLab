@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 39 (2026-05-29) — Reorganizace kořene: sandbox → generator/ + maps/ + rename generate_map
+- [x] **`sandbox/` zrušen → `generator/` (pilíř).** `git mv` 9 souborů `sandbox/generator-poc/` → `generator/`
+      (historie zachována, status `R`/`RM`); `sandbox/README.md` smazán; fyzicky odstraněn zbytek (`.venv`/
+      cache/výstupy = gitignored). Generátor (2600+ LOC / 24 vrstev) = dávno ne „PoC". Izomorfní s `connectors/`.
+- [x] **Rename `synthesize_pseudorealistic_map()` → `generate_map()`** (reverz Sez. 23/25). Důvod původního
+      přejmenování ověřen jako padlý (`stale-todo-verify-rationale`): jediný vstup pro OBĚ větve (real i noise
+      přes `terrain=`) → „pseudorealistic" v názvu nepřesné; noise „na zánik" → kolize `generate`↔`procedural`
+      teoretická. `out_dir` default `"output"`→`None` (→ `maps/output`). „Pseudorealistická" zůstává vlastností
+      VÝSTUPU (GLOSSARY „Pseudorealistic map"), ne názvem funkce.
+- [x] **Výstupy → `maps/<lokalita>/` kotvené v kořeni LAB** (přes `__file__`, ne cwd; default i pro noise).
+      `_REPO_ROOT` jako SSoT umístění repa (DRY: connectors/asset/maps); `MAPS_DIR` v generator.py + batch.py +
+      stats.py; cesty opraveny o úroveň výš (`parent.parent.parent`→`.parent.parent`, `parents[2]`→`[1]`).
+      Izomorfní: `resources/` (reálné mapy dovnitř) ↔ `maps/` (generované ven).
+- [x] **`.gitignore` zjednodušen** — ~18 ř. (per-lokalita výčet + `sandbox/**`) → jediné `maps/` + DRY cache
+      (bez leading-slash matchuje `connectors/.X_cache`). **`.venv` do kořene LAB** (sdílený generator+connectors,
+      Python 3.12; opraven rozpor README „venv v kořeni" vs realita).
+- [x] **Docs propagace** — 14 živých `.md` (README ×6, architecture, CLAUDE, PROMPTS, connectors/README, 4× kb,
+      TODO, RESEARCH, IDEAS, GLOSSARY) + sloučený `generator/README.md` (zrušen PoC framing). Diáře/DONE ponechány
+      (historie). Rezidua jmen v komentářích/docstringu propsána (`slap-symbol-rewrite-comments`, grep = 0).
+- [x] **Verify** — proc baseline **65 objektů drží** (souhrnný log); 6 modulů `py_compile` + batch import OK;
+      5 lokalit přegenerováno do `maps/` (počty sedí na historii); STATISTICS.md regen z `maps/`; SV render
+      pixelově nezměněn. **Nález:** kapitalizace `DEV_LOCATIONS` (Title-Case výstup vs lowercase `resources/`) —
+      chybná „oprava" v compare vrácena (Censure, `verify-data-not-assume`); → TODO Příště konkrétně.
+
 ## Sezení 38 (2026-05-29) — %THINK ISOM 2000↔2017-2 → deklarace verze ve výstupu
 - [x] **Deklarace ISOM verze v každém výstupu** (ochrana proti záměně 2000↔2017-2). `generator.py`:
       helper `_isom_meta()` (izomorfní s `_georef_meta`, injektován mimo `_build_meta` kvůli A1) →

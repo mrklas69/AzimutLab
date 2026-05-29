@@ -35,7 +35,7 @@ vegetace gate jako Karttapullautin (viz `data-sources.md`).
 | Palette separation (LAB nearest) | produkční | `Pic2Omap/color_separator.py` |
 | Area segmentation (U-Net resnet34) | pilot (mIoU 0.666 within-domain) | `Pic2Omap/train.py` |
 | ISOM symbol DB (parser) | produkční | `Pic2Omap/omap_parser.py` |
-| Procedurální generátor (skalární pole → vrstvy + GT masky + vektor + .omap) | PoC (od Sez. 4) | `sandbox/generator-poc/` |
+| Procedurální generátor (skalární pole → vrstvy + GT masky + vektor + .omap) | pilíř (od Sez. 4; `generator/` od Sez. 39) | `generator/` |
 
 ## Stack
 

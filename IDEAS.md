@@ -67,6 +67,13 @@ realnost-artefaktu se přidá, nepřepisuje.
 
 ## `synthesize_pseudorealistic_map` — generátor jako prediktor mapy (Sez. 23, %THINK) → kód Sez. 25
 
+> **Přejmenováno zpět na `generate_map` (Sez. 39).** Důvod: v komunikaci převládl „generátor"
+> (izomorfismus jméno↔kód) + funkce je dnes jediný vstup pro OBĚ větve (real i noise přes
+> `terrain=`), takže „pseudorealistic" v názvu je pro noise větev nepřesné; `generate_map` je
+> přesnější deštník (i pro budoucí generátory). Důvody přejmenování Sez. 23 (níže) tím z velké
+> části padly. **„Pseudorealistická" zůstává jako vlastnost VÝSTUPU** (GLOSSARY „Pseudorealistic
+> map"), ne názvem funkce. Kolize `generate`↔`procedural` je dnes teoretická (noise je „na zánik").
+
 Reframe real-větve: z „feeder" na **prediktor mapy** pro konkrétní lokalitu. Cílové API
 **`synthesize_pseudorealistic_map(n, e, w_km, h_km)`** — „synthesize" = skládá 2 zdroje;
 „pseudorealistic" = vypadá real, není skutečné mapování; snake_case (Python). Zamítnuto
@@ -151,7 +158,7 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   na test fixture než zmizí. Rozhodnout, až real-prediktor + UC5 dozrají; do té doby ocas zůstává.
 - **Synteticky renderované trénovací mapy** (původní jiskra projektu z Pic2Omap ML pilotu) —
   patří pod UC4-I/II + UC5 trénink. **→ DONE (Sez. 4): realizováno jako PoC** —
-  procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `sandbox/generator-poc/`).
+  procedurální generátor (spec `docs/kb/generator-procedural.md`, kód `generator/`).
   **Reframe:** ne „nejvzdálenější", ale **enabler-feeder pro UC5** — GT zdarma obchází
   sparse-GT past. Reálný terén (ČÚZK DMR 5G) dosazen přes `--terrain real` (§8.5, hotovo Sez. 5).
 - **Reálné vrstvy ze ZABAGED (UC2 → UC4-II). → DONE (Sez. 16–33).** Realizováno přes `zabaged.py`
@@ -161,6 +168,26 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   úvaha předpovídala, sedlo: vysoká věrnost, přesná GT z vektoru, real-only, mapování ne 1:1
   (fyzický stav → ISOM). Detail: DONE + spec §4.9* + `zabaged-isom-catalog.md`. (Lekce „ze ZM5" byl
   omyl — ZM5 zrušený rastr 1.7.2023; vektor je v ZABAGEDu. Proc hydro jádro D8 = budoucí noise-půlka.)
+- **Plochy ZABAGED → ISOM (pastvina/hřbitov/hřiště/les/…) — návrh uživatele Sez. 39, s výhradou.**
+  Pokračování katalogu UC2 plošnými land-use vrstvami. **Rozdělit podle toho, co je tvrdá projekce
+  a co vegetační dohad (vegetace gate, Sez. 3):**
+  - **Čistá projekce (lze hned):** hřbitov / hřiště / zpevněné plochy → 520 (out-of-bounds/built-up)
+    nebo 501 (Paved area) — fyzický fakt, ne prostupnost. Izomorfní s budovami/kolejištěm.
+  - **Vegetační dohad (BLOKOVÁNO gate):** les / pastvina / louka. ISOM zelená/žlutá kóduje
+    **prostupnost (runnability), NE land-use.** Polygon „les" ze ZABAGED neříká, zda je čistý
+    běžecký les (bílá) nebo hustník (tmavě zelená) — to je **UC5 predikce, ne projekce** (stejná
+    logika jako runnability u průseků 508 Sez. 36, pramen 312, vegetace gate Sez. 3). Vymýšlet
+    barvu prostupnosti z holého land-use = dekorace nad rámec dat. Až bude UC5 model + korpus.
+  - **Před kódem: vlastní `%THINK`** — projít všechny kandidátní vrstvy a roztřídit projekce/dohad
+    (verify-against-source v ZABAGED katalogu + ISOM spec, co která plocha skutečně znamená).
+- **Lepší polygonizace skalních útvarů — návrh uživatele Sez. 39, oponováno (čeká na důkaz vady).**
+  „Lepší polygonizace" = generalizace skal. **Naráží přímo na Sez. 30 + princip CLAUDE.md
+  „generalizuj jen s důkazem, raw je default":** Sez. 30 vědomě zavrhla Chaikin smoothing
+  i hybridní práh 202/206 „bez datového podkladu" → RAW jako voda (`Shape_Area` ~120 vrcholů /
+  32×32 m = „už pěkné"). **Blokátor = chybí ukázaná konkrétní vada** současných RAW polygonů.
+  Až bude (uživatel ukáže na výstupu, oko = source), pak rozhodnout druh generalizace s důkazem —
+  ne preventivně. Pozn.: souvisí s odloženými `Skupina_balvanů__linie_`→208 / `Sesuv_půdy__suť`→210
+  (TODO drobnost Sez. 30), které area-pattern teprve potřebují.
 
 ## Kartografická generalizace budov — ZAVRŽENO (Sez. 27)
 

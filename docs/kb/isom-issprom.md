@@ -15,7 +15,7 @@ i cílová sémantika generátorů (UC4).
 | ISSprOM 2019-2 | sprint / urban | 2019-2 | `Pic2Omap/docs/spec_check_ISSprOM-2019-2.md` |
 | ISOM 2000 | les / klasická OB (withdrawn) | 2000 | — (lokální PDF `isom-2000-spec.pdf`) |
 
-Cílová sémantika generátoru = **ISOM 2017-2** (1:10000; `sandbox/generator-poc/template_classic.omap`
+Cílová sémantika generátoru = **ISOM 2017-2** (1:10000; `generator/template_classic.omap`
 je geometricky identický s oficiálním OOM 1:10000 setem, ověřeno Sez. 38). Každý výstup deklaruje
 verzi (`meta["isom"]` + `.omap` `<notes>`) — ochrana proti záměně, viz níže.
 
@@ -51,7 +51,7 @@ na verzi SW — aktuální OOM dodává ISOM 2017-2, ne ale poslední průběžn
 - **Tři typy symbolů**: bodové / liniové / plošné — osa klasifikace (UC5).
 - **Paleta a priority** — barvy mají pořadí (priority); RGB-identické páry (`403.0`≡`403.1`)
   color separation nerozliší → potřeba sémantiky, ne jen barvy.
-  - *Konkrétní hodnoty:* runtime paleta generátoru = `sandbox/generator-poc/palette.py`
+  - *Konkrétní hodnoty:* runtime paleta generátoru = `generator/palette.py`
     (jediný zdroj pravdy, slovník `PALETTE`); metodická tabulka hex+CMYK =
     `generator-procedural.md §5`. KB tady RGB **nekopíruje** — drží sémantiku
     (pořadí/priority, cross-spec rozdíly), ne odstíny (DRY).

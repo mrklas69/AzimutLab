@@ -43,7 +43,8 @@ default `True`; CLI `--only-real` ho vypne):
 
 Princip: nevymýšlet, co v datech není, pod hlavičkou „věrnost". Co se vymýšlí pro vzhled, jde do
 fáze 2 a musí jít vypnout. Vazba: GLOSSARY „projekce vs predikce", „pseudorealistic",
-`synthesize_pseudorealistic_map`. Budovy jsou čistá fáze 1 (projekce) — kreslí se RAW (Sez. 27,
+`generate_map` (dříve `synthesize_pseudorealistic_map`, přejm. Sez. 39). Budovy jsou čistá
+fáze 1 (projekce) — kreslí se RAW (Sez. 27,
 generalizace zavržena); žádná „věrná kartografie" navíc, syrový footprint jako voda.
 
 ---
@@ -352,7 +353,7 @@ kontroly kroužky (poslední dvojitý = cíl), spojnice. Číslování vpravo na
 | Černá | skály, cesty, stavby | `#000000` | 0/0/0/100 |
 | Purpurová | trať | `#C400AC` | 0/100/0/0 (Purple) |
 
-> **Runtime implementace (jediný zdroj pravdy):** `sandbox/generator-poc/palette.py`
+> **Runtime implementace (jediný zdroj pravdy):** `generator/palette.py`
 > (slovník `PALETTE`). Tato tabulka je metodický/jazykově nezávislý popis (slouží
 > i jako prompt, §10); konkrétní RGB pro běh generátoru bere kód odtamtud, ať se
 > hodnoty nerozejdou (DRY). Implementováno do `palette.py` v Sez. 8.
@@ -434,7 +435,7 @@ funkce generate(seed, params):
    skenu (augmentace §8.3 jako samostatná vrstva). Roadmapa a pořadí věrnostních vrstev:
    `IDEAS.md`. (Názvosloví bez A/B — ta patří vztahu k Pic2Omap.)
 5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`
-   (generátor v `sandbox/generator-poc/`, konektor `connectors/dmr.py` od Sez. 16). Místo
+   (generátor v `generator/`, konektor `connectors/dmr.py` od Sez. 16). Místo
    `fractal()` dosadí reálný ČÚZK
    DMR 5G přes ArcGIS ImageServer `exportImage` (float32 grid přímo, ne LAZ → žádný GDAL;
    WGS84→S-JTSK přes pyproj, poměrový výsek pro izotropní buňku). Vrstevnice pak nejsou
@@ -497,7 +498,7 @@ funkce generate(seed, params):
     NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
     **Vývoj přístupu:** Sez. 8 template-based (cizí `.omap`) → Sez. 13 **od nuly** (kvůli
     dědění bordelu z cizích souborů — 101.1 LIDAR, 503 Minor road, cizí podklady) → **Sez. 14
-    zpět template-based, ale nad VLASTNÍM čistým template** `sandbox/generator-poc/template_classic.omap`
+    zpět template-based, ale nad VLASTNÍM čistým template** `generator/template_classic.omap`
     (ISOM 2017-2, 169 symbolů / 35 barev, prázdné `<objects>`/`<templates>` — vyrobil uživatel
     v OOM). Skládáme jen `<objects>`; barvy/symboly/georef přebíráme z template. Zisk:
     **věrná geometrie bodů** (109 kruh, 110 elipsa `area_symbol`, 111 oblouk „⌣" `line_symbol`

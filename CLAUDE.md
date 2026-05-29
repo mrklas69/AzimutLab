@@ -37,6 +37,8 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
 - `connectors/` — UC2 konektory reálných geodat (`dmr.py` výškopis, `zabaged.py` cesty+voda);
   vytaženo ze sandboxu (Sez. 16), sourozenci sdílí `dmr.build_bbox`. Sys.path skripty, ne balík.
-- `sandbox/` — izolované experimenty (každý vlastní složka + README).
-- `connectors/` = první sdílená kódová složka mimo sandbox (krok k fázi A) — pořád ale **ne
-  produkční balík** (ten přijde s přechodem na monorepo, fáze A).
+- `generator/` — UC4-I/UC5 generátor OB map (pilíř Laboratoře; povýšen ze `sandbox/generator-poc/`
+  v Sez. 39 — `sandbox/` zrušen, byl jediný obyvatel). Konzumuje `connectors/`. `generate_map()` =
+  hlavní vstup. Výstupy → `maps/<lokalita>/` (gitignored, kotveno v kořeni přes `MAPS_DIR`).
+- `connectors/` + `generator/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
+  pořád ale **ne produkční balík** (ten přijde s přechodem na monorepo, fáze A). Sys.path skripty.

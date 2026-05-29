@@ -6,7 +6,7 @@ ji nekreslíme**. Princip (Sez. 23, uživatel): *„stojíme o všechna data z g
 ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 > **Verify-against-source (2026-05-27, Sez. 24):** vrstvy z `GetCapabilities`, geometrie
-> z `DescribeFeatureType`, ISOM kódy z `sandbox/generator-poc/template_classic.omap`
+> z `DescribeFeatureType`, ISOM kódy z `generator/template_classic.omap`
 > (plná knihovna). Žádný řádek není z paměti.
 >
 > Konektor: `connectors/zabaged.py` · souhrn zdroje + licence: `data-sources.md` ·
