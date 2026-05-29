@@ -1,6 +1,6 @@
 """stats.py — agreguje meta.json všech DEV_LOCATIONS do tabulky STATISTICS.md.
 
-Pro každou lokalitu (sandbox/generator-poc/<dirname>/) přečte:
+Pro každou lokalitu (maps/<dirname>/) přečte:
 - meta.json: počty symbolů ze sekcí (paths/rides/water/buildings/powerlines/railways/paved/rocks/
   bridges/point_symbols) — každá items má `symbol: int` (např. 503, 304, 5122=512.2),
 - contours.geojson: vrstevnice 101/102/103 (každý feature má properties.code),
@@ -15,9 +15,10 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent          # generator/ — sem se píše STATISTICS.md (verzováno)
+MAPS_DIR = ROOT.parent / "maps"       # maps/<lokalita>/ — odsud čteme výstupy (Sez. 39)
 
-# DEV_LOCATIONS (kód → název složky). Musí sedět s `--out <jméno>`, jak je v sandboxu.
+# DEV_LOCATIONS (kód → název složky). Musí sedět s názvem výstupní složky (maps/<jméno>).
 LOCATIONS = [
     ("SV", "Soví Vrch",   "Soví vrch / Lužické hory"),
     ("NL", "Nová Louka",  "Nová Louka / Jizerské hory"),
@@ -111,7 +112,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
 def main() -> None:
     rows = []
     for code, dirname, label in LOCATIONS:
-        folder = ROOT / dirname
+        folder = MAPS_DIR / dirname
         counts, mtime = _gather_symbol_counts(folder)
         rows.append((code, dirname, label, counts, mtime))
 

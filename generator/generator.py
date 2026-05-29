@@ -30,14 +30,24 @@ import numpy as np
 from PIL import Image, ImageDraw
 import contourpy
 
+# Kořen LAB — generator/ je jedna úroveň pod ním. Z _REPO_ROOT odvozujeme sdílené složky
+# (connectors/ data, asset/ assety, maps/ výstupy) → jeden zdroj pravdy o umístění repa (DRY).
+# (Sez. 39: generátor povýšen ze sandbox/generator-poc na pilíř generator/ → cesty o úroveň výš.)
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
 # Konektory reálných dat (UC2 enabler) žijí ve sdíleném `connectors/` v kořeni LAB
-# (Sez. 16) — ne v sandboxu, protože nejsou specifické pro generátor (zrcadlí UC2 v DAGu).
+# (Sez. 16) — ne v generátoru, protože nejsou specifické pro něj (zrcadlí UC2 v DAGu).
 # Generátor je zatím jediný konzument; jejich složku přidáme na sys.path (fáze B, KISS —
 # produkční balík/instalace až s monorepem, fáze A). Lazy importy `dmr`/`zabaged` níže pak
 # fungují, ať generator.py běží přímo, nebo ho importuje batch.py.
-_CONNECTORS_DIR = Path(__file__).resolve().parent.parent.parent / "connectors"
+_CONNECTORS_DIR = _REPO_ROOT / "connectors"
 if str(_CONNECTORS_DIR) not in sys.path:
     sys.path.insert(0, str(_CONNECTORS_DIR))
+
+# Generované mapy → maps/<lokalita>/ v kořeni LAB (gitignored; izomorfní s resources/ =
+# reálné mapy dovnitř ↔ maps/ generované ven). Kotveno k repu, ne k cwd → výstup nezávisí
+# na tom, odkud generátor spustíš. (Sez. 39.)
+MAPS_DIR = _REPO_ROOT / "maps"
 
 # Barevná paleta (§5) — jediný zdroj pravdy je palette.py (DRY). Sousední modul:
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
@@ -51,7 +61,7 @@ from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD
 _log = logging.getLogger("generator")
 
 # ---------- Rozměry výseku, mřížky a plátna, měřítko (§1) ----------
-# Velikost výseku je PARAMETR (lokalita + rozměry → cíl synthesize_pseudorealistic_map);
+# Velikost výseku je PARAMETR (lokalita + rozměry → cíl generate_map);
 # grid/plátno/svět se z ní odvodí (_apply_extent). Rozlišení (PX_PER_MM, M_PER_CELL) a
 # měřítko jsou JEDNA PRAVDA — drží konstantní, takže mm-odvozené prahy (příčky vedení
 # POWERLINE_TICK_* …) platí nezávisle na velikosti výseku (0,5 mm na papíře je 0,5 mm vždy).
@@ -1156,7 +1166,7 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
-    Vyčleněno ze synthesize_pseudorealistic_map() (SLAP, Sez. 15, tehdy generate()):
+    Vyčleněno z generate_map() (SLAP, Sez. 15):
     orchestrace kreslení vrstev a deklarativní sestavení metadat jsou dvě úrovně abstrakce.
     Vysoký počet parametrů je daň za to, že meta agreguje výstupy všech vrstev.
     """
@@ -1944,7 +1954,7 @@ def _render_bridges_tunnels(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDra
     Vrací (bridge_features, tunnel_features, footbridge_features, info):
       - bridge_features: [(grid, 512)] — mosty pro .omap (line objekt 512)
       - tunnel_features: [(grid, 512)] — tunely pro .omap (NEemit jako line, omap_export to
-        zpracuje jako 2× point 512.2 na koncích — to dělá synthesize_pseudorealistic_map)
+        zpracuje jako 2× point 512.2 na koncích — to dělá generate_map)
       - footbridge_features: [(gx, gy, 5122, rot)] — lávky bodové+liniové pro .omap
       - info: souhrn pro meta.json
     """
@@ -2014,7 +2024,7 @@ def _render_bridges_tunnels(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDra
 # kreslí uživatel v OOM (asset pattern, Sez. 26). Generátor ho stáhne (ZABAGED Bunkr LO37),
 # natočí (normála na lokální linii řopíků, „čelní zasypaný násep" = asset-sever VEN k nejbližší
 # státní hranici — univerzální ČR) a vloží na každou reálnou polohu. Projekce, ne dekorace.
-ROPIK_ASSET_PATH = Path(__file__).resolve().parent.parent.parent / "asset" / "ropik_10000.omap"
+ROPIK_ASSET_PATH = _REPO_ROOT / "asset" / "ropik_10000.omap"
 ROPIK_PCA_K = 6        # počet nejbližších řopíků pro odhad směru lokální linie (PCA)
 _ROPIK_GEOM_CACHE: tuple | None = None   # (building_ring_um, contour_lines_um) — načteno jednou
 
@@ -2157,9 +2167,9 @@ def _try_layer(label: str, fn, default, tolerant: bool, errors: dict[str, str]):
         return default
 
 
-def synthesize_pseudorealistic_map(
+def generate_map(
         lat: float, lon: float, w_km: float, h_km: float,
-        only_real: bool = False, out_dir: str = "output",
+        only_real: bool = False, out_dir: str | None = None,
         *,                                    # vše dál keyword-only — z popředí API zmizí
         seed: int = 1, rug: float = 0.5, det: float = 0.5,
         terrain: str = "real", paths: str = "real", rides: str = "real", water: str = "real",
@@ -2167,11 +2177,15 @@ def synthesize_pseudorealistic_map(
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
-    """Syntetizuje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
+    """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
-    Reframe Sez. 23 (IDEAS „synthesize_pseudorealistic_map"): real-větev je *prediktor
-    mapy* — skládá dva zdroje (DMR výškopis + ZABAGED vektor) do mapy konkrétního místa.
-    Vrací cestu k výstupní složce (`out_dir`). Dvě oddělitelné fáze (Sez. 24, GLOSSARY):
+    Reframe Sez. 23 (real-větev je *prediktor mapy*): skládá dva zdroje (DMR výškopis +
+    ZABAGED vektor) do mapy konkrétního místa. „Pseudorealistická" = vypadá jako reálné
+    mapování, ale je to projekce dat, ne skutečně zmapovaná mapa (GLOSSARY). Funkce dříve
+    `synthesize_pseudorealistic_map` → přejmenována na `generate_map` (Sez. 39: v komunikaci
+    převládl „generátor"; deštník i pro budoucí generátory, ne jen tuto syntézu).
+    Vrací cestu k výstupní složce (`out_dir`; None → `maps/output`). Dvě oddělitelné fáze
+    (Sez. 24, GLOSSARY):
     fáze 1 = projekce tvrdých dat (vždy), fáze 2 = pseudorealistická dekorace symbolů,
     co v datech nejsou (řízena `only_real`; viz níže).
 
@@ -2552,7 +2566,8 @@ def synthesize_pseudorealistic_map(
             _log.info("  mosty/tunely/lávky: 0")
 
     # --- zápis výstupů (§8.1): finální mapa + masky + meta ---
-    out = Path(out_dir)
+    # out_dir None → kanonické maps/output v kořeni LAB (volající s --location předá maps/<lokalita>).
+    out = Path(out_dir) if out_dir else MAPS_DIR / "output"
     out.mkdir(parents=True, exist_ok=True)
     img.save(out / "rgb.png")
     # world file (.pgw) pro rgb.png — georef rastru do S-JTSK (Sez. 37). Jen reálný terén
@@ -2741,7 +2756,8 @@ def main() -> None:
                    help=f"šířka výseku E-W [km] (default {DEF_WIDTH_KM} = baseline; --location má per-lokalita rozměr)")
     p.add_argument("--height-km", type=float, default=DEF_HEIGHT_KM,
                    help=f"výška výseku S-J [km] (default {DEF_HEIGHT_KM} = baseline; --location má per-lokalita rozměr)")
-    p.add_argument("--out", default="output", help="výstupní složka")
+    p.add_argument("--out", default=None,
+                   help="výstupní složka (default: maps/<lokalita> u --location, jinak maps/output)")
     args = p.parse_args()
     # vývojářská lokalita (--location) přepíše souřadnice + výsek per-lokalita (Sez. 31:
     # různé formáty landscape/portrait pro test ořezů). Jinak ruční --lat/--lon/--width-km/
@@ -2749,13 +2765,13 @@ def main() -> None:
     out_dir = args.out
     if args.location:
         name, lat, lon, w_km, h_km = DEV_LOCATIONS[args.location]
-        # --location ⇒ výstup do složky pojmenované dle lokality (název = SSoT pro STATISTICS.md),
-        # ledaže uživatel dal explicitní --out (≠ default "output").
-        if args.out == "output":
-            out_dir = name
+        # --location ⇒ výstup do maps/<lokalita> (název = SSoT pro STATISTICS.md),
+        # ledaže uživatel dal explicitní --out. (Sez. 39: kotveno v kořeni LAB přes MAPS_DIR.)
+        if out_dir is None:
+            out_dir = str(MAPS_DIR / name)
     else:
         lat, lon, w_km, h_km = args.lat, args.lon, args.width_km, args.height_km
-    out = synthesize_pseudorealistic_map(
+    out = generate_map(
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=out_dir,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,

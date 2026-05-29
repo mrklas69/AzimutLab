@@ -4,29 +4,16 @@ __pycache__/
 .venv/
 venv/
 
-# Výstupy / generovaná data (deštníková fáze: zatím nic, ale připraveno)
-# Vzor output_* chytá i pojmenované scratch rendery (output_baseline, output_v2, …)
+# Generované mapy = kanonický výstup generátoru (regenerovatelné) → maps/<lokalita>/
+# i maps/dataset_<terrain>/ (Sez. 39, kotveno v kořeni LAB přes MAPS_DIR). Jediné pravidlo
+# nahradilo dřívější výčet per-lokalita (Soví vrch / Nová louka / Lidové sady / Hrubá Skála /
+# Novina) + sandbox/** varianty — generátor povýšen ze sandbox/generator-poc na generator/.
+maps/
+# Scratch rendery (output_* chytá output_baseline/v2/…) + dočasné průzkumné výstupy
+# (Sez. 24: WFS capabilities/schema, diagnostiky) → konvence „dočasné výstupy → temp/".
 output/
 output_*/
-# Dočasné průzkumné výstupy (Sez. 24): WFS capabilities/schema, diagnostiky, scratch
-# rendery. Nově sem (ne do kořene/generator-poc): konvence „dočasné výstupy → temp/".
 temp/
-sandbox/**/output/
-sandbox/**/output_*/
-sandbox/**/data/
-# Kanonické outputy reálných map (regenerovatelné): Soví vrch (Lužické hory, Sez. 17),
-# Nová louka (Jizerské hory, Sez. 23), Lidové sady (Liberec, Sez. 28), Hrubá Skála (Sez. 30),
-# Novina (Lužické hory, kamenné železniční viadukty, Sez. 31).
-Soví vrch/
-sandbox/**/Soví vrch/
-Nová louka/
-sandbox/**/Nová louka/
-Lidové sady/
-sandbox/**/Lidové sady/
-Hrubá Skála/
-sandbox/**/Hrubá Skála/
-Novina/
-sandbox/**/Novina/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
 *.tif
@@ -41,14 +28,12 @@ lasertool/
 # Lokální hold-out / reference, NE do veřejného gitu. Metadata (původ, licence) v KB.
 resources/
 
-# Cache stažených reálných ČÚZK dat (nepatří do gitu): DMR 5G dlaždice (výškopis),
-# ZABAGED komunikace (cesty/pěšiny, GeoJSON z WFS)
+# Cache stažených reálných ČÚZK dat (nepatří do gitu, ale regenerovatelné → NEMAZAT, Sez. 25):
+# DMR 5G dlaždice (výškopis), ZABAGED komunikace (GeoJSON z REST), ortofoto podklad. Kotveno
+# u konektorů (connectors/.X_cache); pravidla bez leading-slash matchují v libovolném adresáři.
 .dmr_cache/
-sandbox/**/.dmr_cache/
 .zabaged_cache/
-sandbox/**/.zabaged_cache/
 .ortofoto_cache/
-sandbox/**/.ortofoto_cache/
 
 # Claude / IDE lokální
 .claude/settings.local.json

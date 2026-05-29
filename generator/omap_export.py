@@ -29,7 +29,7 @@ import re
 from pathlib import Path
 
 # Čistý ISOM 2017-2 template (vyrobil uživatel v OOM: Sez. 14, naposled přepsán Sez. 18).
-# Sebeobsažný v sandbox/.
+# Verzovaný vedle modulu v generator/.
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.

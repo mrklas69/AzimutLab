@@ -1,8 +1,10 @@
-# sandbox/generator-poc
+# generator
 
-Proof-of-concept procedurálního generátoru výseku mapy pro orientační běh.
-První reálný kód v repu (deštníková fáze). Realizuje **MVP řez** specifikace
-[`docs/kb/generator-procedural.md`](../../docs/kb/generator-procedural.md):
+Generátor výseku mapy pro orientační běh — **pilíř Laboratoře** (UC4-I/UC5
+enabler-feeder), ne sandbox experiment (povýšen ze `sandbox/generator-poc/`
+v Sez. 39 — 2600+ LOC / 24 vrstev už dávno není „PoC"). Konzumuje konektory
+reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
+[`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
 
 - **vrstevnice** — izolinie výškového pole (§4.5), hlavní zvýrazněné (3 px),
 - **bodové symboly extrémů** — malé uzavřené vrstevnice → ISOM **109/110/111**
@@ -60,18 +62,19 @@ obchází sparse-GT past z Pic2Omap.
 ## Spuštění
 
 ```powershell
-# z kořene repa, ve venv:
-.venv\Scripts\python.exe sandbox\generator-poc\generator.py --out sandbox\generator-poc\output
-# parametry: --seed INT  --rug 0-1 (členitost terénu, jen noise)  --det 0-1 (počet cest)
+# z kořene repa, ve venv (default = reálná data ČÚZK → maps/output):
+.venv\Scripts\python.exe generator\generator.py --terrain noise --paths proc
+# noise (procedurální Option 1, baseline 65) → maps/output; parametry:
+# --seed INT  --rug 0-1 (členitost terénu, jen noise)  --det 0-1 (počet proc cest)
 
-# Option 2 — reálný terén z ČÚZK DMR 5G (default souřadnice = Soví vrch, Lužické hory, §8.5):
-.venv\Scripts\python.exe sandbox\generator-poc\generator.py --terrain real --out "sandbox\generator-poc\Soví vrch"
-# jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do .dmr_cache/)
+# reálná data ČÚZK (DMR 5G terén + ZABAGED vrstvy; default souřadnice = Soví vrch, §8.5):
+.venv\Scripts\python.exe generator\generator.py --terrain real
+# jiná lokalita: --lat 50.82 --lon 14.67  (WGS84; dlaždice se cachuje do connectors/.dmr_cache/)
 
-# reálné vrstvy z ČÚZK ZABAGED (ArcGIS REST; real-půlka; vyžadují --terrain real):
-.venv\Scripts\python.exe sandbox\generator-poc\generator.py --location SV
-# (--location nastaví lat/lon/rozměr a zapne všechny reálné vrstvy; viz DEV_LOCATIONS: SV/NL/LS/HS/NV)
-# data pro výsek se cachují do .zabaged_cache/
+# vývojářské lokality (--location nastaví lat/lon/rozměr + zapne všechny reálné vrstvy):
+.venv\Scripts\python.exe generator\generator.py --location SV
+# výstup → maps/<lokalita>/ (kotveno v kořeni LAB); viz DEV_LOCATIONS: SV/NL/LS/HS/NV
+# data pro výsek se cachují do connectors/.zabaged_cache/
 ```
 
 Každý běh píše i `map.omap` (template-based nad `template_classic.omap` — otevři v OOM).
@@ -79,13 +82,13 @@ Každý běh píše i `map.omap` (template-based nad `template_classic.omap` —
 Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 
 ```powershell
-# noise sada (16 map, reprodukovatelná z seed0+n):
-.venv\Scripts\python.exe sandbox\generator-poc\batch.py --out sandbox\generator-poc\output\dataset_noise
-# reálná sada z lokalit ČR (CZ_LOCATIONS — 10 členitých OB oblastí, DMR 5G terén):
-.venv\Scripts\python.exe sandbox\generator-poc\batch.py --terrain real --out sandbox\generator-poc\output\dataset_real
+# noise sada (16 map, reprodukovatelná z seed0+n) → maps/dataset_noise:
+.venv\Scripts\python.exe generator\batch.py
+# reálná sada z lokalit ČR (CZ_LOCATIONS — 10 členitých OB oblastí, DMR 5G terén) → maps/dataset_real:
+.venv\Scripts\python.exe generator\batch.py --terrain real
 ```
 
-## Výstup (`output/`, gitignored)
+## Výstup (`maps/<lokalita>/`, gitignored)
 
 | Soubor | Obsah |
 |--------|-------|
@@ -108,11 +111,11 @@ gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shod
 
 ## Stack
 
-Python 3.14 · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK).
-Venv v kořeni repa (`.venv`). Konektory reálných dat žijí v **`connectors/`** v kořeni LAB
-(`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení + železnice + kolejiště + skály +
-mosty/tunely + řopíky, `ortofoto.py` podklad — sourozenci, sdílejí `dmr.build_bbox`); generátor si
-jejich složku přidá na `sys.path` (Sez. 16, vytaženo ze sandboxu).
+Python 3.12+ · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK).
+Venv v kořeni LAB (`.venv`) — sdílený pro `generator/` i `connectors/`. Konektory reálných dat žijí
+v **`connectors/`** v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení +
+železnice + kolejiště + skály + mosty/tunely + řopíky, `ortofoto.py` podklad — sourozenci, sdílejí
+`dmr.build_bbox`); generátor si jejich složku přidá na `sys.path` (Sez. 16).
 
 Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (vektorové vrstvy) + ORTOFOTO (podklad), vše
 open data **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).

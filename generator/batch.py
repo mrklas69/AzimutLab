@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFont
 # Import ze sousedního modulu: Python přidá složku spouštěného skriptu na sys.path,
 # takže `generator` je viditelný, když batch.py běží přímo. W/H jsou rozměry plátna na
 # default výseku (batch jede na baseline extentu); DEF_* = výchozí výsek/lokalita.
-from generator import (synthesize_pseudorealistic_map, W, H,
+from generator import (generate_map, MAPS_DIR, W, H,
                        DEF_WIDTH_KM, DEF_HEIGHT_KM, DEF_LAT, DEF_LON)
 
 # ---------- Reálné lokality ČR pro --terrain real ----------
@@ -89,13 +89,14 @@ def main() -> None:
     p.add_argument("--terrain", choices=["noise", "real"], default="noise",
                    help="noise = fraktální šum (default), real = ČÚZK DMR 5G z lokalit ČR")
     p.add_argument("--out", default=None,
-                   help="výstupní složka (default: output/dataset_<terrain>)")
+                   help="výstupní složka (default: maps/dataset_<terrain>)")
     args = p.parse_args()
 
     real = args.terrain == "real"
     # default počtu map závisí na režimu: noise=16, real=projdi celý seznam lokalit
     n = args.n if args.n is not None else (len(CZ_LOCATIONS) if real else 16)
-    out = Path(args.out or f"output/dataset_{args.terrain}")
+    # default dataset → maps/dataset_<terrain> v kořeni LAB (Sez. 39, kotveno přes MAPS_DIR)
+    out = Path(args.out) if args.out else MAPS_DIR / f"dataset_{args.terrain}"
     out.mkdir(parents=True, exist_ok=True)
     # master-PRNG losuje parametry → celá sada je daná dvojicí (seed0, n)
     master = np.random.default_rng(args.seed0)
@@ -120,7 +121,7 @@ def main() -> None:
             # jako u powerlines — v lesních CZ_LOCATIONS vzácné, většinou 0 prvků). Vše explicitně
             # "off": rocks/bridges mají default "real" → bez vypnutí by noise větev padla na validaci
             # (terrain="noise") a real větev by je zbytečně stahovala.
-            synthesize_pseudorealistic_map(
+            generate_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
@@ -148,7 +149,7 @@ def main() -> None:
             rug, det = (float(x) for x in master.random(2))   # dva parametry z [0,1)
             # noise = procedurální Option 1 (baseline 65): default výsek + proc cesty, bez
             # real vrstev. lat/lon se u noise neuplatní (georef je lokální), předáváme DEF_*.
-            synthesize_pseudorealistic_map(
+            generate_map(
                 DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
