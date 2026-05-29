@@ -47,6 +47,8 @@ GEN_CAPABILITIES = {
     "powerline": ["510"],
     "bridge/tunnel": ["512", "512.2"],
     "building": ["521"],
+    "open land": ["401"],            # plošný pokryv žlutá (louka/park/pole/sad), Sez. 41
+    "out-of-bounds": ["520"],        # hřbitov olivová, Sez. 41
 }
 
 # --- sémantický crosswalk: prvek → reálné ISOM2000 kódy v Soví vrch.omap ---
@@ -63,6 +65,8 @@ CROSSWALK = {
     "powerline": [],                                         # v této mapě žádné el. vedení
     "bridge/tunnel": ["512", "518"],                         # lávka + tunel
     "building": ["526", "526.1", "527"],                    # budova + sídliště
+    "open land": ["401", "402", "403", "404"],              # otevřený prostor (open land rodina, ~stejné napříč verzemi)
+    "out-of-bounds": [],                                     # hřbitov/zákaz vstupu — v této mapě žádný
 }
 
 
@@ -251,7 +255,7 @@ def main():
     print(f"{'barva':<10}{'real %':>8}{'gen %':>8}{'precision':>11}{'recall':>9}{'IoU':>7}  pozn.")
     print("-" * 78)
     NOTE = {"brown": "vrstevnice+terén", "blue": "voda", "black": "cesty/stavby/skály",
-            "green": "vegetace (gen nemá)", "open": "otevř. prostor (gen nemá)",
+            "green": "vegetace (gen nemá — gate)", "open": "otevř. prostor (open land 401, Sez. 41)",
             "road": "silnice výplň", "white": "les/průběžný"}
     for color in ["brown", "blue", "black", "green", "open", "white"]:
         rm = real_masks[color] & valid

@@ -40,7 +40,8 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "304", "305", "306", "301.1", "521", "510", "509", "501", "109", "110", "111",
               "204", "206", "207",       # skály/balvany Sez. 30 (204 bod, 207 bod, 206 plocha)
-              "512", "512.2")            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
+              "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
+              "401", "520")              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
 # Rotatable symboly (orientaci nese objekt). 110 elipsa je rotatable; 109/111 pevně k severu.
 # Skály: 204 Boulder je kruh (rotace nemá smysl), 207 Boulder cluster je trojúhelník
 # orientovaný na sever (template: „symbol is orientated to north") → ani jeden nerotuje.
@@ -52,7 +53,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301.1", "521", "501", "206"})  # 206 Gigantic boulder Sez. 30
+AREA_CODES = frozenset({"301.1", "521", "501", "206", "401", "520"})  # 206 Sez. 30; 401/520 plošný pokryv Sez. 41
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -87,7 +88,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                rock_area_features: list[tuple] | None = None,
                bridge_features: list[tuple] | None = None,
                tunnel_features: list[tuple] | None = None,
-               footbridge_features: list[tuple] | None = None) -> dict:
+               footbridge_features: list[tuple] | None = None,
+               surface_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -155,7 +157,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
 
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
-    n_formlines = n_rocks = n_bridges = n_rides = 0
+    n_formlines = n_rocks = n_bridges = n_rides = n_surfaces = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -203,6 +205,12 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(ring, str(code))
         if o:
             objs.append(o); n_paved += 1
+    # plošný pokryv (401 open land / 520 zákaz vstupu) = plošný objekt (uzavřený path s close
+    # flagem; OOM vyplní plnou barvou bez obrysu). Z-order v OOM řeší priorita barev. Sez. 41.
+    for ring, code in (surface_features or []):
+        o = area_object(ring, str(code))
+        if o:
+            objs.append(o); n_surfaces += 1
     # řopíky (Sez. 27): asset = budova 521 (plocha) + vrstevnice náspu 101 (linie). Geometrie už
     # natočená/umístěná generátorem; emise jako ostatní (521 area s close flagem, 101 line).
     for geom, code in (ropik_features or []):
@@ -375,4 +383,4 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     return {"contours": n_contours, "formlines": n_formlines, "paths": n_paths, "rides": n_rides,
             "water": n_water, "buildings": n_buildings, "powerlines": n_powerlines,
             "railways": n_railways, "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
-            "bridges": n_bridges, "points": n_points, "objects": len(objs)}
+            "bridges": n_bridges, "surfaces": n_surfaces, "points": n_points, "objects": len(objs)}

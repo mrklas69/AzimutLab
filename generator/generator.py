@@ -53,7 +53,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -279,10 +279,27 @@ RIDE_STYLE = {ISOM_NARROW_RIDE: ("dashed", 1, (3.0 * PX_PER_MM, 0.375 * PX_PER_M
 # DRY se silnicí 502 — paved i silnice jsou hnědé), obrys = C_BROWN (= template bounding line
 # Brown 100%). Mapování viz zabaged.map_paved_to_isom (vždy 501). Volba 501 pro kolejiště =
 # rozhodnutí uživatele (Sez. 28): nádraží se generalizuje na zpevněnou plochu, ne jednotlivé koleje.
-ISOM_PAVED = 501                   # zpevněná plocha (kolejiště) → hnědá výplň + obrysová linie
+ISOM_PAVED = 501                   # zpevněná plocha (kolejiště/parkoviště) → hnědá výplň + obrysová linie
 PAVED_NAME = {ISOM_PAVED: "Paved area"}
 # ISOM kód → třída v mask_paved.png (0 = pozadí). Jediná třída (1).
 PAVED_CLASS = {ISOM_PAVED: 1}
+
+# Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou 301 /
+# budovou 521 / kolejiště 501). Dvě skupiny v JEDNÉ vrstvě `--surfaces` (multi-class maska):
+#   401 Open land  — louka/park/pole/sad → plná ŽLUTÁ výplň BEZ obrysu (template 401: inner_color
+#                    Yellow 100%, patterns=0). KISS: víc ZABAGED vrstev → jeden symbol (volba uživatele
+#                    Sez. 41 „open land jako jedna žlutá"); ISOM-věrné 412 pole / 413 sad = druhá vlna.
+#   520 Area shall not be entered — hřbitov → plná OLIVOVÁ výplň BEZ obrysu (template 520: inner_color
+#                    Yellow 100%/Green 50%, patterns=0). ISOM nemá vlastní hřbitov → 520 (out-of-bounds).
+# Z-order: ÚPLNĚ VESPOD (podklad pod vrstevnicemi) — viz generate_map. Les NENÍ open land (bílá =
+# default pozadí, vegetace gate). Mapování viz zabaged.map_open_land_to_isom / map_cemetery_to_isom.
+ISOM_OPEN_LAND = 401               # otevřená plocha → plná žlutá (bez obrysu)
+ISOM_CEMETERY = 520                # zákaz vstupu / hřbitov → plná olivová (bez obrysu)
+SURFACE_NAME = {ISOM_OPEN_LAND: "Open land", ISOM_CEMETERY: "Area that shall not be entered"}
+# ISOM kód → třída v mask_surfaces.png (0 = pozadí). Multi-class: open land 1, hřbitov 2.
+SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_CEMETERY: 2}
+# ISOM kód → výplň (plná barva, bez obrysu — open land/zákaz vstupu nemají bounding line)
+SURFACE_FILL = {ISOM_OPEN_LAND: C_YELLOW, ISOM_CEMETERY: C_OLIVE}
 
 
 # ---------- Skály a balvany (Sez. 30, real-půlka §8.5) ----------
@@ -836,8 +853,9 @@ def _draw_footbridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                      cx: float, cy: float, rot_rad: float) -> None:
     """Lávka bodová (ISOM 512.2): kolmá čárka v poloze (cx, cy), rotovaná o rot_rad.
 
-    Template id=127: point_symbol rotatable=true, polyline (0,-625) → (0,625) µm =
-    vertikální čárka 1,25 mm tlustá 0,25 mm. `rot_rad` = úhel orientace osy lávky vůči
+    Template id=127: point_symbol rotatable=true, polyline (0,-937) → (0,938) µm =
+    vertikální čárka 1,87 mm tlustá 0,375 mm (template-věrné hodnoty, Sez. 35; dřív 625/250
+    µm = drift). `rot_rad` = úhel orientace osy lávky vůči
     +x rastru; nastavuje se kolmo k nejbližšímu vodnímu toku (řeší volající)."""
     cos_r = math.cos(rot_rad)
     sin_r = math.sin(rot_rad)
@@ -876,9 +894,17 @@ def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
 
 def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                      ring_px: list[tuple[float, float]], code: int) -> None:
-    """Zpevněná plocha / kolejiště (ISOM 501): hnědá výplň + hnědý obrys — wrapper nad
+    """Zpevněná plocha / kolejiště / parkoviště (ISOM 501): hnědá výplň + hnědý obrys — wrapper nad
     _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area)."""
     _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BROWN, PAVED_CLASS[code])
+
+
+def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
+                       ring_px: list[tuple[float, float]], code: int) -> None:
+    """Plošný pokryv (ISOM 401 open land žlutá / 520 zákaz vstupu olivová): plná výplň BEZ obrysu
+    — wrapper nad _draw_area_symbol (izomorfní s _draw_paved_area, jen outline=None: open land ani
+    out-of-bounds nemají bounding line; barva dle SURFACE_FILL, třída dle SURFACE_CLASS)."""
+    _draw_area_symbol(draw, sdraw, ring_px, SURFACE_FILL[code], None, SURFACE_CLASS[code])
 
 
 def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1016,7 +1042,7 @@ def _isom_meta() -> dict:
     Číslování symbolů se mezi ISOM 2000 a 2017-2 RECYKLUJE s jiným významem: 521 = Building
     v 2017-2, ale High stone wall v 2000; Narrow ride 509→508; Railway 515→509. Bez explicitní
     verze konzument (UC5, člověk) hádá z čísel → konflikt (nález Sez. 37: reálné mapy v
-    `resources/` jsou ISOM 2000, generátor 2017-2). Crosswalk: OOM `ISOM2000-ISOM 2017-2.crt`.
+    `resources/` jsou ISOM 2000, generátor 2017-2). Crosswalk: OOM `ISOM2000-ISOM2017-2.crt`.
     Měřítko 1:10000 — `template_classic.omap` je geometricky identický s oficiálním OOM
     1:10000 ISOM 2017-2 setem (line_width ověřeno Sez. 38), ne ruční odhad."""
     return {"version": "2017-2", "scale": MAP_SCALE, "symbol_set": "template_classic.omap"}
@@ -1633,6 +1659,35 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
     return area_features, paved_info
 
 
+def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
+                            lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálný plošný pokryv (real-půlka, Sez. 41): open land (louka/park/pole/sad) → 401 žlutá +
+    hřbitov → 520 olivová ze ZABAGED REST. Dvě skupiny v JEDNÉ multi-class masce (1=open, 2=hřbitov).
+
+    Mirror _generate_real_paved (RAW S-JTSK → grid → px → polygon plná výplň, bez generalizace).
+    Vrací (area_features [(grid, code)], surfaces_info) v souřadnicích MŘÍŽKY (zdroj pro .omap).
+    V bezlesém/lesním výseku bez open land / hřbitova = 0 prvků (žádný šum)."""
+    from zabaged import (fetch_open_land, fetch_cemeteries,
+                         map_open_land_to_isom, map_cemetery_to_isom)
+    area_features: list[tuple] = []
+    surfaces_info: list[dict] = []
+    # open land i hřbitov jdou stejnou plošnou cestou (RAW ring → plná výplň), liší se mapperem/barvou
+    for feats, mapper in ((fetch_open_land(lat, lon, GW, GH, TILE_M), map_open_land_to_isom),
+                          (fetch_cemeteries(lat, lon, GW, GH, TILE_M), map_cemetery_to_isom)):
+        for f in feats:
+            code = mapper(f["layer"], f["props"])
+            for ring in f["rings"]:
+                grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+                px = [_grid_to_px(gx, gy) for gx, gy in grid]
+                if len(px) < 3:
+                    continue
+                _draw_surface_area(draw, sdraw, px, code)
+                area_features.append((grid, code))
+                surfaces_info.append({"symbol": code, "symbol_name": SURFACE_NAME[code],
+                                      "kind": "area", "layer": f["layer"]})
+    return area_features, surfaces_info
+
+
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
@@ -1881,29 +1936,16 @@ def _crop_line_at_passages(line_grid: list[tuple[float, float]],
 def _nearest_segment_tangent(bx: float, by: float,
                              lines_px: list[list[tuple[float, float]]]
                              ) -> tuple[float, float] | None:
-    """Pro bod (bx, by) najde nejbližší segment v `lines_px` a vrátí jeho jednotkovou tangentu.
+    """Jednotková tangenta nejbližšího segmentu v `lines_px` k bodu (bx, by), nebo None.
 
-    Vrací None, když `lines_px` prázdné. Použito pro orientaci bodové lávky kolmo k nejbližšímu
-    vodnímu toku (paralela `_ropik_outward` PCA, ale jednodušší — lávka má jeden tok pod sebou,
-    ne klastr). Segment = sousední dvojice bodů polyline."""
-    best_d2 = float("inf")
-    best_dir: tuple[float, float] | None = None
-    for line in lines_px:
-        for i in range(1, len(line)):
-            x1, y1 = line[i - 1]
-            x2, y2 = line[i]
-            dx, dy = x2 - x1, y2 - y1
-            seg_len2 = dx * dx + dy * dy
-            if seg_len2 < 1e-9:
-                continue
-            t = max(0.0, min(1.0, ((bx - x1) * dx + (by - y1) * dy) / seg_len2))
-            cx, cy = x1 + t * dx, y1 + t * dy
-            d2 = (bx - cx) ** 2 + (by - cy) ** 2
-            if d2 < best_d2:
-                best_d2 = d2
-                seg_len = math.sqrt(seg_len2)
-                best_dir = (dx / seg_len, dy / seg_len)
-    return best_dir
+    Tenký wrapper nad `_nearest_seg` (DRY — tatáž iterace segmentů + projekce na úsečku, Sez. 41):
+    liší se jen okrajem — vrací None, když ve `lines_px` není ani jeden segment (≥2 body), aby
+    volající (orientace bodové lávky kolmo k toku) poznal „žádný tok pod sebou" a sáhl po fallbacku
+    rot=0; `_nearest_seg` by tam vrátil neutrální (1,0). Jinak deleguje."""
+    if not any(len(line) >= 2 for line in lines_px):
+        return None
+    ux, uy, _ = _nearest_seg(bx, by, lines_px)
+    return ux, uy
 
 
 def _fetch_bridges_tunnels_geometries(lat: float, lon: float, geo_bbox: tuple
@@ -2175,7 +2217,7 @@ def generate_map(
         terrain: str = "real", paths: str = "real", rides: str = "real", water: str = "real",
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
-        bridges: str = "real",
+        bridges: str = "real", surfaces: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -2213,7 +2255,8 @@ def generate_map(
     reálné vrstvy ji vynechá místo pádu celé mapy; vynechané vrstvy se zapíšou do
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
-    Rastrový z-order (pořadí kreslení do PNG): vrstevnice (§4.5) → pomocné vrstevnice (103) →
+    Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 hřbitov, ÚPLNĚ
+    VESPOD = podklad) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
     (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
     lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
@@ -2248,7 +2291,8 @@ def generate_map(
                               ("--paved", paved, "reálná zpevněná plocha"),
                               ("--ropiky", ropiky, "řopíky ze ZABAGED"),
                               ("--rocks", rocks, "reálné skály/balvany"),
-                              ("--bridges", bridges, "reálné mosty/tunely/lávky")):
+                              ("--bridges", bridges, "reálné mosty/tunely/lávky"),
+                              ("--surfaces", surfaces, "reálný plošný pokryv")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
                              "georef výseku; noise terén je v lokálních metrech).")
@@ -2281,6 +2325,26 @@ def generate_map(
     rgb = np.full((H, W, 3), C_WHITE, dtype=np.uint8)
     img = Image.fromarray(rgb, mode="RGB")
     draw = ImageDraw.Draw(img)
+
+    # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Definováno brzy,
+    # protože plošný pokryv (z-order vespod, kreslí se hned) ho potřebuje už před vrstevnicemi.
+    layer_errors: dict[str, str] = {}
+
+    # --- plošný pokryv / land-cover (ISOM 401 open land + 520 hřbitov): ÚPLNĚ VESPOD (Sez. 41) ---
+    # Rastr z-order: PRVNÍ kresba na bílé plátno = podklad pod vrstevnicemi i vším ostatním. Žlutá
+    # open land (louka/park/pole/sad) + olivový hřbitov jsou plochy POD hnědou terénní kostrou (tak
+    # je vidí oko na reálné mapě). Les zůstává bílá (default pozadí, nekreslí se — vegetace gate).
+    # Reálná půlka ze ZABAGED REST, jedna multi-class maska. Jen --surfaces real.
+    surface_area_features: list[tuple] = []
+    surfaces_info: list[dict] = []
+    surface_mask_img: Image.Image | None = None
+    if surfaces == "real":
+        surface_mask_img = Image.new("L", (W, H), 0)     # GT maska pokryvu (§8.1), multi-class
+        sfdraw = ImageDraw.Draw(surface_mask_img)
+        surface_area_features, surfaces_info = _try_layer(
+            "surfaces", lambda: _generate_real_surfaces(draw, sfdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  plošný pokryv: %d (open land + hřbitov)", len(surfaces_info))
 
     # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
     cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic
@@ -2353,9 +2417,6 @@ def generate_map(
     sdraw = ImageDraw.Draw(sym_mask_img)
     for ps in point_symbols:
         _draw_point_symbol(draw, sdraw, ps)
-
-    # selhání reálných vrstev (jen tolerant režim): {vrstva: důvod} → meta.json. Prázdné = vše OK.
-    layer_errors: dict[str, str] = {}
 
     # --- PRE-FETCH mostů/tunelů (Sez. 32 E1+E4): jen geometrie, žádné kreslení ---
     # Mosty/tunely se vykreslí navrch (= závorky lemují, kolmé čárky vstup/výstup) AŽ NA KONCI;
@@ -2613,6 +2674,8 @@ def generate_map(
         rock_mask_img.save(out / "mask_rocks.png")                          # skály/balvany (GT, multi-class)
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
+    if surface_mask_img is not None:
+        surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=hřbitov)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -2638,6 +2701,9 @@ def generate_map(
     # 501.1 (bez obrysu, jako voda). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní
     # area-část kombinovaného symbolu a nakreslí obrys (jako u vody 301 combined).
     paved_omap_features = [(g, "501") for g, _ in paved_area_features]
+    # plošný pokryv → 401 (open land) / 520 (hřbitov) = plošné symboly (area, uzavřený path
+    # s close flagem; OOM vyplní plnou barvou). Sez. 41.
+    surface_omap_features = [(g, str(c)) for g, c in surface_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
@@ -2666,7 +2732,8 @@ def generate_map(
                              rock_area_features=rock_area_omap_features,
                              bridge_features=bridge_omap_features,
                              tunnel_features=tunnel_omap_features,
-                             footbridge_features=footbridge_omap_features)
+                             footbridge_features=footbridge_omap_features,
+                             surface_features=surface_omap_features)
     omap_info = {"file": "map.omap", **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
                        railways, rocks, bridges,
@@ -2678,13 +2745,28 @@ def generate_map(
     # ISOM verze + georef výseku. Injektováno zde (ne přes _build_meta) — ten už má 26
     # parametrů (A1 monolit), nezhoršovat smell. `isom` = deklarace verze (Sez. 38, ochrana
     # proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever (Sez. 37).
+    # plošný pokryv (Sez. 41): injektováno zde (ne přes _build_meta) — ten už má 26 parametrů
+    # (A1 monolit, audit Sez. 41), nezhoršovat smell; precedent isom/georef (Sez. 37/38). Sekce jen
+    # když --surfaces real; struktura izomorfní s ostatními vrstvami (stats.py ji čte stejně).
+    if surfaces == "real":
+        used_surface_codes = sorted({s["symbol"] for s in surfaces_info})
+        meta["surfaces"] = {
+            "count": len(surfaces_info),
+            "mask": "mask_surfaces.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): SURFACE_NAME[c] for c in used_surface_codes},
+            "classes": {"0": "pozadí",
+                        **{str(SURFACE_CLASS[c]): f"{c} {SURFACE_NAME[c]}" for c in used_surface_codes}},
+            "items": surfaces_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }
     meta["isom"] = _isom_meta()
     meta["georef"] = _georef_meta(geo_bbox, crs_epsg)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
-    _log.info("hotovo → %s · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "
+    _log.info("hotovo → %s · pokryv %d · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "
               "vrstevnice %d (pomocné %d) · vedení %d · železnice %d · skály %d · mosty/tunely/lávky %d · "
-              "body %d · .omap objektů %d", out, len(building_info),
+              "body %d · .omap objektů %d", out, len(surfaces_info), len(building_info),
               len(ropik_info), len(water_info), len(paved_info), n_paths, len(rides_info),
               len(contour_features),
               len(formline_features), len(powerlines_info), len(railways_info),
@@ -2741,6 +2823,10 @@ def main() -> None:
                    help="real = ČÚZK ZABAGED Most/Tunel/Lávka → ISOM 512+512.2 (default), "
                         "off = bez mostů/tunelů/lávek (real vyžaduje --terrain real; bodová "
                         "lávka rotuje kolmo k vodě, --water real doporučeno)")
+    p.add_argument("--surfaces", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED REST plošný pokryv → ISOM 401 open land (louka/park/pole/sad, "
+                        "žlutá) + 520 hřbitov (olivová) (default), off = bez pokryvu "
+                        "(real vyžaduje --terrain real; les zůstává bílá = vegetace gate)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -2776,7 +2862,7 @@ def main() -> None:
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
-        rocks=args.rocks, bridges=args.bridges,
+        rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 

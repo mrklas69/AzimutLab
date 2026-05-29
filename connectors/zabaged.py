@@ -67,6 +67,16 @@ LAYER_IDS = {
     "Tunel": 74,
     "Lávka (linie)": 67,
     "Lávka (bod)": 66,
+    # Plošný pokryv / land-cover (Sez. 41, `--surfaces` + parkoviště do `--paved`). ID + REST
+    # jména ověřena ?f=json + temp probe count (SV/LS/NL). POZOR: REST jména s MEZERAMI/ČÁRKAMI
+    # a diakritikou (jako tramvaj/lávka), ne WFS escape. Vinice (136)/Chmelnice (137)/kosodřevina
+    # (141) vynechány — 0 prvků ve všech DEV_LOCATIONS.
+    "Hřbitov": 116,
+    "Parkoviště, odpočívka": 123,
+    "Udržovaná zeleň": 134,
+    "Ovocný sad, zahrada": 135,
+    "Orná půda a ostatní dále nespecifikované plochy": 138,
+    "Trvalý travní porost": 139,
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -103,7 +113,20 @@ RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka", "Tramvajová d
 # JEDEN polygon; jednotlivé koleje data nemodelují jako linie). → ISOM 501 Paved area (kombinovaný
 # symbol: hnědá 50% výplň + obrysová linie). Mapování viz map_paved_to_isom. Vzor pro budoucí
 # další zdroje 501 (parkoviště ap.). Jinde než u nádraží/zpevněných ploch = 0 prvků.
-PAVED_AREA_LAYERS = ("Kolejiště",)
+PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: parkoviště → 501 (DRY s kolejiště)
+
+# Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou/budovou).
+# Dvě skupiny podle ISOM:
+#  OPEN_LAND = otevřené plochy → 401 Open land (plná žlutá). KISS: louka/park/pole/sad = různé
+#    ZABAGED vrstvy (druh JE v datech), ale pro MVP všechny → 401 (Sez. 41, volba uživatele „open
+#    land jako jedna žlutá"). ISOM-věrné rozlišení pole 412 / sad 413 (žlutá + pattern) = druhá
+#    vlna (pattern render). Pozn.: les NENÍ open land — zůstává bílá (default pozadí, vegetace gate).
+#  CEMETERY = hřbitov → 520 Area that shall not be entered (plná olivová, out-of-bounds). ISOM nemá
+#    vlastní hřbitovní symbol → 520 (verify template Sez. 41). Umělá plocha, čistá projekce bez gate.
+# Render plná výplň (oba patterns=0 v template) → tutovka (Sez. 41). Mapování viz map_*_to_isom.
+OPEN_LAND_LAYERS = ("Trvalý travní porost", "Udržovaná zeleň",
+                    "Orná půda a ostatní dále nespecifikované plochy", "Ovocný sad, zahrada")
+CEMETERY_LAYERS = ("Hřbitov",)
 
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
@@ -141,9 +164,10 @@ STATE_BORDER_CODE = "1"            # vyzn_zsh_k hodnota pro státní hranici
 
 # Skály a balvany (Sez. 30, real-půlka, MVP rozsah). Verify-against-source (probe_rocks.py
 # na Hrubé Skále): vrstvy mají JEN atribut `jmeno` (žádné rozlišení typ/velikost/výška) →
-# KISS, vrstva → jeden ISOM symbol (jako budovy→521, vedení→510, železnice→509). Hybridní
-# 202 vs 206 u Skalní_útvary řeší až generator.py podle PLOCHY polygonu (žádný ZABAGED
-# atribut). Skupina_balvanů__linie_ a Sesuv_půdy__suť odloženy (3 prvky / 0 prvků v probe).
+# KISS, vrstva → jeden ISOM symbol (jako budovy→521, vedení→510, železnice→509). Skalní_útvary
+# → VŽDY 206 (map_rock_area_to_isom); hybridní 202/206 podle plochy polygonu bylo zvažováno a
+# ZAVRŽENO (Sez. 30, „rozhodování bez datového podkladu" — žádný ZABAGED atribut typu/výšky).
+# Skupina_balvanů__linie_ a Sesuv_půdy__suť odloženy (3 prvky / 0 prvků v probe).
 BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové „turisticky významné"
 BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů
 ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
@@ -510,9 +534,9 @@ def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
     """Vrátí reálné skalní útvary (plochy) pro výsek jako seznam plošných features.
 
     Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy polygonů v S-JTSK
-    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_rock_area_to_isom) je hybridní
-    podle plochy polygonu (řešeno v generator.py, ne tady) — žádný ZABAGED atribut velikost
-    nenese. Verify Sez. 30 (Hrubá Skála): 411 polygonů, medián 1132 m², 304× > 500 m²,
+    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_rock_area_to_isom) → VŽDY 206
+    (KISS); hybridní 202/206 podle plochy bylo zavrženo (Sez. 30) — žádný ZABAGED atribut
+    velikost nenese. Verify Sez. 30 (Hrubá Skála): 411 polygonů, medián 1132 m², 304× > 500 m²,
     max 30 444 m² (Mariánská vyhlídka). Izomorfní s fetch_buildings/fetch_paved_areas."""
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
@@ -599,6 +623,49 @@ def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
     return line_feats, points
 
 
+def fetch_open_land(lat: float, lon: float, gw: int, gh: int,
+                    tile_m: float = 1000.0,
+                    cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné otevřené plochy (louka/park/pole/sad) pro výsek jako plošné features.
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy ploch v S-JTSK
+    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_open_land_to_isom → 401) výš (Sez. 41).
+    Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA (louka 139 ≠ pole 138
+    ≠ sad 135 ≠ park 134); MVP je všechny → 401 (volba uživatele). Les NENÍ open land (vegetace gate)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in OPEN_LAND_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
+    return out
+
+
+def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
+                     tile_m: float = 1000.0,
+                     cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné hřbitovy pro výsek jako plošné features.
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech.
+    Mapování na ISOM (map_cemetery_to_isom → 520 Area that shall not be entered) výš (Sez. 41).
+    Izomorfní s fetch_paved_areas. Umělá plocha, čistá projekce (žádný vegetace gate)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in CEMETERY_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
+    return out
+
+
 def map_path_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED komunikaci na ISOM 2017-2 liniový symbol (kód).
 
@@ -659,8 +726,29 @@ def map_paved_to_isom(layer: str, props: dict) -> int:
     `Kolejiště` → **501 Paved area** (vždy; KISS, jako budovy→521). 501 je v template_classic.omap
     kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 = rozhodnutí uživatele
     (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu, ne na jednotlivé
-    koleje. Konektor vrací holý ISOM kód (int) — render zná generator.py (žádný cyklický import)."""
+    koleje. Parkoviště (Sez. 41) → taky 501 (zpevněná plocha, DRY). Konektor vrací holý ISOM kód
+    (int) — render zná generator.py (žádný cyklický import)."""
     return 501
+
+
+def map_open_land_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED otevřenou plochu na ISOM 2017-2 plošný symbol (kód).
+
+    Louka/park/pole/sad → **401 Open land** (vždy; KISS, volba uživatele Sez. 41 „open land jako
+    jedna žlutá"). Druh JE v datech (různé vrstvy), ale ISOM-věrné rozlišení pole → 412 Cultivated
+    land / sad → 413 Orchard (žlutá + pattern) je odložená druhá vlna (pattern render). 401 = plná
+    žlutá výplň bez obrysu. Nejistý je jen odstín 401 vs 403 Rough open (průchodnost = vegetace gate
+    nuance) → KISS 401. Konektor vrací holý ISOM kód (int)."""
+    return 401
+
+
+def map_cemetery_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED hřbitov na ISOM 2017-2 plošný symbol (kód).
+
+    `Hřbitov` → **520 Area that shall not be entered** (vždy; KISS). ISOM 2017-2 nemá vlastní
+    hřbitovní symbol (verify template Sez. 41) → 520 = olivová out-of-bounds plocha, tak se hřbitov
+    na OB mapě kreslí. Umělá plocha, čistá projekce bez gate. Konektor vrací holý ISOM kód (int)."""
+    return 520
 
 
 def map_water_to_isom(layer: str, props: dict) -> int | None:
