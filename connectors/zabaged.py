@@ -86,6 +86,29 @@ LAYER_IDS = {
     # typzast_k rozliší typ (62 hodnot). Kůlna/přístřešek = drobné stavby → 521 (mirror budov).
     "Areál účelové zástavby": 114,
     "Kůlna, skleník, fóliovník, přístřešek": 105,
+    # Budovové stavby — historické + zříceniny (Sez. 43, audit katalogu „nic užitečného nevypadne").
+    # ČÚZK vede zámek/hrad/zříceninu v SAMOSTATNÝCH plošných vrstvách (NE v Budova_..._plocha_ 99) →
+    # bez nich vypadly z mapy (verify Sez. 43: domov mládeže Krompach = `Zámek` 102; Milštejn = `Rozvalina`).
+    "Zámek": 102,
+    "Hrad": 101,
+    "Rozvalina, zřícenina": 103,
+    # Bodové orientační prvky (Sez. 43, audit katalogu — ISOM 52x-53x + 417). Klasické OB body,
+    # dosud vypadávaly. REST jména s mezerami/čárkami (ověřeno ?f=json + probe atributů Sez. 43).
+    "Kříž, sloup kulturního významu": 24,        # → 530 (ring)
+    "Mohyla, pomník, náhrobek": 25,              # → 526 Cairn
+    "Věž, věžovitá nástavba": 26,                # → 524 High tower (podtypob = věž kostela/kaple)
+    "Věžovitá stavba": 100,                      # plocha (3 m² footprint) → centroid → 524
+    "Významný nebo osamělý strom, lesík": 14,    # → 417 Prominent large tree (typveg = osamělý strom/lesík)
+    "Vodojem věžový": 27,                        # → 524 (0 ve výsecích, pro úplnost)
+    "Silo": 28,                                  # → 524 (0, pro úplnost)
+    "Těžní věž": 30,                             # → 524 (0, pro úplnost)
+    "Větrný mlýn": 32,                           # → 524 (0, pro úplnost)
+    "Větrný motor": 33,                          # → 524 (0, pro úplnost)
+    # Liniové orientační prvky (Sez. 43, audit katalogu): terénní sráz / zeď / vegetační hranice.
+    "Stupeň, sráz": 95,                          # → 104 Earth bank (Σ981 = nejčastější netáhnutá!)
+    "Zeď": 39,                                   # → 513 Wall
+    "Hradba, val, bašta, opevnění": 38,          # → 513 Wall (kamenné historické opevnění)
+    "Liniová vegetace": 15,                      # → 416 Distinct vegetation boundary (stromořadí/mez)
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -154,8 +177,45 @@ WATER_AREA_LAYERS = ("Vodní_plocha", "Pozemní_nádrž")
 # Sez. 42 (audit land-cover): přidána `Kůlna, skleník, fóliovník, přístřešek` (id 105) = drobné
 # stavby (přístřešky, skleníky, kůlny — časté v zahrádkářských koloniích) → taky 521 (KISS, mirror
 # budov; drobné, ale reálné). Obě vrstvy plošné, mapuje map_building_to_isom (DRY přes tuto konstantu).
+# Sez. 43 (audit katalogu): + `Zámek`/`Hrad` (id 102/101) → 521 jako běžná budova (footprint do měřítka;
+# zámek SV = domov mládeže Krompach, 1882 m²; hrad HS 87-145 m²). ČÚZK je vede zvlášť, ne v Budova_99.
 BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",
-                        "Kůlna, skleník, fóliovník, přístřešek")
+                        "Kůlna, skleník, fóliovník, přístřešek",
+                        "Zámek", "Hrad")
+# Zříceniny (Sez. 43, audit katalogu). ZABAGED `Rozvalina, zřícenina` (id 103, plocha, `podtypob`=
+# rozvalina) → ISOM 523 Ruin = čárkovaný černý obrys půdorysu (NE plná výplň jako 521; ruina =
+# neúplná stavba). Klasický OB orientační bod (Milštejn na SV ad.). Plošná vrstva → mapuje
+# map_building_to_isom (DRY, druhý ISOM kód téže „budovové" kategorie --buildings, mirror skály 204/206/207).
+RUIN_AREA_LAYERS = ("Rozvalina, zřícenina",)
+
+# Bodové orientační prvky (Sez. 43, audit katalogu, real-půlka, bodové — izomorfní s body skal
+# 204/207). ISOM kategorie 52x-53x + 417. KISS vrstva → jeden ISOM symbol (jako skály/budovy);
+# rozliší map_landmark_to_isom. Skupiny dle cílového ISOM kódu:
+#   524 High tower  — vysoká věž/stožár (věž kostela/kaple, vodojem věžový, silo, těžní věž, větrný
+#                     mlýn/motor); + plošná `Věžovitá stavba` (footprint 3 m² → centroid, ne 521).
+#   526 Cairn       — mohyla/pomník/náhrobek (memorial stone / trig point).
+#   530 Prom. ring  — kříž/sloup kulturního významu (boží muka — prominent man-made feature, ring).
+#   417 Large tree  — významný/osamělý strom (ZELENÝ kroužek; bodový orientační prvek, ne plošná
+#                     vegetace → mimo vegetace gate Sez. 3).
+# Vodojem/silo/těžní/mlýn/motor mají 0 výskytů ve všech 5 DEV_LOCATIONS (probe Sez. 43), ale ISOM
+# ekvivalent existuje → mapujeme i je (princip „nic užitečného nevypadne" — jinde se vyskytnou).
+LANDMARK_POINT_LAYERS_524 = ("Věž, věžovitá nástavba", "Vodojem věžový", "Silo",
+                             "Těžní věž", "Větrný mlýn", "Větrný motor")
+LANDMARK_POINT_LAYERS_526 = ("Mohyla, pomník, náhrobek",)
+LANDMARK_POINT_LAYERS_530 = ("Kříž, sloup kulturního významu",)
+LANDMARK_POINT_LAYERS_417 = ("Významný nebo osamělý strom, lesík",)
+LANDMARK_AREA_LAYERS_524 = ("Věžovitá stavba",)        # plocha → centroid → 524 (malý footprint)
+
+# Liniové orientační prvky (Sez. 43, audit katalogu, real-půlka, liniové — izomorfní s cestami/
+# vedením). KISS vrstva → jeden ISOM symbol (map_line_feature_to_isom):
+#   104 Earth bank — terénní stupeň/sráz (zemní, NE skalní 201; bez atributu výšky → KISS 104).
+#                    Σ981 napříč 5 DEV_LOCATIONS = NEJČASTĚJŠÍ dosud netáhnutá vrstva (silný OB prvek).
+#   513 Wall       — zeď + hradba/val/bašta/opevnění (kamenné; `typzed` null → KISS 513).
+#   416 Distinct vegetation boundary — liniová vegetace (stromořadí/mez/živý plot; `typveg`).
+#                    ZELENÁ čárkovaná; bodový/liniový orient. prvek, NE plošná průchodnost → mimo gate.
+LINE_FEATURE_LAYERS_104 = ("Stupeň, sráz",)
+LINE_FEATURE_LAYERS_513 = ("Zeď", "Hradba, val, bašta, opevnění")
+LINE_FEATURE_LAYERS_416 = ("Liniová vegetace",)
 
 # Areál účelové zástavby (Sez. 42, audit land-cover, real-půlka, plošná). ZABAGED `Areál účelové
 # zástavby` (id 114) = oplocené areály v sídlech, atribut `typzast_k` rozlišuje 62 typů (1xx průmysl/
@@ -380,7 +440,9 @@ def fetch_buildings(lat: float, lon: float, gw: int, gh: int,
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
     out: list[dict] = []
-    for layer in BUILDING_AREA_LAYERS:
+    # Budovová kategorie = běžné budovy/kůlny/zámek/hrad (→ 521) + zříceniny (→ 523, Sez. 43).
+    # map_building_to_isom rozliší ISOM kód podle vrstvy (mirror skály: víc vrstev → víc kódů, 1 fetch).
+    for layer in (*BUILDING_AREA_LAYERS, *RUIN_AREA_LAYERS):
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
             rings = _geom_to_polygons(feat.get("geometry") or {})
@@ -811,11 +873,15 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
     chová jako malá budova (rozhodnutí Sez. 18). Mapování:
       Budova_..._plocha_ (jakýkoli druhbud)  → 521 Building (plošný černý symbol)
       Kůlna, skleník, fóliovník, přístřešek  → 521 Building (Sez. 42, drobné stavby)
+      Zámek / Hrad                           → 521 Building (Sez. 43, historická stavba = budova)
+      Rozvalina, zřícenina                   → 523 Ruin   (Sez. 43, čárkovaný obrys, ne plná výplň)
 
     Bez rozlišení podle `druhbud` (KISS — jen jeden druh na výřezu navíc). Vrací holý
     ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
     """
-    if layer in BUILDING_AREA_LAYERS:    # budovy + kůlny/přístřešky (Sez. 42) → 521 (DRY s konstantou)
+    if layer in RUIN_AREA_LAYERS:        # zřícenina (Sez. 43) → 523 Ruin (čárkovaný obrys)
+        return 523
+    if layer in BUILDING_AREA_LAYERS:    # budovy + kůlny + zámek/hrad (Sez. 42/43) → 521 (DRY s konstantou)
         return 521
     return None
 
@@ -861,6 +927,91 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
     pro každý polygon (ne hybridní 202/206 podle plochy — drift v rozhodování bez datového
     podkladu). Pro malé výchozy 206 zhrubne, ale zachová izomorfismus s budovami/vodou."""
     return 206
+
+
+def map_landmark_to_isom(layer: str) -> int | None:
+    """Mapuje ZABAGED bodový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43).
+
+    KISS vrstva → jeden symbol (jako skály 204/207, budovy 521). Skupiny:
+      věž/stožár/vodojem/silo/těžní věž/větrný mlýn/motor + věžovitá stavba → 524 High tower
+      mohyla/pomník/náhrobek                                                → 526 Cairn
+      kříž/sloup kulturního významu                                        → 530 Prom. man-made (ring)
+      významný/osamělý strom, lesík                                        → 417 Prominent large tree
+    Vrací holý ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import)."""
+    if layer in LANDMARK_POINT_LAYERS_524 or layer in LANDMARK_AREA_LAYERS_524:
+        return 524
+    if layer in LANDMARK_POINT_LAYERS_526:
+        return 526
+    if layer in LANDMARK_POINT_LAYERS_530:
+        return 530
+    if layer in LANDMARK_POINT_LAYERS_417:
+        return 417
+    return None
+
+
+def fetch_landmarks(lat: float, lon: float, gw: int, gh: int,
+                    tile_m: float = 1000.0,
+                    cache_dir: str | Path | None = None) -> list[tuple[float, float, str]]:
+    """Vrátí bodové orientační prvky pro výsek jako (x, y, layer) v S-JTSK (Sez. 43).
+
+    Bodové vrstvy (kříž/mohyla/věž/strom/…) → poloha přes _geom_to_points. Plošná
+    `Věžovitá stavba` (footprint ~3 m²) → CENTROID polygonu (průměr vrcholů; ISOM 524 je bodový
+    symbol). `layer` se nese dál → map_landmark_to_isom rozliší ISOM kód (mirror skály: víc vrstev,
+    jeden fetch). Izomorfní s fetch_boulders/fetch_boulder_clusters (body)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    point_layers = (*LANDMARK_POINT_LAYERS_524, *LANDMARK_POINT_LAYERS_526,
+                    *LANDMARK_POINT_LAYERS_530, *LANDMARK_POINT_LAYERS_417)
+    out: list[tuple[float, float, str]] = []
+    for layer in point_layers:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            for x, y in _geom_to_points(feat.get("geometry") or {}):
+                out.append((x, y, layer))
+    # plošné věžovité stavby → centroid (průměr vrcholů vnějšího ringu)
+    for layer in LANDMARK_AREA_LAYERS_524:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            for ring in _geom_to_polygons(feat.get("geometry") or {}):
+                if ring:
+                    cx = sum(p[0] for p in ring) / len(ring)
+                    cy = sum(p[1] for p in ring) / len(ring)
+                    out.append((cx, cy, layer))
+    return out
+
+
+def map_line_feature_to_isom(layer: str) -> int | None:
+    """Mapuje ZABAGED liniový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43).
+
+    KISS vrstva → jeden symbol: Stupeň,sráz → 104 Earth bank; Zeď/Hradba → 513 Wall;
+    Liniová vegetace → 416 Distinct vegetation boundary. Vrací holý ISOM kód (int) nebo None."""
+    if layer in LINE_FEATURE_LAYERS_104:
+        return 104
+    if layer in LINE_FEATURE_LAYERS_513:
+        return 513
+    if layer in LINE_FEATURE_LAYERS_416:
+        return 416
+    return None
+
+
+def fetch_line_features(lat: float, lon: float, gw: int, gh: int,
+                        tile_m: float = 1000.0,
+                        cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí liniové orientační prvky pro výsek (Sez. 43): sráz 104 / zeď 513 / vegetace 416.
+
+    Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen).
+    Mapování na ISOM (map_line_feature_to_isom) výš. Izomorfní s fetch_powerlines/fetch_railways."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in (*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513, *LINE_FEATURE_LAYERS_416):
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
 
 
 def map_bridge_to_isom(layer: str, props: dict) -> int:

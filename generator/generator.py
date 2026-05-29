@@ -53,7 +53,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN3
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -224,9 +224,14 @@ WATER_LINE_STYLE = {
 # půlka (ZABAGED REST); bodová vrstva budov je v lesních výsecích prázdná → jen plochy.
 # Mapování ZABAGED→ISOM viz zabaged.map_building_to_isom. Barva = černá (C_BLACK z palety).
 ISOM_BUILDING = 521                # plošná budova → černá výplň + obrysová linie
-BUILDING_NAME = {ISOM_BUILDING: "Building"}
-# ISOM kód → třída v mask_buildings.png (0 = pozadí). Jediná třída (1).
-BUILDING_CLASS = {ISOM_BUILDING: 1}
+# Zřícenina (Sez. 43, audit katalogu, druhý ISOM kód téže „budovové" kategorie --buildings —
+# mirror skály 204/206/207): ZABAGED Rozvalina,zřícenina → ISOM 523 Ruin. Render = čárkovaný
+# černý OBRYS půdorysu BEZ výplně (template id=147 line_symbol dashed 0,75/0,375 mm) — ruina je
+# neúplná stavba, odliší se tak od plné budovy 521. Klasický OB orientační bod (Milštejn na SV).
+ISOM_RUIN = 523                    # zřícenina → čárkovaný černý obrys (bez výplně)
+BUILDING_NAME = {ISOM_BUILDING: "Building", ISOM_RUIN: "Ruin"}
+# ISOM kód → třída v mask_buildings.png (0 = pozadí). Multi-class: budova 1, zřícenina 2 (Sez. 43).
+BUILDING_CLASS = {ISOM_BUILDING: 1, ISOM_RUIN: 2}
 
 # El. vedení (Sez. 24, real-půlka, izomorfní s cestami): ZABAGED Elektrické_vedení → ISOM 510
 # Power line. Render = tenká černá linie s krátkými kolmými příčkami („fousky") v intervalu —
@@ -333,6 +338,53 @@ ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3
 BOULDER_RADIUS_PX = max(2, round(0.4 * PX_PER_MM))           # 204 — kruh
 BOULDER_CLUSTER_HALF_BASE_PX = max(2, round(0.4 * PX_PER_MM))  # 207 — polovina base trojúhelníku
 BOULDER_CLUSTER_HEIGHT_PX = max(2, round(0.7 * PX_PER_MM))     # 207 — výška trojúhelníku (vrchol dolů)
+
+
+# ---------- Bodové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
+# 4 ISOM symboly z bodových ZABAGED vrstev — KISS vrstva → jeden symbol (jako skály). Mapování
+# zabaged.map_landmark_to_isom. Geometrie z template_classic.omap (id 149/151/155/102):
+#   524 High tower  — černý kříž „+" (2 čáry ±1,05 mm) + střední tečka (template inner 0,6 mm)
+#   526 Cairn       — černý kroužek (r 0,36 mm, width 0,24 mm) + tečka uprostřed (trig point)
+#   530 Prom. ring  — černý kroužek (r 0,36 mm, width 0,24 mm) BEZ tečky (man-made ring)
+#   417 Large tree  — ZELENÝ kroužek (r 0,405 mm, width 0,27 mm) — bodový orient. prvek, mimo veg. gate
+ISOM_HIGH_TOWER = 524
+ISOM_CAIRN = 526
+ISOM_PROM_RING = 530
+ISOM_LARGE_TREE = 417
+LANDMARK_NAME = {ISOM_HIGH_TOWER: "High tower", ISOM_CAIRN: "Cairn",
+                 ISOM_PROM_RING: "Prominent man-made feature", ISOM_LARGE_TREE: "Prominent large tree"}
+# ISOM kód → třída v mask_landmarks.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
+LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4}
+# Render parametry (px-tuned pro viditelnost; .omap věrný ze symbolu). µm × PX_PER_MM/1000:
+LANDMARK_RING_R_PX = max(3, round(0.36 * PX_PER_MM))    # kroužek 530/526 (r ≈ 0,36 mm → ~2 px → min 3)
+LANDMARK_TREE_R_PX = max(3, round(0.40 * PX_PER_MM))    # kroužek 417 (r ≈ 0,40 mm)
+LANDMARK_DOT_R_PX = max(1, round(0.12 * PX_PER_MM))     # střední tečka 524/526 (~0,12 mm)
+LANDMARK_TOWER_ARM_PX = max(4, round(1.05 * PX_PER_MM)) # rameno kříže 524 (±1,05 mm ≈ 4,8 px)
+
+
+# ---------- Liniové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
+# 3 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
+#   104 Earth bank — terénní sráz: plná černá linie + krátké JEDNOSTRANNÉ kolmé čárky (ticks).
+#       Orientace ticků (na nižší stranu svahu) by chtěla DMR sklon → zatím konzistentní pravá
+#       normála (vizuálně = earth bank; přesná orientace = TODO, potřebuje výškopis).
+#   513 Wall — zeď/hradba: plná černá linie (template id 128 line_width 240 µm).
+#   416 Distinct vegetation boundary — vegetace: ZELENÁ čárkovaná (C_GREEN3; stromořadí/mez).
+ISOM_EARTH_BANK = 104
+ISOM_WALL = 513
+ISOM_VEG_BOUNDARY = 416
+LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall",
+                 ISOM_VEG_BOUNDARY: "Distinct vegetation boundary"}
+# ISOM kód → třída v mask_linefeatures.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
+LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2, ISOM_VEG_BOUNDARY: 3}
+LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BLACK, ISOM_WALL: C_BLACK, ISOM_VEG_BOUNDARY: C_GREEN3}
+# Render styl (mode, width px, dash). 513/104 plná (104 + ticks zvlášť); 416 čárkovaná (dash ~2,0/1,0 mm).
+LINEFEAT_STYLE = {
+    ISOM_EARTH_BANK: ("solid", 1, None),
+    ISOM_WALL: ("solid", 1, None),
+    ISOM_VEG_BOUNDARY: ("dashed", 1, (2.0 * PX_PER_MM, 1.0 * PX_PER_MM)),
+}
+EARTHBANK_TICK_SPACING_PX = max(3, round(0.8 * PX_PER_MM))   # rozestup ticků sráz 104 (~0,8 mm)
+EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jednostranná, ~0,35 mm)
 
 
 # ---------- Mosty / tunely / lávky (ISOM 512 + 512.2, Sez. 32 spec-driven) ----------
@@ -891,8 +943,12 @@ def _draw_water_area(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
 
 def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
                         ring_px: list[tuple[float, float]], code: int) -> None:
-    """Budova (ISOM 521): plná černá výplň + černý obrys — wrapper nad _draw_area_symbol."""
-    _draw_area_symbol(draw, bdraw, ring_px, C_BLACK, C_BLACK, BUILDING_CLASS[code])
+    """Budovová stavba: 521 budova = plná černá výplň + obrys; 523 zřícenina = jen černý OBRYS
+    bez výplně (ruina je neúplná stavba — odliší se od plné budovy; Sez. 43). Rastr kreslí plný
+    obrys (zříceniny jsou malé, čárkování by zaniklo); .omap dostane věrný 523 dashed ze symbolu
+    (princip „rastr px-tuned vs .omap věrný", Sez. 28/29). Wrapper nad _draw_area_symbol."""
+    fill = C_BLACK if code == ISOM_BUILDING else None
+    _draw_area_symbol(draw, bdraw, ring_px, fill, C_BLACK, BUILDING_CLASS[code])
 
 
 def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
@@ -950,6 +1006,123 @@ def _draw_gigantic_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw
     = jen plná černá výplň (žádný pattern, žádný obrys jiné barvy). Mirror _draw_building_area,
     jen třída masky jiná (ROCK_CLASS[206])."""
     _draw_area_symbol(draw, mdraw, ring_px, C_BLACK, C_BLACK, ROCK_CLASS[ISOM_GIGANTIC_BOULDER])
+
+
+def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                   cx: float, cy: float, code: int) -> None:
+    """Bodový orientační prvek (Sez. 43) na mapu (`draw`) + GT maska (`mdraw`, třída LANDMARK_CLASS).
+
+    Render dle ISOM symbolu (px-tuned; .omap věrný ze symbolu):
+      524 High tower → černý kříž „+" + střední tečka
+      526 Cairn      → černý kroužek + tečka uprostřed
+      530 ring       → černý kroužek (bez tečky)
+      417 Large tree → ZELENÝ kroužek (C_GREEN3)
+    """
+    cls = LANDMARK_CLASS[code]
+    if code == ISOM_HIGH_TOWER:                         # kříž „+" + tečka
+        a = LANDMARK_TOWER_ARM_PX
+        for col, mc in ((C_BLACK, cls),):
+            draw.line([(cx - a, cy), (cx + a, cy)], fill=col, width=1)
+            draw.line([(cx, cy - a), (cx, cy + a)], fill=col, width=1)
+        mdraw.line([(cx - a, cy), (cx + a, cy)], fill=cls, width=1)
+        mdraw.line([(cx, cy - a), (cx, cy + a)], fill=cls, width=1)
+        d = LANDMARK_DOT_R_PX
+        draw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=C_BLACK)
+        mdraw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=cls)
+    elif code in (ISOM_CAIRN, ISOM_PROM_RING):          # kroužek (+ tečka u cairn)
+        r = LANDMARK_RING_R_PX
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=C_BLACK, width=1)
+        mdraw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=cls, width=1)
+        if code == ISOM_CAIRN:
+            d = LANDMARK_DOT_R_PX
+            draw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=C_BLACK)
+            mdraw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=cls)
+    else:                                               # 417 Large tree — zelený kroužek
+        r = LANDMARK_TREE_R_PX
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=C_GREEN3, width=1)
+        mdraw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=cls, width=1)
+
+
+def _generate_real_landmarks(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
+                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné bodové orientační prvky (real-půlka, Sez. 43): věž 524 / mohyla 526 / kříž 530 /
+    strom 417 ze ZABAGED. Mirror _generate_real_rocks (body): vrstva → ISOM symbol přes
+    map_landmark_to_isom. Vrací (landmark_features [(gx, gy, code)], landmarks_info)."""
+    from zabaged import fetch_landmarks, map_landmark_to_isom
+    landmark_features: list[tuple] = []
+    landmarks_info: list[dict] = []
+    for x, y, layer in fetch_landmarks(lat, lon, GW, GH, TILE_M):
+        code = map_landmark_to_isom(layer)
+        if code is None:
+            continue
+        gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
+        px, py = _grid_to_px(gx, gy)
+        _draw_landmark(draw, ldraw, px, py, code)
+        landmark_features.append((gx, gy, code))
+        landmarks_info.append({"symbol": code, "symbol_name": LANDMARK_NAME[code],
+                               "kind": "point", "layer": layer})
+    return landmark_features, landmarks_info
+
+
+def _draw_earthbank_ticks(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                          pts: list[tuple[float, float]], cls: int) -> None:
+    """Jednostranné kolmé čárky podél sráze (ISOM 104 Earth bank). Jako _draw_perp_ticks, ale
+    tick jen na JEDNU stranu (pravá normála) — earth bank má ticky na nižší straně svahu.
+    Orientace dle DMR sklonu = TODO (Sez. 43); zatím konzistentní pravá normála."""
+    if len(pts) < 2:
+        return
+    pos = 0.0
+    next_tick = EARTHBANK_TICK_SPACING_PX
+    hl = EARTHBANK_TICK_LEN_PX
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        seg = math.hypot(x1 - x0, y1 - y0)
+        if seg == 0.0:
+            continue
+        ux, uy = (x1 - x0) / seg, (y1 - y0) / seg
+        nx, ny = -uy, ux                            # pravá normála (rotace směru o 90°)
+        while next_tick <= pos + seg:
+            t = next_tick - pos
+            bx, by = x0 + ux * t, y0 + uy * t       # bod na linii
+            draw.line([bx, by, bx + nx * hl, by + ny * hl], fill=C_BLACK, width=1)
+            mdraw.line([bx, by, bx + nx * hl, by + ny * hl], fill=cls, width=1)
+            next_tick += EARTHBANK_TICK_SPACING_PX
+        pos += seg
+
+
+def _draw_line_feature(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
+                       curve_px: list[tuple[float, float]], code: int) -> None:
+    """Liniový orientační prvek (Sez. 43): 104 sráz (plná + ticky) / 513 zeď (plná) / 416 vegetace
+    (zelená čárkovaná). Wrapper nad _draw_line_symbol (DRY); 104 navíc jednostranné ticky."""
+    mode, width, dash = LINEFEAT_STYLE[code]
+    color = LINEFEAT_COLOR[code]
+    cls = LINEFEAT_CLASS[code]
+    _draw_line_symbol(draw, ldraw, curve_px, color, mode, width, dash, cls)
+    if code == ISOM_EARTH_BANK:
+        _draw_earthbank_ticks(draw, ldraw, curve_px, cls)
+
+
+def _generate_real_line_features(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
+                                 lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné liniové orientační prvky (real-půlka, Sez. 43): sráz 104 / zeď 513 / vegetace 416
+    ze ZABAGED. Mirror _generate_real_powerlines (linie). Vrací (linefeat_features [(grid, code)],
+    linefeatures_info)."""
+    from zabaged import fetch_line_features, map_line_feature_to_isom
+    linefeat_features: list[tuple] = []
+    linefeatures_info: list[dict] = []
+    for f in fetch_line_features(lat, lon, GW, GH, TILE_M):
+        code = map_line_feature_to_isom(f["layer"])
+        if code is None:
+            continue
+        for line in f["lines"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 2:
+                continue
+            _draw_line_feature(draw, ldraw, px, code)
+            linefeat_features.append((grid, code))
+            linefeatures_info.append({"symbol": code, "symbol_name": LINEFEAT_NAME[code],
+                                      "kind": "line", "layer": f["layer"]})
+    return linefeat_features, linefeatures_info
 
 
 def _write_contours_geojson(features: list[tuple], bbox: tuple, crs_epsg: int | None,
@@ -2238,7 +2411,8 @@ def generate_map(
         terrain: str = "real", paths: str = "real", rides: str = "real", water: str = "real",
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
-        bridges: str = "real", surfaces: str = "real",
+        bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
+        linefeatures: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -2313,7 +2487,9 @@ def generate_map(
                               ("--ropiky", ropiky, "řopíky ze ZABAGED"),
                               ("--rocks", rocks, "reálné skály/balvany"),
                               ("--bridges", bridges, "reálné mosty/tunely/lávky"),
-                              ("--surfaces", surfaces, "reálný plošný pokryv")):
+                              ("--surfaces", surfaces, "reálný plošný pokryv"),
+                              ("--landmarks", landmarks, "reálné bodové orient. prvky"),
+                              ("--linefeatures", linefeatures, "reálné liniové orient. prvky")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
                              "georef výseku; noise terén je v lokálních metrech).")
@@ -2618,6 +2794,50 @@ def generate_map(
         else:
             _log.info("  skály: 0")
 
+    # --- bodové orientační prvky (ISOM 524/526/530/417): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
+    # Rastr z-order: navrch (body, musí být vidět — jako skály). Jen --landmarks real. KISS vrstva →
+    # jeden symbol (map_landmark_to_isom): věž 524 / mohyla 526 / kříž 530 / strom 417.
+    landmark_features: list[tuple] = []
+    landmarks_info: list[dict] = []
+    landmark_mask_img: Image.Image | None = None
+    if landmarks == "real":
+        landmark_mask_img = Image.new("L", (W, H), 0)    # GT maska orient. prvků (§8.1), multi-class
+        ldraw_lm = ImageDraw.Draw(landmark_mask_img)
+        landmark_features, landmarks_info = _try_layer(
+            "landmarks",
+            lambda: _generate_real_landmarks(draw, ldraw_lm, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        by_code_lm: dict[int, int] = {}
+        for it in landmarks_info:
+            by_code_lm[it["symbol"]] = by_code_lm.get(it["symbol"], 0) + 1
+        if by_code_lm:
+            parts = [f"{LANDMARK_NAME[c]}({c}):{n}" for c, n in sorted(by_code_lm.items())]
+            _log.info("  orient. prvky: %d (%s)", len(landmarks_info), ", ".join(parts))
+        else:
+            _log.info("  orient. prvky: 0")
+
+    # --- liniové orientační prvky (ISOM 104/513/416): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
+    # Rastr z-order: po cestách/budovách, před body/skalami. Jen --linefeatures real. KISS vrstva →
+    # jeden symbol: sráz 104 / zeď+hradba 513 / liniová vegetace 416 (map_line_feature_to_isom).
+    linefeat_features: list[tuple] = []
+    linefeatures_info: list[dict] = []
+    linefeat_mask_img: Image.Image | None = None
+    if linefeatures == "real":
+        linefeat_mask_img = Image.new("L", (W, H), 0)    # GT maska liniových prvků (§8.1), multi-class
+        ldraw_lf = ImageDraw.Draw(linefeat_mask_img)
+        linefeat_features, linefeatures_info = _try_layer(
+            "linefeatures",
+            lambda: _generate_real_line_features(draw, ldraw_lf, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        by_code_lf: dict[int, int] = {}
+        for it in linefeatures_info:
+            by_code_lf[it["symbol"]] = by_code_lf.get(it["symbol"], 0) + 1
+        if by_code_lf:
+            parts = [f"{LINEFEAT_NAME[c]}({c}):{n}" for c, n in sorted(by_code_lf.items())]
+            _log.info("  liniové prvky: %d (%s)", len(linefeatures_info), ", ".join(parts))
+        else:
+            _log.info("  liniové prvky: 0")
+
     # --- mosty + tunely + lávky (ISOM 512 + 512.2): RENDER fáze (Sez. 32 spec-driven) ---
     # Data už máme z pre-fetch fáze. Tady jen vykreslíme závorky (rastr z-order: úplně navrch
     # — po skálách/budovách). Bodová lávka rotuje kolmo k nejbližšímu toku (potřebuje
@@ -2693,6 +2913,10 @@ def generate_map(
         paved_mask_img.save(out / "mask_paved.png")                         # zpevněné plochy (GT)
     if rock_mask_img is not None:
         rock_mask_img.save(out / "mask_rocks.png")                          # skály/balvany (GT, multi-class)
+    if landmark_mask_img is not None:
+        landmark_mask_img.save(out / "mask_landmarks.png")                  # orient. prvky (GT, multi-class: 524/526/530/417)
+    if linefeat_mask_img is not None:
+        linefeat_mask_img.save(out / "mask_linefeatures.png")              # liniové prvky (GT, multi-class: 104/513/416)
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
@@ -2707,8 +2931,10 @@ def generate_map(
     # je rozšíření). Vše type-1 objekt (OOM rozlišuje linie/plochu podle typu symbolu).
     water_omap_features = ([(g, c) for g, c in water_line_features]
                            + [(g, "301.1") for g, _ in water_area_features])
-    # budovy = plošný symbol 521 (area, type-4 v template) → uzavřený prstenec, OOM vyplní
-    building_omap_features = [(g, "521") for g, _ in building_area_features]
+    # budovy = plošný symbol 521 (area, type-4 v template) → uzavřený prstenec, OOM vyplní;
+    # zříceniny 523 (Sez. 43) = týž area objekt, ale OOM nakreslí čárkovaný obrys (line symbol).
+    # Code z featur (NE hardcode 521 — jinak by zřícenina vypadla jako budova).
+    building_omap_features = [(g, str(c)) for g, c in building_area_features]
     # el. vedení = liniový symbol 510 (type-1 v template) → otevřený path
     powerline_omap_features = [(g, "510") for g, _ in powerline_features]
     # železnice = liniový symbol 509 (kombinovaný type-16 v template) → otevřený path; OOM
@@ -2732,6 +2958,11 @@ def generate_map(
     # body 204/207 = point_object (jako 109/110/111).
     rock_point_omap_features = [(gx, gy, str(c)) for gx, gy, c in rock_point_features]
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
+    # bodové orientační prvky (Sez. 43): 524/526/530/417 = point_object (jako 109/110/111, 204/207)
+    landmark_omap_features = [(gx, gy, str(c)) for gx, gy, c in landmark_features]
+    # liniové orientační prvky (Sez. 43): 104/513/416 = liniový objekt (otevřený path); OOM
+    # vykreslí symbol z definice (104 ticky, 513 plná, 416 zelená čárkovaná)
+    linefeat_omap_features = [(g, str(c)) for g, c in linefeat_features]
     # Mosty (Sez. 32 5. iterace dle Most.omap dema): 1 ZABAGED Most → emit 2 PARALELNÍ
     # line objekty 512 v omap_export (offset ±0,75 mm kolmo). Tunely → 1 line objekt 512
     # (uživatelův template kreslí jednu závorku na konci, vstup+výstup symetrické).
@@ -2757,7 +2988,9 @@ def generate_map(
                              bridge_features=bridge_omap_features,
                              tunnel_features=tunnel_omap_features,
                              footbridge_features=footbridge_omap_features,
-                             surface_features=surface_omap_features)
+                             surface_features=surface_omap_features,
+                             landmark_features=landmark_omap_features,
+                             linefeature_features=linefeat_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
                        railways, rocks, bridges,
@@ -2782,6 +3015,33 @@ def generate_map(
             "classes": {"0": "pozadí",
                         **{str(SURFACE_CLASS[c]): f"{c} {SURFACE_NAME[c]}" for c in used_surface_codes}},
             "items": surfaces_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }
+    # bodové orientační prvky (Sez. 43): injektováno zde (ne přes _build_meta, A1 smell; precedent
+    # surfaces/isom/georef). Sekce jen když --landmarks real; struktura izomorfní (stats.py ji čte stejně).
+    if landmarks == "real":
+        used_landmark_codes = sorted({lm["symbol"] for lm in landmarks_info})
+        meta["landmarks"] = {
+            "count": len(landmarks_info),
+            "mask": "mask_landmarks.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): LANDMARK_NAME[c] for c in used_landmark_codes},
+            "classes": {"0": "pozadí",
+                        **{str(LANDMARK_CLASS[c]): f"{c} {LANDMARK_NAME[c]}" for c in used_landmark_codes}},
+            "items": landmarks_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }
+    # liniové orientační prvky (Sez. 43): injektováno zde (precedent landmarks/surfaces, A1 smell).
+    if linefeatures == "real":
+        used_linefeat_codes = sorted({lf["symbol"] for lf in linefeatures_info})
+        meta["linefeatures"] = {
+            "count": len(linefeatures_info),
+            "mask": "mask_linefeatures.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): LINEFEAT_NAME[c] for c in used_linefeat_codes},
+            "classes": {"0": "pozadí",
+                        **{str(LINEFEAT_CLASS[c]): f"{c} {LINEFEAT_NAME[c]}" for c in used_linefeat_codes}},
+            "items": linefeatures_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }
     meta["isom"] = _isom_meta()
@@ -2852,6 +3112,13 @@ def main() -> None:
                         "žlutá) + 520 zákaz vstupu (olivová: hřbitov ZABAGED + privátní pozemek RÚIAN — "
                         "zahrada/zastavěná plocha) (default), off = bez pokryvu "
                         "(real vyžaduje --terrain real; les zůstává bílá = vegetace gate)")
+    p.add_argument("--landmarks", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED bodové orient. prvky → ISOM 524 věž (věž/vodojem/silo/…) + "
+                        "526 mohyla/pomník + 530 kříž/sloup + 417 významný strom (default), off = bez nich "
+                        "(real vyžaduje --terrain real)")
+    p.add_argument("--linefeatures", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED liniové orient. prvky → ISOM 104 sráz + 513 zeď/hradba + "
+                        "416 liniová vegetace (default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -2887,7 +3154,8 @@ def main() -> None:
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
         paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
-        rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces,
+        rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
+        linefeatures=args.linefeatures,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 

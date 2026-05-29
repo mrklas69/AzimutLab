@@ -125,8 +125,8 @@ def main() -> None:
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
-                railways="off", ropiky="off", rocks="off", bridges="off", surfaces="off",
-                tolerant=True, ortho=False)
+                railways="off", ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
+                linefeatures="off", tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
@@ -153,7 +153,8 @@ def main() -> None:
                 DEF_LAT, DEF_LON, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
-                ropiky="off", rocks="off", bridges="off", surfaces="off")
+                ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
+                linefeatures="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

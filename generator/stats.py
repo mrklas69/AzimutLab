@@ -61,9 +61,19 @@ SYMBOLS = [
     ("510",   "Power line"),
     # Stavby (§4.12)
     ("521",   "Building"),
+    ("523",   "Ruin"),
     # Mosty / tunely / lávky (§4.12, Sez. 32 spec-driven)
     ("512",   "Bridge/tunnel"),
     ("512.2", "Footbridge"),
+    # Bodové orientační prvky (§4.12, Sez. 43)
+    ("524",   "High tower"),
+    ("526",   "Cairn"),
+    ("530",   "Prominent man-made feature"),
+    ("417",   "Prominent large tree"),
+    # Liniové orientační prvky (Sez. 43)
+    ("104",   "Earth bank"),
+    ("513",   "Wall"),
+    ("416",   "Distinct vegetation boundary"),
 ]
 
 
@@ -101,7 +111,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts.update(_count_contours(folder / "contours.geojson"))
     # 2) items z 10 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
-                    "railways", "rocks", "bridges", "surfaces"):
+                    "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1
