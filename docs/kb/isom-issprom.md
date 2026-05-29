@@ -19,7 +19,7 @@ Cílová sémantika generátoru = **ISOM 2017-2** (1:10000; `generator/template_
 je geometricky identický s oficiálním OOM 1:10000 setem, ověřeno Sez. 38). Každý výstup deklaruje
 verzi (`meta["isom"]` + `.omap` `<notes>`) — ochrana proti záměně, viz níže.
 
-## ISOM 2000 ↔ 2017-2 — verze a crosswalk (Sez. 37–38)
+## ISOM 2000 ↔ 2017-2 — verze a crosswalk (Sez. 37–40)
 
 **Číslování symbolů se mezi ISOM 2000 a 2017-2 RECYKLUJE s jiným významem** — naivní kód-na-kód
 mapování by tiše prohodilo významy. Tvrdé příklady (verify ze spec):
@@ -36,8 +36,19 @@ mapování by tiše prohodilo významy. Tvrdé příklady (verify ze spec):
 map = ISOM 2000** (marker `526` Building). Implikace pro UC5 (cesta B fine-tuning): pokud je korpus
 převážně 2000, syntetika 2017-2 zavádí systematický posun → [[domain-gap]] na sémantice symbolů.
 
+**ZÁVĚR — verzní gap zavřen (Sez. 40, %THINK „vizuál vs čísla").** Otázka se rozpadá na dvě nezávislé
+osy podle cesty dat: **vektor** (`.omap` symbol ID → verzi nese ČÍSLO) vs **rastr** (pixely → verzi nese
+VZHLED). Pro vektor je gap vyřešen crosswalkem (1:1 přemapování); pro rastr (= co čte UC5 model) jsou čísla
+úplně **irelevantní** — záleží jen vizuál. A vizuální osa byla ověřena: srovnání reálné ISOM 2000 mapy
+(Soví vrch) s naším 2017-2 renderem téže oblasti (georef warp, grid-north, stejné měřítko) ukázalo, že
+**rozdíl vzhledu symbolů NENÍ podstatný** (kartograf: „vše důležité v obou setech, snadno transformovatelné";
+crosswalk `101/102/103` = identické číslo = identický vzhled hnědé kostry). Dominantní vizuální rozdíl mezi
+reálnou mapou a generátorem je **OBSAHOVÝ** (chybějící vegetace žlutá/zelená = recall gap Sez. 37), NE verzní.
+→ **Generátor zůstává 2017-2 + deklarace verze (Sez. 38) + crosswalk pro vektor; negenerovat zvlášť 2000
+variantu.** Otevřený zůstává jen obsahový (vegetační) gap = UC5 predikce za zavřenou vegetace gate, jiná osa.
+
 **Reference soubory v `docs/kb/` (KB nese licenci — CLAUDE.md):**
-- `ISOM2000-ISOM 2017-2.crt` — autoritativní cross-reference table (OpenOrienteering Mapper, autor
+- `ISOM2000-ISOM2017-2.crt` — autoritativní cross-reference table (OpenOrienteering Mapper, autor
   Kai Pastor). Formát `<kód 2017-2>  <kód 2000>`, 168 ř. **Licence: GPL v3+** (součást OOM repo
   `symbol sets/`). Nezávisle potvrdil ruční crosswalk ze spec. Crosswalk přes SÉMANTIKU, ne čísla.
 - `isom-2000-spec.pdf` — International Specification for Orienteering Maps 2000. **Licence: IOF**

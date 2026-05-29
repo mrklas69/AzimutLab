@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 40 (2026-05-29) — Kapitalizace DEV_LOCATIONS + %THINK ISOM 2000↔2017-2 (verzní gap zavřen)
+- [x] **Kapitalizace `DEV_LOCATIONS` sjednocena** (carry-over Sez. 39). Verify odhalil, že to nebyl plošný
+      chaos, ale **jediný překlep**: `Soví Vrch` → `Soví vrch` (vrch = terénní útvar → druhé slovo malé dle
+      českého pravopisu; ostatní — `Nová Louka`/`Lidové sady`/`Hrubá Skála` — jsou sídla/čtvrti/obce → správně).
+      Opraveno ve 3 SSoT: `generator.py DEV_LOCATIONS`, `stats.py LOCATIONS`, `compare_real_vs_gen.py` (+ zrušen
+      3řádkový komentář o nesouladu — nesoulad zmizel). `resources/` názvy ponechány (vnější daná jména).
+      **Vedlejší užitek:** `maps/Soví vrch` == `resources/Soví vrch` → `compare` funguje bez kapitalizačního hacku.
+- [x] **Verify** — `py_compile` 3 soubory OK; SV přegenerováno (počty sedí: budovy 1078 / řopíky 70 / průseky 46 /
+      vrstevnice 462 / skály 253 / `.omap` 3502); složka na disku je `Soví vrch` (lowercase, NTFS case fix přes
+      smazání staré `Soví Vrch/`); `compare` najde obě složky přirozeně; STATISTICS regen; render pixelově nezměněn.
+- [x] **%THINK „vizuál vs čísla" ISOM 2000↔2017-2 → verzní domain gap ZAVŘEN** (uzavírá pravou otázku Sez. 38/39).
+      Destilát: otázka se rozpadá na 2 osy dle cesty — **vektor** (symbol ID → číslo, crosswalk `.crt` řeší 1:1)
+      vs **rastr** (pixely → vzhled, čísla irelevantní; = co čte UC5). Pro UC5 relevantní JEN vizuál. **Vizuální
+      sonda** (jednorázový georef warp: reálná ISOM 2000 Soví vrch × náš 2017-2 render téže oblasti, grid-north,
+      shodné měřítko, montáž vedle sebe) → **kartograf: „vše důležité v obou setech, snadno transformovatelné"**
+      — verzní rozdíl vzhledu není podstatný (`101/102/103` = identické číslo = identická hnědá kostra). Dominantní
+      rozdíl je **obsahový** (chybí vegetace žlutá/zelená = recall gap Sez. 37), NE verzní. **Rozhodnuto: zůstat
+      2017-2 + deklarace verze (Sez. 38) + crosswalk pro vektor; NEgenerovat zvlášť 2000 variantu.** Propsáno do
+      KB `isom-issprom.md` + IDEAS (→ DONE). Otevřený zůstává jen obsahový (vegetační) gap = UC5, jiná osa.
+- [x] **Drobné docs opravy** — drift názvu crosswalku `ISOM2000-ISOM 2017-2.crt` (s mezerou) → `ISOM2000-ISOM2017-2.crt`
+      (skutečný soubor bez mezery) v KB. **A1 monolit `generator.py`: DROP z „Příště"** (Stale check ≥5 sez) — vědomě
+      odložený trigger „až bolí", zůstává TODO položkou, ne carry-over.
+
 ## Sezení 39 (2026-05-29) — Reorganizace kořene: sandbox → generator/ + maps/ + rename generate_map
 - [x] **`sandbox/` zrušen → `generator/` (pilíř).** `git mv` 9 souborů `sandbox/generator-poc/` → `generator/`
       (historie zachována, status `R`/`RM`); `sandbox/README.md` smazán; fyzicky odstraněn zbytek (`.venv`/

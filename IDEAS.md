@@ -118,7 +118,7 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
   ne přílepek (foundations). Spouštěč: až bude ISOM jádro pevné a vznikne potřeba sprintu.
   Pozn.: Lidové sady (LS) zatím generujeme jako **classic ISOM** (městsko-lesní výsek — natrénuje
   i hustou zástavbu); ISSprOM verze je tato budoucí položka.
-- **ISOM 2000 ↔ 2017-2 domain gap (Sez. 37 nález, %THINK + částečně adresováno Sez. 38).** Strojové
+- **ISOM 2000 ↔ 2017-2 domain gap (Sez. 37 nález → %THINK Sez. 38 + 40 → DONE).** Strojové
   porovnání generátoru s živě mapovanou Soví vrch odhalilo: **reálná mapa je v ISOM 2000 číslování, generátor
   v ISOM 2017-2.** Posun není kosmetický — čísla se **recyklují s jiným významem**: `526`=budova v 2000 (gen
   2017-2 `521`), `508`=nevýrazná pěšina v 2000 (gen 508 = Narrow ride), `509`=Narrow ride v 2000 (gen 509 =
@@ -136,11 +136,15 @@ korpus s licencí. **Pojem projekce vs predikce → GLOSSARY** (ať se „predik
     → naše mapy se hlásí k 2017-2, konflikt „hádání z čísel" u nich eliminován.
   - **Symbol set = vyměnitelný `.omap`** (postřeh uživatele „Nahrát symboly ze souboru") — verze není závislost
     na verzi OOM. Náš `template_classic.omap` == oficiální OOM ISOM 2017-2 1:10000 set (line_width ověřeno).
-  - **PRAVÁ OTEVŘENÁ OTÁZKA (Sez. 39):** je gap jen v ČÍSLECH (→ crosswalk řeší, triviálně), nebo i ve
-    VIZUÁLNÍM vzhledu renderu (budovy/cesty/tečkování — to crosswalk NEŘEŠÍ, model UC5 čte pixely)? Empiricky
-    ověřitelné: `resources/` (2000) vs `template_classic` (2017-2). **Až pak** rozhodnout směr: (a) crosswalk
-    vrstva nad výstupem, (b) ISOM2000 výstupní režim (2. set + přemapování kódů přes `.crt`), (c) nechat na
-    trénink. Nezaměňovat s [[issprom]] (jiná disciplína, ne jen číslování).
+  - **ZODPOVĚZENO Sez. 40 (%THINK „vizuál vs čísla") → verzní gap ZAVŘEN.** Otázka se rozpadá na dvě osy
+    podle cesty: **vektor** (symbol ID → verzi nese číslo, crosswalk řeší) vs **rastr** (pixely → verzi nese
+    vzhled, čísla irelevantní). Pro UC5 (čte pixely) je relevantní JEN vizuál. Vizuální sonda (warp reálné
+    ISOM 2000 Soví vrch × náš 2017-2 render téže oblasti, grid-north, stejné měřítko) → kartograf: **„vše
+    důležité v obou setech, snadno transformovatelné"** — verzní rozdíl vzhledu není podstatný (`101/102/103`
+    = identické číslo = identický vzhled kostry). Dominantní rozdíl je **obsahový** (chybí vegetace = recall
+    gap Sez. 37), NE verzní. **Rozhodnuto: zůstat 2017-2 + deklarace verze (Sez. 38) + crosswalk pro vektor;
+    NEgenerovat zvlášť 2000 variantu.** Otevřený zůstává jen obsahový (vegetační) gap = UC5, jiná osa.
+    Nezaměňovat s [[issprom]] (jiná disciplína, ne jen číslování).
 - **Grivace v generátoru — `--grivation` (Sez. 37, nápad uživatele).** Generátor renderuje grid-north-up
   (S-JTSK osy); reálné OB mapy jsou **magnetic-north-up** (georef nese rotaci o grivaci = konvergence +
   magnetická deklinace; SV −11,4°). Kotva už v kódu (`meta.georef.north="grid"`, `grivation_deg:null`).

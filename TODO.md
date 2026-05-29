@@ -21,13 +21,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(odloženo, noise-půlka)* Hydrologické jádro z flow accumulation (D8, §9): toky (§4.8) → prameny (§4.10) → jezera/rybníky (sink-fill deprese) → bažiny. **Sez. 17: voda realizována reálně (ZABAGED), D8 = procedurální protějšek do budoucna (nemíchat osy).**
 - [ ] *(drobnost, vylepšení form line Sez. 29)* **souvislé smyčky** — form line jsou teď krátké úseky/obloučky (per-pixel maska). ISOM-věrnější by byly souvislé smyčky kolem lokálních kopečků/depresí (jiný přístup než maska). MVP uzavřen (uživatel), tohle až kdyby vadilo. Prahy `FORMLINE_*` jsou laděné na NL — ověřit i na SV/LS.
 - [ ] *(drobnost, nález Sez. 30)* **`Skupina_balvanů__linie_` → 208 Boulder field** + **`Sesuv_půdy__suť` → 210 Stony ground** — odložené vrstvy. Na Hrubé Skále 3 / 0 prvků (marginální). 208 = buffer linie → plocha s ISOM area pattern (trojúhelníky). 210 = verify v lokalitě s sutěmi (Jeseníky / Krkonoše Sněžka). Když bude, doplnit `BOULDER_FIELD_LINE_LAYERS` / `STONY_GROUND_LAYERS` v zabaged.py.
-- [~] *(strategie, nález Sez. 37; %THINK + částečně adresováno Sez. 38)* **ISOM 2000 ↔ 2017-2 domain gap.**
-  **HOTOVO Sez. 38:** (a) ověřeno empiricky **4/6 reálných map v `resources/` = ISOM 2000** (tvrdý marker =
-  `526` Building; `521`/`112`/`113` se recyklují → Sez. 37 detekce byla kontaminovaná, oprava); (b) **crosswalk
-  nalezen hotový** — OOM `docs/kb/ISOM2000-ISOM 2017-2.crt` (GPL) → nevyrábět; (c) **deklarace verze ve výstupu**
-  (`meta["isom"]` + template `<notes>` s varováním) → naše mapy se hlásí k 2017-2. **ZBÝVÁ:** pravá otázka —
-  liší se verze i VIZUÁLNĚ (render budov/cest/tečkování), nebo jen čísly (→ crosswalk stačí)? Pak rozhodnout
-  směr (crosswalk vrstva / ISOM2000 výstupní režim / nechat na trénink). Detail IDEAS „ISOM 2000 ↔ 2017-2".
 - [ ] *(verify nástroj, Sez. 37)* **`compare_real_vs_gen.py` zatím jen Soví vrch** (jediná lokalita s reálnou
   mapou ⋂ `DEV_LOCATIONS`). STAT 2 je hrubá (barevná, 2,18 m/px). Prohloubení: **vektor-na-vektor přes crosswalk**
   (ověřit volbu ISOM symbolu, ne jen placement barvy) — recall mezery (voda 40 %, černá 49 %) rozpadnout po vrstvách.
@@ -40,10 +33,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `bridges.py`). Jednoduchá fáze ho snad ještě unese — refaktor „až bude bolet" (KISS, ne preventivně).
   Pozn. Sez. 39: přesun `sandbox/generator-poc/`→`generator/` byl reorganizace složek, NE rozdělení modulu
   (to zůstává otevřené); monolit je teď v `generator/generator.py`.
-- [ ] *(nález Sez. 39)* **Kapitalizace `DEV_LOCATIONS` — sjednotit.** Výstupní názvy jsou Title-Case
-  (`Soví Vrch`, `Nová Louka`), ale `resources/` má lowercase (`Soví vrch.png`) → nekonzistence (verify Sez. 39
-  ji odhalil přes mou chybnou „opravu překlepu"). Rozhodnout směr (sjednotit na co — Title-Case vš., nebo
-  lowercase jako oficiální názvy lokalit?) a propsat do `DEV_LOCATIONS` + `stats.py LOCATIONS` + `compare`.
+  **DROP z „Příště" (Sez. 40, Stale check ≥5 sez):** vědomě odložený trigger „až bolí", NE carry-over —
+  sledovat jako podmínku (monolit roste / `_build_meta` 26 param), nepsat do Příště, dokud bolest nenastane.
 - [ ] *(drobnost, doladění mostů/tunelů Sez. 33)* laděné konstanty `BRIDGE_CROP_HALFWIDTH_MM` (1,25), `BRIDGE_CARRIED_PARALLEL_DEG` (25°), `TUNNEL_PORTAL_HALF_UM` (750), passage `near_mm` (2,0) — ověřit i na LS silničním tunelu a hustší síti; případně tunelu cropovat i vodu (dnes jen železnice/cesty).
 - [ ] *(drobnost, nález Sez. 31)* **Podjezd ZABAGED** — `Podjezd (bod)` id=64 + `Podjezd (linie)` id=77; tematická skupina s Most/Tunel. Mapování → 519 Underpass? Verify-against-source spec před implementací (paměť `isom-spec-before-render`).
 - [ ] *(drobnost, nález Sez. 31)* **tramvaj LS verify v OOM** — 25 nových liniových objektů 509 (Tramvajová dráha včetně točny Lidové sady, LS celkem 40 železničních linií). Vykreslí OOM kombinovaný symbol 509 (čárky + bílý knockout) korektně i přes městskou síť?
