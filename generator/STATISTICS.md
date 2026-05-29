@@ -5,7 +5,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 
 **Kanonické lokality** (různé formáty výseku pro test ořezu DMR/ZABAGED/ortofoto):
 
-- **SV** — Soví vrch / Lužické hory  (`Soví Vrch/`)
+- **SV** — Soví vrch / Lužické hory  (`Soví vrch/`)
 - **NL** — Nová Louka / Jizerské hory  (`Nová Louka/`)
 - **LS** — Lidové sady / Liberec  (`Lidové sady/`)
 - **HS** — Hruboskalsko / Český ráj  (`Hrubá Skála/`)
@@ -46,11 +46,11 @@ Z 25 sledovaných ISOM symbolů reálně používáme **25** (zbytek = · znamen
 
 ## Poslední aktualizace
 
-- **SV** (`Soví Vrch/`): 2026-05-29 13:26:08
+- **SV** (`Soví vrch/`): 2026-05-29 14:02:56
 - **NL** (`Nová Louka/`): 2026-05-29 13:28:13
 - **LS** (`Lidové sady/`): 2026-05-29 13:29:01
 - **HS** (`Hrubá Skála/`): 2026-05-29 13:29:22
 - **NV** (`Novina/`): 2026-05-29 13:29:39
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-29 13:38:45.*
+*Tabulka regenerována `stats.py` v 2026-05-29 14:03:12.*

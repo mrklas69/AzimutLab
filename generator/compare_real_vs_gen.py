@@ -26,10 +26,9 @@ Image.MAX_IMAGE_PIXELS = None
 sys.stdout.reconfigure(encoding="utf-8")   # Windows konzole je cp1250 → unicode (✓ ↔ m²) by padlo
 
 REPO = Path(__file__).resolve().parents[1]          # generator/ je 1 pod kořenem LAB (Sez. 39)
-# Pozn.: DEV_LOCATIONS["SV"] = "Soví Vrch" (Title-Case), resources má "Soví vrch.png" (malé v)
-# — nekonzistence kapitalizace = otevřený carry-over úkol, ne sjednocovat tady. GEN_DIR musí
-# sedět na to, co generátor vytvoří (maps/<lokalita> = "Soví Vrch").
-GEN_DIR = REPO / "maps" / "Soví Vrch"                # generovaný výstup lokality (maps/<lokalita>)
+# DEV_LOCATIONS["SV"] = "Soví vrch" = resources "Soví vrch.png" (sjednoceno Sez. 40 — vrch je
+# terénní útvar → druhé slovo malé; maps/<lokalita> i resources nesou identický název).
+GEN_DIR = REPO / "maps" / "Soví vrch"                # generovaný výstup lokality (maps/<lokalita>)
 REAL_PNG = REPO / "resources" / "Soví vrch.png"
 REAL_PGW = REPO / "resources" / "Soví vrch.pgw"
 REAL_OMAP = REPO / "resources" / "Soví vrch.omap"

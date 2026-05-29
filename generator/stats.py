@@ -20,7 +20,7 @@ MAPS_DIR = ROOT.parent / "maps"       # maps/<lokalita>/ — odsud čteme výstu
 
 # DEV_LOCATIONS (kód → název složky). Musí sedět s názvem výstupní složky (maps/<jméno>).
 LOCATIONS = [
-    ("SV", "Soví Vrch",   "Soví vrch / Lužické hory"),
+    ("SV", "Soví vrch",   "Soví vrch / Lužické hory"),
     ("NL", "Nová Louka",  "Nová Louka / Jizerské hory"),
     ("LS", "Lidové sady", "Lidové sady / Liberec"),
     ("HS", "Hrubá Skála", "Hruboskalsko / Český ráj"),

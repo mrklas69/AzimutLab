@@ -376,7 +376,7 @@ DEF_LAT, DEF_LON = 50.8214458, 14.6712747
 # Název (index 0) = zároveň název výstupní složky (`--location` ⇒ out_dir, viz main).
 # Musí sedět s `stats.py` LOCATIONS (SSoT názvů složek pro STATISTICS.md).
 DEV_LOCATIONS: dict[str, tuple[str, float, float, float, float]] = {
-    "SV": ("Soví Vrch",   DEF_LAT,    DEF_LON,    6.0, 4.0),  # Lužické hory (default, terénně mapováno) — landscape
+    "SV": ("Soví vrch",   DEF_LAT,    DEF_LON,    6.0, 4.0),  # Lužické hory (default, terénně mapováno) — landscape
     "NL": ("Nová Louka",  50.8140386, 15.1579069, 6.0, 4.0),  # Jizerské hory — landscape
     "LS": ("Lidové sady", 50.7773244, 15.0811114, 6.0, 4.0),  # Liberec městsko-lesní pod Ještědem — landscape
     "HS": ("Hrubá Skála", 50.5481000, 15.1761500, 5.0, 5.0),  # Hruboskalsko (midpoint Kacanovy↔Doubravice) — SQUARE (Sez. 31)
