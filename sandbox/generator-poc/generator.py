@@ -1000,6 +1000,18 @@ def _georef_meta(bbox: tuple, crs_epsg: int | None) -> dict:
     }
 
 
+def _isom_meta() -> dict:
+    """ISOM deklarace pro meta.json — ochrana proti záměně verze symbolů (Sez. 38).
+
+    Číslování symbolů se mezi ISOM 2000 a 2017-2 RECYKLUJE s jiným významem: 521 = Building
+    v 2017-2, ale High stone wall v 2000; Narrow ride 509→508; Railway 515→509. Bez explicitní
+    verze konzument (UC5, člověk) hádá z čísel → konflikt (nález Sez. 37: reálné mapy v
+    `resources/` jsou ISOM 2000, generátor 2017-2). Crosswalk: OOM `ISOM2000-ISOM 2017-2.crt`.
+    Měřítko 1:10000 — `template_classic.omap` je geometricky identický s oficiálním OOM
+    1:10000 ISOM 2017-2 setem (line_width ověřeno Sez. 38), ne ruční odhad."""
+    return {"version": "2017-2", "scale": MAP_SCALE, "symbol_set": "template_classic.omap"}
+
+
 def _polygon_area(pts: np.ndarray) -> float:
     """Plocha uzavřeného polygonu (shoelace), absolutní, v jednotkách vstupu na druhou.
 
@@ -2648,8 +2660,10 @@ def synthesize_pseudorealistic_map(
                        point_symbols, water_info,
                        paved_info, building_info, powerlines_info, railways_info, rocks_info, bridges_info,
                        omap_info, layer_errors)
-    # georef výseku (Sez. 37): S-JTSK bbox + odkaz na .pgw + orientace severu. Injektováno zde
-    # (ne přes _build_meta) — _build_meta už má 26 parametrů (A1 monolit), nezhoršovat smell.
+    # ISOM verze + georef výseku. Injektováno zde (ne přes _build_meta) — ten už má 26
+    # parametrů (A1 monolit), nezhoršovat smell. `isom` = deklarace verze (Sez. 38, ochrana
+    # proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever (Sez. 37).
+    meta["isom"] = _isom_meta()
     meta["georef"] = _georef_meta(geo_bbox, crs_epsg)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
