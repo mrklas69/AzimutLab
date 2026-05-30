@@ -66,6 +66,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   feature). Generátor `--water real` (Sez. 17): reálná půlka ze ZABAGED `Vodní_tok`/`Vodní_plocha`
   + `Pozemní_nádrž` (umělé nádrže vč. **koupališť/bazénů** `podtypob_k='BA'` → 301, Sez. 27 — Lesní
   koupaliště LS chybělo, je nádrž ne `Vodní_plocha`); podzemní toky (`typtoku_k=004`) se nekreslí.
+- **Mokřad / jeskyně / pramen / nádrž** (dávka 4, Sez. 44) — **308 Marsh** (crossable bažina/močál +
+  rašeliniště, modrá vodorovná šrafa; `--marsh`), **312 Spring** (pramen, modré „U" ústím nahoru),
+  **203.2 Cave or rocky pit** (vstup do jeskyně/šachty, černá „Λ" stříška hrotem nahoru = „with a distinct
+  entrance"; **203.1** je naopak **V** hrotem dolů = „without entrance"), **311 Well/fountain/water tank**
+  (nadzemní nádrž, modrý čtverec z centroidu). Pramen/jeskyně/nádrž jdou přes `--landmarks` (bodové).
+  **Konvence OOM symbolů: osa +y = DOLŮ** (rastr neflipuje); špatný předpoklad zrcadlil cave/spring (audit Sez. 44).
 - **Budova / stavba** — umělý objekt na OB mapě. ISOM **521 Building** (plošný černý symbol,
   výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
   `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem

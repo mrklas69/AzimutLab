@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 44 (2026-05-30) — Katalog dávka 4 (mokřady/pramen/jeskyně/nádrž) + audit věrnosti renderu
+- [x] **Dávka 4 (vodní/mokřady/terén)** — verify-against-source: REST jména ověřena `?f=json` (mezery/čárky/závorky,
+      ne WFS podtržítka). **`--marsh real` (nový):** `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh** (KISS vždy
+      crossable; modrá vodorovná scanline šrafa á 0,45 mm; `_draw_marsh_area`). **Do `--landmarks`:** pramen `Zdroj
+      podzemních vod` → **312** (modré „U" ústím nahoru), `Vstup do jeskyně`+`Ústí šachty, štoly` → **203.2 Cave**
+      (černá „Λ" stříška), `Nadzemní zásobní nádrž` (plocha→centroid) → **311** (modrý čtverec). Počty sedí na probe
+      Sez. 43 na kus: pramen Σ65 / nádrž Σ8 (LS6+HS2) / jeskyně Σ9 / mokřady NV15·HS10·NL9·SV5·LS0.
+- [x] **Odloženo (doloženo v katalogu):** hráz `Přehradní_hráz__jez`→528 (vyžaduje legendu mapy + sporné mapování,
+      jez ≈ přerušení toku), lom `Povrchová_těžba__lom`→201 (plocha lomu ≠ hrana srázu, Σ1 marginální).
+- [x] **203.2 je necelý kód → string** napříč flow (`map_landmark_to_isom` vrací `int | str`; `sorted(…, key=str)`
+      proti TypeError int<str — chyceno při verify regenerací, 2 místa).
+- [x] **AUDIT VĚRNOSTI RENDERU** (na žádost uživatele): porovnán template (autorita) vs `_draw_*` u ~35 symbolů.
+      **Root cause:** špatná konvence OOM osy y (předpoklad +y=nahoru) → zrcadlení vertikálně asymetrických bodů.
+      **Uživatel chytil:** „203.1=V, 203.2=Λ, Zkontroluj!" → konvence je **+y=DOLŮ** (NEflipovat). Opraveno: **203.2 cave**
+      (Λ stříška hrot nahoru, ne plný trojúhelník hrot dolů — můj chybný „fix"), **312 spring** (∪ ústí nahoru, ne dolů),
+      **104 sráz** (HNĚDÁ ne černá — template color 6 Brown; linie i ticky). **Staženo (falešný poplach):** 111 depression
+      (∪) a 207 boulder cluster (▲) byly CELOU DOBU správně — málem jsem je flipnul. Paměť `omap-symbol-y-axis-down`.
+- [x] **704 verify pomůcka** — na žádost uživatele injektovány ISOM 704 Control number na 5 jeskyní v SV.omap
+      (post-process, ne generátor; XML validováno) → uživatel ověřil v OOM „Test OK", pak SV regenerován načisto.
+- [x] **Cleanup:** smazán osiřelý `sandbox/` na stroji mrkla (untracked výstupy z doby před reorgem Sez. 39; `git pull`
+      je nemohl uklidit, protože gitignored). Pravidlo `<lokalita>.omap` (Sez. 42) se propagovalo správně — mátl jen sirotek.
+- [x] Verify: proc baseline **65 drží**; 5 lokalit přegenerováno (počty sedí); STATISTICS 39/39; py_compile OK.
+
 ## Sezení 43 (2026-05-29) — Systematický audit katalogu: 14 chybějících ZABAGED vrstev → ISOM
 - [x] **Root cause domova mládeže (verify-against-source).** Akutní nález uživatele: budova domova mládeže
       (SV/Krompach) chybí. Probe → ČÚZK vede **zámek** ve VLASTNÍ vrstvě `Zámek` (id 102), netáhli jsme ji (jen

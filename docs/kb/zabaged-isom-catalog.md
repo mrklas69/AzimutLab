@@ -114,13 +114,13 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 |---|---|---|---|---|
 | `Vodní_tok` | linie | 304 / 305 / 306 | ✓ | dle pojmenovanosti/stálosti; podzemní (`typtoku_k`=004) nekreslit |
 | `Vodní_plocha` | plocha | 301 Uncrossable body of water | ✓ | výplň + břehová linie |
-| `Zdroj_podzemních_vod` | bod | 312 Spring | ◐ | pramen; ve výsecích vzácný (Sez. 17), ale relevantní (`typzdroj_k` PS) |
+| `Zdroj podzemních vod` | bod | 312 Spring | ✓ | **Sez. 44** (`--landmarks`, modré „U" ústím dolů); pramen Σ65 napříč 5 lokalitami (REST jméno s mezerami) |
 | `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád |
 | `Vodopád__bod_` | bod | 313 Prominent water feature | ○ | bodová varianta |
 | `Pozemní_nádrž` | plocha | 301 | ✓ | **použito Sez. 27** — koupaliště/bazény (`podtypob_k='BA'`) i ostatní → 301 (Lesní koupaliště LS) |
-| `Nadzemní_zásobní_nádrž` | plocha | (311 Well/tank) | ○ | technická nádrž |
+| `Nadzemní zásobní nádrž` | plocha | 311 Well/fountain/water tank | ✓ | **Sez. 44** (`--landmarks`, plocha → centroid → modrý čtverec); Σ8 (LS 6 / HS 2) |
 | `Břehová_čára` | linie | 301.4 bank line | ✗ | obrys vodní plochy — odvozeno z 301, netáhnout zvlášť |
-| `Přehradní_hráz__jez` | linie | — | ○ | hráz/jez; ISOM 528 prom. line, většinou nekreslit přímo |
+| `Přehradní_hráz__jez` | linie | (528 Prom. line) | ○ | hráz/jez — ODLOŽENO (Sez. 44): ISOM 528 vyžaduje definici v legendě mapy (ruční krok), mapování hráz↔528 sporné (jez = spíš přerušení toku 304); Σ13 |
 | `Plavební_komora` | linie | — | ✗ | splavná řeka |
 | `Lodní_výtah__zdvihadlo` | linie | — | ✗ | splavná řeka |
 | `Akvadukt__shybka` | linie | — | ✗ | technický vodní objekt |
@@ -131,9 +131,9 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Bažina__močál` | plocha | 308 Marsh / 307 Uncrossable marsh | ◐ | bažina; proc. generátor zahodil (Sez. 11), real-vrstva relevantní |
-| `Rašeliniště__plocha_` | plocha | 308 Marsh | ○ | rašeliniště |
-| `Rašeliniště__bod_` | bod | 308 Marsh | ○ | bodová varianta |
+| `Bažina, močál` | plocha | 308 Marsh | ✓ | **Sez. 44** (`--marsh`, modrá vodorovná šrafa; KISS vždy crossable 308, NE 307 — data nenesou překonatelnost). NV 15 / HS 10 / NL 9 / SV 5 |
+| `Rašeliniště (plocha)` | plocha | 308 Marsh | ✓ | **Sez. 44** (`--marsh`, spolu s bažinou — mokřad téhož symbolu) |
+| `Rašeliniště__bod_` | bod | 308 Marsh | ○ | bodová varianta — odloženo (plošná pokrývá) |
 
 ## 7. Terénní tvary, skály a balvany (ISOM 1xx, 2xx)
 
@@ -144,9 +144,9 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Skupina_balvanů__bod_` | bod | 207 Boulder cluster | ✓ | Sez. 30 (`--rocks`) |
 | `Skupina_balvanů__linie_` | linie | 208 Boulder field | ◐ | pole balvanů — odloženo (3 prvky na Hrubé Skále) |
 | `Sesuv_půdy__suť` | plocha | 210 Stony ground | ◐ | suť — odloženo (0 prvků na Hrubé Skále, verify v Jeseníkách / Krkonoších) |
-| `Vstup_do_jeskyně` | bod | 203.2 Cave | ○ | jeskyně = OB objekt |
-| `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom (skalní stěna) |
-| `Ústí_šachty__štoly` | bod | (203.2 Cave) | ○ | důlní ústí (umělé) |
+| `Vstup do jeskyně` | bod | 203.2 Cave | ✓ | **Sez. 44** (`--landmarks`, černá „Λ" stříška hrotem nahoru = „with a distinct entrance"; NE plný trojúhelník — oprava dle uživatele; 203.1 = V hrotem dolů „without entrance"). Σ s šachtou 9 |
+| `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom — ODLOŽENO (Sez. 44): plocha lomu ≠ hrana srázu (201 značí linii s ticky), Σ1 marginální |
+| `Ústí šachty, štoly` | bod | 203.2 Cave | ✓ | **Sez. 44** (`--landmarks`, týž symbol jako jeskyně — spec „…or mineshafts…") |
 | `Stupeň__sráz` | linie | 104 Earth bank | ✓ | **Sez. 43** (`--linefeatures`, id 95 → 104 plná linie + jednostranné ticky; zemní sráz, NE skalní 201). **Σ981 = nejčastější dosud netáhnutá**. SV 71 / LS 393 / HS 377 |
 | `Rokle__výmol` | linie | 107 Erosion gully / 108 | ○ | erozní rýha |
 | `Kótovaný_bod` | bod | 603.0 Spot height | ○ | výšková kóta |
@@ -263,8 +263,8 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | ~40 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513, liniová vegetace→416** |
-| ◐ kandidát | ~6 | bažina 308, pramen 312, jeskyně 203.2, hráz 528, nádrž 311, lom 201 (viz akční seznam) |
+| ✓ použito | ~44 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513, liniová vegetace→416** + **Sez. 44 (dávka 4 vodní/mokřady): bažina+rašeliniště→308 (`--marsh`), pramen→312, jeskyně+šachta→203.2, nádrž→311 (`--landmarks`)** |
+| ◐/○ odloženo | 2 | hráz 528 (legenda mapy + sporné mapování), lom 201 (plocha ≠ hrana srázu, Σ1) — viz akční seznam |
 | ○ možné | ~20 | okrajově relevantní (brod 519, podjezd 519, lanovka 510, vodopád 313, komín 524, zábrana 519, …) |
 | ✗ mimo doménu | ~80 | administrativa, POI, geodetické body, urbánní, vegetace gate, pomocné kreslicí linie |
 
@@ -274,15 +274,15 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 > garantuje, že u KAŽDÉ vrstvy s ISOM ekvivalentem je buď implementace, NEBO tvrdý doložený důvod
 > (vegetace gate / administrativa / 0 výskytů v 5 reprezentativních výsecích). Paměť `geoportal-data-completeness`.
 
-### Akční seznam kandidátů (◐) — zbývá doplnit (priorita dle výskytu)
+### Akční seznam kandidátů — stav po Sez. 44 (dávka 4)
 
-1. **`Bažina__močál` → 308 Marsh** (id 131, Σ31; NV 15 / HS 10) — crossable marsh, klasický OB prvek.
-2. **`Zdroj_podzemních_vod` → 312 Spring** (id 19, Σ65) — pramen.
-3. **`Vstup_do_jeskyně`/`Ústí_šachty` → 203.2 Cave** (id 11/34, Σ8+1).
-4. **`Přehradní_hráz__jez` → 528 Prominent line feature** (id 22, Σ13).
-5. **`Nadzemní_zásobní_nádrž` → 311 Well/tank** (id 108, Σ8) + **`Povrchová_těžba__lom` → 201 Impassable cliff** (id 118, Σ1).
-6. **`Rašeliniště__plocha_` → 308** (id 18, NL 8) — spolu s bažinou.
-7. *(○ druhá vlna)* brod/podjezd → 519, lanovka+stožár → 510, vodopád → 313, kótovaný bod (viz níže).
+1. ~~`Bažina, močál` → 308 Marsh~~ **HOTOVO Sez. 44** (`--marsh`; id 131, NV 15 / HS 10 / NL 9 / SV 5).
+2. ~~`Zdroj podzemních vod` → 312 Spring~~ **HOTOVO Sez. 44** (`--landmarks`; id 19, Σ65 sedí na probe).
+3. ~~`Vstup do jeskyně`/`Ústí šachty, štoly` → 203.2 Cave~~ **HOTOVO Sez. 44** (`--landmarks`; id 11/34, Σ9).
+4. **`Přehradní_hráz__jez` → 528** (id 22, Σ13) — **ODLOŽENO Sez. 44**: 528 vyžaduje definici v legendě mapy (ruční krok kartografa), mapování hráz↔528 sporné (jez = spíš přerušení toku). Vyžaduje rozhodnutí uživatele.
+5. ~~`Nadzemní zásobní nádrž` → 311~~ **HOTOVO Sez. 44** (`--landmarks`; id 108, Σ8 = LS 6 + HS 2). **`Povrchová_těžba__lom` → 201** (id 118, Σ1) — **ODLOŽENO**: plocha lomu ≠ hrana srázu (201 = linie s ticky dolů), Σ1 marginální.
+6. ~~`Rašeliniště (plocha)` → 308~~ **HOTOVO Sez. 44** (`--marsh`, spolu s bažinou).
+7. *(○ druhá vlna)* brod/podjezd → 519, lanovka+stožár → 510, vodopád → 313, kótovaný bod (SKIP, viz níže).
 
 **Kótovaný bod (id 9, Σ353) — SKIP s odůvodněním (Sez. 43):** vrstva nese JEN atribut `vyska`
 (nadm. výška), žádný typ ani fyzickou značku → je to **virtuální výškopisný bod**, ne fyzický objekt

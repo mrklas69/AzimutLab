@@ -21,7 +21,8 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
   (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
   (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen
-  **312** (ze `Zdroj_podzemních_vod`, v demo výřezu žádný). Procedurální voda (hydro jádro D8) zatím ne,
+  **312** (ze `Zdroj_podzemních_vod`) se kreslí přes `--landmarks` (bodový, Sez. 44 — modré „U" ústím
+  nahoru). Procedurální voda (hydro jádro D8) zatím ne,
 - **budovy** — `--buildings real` (real-půlka, Sez. 18; týž `zabaged.py`): `Budova_..._plocha_` →
   ISOM **521 Building** (plošný černý symbol). Vyžaduje `--terrain real`. **Kreslené RAW jako voda**
   (Sez. 27 — generalizace L1 i displacement L2 zavrženy, komolily tvar/polohu; *generalizuj jen s důkazem*),
@@ -47,8 +48,12 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`
   → **523 Ruin** (čárkovaný obrys bez výplně). ČÚZK je vede zvlášť, ne v `Budova_99` (domov mládeže = bývalý zámek),
 - **bodové orient. prvky** — `--landmarks real` (Sez. 43, audit katalogu): kříž→**530**, mohyla→**526**,
-  věž/vodojem/silo/těžní/mlýn/motor/věžovitá stavba→**524**, významný strom→**417** (zelený kroužek),
-- **liniové orient. prvky** — `--linefeatures real` (Sez. 43): sráz→**104 Earth bank** (plná + jednostranné ticky),
+  věž/vodojem/silo/těžní/mlýn/motor/věžovitá stavba→**524**, významný strom→**417** (zelený kroužek);
+  **Sez. 44**: pramen→**312** (modré „U" ústím nahoru), jeskyně+šachta→**203.2 Cave** (černá „Λ" stříška hrotem
+  nahoru), nádrž→**311** (modrý čtverec, z centroidu),
+- **mokřady** — `--marsh real` (Sez. 44): bažina/močál + rašeliniště→**308 Marsh** (modrá vodorovná šrafa;
+  KISS vždy crossable, NE 307),
+- **liniové orient. prvky** — `--linefeatures real` (Sez. 43): sráz→**104 Earth bank** (HNĚDÁ plná + jednostranné ticky),
   zeď/hradba→**513 Wall**, liniová vegetace→**416** (zelená čárkovaná),
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
@@ -63,7 +68,7 @@ důrazem na vizuální věrnost. **Procedurální (noise-půlka)** plošné vrst
 balvany) byly vědomě **zahozeny** (vypadaly uměle → kazily by domain gap feederu); historie v gitu.
 Skály/balvany se od Sez. 30 kreslí **reálně** ze ZABAGED (204/207/206), tedy jen v real-půlce.
 Záměrně zatím NEobsahuje: **procedurální** vegetaci/bažiny/rýhy, **procedurální** vodu (reálná ze
-ZABAGED je, Sez. 17), purpurovou závodní trať (§4.13), severník. (Pramen 312 je v konektoru, v demo výřezu chybí.)
+ZABAGED je, Sez. 17), purpurovou závodní trať (§4.13), severník. (Pramen 312 se kreslí přes `--landmarks`, Sez. 44.)
 
 ## Cíl
 
@@ -112,7 +117,7 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
-| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 / 401·520 (každá jen při své `--…real`; surfaces multi-class 1=open land, 2=olivová zákaz vstupu) |
+| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` / `mask_landmarks.png` / `mask_linefeatures.png` / `mask_marsh.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 / 401·520 / bodové orient. (524·526·530·417·312·311·203.2) / liniové orient. (104·513·416) / 308 Marsh (každá jen při své `--…real`; multi-class kde víc tříd) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
 | `<lokalita>.omap` | OpenOrienteering Mapper mapa (vždy; název = výstupní složka, Sez. 42; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 (olivová: hřbitov + RÚIAN privátní + areály 114) + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu + blok `georef` (S-JTSK bbox, pixel_size_m, world_file, north, grivation_deg) |

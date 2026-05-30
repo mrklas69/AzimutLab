@@ -331,10 +331,26 @@ liniový/bodový orient. prvek, ne plošná průchodnost). Render `_draw_landmar
 `--terrain real`. Výskyt: SV 81 / LS ~99 (kříž 33/strom 38/věž 6/cairn 4 na SV). Nulové vrstvy (vodojem/silo/…)
 mapovány pro úplnost (jinde se vyskytnou — princip „nic užitečného nevypadne").
 
+**Sez. 44 (dávka 4 vodní/terénní body)** rozšířila `--landmarks` o: pramen (`Zdroj podzemních vod`) →
+**312 Spring** (modré „U" ústím nahoru), vstup do jeskyně + ústí šachty/štoly → **203.2 Cave** (černá „Λ" stříška
+hrotem nahoru = „with a distinct entrance"; 203.1 by byl V hrotem dolů „without entrance" — ověřeno uživatelem,
+audit Sez. 44), nadzemní zásobní nádrž (plocha → centroid) → **311 Well/fountain/water tank** (modrý čtverec).
+Výskyt: pramen Σ65 (přesně sedí na probe), jeskyně+šachta Σ9, nádrž Σ8 (LS 6 / HS 2). **POZOR konvence (audit
+Sez. 44):** OOM `.omap` symbol coords mají osu **+y = DOLŮ** — rastrový render NEFLIPUJE (`screen_y = cy + omap_y`);
+opačný předpoklad zrcadlil cave/spring → paměť `omap-symbol-y-axis-down`.
+
+### 4.9k-bis Mokřady (real-půlka, Sez. 44, dávka 4)
+**✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**
+(`zabaged.map_marsh_to_isom`, KISS vždy crossable 308 — data nenesou atribut překonatelnosti, NE 307 uncrossable).
+Render `_draw_marsh_area` = MODRÁ vodorovná šrafa (scanline, rozestup 0,45 mm dle template patternu) ořezaná na
+polygon; `.omap` = area_object 308 (OOM nakreslí pattern). Z-order nad plošným pokryvem (401/520), pod liniemi.
+`mask_marsh.png`. Výskyt: NV 15 / HS 10 / NL 9 / SV 5 / LS 0 (sedí na probe Sez. 43).
+
 ### 4.9l Liniové orientační prvky (real-půlka, Sez. 43)
 **✅ `--linefeatures real`** vezme liniové ZABAGED vrstvy → ISOM (KISS, `zabaged.map_line_feature_to_isom`):
-stupeň/sráz → **104 Earth bank** (plná černá linie + jednostranné kolmé ticky; orientace na nižší stranu svahu =
-TODO, chce DMR sklon; Σ981 = nejčastější dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná),
+stupeň/sráz → **104 Earth bank** (plná HNĚDÁ linie + jednostranné kolmé ticky; barva opravena z černé na hnědou
+= template color 6 Brown, audit Sez. 44; orientace na nižší stranu svahu = TODO, chce DMR sklon; Σ981 = nejčastější
+dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná),
 liniová vegetace (stromořadí/mez/živý plot) → **416 Distinct vegetation boundary** (zelená čárkovaná). Render
 `_draw_line_feature` (wrapper nad `_draw_line_symbol` + ticky pro 104); multi-class `mask_linefeatures.png`. Liniové
 objekty v .omap (OOM kreslí symbol z definice). Vyžaduje `--terrain real`. Výskyt SV: sráz 71 / vegetace 83 / zeď 16.
