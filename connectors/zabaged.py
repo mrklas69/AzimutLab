@@ -158,13 +158,14 @@ PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: par
 
 # Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou/budovou).
 # Dvě skupiny podle ISOM:
-#  OPEN_LAND = otevřené plochy → 401 Open land (plná žlutá). KISS: louka/park/pole/sad = různé
-#    ZABAGED vrstvy (druh JE v datech), ale pro MVP všechny → 401 (Sez. 41, volba uživatele „open
-#    land jako jedna žlutá"). ISOM-věrné rozlišení pole 412 / sad 413 (žlutá + pattern) = druhá
-#    vlna (pattern render). Pozn.: les NENÍ open land — zůstává bílá (default pozadí, vegetace gate).
+#  OPEN_LAND = otevřené plochy. Druh nese VRSTVA (Sez. 47, druhá vlna): louka/park → 401 Open land
+#    (plná žlutá); pole `Orná půda…` → 412 Cultivated land (žlutá + černý tečkový pattern); sad
+#    `Ovocný sad, zahrada` → 413 Orchard (žlutá + zelený tečkový pattern). Sez. 41 bylo KISS vše→401;
+#    Sez. 47 rozliší kulturu (mapping nese vrstva, viz map_open_land_to_isom). Les NENÍ open land —
+#    zůstává bílá (default pozadí, vegetace gate).
 #  CEMETERY = hřbitov → 520 Area that shall not be entered (plná olivová, out-of-bounds). ISOM nemá
 #    vlastní hřbitovní symbol → 520 (verify template Sez. 41). Umělá plocha, čistá projekce bez gate.
-# Render plná výplň (oba patterns=0 v template) → tutovka (Sez. 41). Mapování viz map_*_to_isom.
+# Render: 401/520 plná výplň; 412/413 žlutá výplň + tečkový pattern (Sez. 47). Mapování viz map_*_to_isom.
 OPEN_LAND_LAYERS = ("Trvalý travní porost", "Udržovaná zeleň",
                     "Orná půda a ostatní dále nespecifikované plochy", "Ovocný sad, zahrada")
 CEMETERY_LAYERS = ("Hřbitov",)
@@ -857,11 +858,20 @@ def map_paved_to_isom(layer: str, props: dict) -> int:
 def map_open_land_to_isom(layer: str, props: dict) -> int:
     """Mapuje ZABAGED otevřenou plochu na ISOM 2017-2 plošný symbol (kód).
 
-    Louka/park/pole/sad → **401 Open land** (vždy; KISS, volba uživatele Sez. 41 „open land jako
-    jedna žlutá"). Druh JE v datech (různé vrstvy), ale ISOM-věrné rozlišení pole → 412 Cultivated
-    land / sad → 413 Orchard (žlutá + pattern) je odložená druhá vlna (pattern render). 401 = plná
-    žlutá výplň bez obrysu. Nejistý je jen odstín 401 vs 403 Rough open (průchodnost = vegetace gate
-    nuance) → KISS 401. Konektor vrací holý ISOM kód (int)."""
+    Druh plochy nese VRSTVA (Sez. 47, druhá vlna land-cover):
+      - `Orná půda a ostatní dále nespecifikované plochy` (138) → **412 Cultivated land**
+        (žlutá + černý tečkový pattern, orientace k severu);
+      - `Ovocný sad, zahrada` (135) → **413 Orchard** (žlutá + zelený tečkový pattern). Celá vrstva
+        (sad i zahrada) → 413; privátní zahrady u domů pak přemaže olivová 520 z RÚIAN (kreslí se NAD
+        surfaces, z-order téma 2 Sez. 42) → reálně zůstanou 413 jen ne-privátní sady (volba uživatele).
+      - `Trvalý travní porost` (louka, 139) + `Udržovaná zeleň` (park, 134) → **401 Open land**
+        (plná žlutá; louka/park nejsou kultura → bez patternu).
+    Pod ISOM min. plochou (412: 3×3 mm; 413: 2×2 mm) generátor spadne na 401 (řeší render, ne mapper).
+    Konektor vrací holý ISOM kód (int)."""
+    if layer == "Orná půda a ostatní dále nespecifikované plochy":
+        return 412
+    if layer == "Ovocný sad, zahrada":
+        return 413
     return 401
 
 

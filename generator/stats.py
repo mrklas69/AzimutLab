@@ -51,9 +51,11 @@ SYMBOLS = [
     ("312",   "Spring"),
     # Skalní bodové (§4.11, Sez. 44)
     ("203.2", "Cave or rocky pit"),
-    # Plošný pokryv / vegetace (§4.8, Sez. 41 + 45)
+    # Plošný pokryv / vegetace (§4.8, Sez. 41 + 45 + 47)
     ("401",   "Open land"),
     ("406",   "Vegetation: slow running"),
+    ("412",   "Cultivated land"),
+    ("413",   "Orchard"),
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
     ("501",   "Paved area"),

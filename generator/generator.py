@@ -301,13 +301,29 @@ PAVED_CLASS = {ISOM_PAVED: 1}
 # Z-order: ÚPLNĚ VESPOD (podklad pod vrstevnicemi) — viz generate_map. Les NENÍ open land (bílá =
 # default pozadí, vegetace gate). Mapování viz zabaged.map_open_land_to_isom / map_cemetery_to_isom
 # + ruian.map_private_land_to_isom.
-ISOM_OPEN_LAND = 401               # otevřená plocha → plná žlutá (bez obrysu)
+ISOM_OPEN_LAND = 401               # otevřená plocha (louka/park) → plná žlutá (bez obrysu)
 ISOM_OUT_OF_BOUNDS = 520           # zákaz vstupu (hřbitov + privátní pozemek) → plná olivová (bez obrysu)
-SURFACE_NAME = {ISOM_OPEN_LAND: "Open land", ISOM_OUT_OF_BOUNDS: "Area that shall not be entered"}
-# ISOM kód → třída v mask_surfaces.png (0 = pozadí). Multi-class: open land 1, olivová zákaz vstupu 2.
-SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_OUT_OF_BOUNDS: 2}
-# ISOM kód → výplň (plná barva, bez obrysu — open land/zákaz vstupu nemají bounding line)
-SURFACE_FILL = {ISOM_OPEN_LAND: C_YELLOW, ISOM_OUT_OF_BOUNDS: C_OLIVE}
+ISOM_CULTIVATED = 412              # pole (orná půda) → žlutá výplň + ČERNÝ tečkový pattern (Sez. 47)
+ISOM_ORCHARD = 413                # sad → žlutá výplň + ZELENÝ tečkový pattern (Sez. 47)
+SURFACE_NAME = {ISOM_OPEN_LAND: "Open land", ISOM_OUT_OF_BOUNDS: "Area that shall not be entered",
+                ISOM_CULTIVATED: "Cultivated land", ISOM_ORCHARD: "Orchard"}
+# ISOM kód → třída v mask_surfaces.png (0 = pozadí). Multi-class: open land 1, olivová 2, pole 3, sad 4.
+SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_OUT_OF_BOUNDS: 2, ISOM_CULTIVATED: 3, ISOM_ORCHARD: 4}
+# ISOM kód → výplň plochy. 401 žlutá / 520 olivová (plné, bez obrysu); 412/413 mají žluté pozadí
+# (jako 401) + navíc tečkový pattern (kreslí _draw_dotted_surface_area, ne plná výplň).
+SURFACE_FILL = {ISOM_OPEN_LAND: C_YELLOW, ISOM_OUT_OF_BOUNDS: C_OLIVE,
+                ISOM_CULTIVATED: C_YELLOW, ISOM_ORCHARD: C_YELLOW}
+# Pole 412 / sad 413: tečkový pattern (template 412.1 / 413). (barva tečky, poloměr px). Grid kotvený
+# globálně (lícuje napříč plochami), rozestup SURFACE_DOT_SPACING_PX. Template: grid 1,2 mm; 412.1
+# tečka r 0,15 mm černá (color 31 „open land black"), 413 tečka r 0,338 mm zelená (color 29 undergrowth).
+SURFACE_DOT = {ISOM_CULTIVATED: (C_BLACK, max(1, round(0.15 * PX_PER_MM))),
+               ISOM_ORCHARD: (C_GREEN1, max(2, round(0.338 * PX_PER_MM)))}
+SURFACE_DOT_SPACING_PX = 1.2 * PX_PER_MM                 # rozestup teček (template grid 1,2 mm)
+# ISOM min. mapovatelná plocha kultury (template MINIMUM DIMENSIONS): 412 = 3×3 mm = 9 mm²,
+# 413 = 2×2 mm = 4 mm². Menší plocha → spadne na 401 (open land, volba uživatele Sez. 47, izomorf
+# se stromořadím Sez. 45). V px²: mm² × PX_PER_MM².
+SURFACE_MIN_AREA_PX2 = {ISOM_CULTIVATED: round(9.0 * PX_PER_MM ** 2),
+                        ISOM_ORCHARD: round(4.0 * PX_PER_MM ** 2)}
 
 
 # ---------- Mokřady (Sez. 44, katalog dávka 4, real-půlka, plošná) ----------
@@ -1012,6 +1028,42 @@ def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
     — wrapper nad _draw_area_symbol (izomorfní s _draw_paved_area, jen outline=None: open land ani
     out-of-bounds nemají bounding line; barva dle SURFACE_FILL, třída dle SURFACE_CLASS)."""
     _draw_area_symbol(draw, sdraw, ring_px, SURFACE_FILL[code], None, SURFACE_CLASS[code])
+
+
+def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
+                              ring_px: list[tuple[float, float]], code: int) -> None:
+    """Kultura (ISOM 412 pole / 413 sad): ŽLUTÁ výplň + tečkový pattern ořezaný na polygon + plná
+    třída do GT masky (Sez. 47). Pole 412 = černé tečky (r 0,15 mm), sad 413 = zelené (r 0,338 mm);
+    rozestup SURFACE_DOT_SPACING_PX (template grid 1,2 mm). .omap dostane věrný symbol (412 = 401 +
+    412.1 combined, 413 area pattern).
+
+    Tečky leží na PRAVIDELNÉ mřížce kotvené GLOBÁLNĚ (násobky rozestupu od počátku rastru) → pattern
+    lícuje napříč sousedními plochami (vypadá jako jeden rastr, ISOM „orientated to north"). Scanline
+    odvozen z _draw_marsh_area: po řádcích gridu najdi průsečíky s hranami (even-odd) a teč jen uvnitř."""
+    if len(ring_px) < 3:
+        return
+    draw.polygon(ring_px, fill=SURFACE_FILL[code])       # žluté pozadí (jako 401)
+    sdraw.polygon(ring_px, fill=SURFACE_CLASS[code])     # GT maska: plná plocha
+    dot_color, dot_r = SURFACE_DOT[code]
+    sp = SURFACE_DOT_SPACING_PX
+    ys = [p[1] for p in ring_px]
+    y0, y1 = min(ys), max(ys)
+    n = len(ring_px)
+    y = math.ceil(y0 / sp) * sp                          # první řádek mřížky uvnitř bboxu (globální kotva)
+    while y <= y1:
+        xs: list[float] = []
+        for i in range(n):                              # průsečíky scanline s hranami polygonu
+            ax, ay = ring_px[i]
+            bx, by = ring_px[(i + 1) % n]
+            if (ay <= y < by) or (by <= y < ay):        # hrana kříží řádek (half-open interval)
+                t = (y - ay) / (by - ay)
+                xs.append(ax + t * (bx - ax))
+        xs.sort()
+        for j in range(0, len(xs) - 1, 2):              # uvnitř polygonu = mezi sudými páry průsečíků
+            x = math.ceil(xs[j] / sp) * sp              # první tečka mřížky v intervalu (globální kotva)
+            while x <= xs[j + 1]:
+                draw.ellipse([x - dot_r, y - dot_r, x + dot_r, y + dot_r], fill=dot_color)
+                x += sp
 
 
 def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1998,25 +2050,27 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
 
 def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálný plošný pokryv (real-půlka, Sez. 41-42): open land (louka/park/pole/sad) → 401 žlutá +
-    olivová 520 „zákaz vstupu" = hřbitov (ZABAGED) ∪ privátní pozemek u domu (RÚIAN: zahrada +
-    zastavěná plocha a nádvoří, Sez. 42). Dvě třídy v JEDNÉ multi-class masce (1=open land, 2=olivová).
+    """Reálný plošný pokryv (real-půlka, Sez. 41-47): open land louka/park → 401 žlutá; pole → 412
+    (žlutá + černý tečkový pattern); sad → 413 (žlutá + zelený pattern); olivová 520 „zákaz vstupu" =
+    hřbitov (ZABAGED) ∪ privátní pozemek u domu (RÚIAN: zahrada + zastavěná plocha, Sez. 42). Čtyři
+    třídy v JEDNÉ multi-class masce (1=open land, 2=olivová, 3=pole, 4=sad).
 
-    Mirror _generate_real_paved (RAW S-JTSK → grid → px → polygon plná výplň, bez generalizace).
-    Z-ORDER (Sez. 42, téma 2): olivová se kreslí PO žluté → privátní zahrada (RÚIAN 520) přemaže
-    případnou žlutou „Ovocný sad, zahrada" (ZABAGED 401) na témže místě; ovocný sad/louka zůstanou
-    žluté. Vrací (area_features [(grid, code)], surfaces_info) v souřadnicích MŘÍŽKY (zdroj pro .omap).
+    Mirror _generate_real_paved (RAW S-JTSK → grid → px → polygon, bez generalizace). Kultura 412/413
+    pod ISOM min. plochou (SURFACE_MIN_AREA_PX2) → spadne na 401 (volba uživatele Sez. 47).
+    Z-ORDER (Sez. 42, téma 2): olivová se kreslí PO žluté/kultuře → privátní zahrada (RÚIAN 520)
+    přemaže případný 413 sad (ZABAGED) na témže místě; ne-privátní sady/pole zůstanou. Vrací
+    (area_features [(grid, code)], surfaces_info) v souřadnicích MŘÍŽKY (zdroj pro .omap).
     V bezlesém/lesním výseku bez pokryvu = 0 prvků (žádný šum)."""
     from zabaged import (fetch_open_land, fetch_cemeteries, fetch_utility_areas,
                          map_open_land_to_isom, map_cemetery_to_isom, map_utility_area_to_isom)
     from ruian import fetch_private_land, map_private_land_to_isom
     area_features: list[tuple] = []
     surfaces_info: list[dict] = []
-    # Všechny skupiny jdou stejnou plošnou cestou (RAW ring → plná výplň), liší se mapperem/barvou.
-    # Pořadí = pořadí kreslení: open land (401) VESPOD, pak olivová 520 (privátní pozemek RÚIAN +
-    # hřbitov ZABAGED + areály účelové zástavby) NAD ní (z-order téma 2, Sez. 42). Areály účelové
-    # zástavby (114) mapují i na 501 (asfaltové dopravní plochy) — ty sem NEpatří (jsou v paved
-    # kanálu), proto filtr `code in SURFACE_FILL` (vezme 401/520, přeskočí 501).
+    # Skupiny jdou stejnou plošnou cestou (RAW ring → výplň), liší se mapperem/barvou/patternem.
+    # Pořadí = pořadí kreslení: open land + kultura (401/412/413) VESPOD, pak olivová 520 (privátní
+    # pozemek RÚIAN + hřbitov ZABAGED + areály účelové zástavby) NAD ní (z-order téma 2, Sez. 42).
+    # Areály účelové zástavby (114) mapují i na 501 (asfaltové dopravní plochy) — ty sem NEpatří
+    # (jsou v paved kanálu), proto filtr `code in SURFACE_FILL` (vezme 401/412/413/520, přeskočí 501).
     for feats, mapper in ((fetch_open_land(lat, lon, GW, GH, TILE_M), map_open_land_to_isom),
                           (fetch_private_land(lat, lon, GW, GH, TILE_M), map_private_land_to_isom),
                           (fetch_cemeteries(lat, lon, GW, GH, TILE_M), map_cemetery_to_isom),
@@ -2030,9 +2084,16 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
                 px = [_grid_to_px(gx, gy) for gx, gy in grid]
                 if len(px) < 3:
                     continue
-                _draw_surface_area(draw, sdraw, px, code)
-                area_features.append((grid, code))
-                surfaces_info.append({"symbol": code, "symbol_name": SURFACE_NAME[code],
+                # kultura pod ISOM min. plochou → degraduj na 401 open land (Sez. 47)
+                draw_code = code
+                if code in SURFACE_MIN_AREA_PX2 and _polygon_area_px(px) < SURFACE_MIN_AREA_PX2[code]:
+                    draw_code = ISOM_OPEN_LAND
+                if draw_code in SURFACE_DOT:
+                    _draw_dotted_surface_area(draw, sdraw, px, draw_code)
+                else:
+                    _draw_surface_area(draw, sdraw, px, draw_code)
+                area_features.append((grid, draw_code))
+                surfaces_info.append({"symbol": draw_code, "symbol_name": SURFACE_NAME[draw_code],
                                       "kind": "area", "layer": f["layer"]})
     return area_features, surfaces_info
 
@@ -3161,7 +3222,7 @@ def generate_map(
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
-        surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=zákaz vstupu)
+        surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=zákaz vstupu, 3=pole 412, 4=sad 413)
     if marsh_mask_img is not None:
         marsh_mask_img.save(out / "mask_marsh.png")                         # mokřady (GT, 1=marsh 308)
     if treerow_mask_img is not None:
