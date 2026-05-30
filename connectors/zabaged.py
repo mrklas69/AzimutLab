@@ -104,11 +104,11 @@ LAYER_IDS = {
     "Těžní věž": 30,                             # → 524 (0, pro úplnost)
     "Větrný mlýn": 32,                           # → 524 (0, pro úplnost)
     "Větrný motor": 33,                          # → 524 (0, pro úplnost)
-    # Liniové orientační prvky (Sez. 43, audit katalogu): terénní sráz / zeď / vegetační hranice.
+    # Liniové orientační prvky (Sez. 43, audit katalogu): terénní sráz / zeď.
     "Stupeň, sráz": 95,                          # → 104 Earth bank (Σ981 = nejčastější netáhnutá!)
     "Zeď": 39,                                   # → 513 Wall
     "Hradba, val, bašta, opevnění": 38,          # → 513 Wall (kamenné historické opevnění)
-    "Liniová vegetace": 15,                      # → 416 Distinct vegetation boundary (stromořadí/mez)
+    "Liniová vegetace": 15,                      # → 406 lineární les (stromořadí; Sez. 45, NE 416 = hranice porostů)
     # Vodní / mokřady / terénní bodové prvky (Sez. 44, katalog dávka 4). REST jména ověřena
     # ?f=json (mezery/čárky/závorky, NE WFS podtržítka — paměť zabaged-rest-naming-conventions).
     # Bažina+rašeliniště = plochy → 308 (--marsh); pramen/jeskyně/šachta/nádrž = body → --landmarks.
@@ -237,11 +237,17 @@ LANDMARK_AREA_LAYERS_311 = ("Nadzemní zásobní nádrž",)  # plocha → centro
 #   104 Earth bank — terénní stupeň/sráz (zemní, NE skalní 201; bez atributu výšky → KISS 104).
 #                    Σ981 napříč 5 DEV_LOCATIONS = NEJČASTĚJŠÍ dosud netáhnutá vrstva (silný OB prvek).
 #   513 Wall       — zeď + hradba/val/bašta/opevnění (kamenné; `typzed` null → KISS 513).
-#   416 Distinct vegetation boundary — liniová vegetace (stromořadí/mez/živý plot; `typveg`).
-#                    ZELENÁ čárkovaná; bodový/liniový orient. prvek, NE plošná průchodnost → mimo gate.
 LINE_FEATURE_LAYERS_104 = ("Stupeň, sráz",)
 LINE_FEATURE_LAYERS_513 = ("Zeď", "Hradba, val, bašta, opevnění")
-LINE_FEATURE_LAYERS_416 = ("Liniová vegetace",)
+
+# Stromořadí jako „lineární les" (Sez. 45, real-půlka, liniová DATA → plošná REPREZENTACE).
+# `Liniová vegetace` (id 15) je v datech výhradně stromořadí (`typveg_k=S`). ISOM 416 Distinct
+# vegetation boundary = HRANICE mezi porosty (kraj lesa / předěl uvnitř lesa), NE řada stromů →
+# 416 sémanticky špatně (verify-against-source spec, Sez. 45). ISOM kreslí stromořadí buď řadou
+# bodů 417/418 (vyžaduje polohy kmenů — v datech nemáme, jen osu) nebo plošně jako úzký pás lesa
+# → volíme PLOŠNĚ: osa → 406 Vegetation: slow running (světlá zelená). Buffer (= šířka pásu =
+# kartografie) dělá generátor; konektor vrací jen osu (čistá data). KISS vrstva → vždy 406.
+TREE_ROW_LAYERS = ("Liniová vegetace",)
 
 # Areál účelové zástavby (Sez. 42, audit land-cover, real-půlka, plošná). ZABAGED `Areál účelové
 # zástavby` (id 114) = oplocené areály v sídlech, atribut `typzast_k` rozlišuje 62 typů (1xx průmysl/
@@ -1051,28 +1057,54 @@ def fetch_landmarks(lat: float, lon: float, gw: int, gh: int,
 def map_line_feature_to_isom(layer: str) -> int | None:
     """Mapuje ZABAGED liniový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43).
 
-    KISS vrstva → jeden symbol: Stupeň,sráz → 104 Earth bank; Zeď/Hradba → 513 Wall;
-    Liniová vegetace → 416 Distinct vegetation boundary. Vrací holý ISOM kód (int) nebo None."""
+    KISS vrstva → jeden symbol: Stupeň,sráz → 104 Earth bank; Zeď/Hradba → 513 Wall.
+    Vrací holý ISOM kód (int) nebo None. (`Liniová vegetace` už NENÍ zde — stromořadí jde
+    plošně jako 406 lineární les, viz fetch_tree_rows/map_tree_row_to_isom, Sez. 45.)"""
     if layer in LINE_FEATURE_LAYERS_104:
         return 104
     if layer in LINE_FEATURE_LAYERS_513:
         return 513
-    if layer in LINE_FEATURE_LAYERS_416:
-        return 416
     return None
 
 
 def fetch_line_features(lat: float, lon: float, gw: int, gh: int,
                         tile_m: float = 1000.0,
                         cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí liniové orientační prvky pro výsek (Sez. 43): sráz 104 / zeď 513 / vegetace 416.
+    """Vrátí liniové orientační prvky pro výsek (Sez. 43): sráz 104 / zeď 513.
 
     Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen).
     Mapování na ISOM (map_line_feature_to_isom) výš. Izomorfní s fetch_powerlines/fetch_railways."""
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
     out: list[dict] = []
-    for layer in (*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513, *LINE_FEATURE_LAYERS_416):
+    for layer in (*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513):
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            lines = _geom_to_lines(feat.get("geometry") or {})
+            if lines:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "lines": lines})
+    return out
+
+
+def map_tree_row_to_isom(layer: str) -> int:
+    """Stromořadí (`Liniová vegetace`) → ISOM 406 Vegetation: slow running (Sez. 45).
+
+    KISS vrstva → vždy 406. Reprezentace = úzký plošný pás („lineární les"); buffer osy na
+    plochu dělá generátor (šířka pásu = kartografická volba, ne data)."""
+    return 406
+
+
+def fetch_tree_rows(lat: float, lon: float, gw: int, gh: int,
+                    tile_m: float = 1000.0,
+                    cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí osy stromořadí (`Liniová vegetace`) pro výsek (Sez. 45). Každý prvek:
+    {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen) = ČISTÁ DATA
+    (osa), bez bufferu — plošný pás (406) staví generátor. Mirror fetch_line_features."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in TREE_ROW_LAYERS:
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
             lines = _geom_to_lines(feat.get("geometry") or {})

@@ -51,8 +51,9 @@ SYMBOLS = [
     ("312",   "Spring"),
     # Skalní bodové (§4.11, Sez. 44)
     ("203.2", "Cave or rocky pit"),
-    # Plošný pokryv (§4.8, Sez. 41)
+    # Plošný pokryv / vegetace (§4.8, Sez. 41 + 45)
     ("401",   "Open land"),
+    ("406",   "Vegetation: slow running"),
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
     ("501",   "Paved area"),
@@ -78,7 +79,6 @@ SYMBOLS = [
     # Liniové orientační prvky (Sez. 43)
     ("104",   "Earth bank"),
     ("513",   "Wall"),
-    ("416",   "Distinct vegetation boundary"),
 ]
 
 
@@ -117,7 +117,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     # 2) items z 10 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
                     "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures",
-                    "marsh"):
+                    "marsh", "treerows"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1

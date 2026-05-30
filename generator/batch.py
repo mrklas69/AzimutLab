@@ -119,14 +119,14 @@ def main() -> None:
             # feeder (ten se učí číst generovanou mapu) → dataset jím nezatěžujeme (Sez. 27).
             # Vedení, železnice, řopíky, skály, mosty/tunely i plošný pokryv batch zatím nedělá (dev-map
             # vrstvy; jako u powerlines — v lesních CZ_LOCATIONS vzácné/0 prvků). Vše explicitně "off":
-            # rocks/bridges/surfaces mají default "real" → bez vypnutí by noise větev padla na validaci
+            # rocks/bridges/surfaces/treerows mají default "real" → bez vypnutí by noise větev padla na validaci
             # (terrain="noise") a real větev by je zbytečně stahovala (lekce B1 Sez. 35).
             generate_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
                 railways="off", ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off", marsh="off", tolerant=True, ortho=False)
+                linefeatures="off", marsh="off", treerows="off", tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
@@ -154,7 +154,7 @@ def main() -> None:
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
                 ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off", marsh="off")
+                linefeatures="off", marsh="off", treerows="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

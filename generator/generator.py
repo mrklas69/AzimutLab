@@ -53,7 +53,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN3
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN3
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -395,28 +395,44 @@ LANDMARK_CAVE_HALF_PX = max(2, round(0.525 * PX_PER_MM))  # ½ rozevření „Λ
 
 
 # ---------- Liniové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
-# 3 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
-#   104 Earth bank — terénní sráz: plná černá linie + krátké JEDNOSTRANNÉ kolmé čárky (ticks).
+# 2 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
+#   104 Earth bank — terénní sráz: plná HNĚDÁ linie + krátké JEDNOSTRANNÉ kolmé čárky (ticks).
 #       Orientace ticků (na nižší stranu svahu) by chtěla DMR sklon → zatím konzistentní pravá
 #       normála (vizuálně = earth bank; přesná orientace = TODO, potřebuje výškopis).
 #   513 Wall — zeď/hradba: plná černá linie (template id 128 line_width 240 µm).
-#   416 Distinct vegetation boundary — vegetace: ZELENÁ čárkovaná (C_GREEN3; stromořadí/mez).
+# (Stromořadí už NENÍ zde — `Liniová vegetace` jde plošně jako 406 lineární les, viz TREE_ROW_* níže;
+#  416 = hranice porostů bylo sémanticky špatně pro řadu stromů, Sez. 45.)
 ISOM_EARTH_BANK = 104
 ISOM_WALL = 513
-ISOM_VEG_BOUNDARY = 416
-LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall",
-                 ISOM_VEG_BOUNDARY: "Distinct vegetation boundary"}
+LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall"}
 # ISOM kód → třída v mask_linefeatures.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
-LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2, ISOM_VEG_BOUNDARY: 3}
-LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BROWN, ISOM_WALL: C_BLACK, ISOM_VEG_BOUNDARY: C_GREEN3}  # 104 sráz = HNĚDÁ (template color 6 Brown), NE černá (oprava audit Sez. 44)
-# Render styl (mode, width px, dash). 513/104 plná (104 + ticks zvlášť); 416 čárkovaná (dash ~2,0/1,0 mm).
+LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2}
+LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BROWN, ISOM_WALL: C_BLACK}  # 104 sráz = HNĚDÁ (template color 6 Brown), NE černá (oprava audit Sez. 44)
+# Render styl (mode, width px, dash). 513/104 obě plná (104 + ticks zvlášť).
 LINEFEAT_STYLE = {
     ISOM_EARTH_BANK: ("solid", 1, None),
     ISOM_WALL: ("solid", 1, None),
-    ISOM_VEG_BOUNDARY: ("dashed", 1, (2.0 * PX_PER_MM, 1.0 * PX_PER_MM)),
 }
 EARTHBANK_TICK_SPACING_PX = max(3, round(0.8 * PX_PER_MM))   # rozestup ticků sráz 104 (~0,8 mm)
 EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jednostranná, ~0,35 mm)
+
+
+# ---------- Stromořadí jako „lineární les" (Sez. 45, real-půlka, liniová data → plošná reprezentace) ----------
+# `Liniová vegetace` (id 15) = stromořadí. ISOM 416 (hranice porostů) je sémanticky špatně pro řadu
+# stromů (verify spec Sez. 45) → kreslíme PLOŠNĚ: osa linie → buffer na úzký NEPRAVIDELNÝ pás
+# („špageta") → 406 Vegetation: slow running (světlá zelená C_GREEN1, plná výplň bez obrysu, jako
+# 401/520). První zelená vegetační plocha generátoru — legitimní (tvrdý objekt z dat, ne hádaná
+# hustota → vegetace gate neporušuje; izomorf s 308 Marsh: KISS jedna úroveň, data hustotu nenesou).
+# Šířka 0,7 mm ≈ 7 m (typická alej). Min. plocha 1,0 mm² (ISOM spec: nejmenší zelený dot-screen je
+# 1,0 mm²) → menší úseky zahodit. Perturbace DETERMINISTICKÁ (sinus podél osy, ne random — real
+# nelosuje, Sez. 20). Mapování viz zabaged.map_tree_row_to_isom.
+ISOM_TREE_ROW = 406
+TREEROW_NAME = {ISOM_TREE_ROW: "Vegetation: slow running"}
+TREEROW_CLASS = {ISOM_TREE_ROW: 1}                       # mask_treerows.png (0 = pozadí, 1 = stromořadí)
+TREEROW_HALF_WIDTH_PX = 0.35 * PX_PER_MM                 # ½ šířky pásu (0,7 mm → 0,35 mm na stranu)
+TREEROW_MIN_AREA_PX2 = round(1.0 * PX_PER_MM ** 2)       # ISOM min. plocha zeleného screenu 1,0 mm²
+TREEROW_WAVE_AMP = 0.35                                  # amplituda „špageta" perturbace (× half-width)
+TREEROW_WAVE_LAMBDA_PX = 3.0 * PX_PER_MM                 # vlnová délka perturbace podél osy (~3 mm)
 
 
 # ---------- Mosty / tunely / lávky (ISOM 512 + 512.2, Sez. 32 spec-driven) ----------
@@ -1026,6 +1042,63 @@ def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
             draw.line([(xs[j], y), (xs[j + 1], y)], fill=C_BLUE, width=1)
 
 
+def _polygon_area_px(ring: list[tuple[float, float]]) -> float:
+    """Plocha uzavřeného polygonu [px²] přes shoelace (Gaussův vzorec). Absolutní hodnota
+    (nezávislá na orientaci vrcholů). Pro filtr min. mapovatelné plochy stromořadí (Sez. 45)."""
+    n = len(ring)
+    if n < 3:
+        return 0.0
+    s = 0.0
+    for i in range(n):
+        x0, y0 = ring[i]
+        x1, y1 = ring[(i + 1) % n]
+        s += x0 * y1 - x1 * y0            # shoelace: Σ (x_i·y_{i+1} − x_{i+1}·y_i)
+    return abs(s) / 2.0
+
+
+def _buffer_polyline_irregular(axis_px: list[tuple[float, float]],
+                               half_w: float) -> list[tuple[float, float]]:
+    """Osa (polyline) → uzavřený NEPRAVIDELNÝ pás („špageta", Sez. 45) jako prstenec px.
+
+    Pro každý bod osy spočítáme kolmou normálu (z centrální tangenty) a odsadíme o half_w na
+    obě strany → levý a pravý okraj pásu; prstenec = levý okraj tam + pravý okraj zpět. Šířka se
+    DETERMINISTICKY vlní sinem podél délky osy (proč ne random: real nelosuje, Sez. 20) → okraj
+    není strojově rovný buffer. Levá/pravá strana mají posunutou fázi (asymetrie = živější tvar)."""
+    n = len(axis_px)
+    if n < 2:
+        return []
+    left: list[tuple[float, float]] = []
+    right: list[tuple[float, float]] = []
+    s_acc = 0.0                           # kumulativní délka podél osy [px] (pro fázi vlny)
+    for i in range(n):
+        cx, cy = axis_px[i]
+        # tangenta = centrální diference (kraje jednostranně) → směr osy v bodě i
+        if i == 0:
+            dx, dy = axis_px[1][0] - cx, axis_px[1][1] - cy
+        elif i == n - 1:
+            dx, dy = cx - axis_px[-2][0], cy - axis_px[-2][1]
+            s_acc += math.hypot(cx - axis_px[i - 1][0], cy - axis_px[i - 1][1])
+        else:
+            dx = axis_px[i + 1][0] - axis_px[i - 1][0]
+            dy = axis_px[i + 1][1] - axis_px[i - 1][1]
+            s_acc += math.hypot(cx - axis_px[i - 1][0], cy - axis_px[i - 1][1])
+        tlen = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / tlen, dx / tlen    # levá normála k tangentě
+        phase = 2.0 * math.pi * s_acc / TREEROW_WAVE_LAMBDA_PX
+        wl = half_w * (1.0 + TREEROW_WAVE_AMP * math.sin(phase))            # levá šířka
+        wr = half_w * (1.0 + TREEROW_WAVE_AMP * math.sin(phase + 1.7))      # pravá (posun fáze)
+        left.append((cx + nx * wl, cy + ny * wl))
+        right.append((cx - nx * wr, cy - ny * wr))
+    return left + right[::-1]             # prstenec: levý okraj tam, pravý zpět
+
+
+def _draw_treerow_area(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDraw,
+                       ring_px: list[tuple[float, float]]) -> None:
+    """Stromořadí / lineární les (ISOM 406): plná SVĚTLE ZELENÁ výplň BEZ obrysu + GT maska
+    (izomorfní s _draw_surface_area; 406 je plošný vegetační symbol, hranici nemá)."""
+    _draw_area_symbol(draw, tdraw, ring_px, C_GREEN1, None, TREEROW_CLASS[ISOM_TREE_ROW])
+
+
 def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                   cx: float, cy: float) -> None:
     """Bodový balvan (ISOM 204): plný černý kruh + GT maska (třída ROCK_CLASS[204]).
@@ -1173,8 +1246,8 @@ def _draw_earthbank_ticks(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 def _draw_line_feature(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
                        curve_px: list[tuple[float, float]], code: int) -> None:
-    """Liniový orientační prvek (Sez. 43): 104 sráz (plná + ticky) / 513 zeď (plná) / 416 vegetace
-    (zelená čárkovaná). Wrapper nad _draw_line_symbol (DRY); 104 navíc jednostranné ticky."""
+    """Liniový orientační prvek (Sez. 43): 104 sráz (plná + ticky) / 513 zeď (plná). Wrapper nad
+    _draw_line_symbol (DRY); 104 navíc jednostranné ticky. (Stromořadí 406 jde plošně, Sez. 45.)"""
     mode, width, dash = LINEFEAT_STYLE[code]
     color = LINEFEAT_COLOR[code]
     cls = LINEFEAT_CLASS[code]
@@ -1185,9 +1258,9 @@ def _draw_line_feature(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
 
 def _generate_real_line_features(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
                                  lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálné liniové orientační prvky (real-půlka, Sez. 43): sráz 104 / zeď 513 / vegetace 416
-    ze ZABAGED. Mirror _generate_real_powerlines (linie). Vrací (linefeat_features [(grid, code)],
-    linefeatures_info)."""
+    """Reálné liniové orientační prvky (real-půlka, Sez. 43): sráz 104 / zeď 513 ze ZABAGED.
+    Mirror _generate_real_powerlines (linie). Vrací (linefeat_features [(grid, code)],
+    linefeatures_info). (Stromořadí jde plošně jako 406, viz _generate_real_tree_rows, Sez. 45.)"""
     from zabaged import fetch_line_features, map_line_feature_to_isom
     linefeat_features: list[tuple] = []
     linefeatures_info: list[dict] = []
@@ -1988,6 +2061,36 @@ def _generate_real_marsh(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     return area_features, marsh_info
 
 
+def _generate_real_tree_rows(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDraw,
+                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálná stromořadí jako lineární les (real-půlka, Sez. 45): `Liniová vegetace` → ISOM 406.
+
+    Liniová DATA (osa) → PLOŠNÁ reprezentace: osu převedu na px, buffruji na nepravidelný pás
+    (_buffer_polyline_irregular), zahodím úseky pod ISOM min. plochou (TREEROW_MIN_AREA_PX2) a
+    vyplním 406. Pro .omap vracím prstenec v souřadnicích MŘÍŽKY (inverze _grid_to_px nad px
+    vrcholy — TÝŽ polygon jako rastr, konzistence rastr↔omap). Vrací (area_features [(grid, 406)],
+    treerows_info). V bezstromořadovém výseku = 0 prvků."""
+    from zabaged import fetch_tree_rows, map_tree_row_to_isom
+    area_features: list[tuple] = []
+    treerows_info: list[dict] = []
+    for f in fetch_tree_rows(lat, lon, GW, GH, TILE_M):
+        code = map_tree_row_to_isom(f["layer"])
+        for line in f["lines"]:
+            axis_px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y in line]
+            if len(axis_px) < 2:
+                continue
+            ring_px = _buffer_polyline_irregular(axis_px, TREEROW_HALF_WIDTH_PX)
+            if _polygon_area_px(ring_px) < TREEROW_MIN_AREA_PX2:    # pod ISOM min. mapovatelnou plochou
+                continue
+            _draw_treerow_area(draw, tdraw, ring_px)
+            # px prstenec → mřížka (inverze _grid_to_px: gx = px/W·(GW−1)) pro .omap (týž tvar)
+            grid = [(px / W * (GW - 1), py / H * (GH - 1)) for px, py in ring_px]
+            area_features.append((grid, code))
+            treerows_info.append({"symbol": code, "symbol_name": TREEROW_NAME[code],
+                                  "kind": "area", "layer": f["layer"]})
+    return area_features, treerows_info
+
+
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
@@ -2518,7 +2621,7 @@ def generate_map(
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
-        linefeatures: str = "real", marsh: str = "real",
+        linefeatures: str = "real", marsh: str = "real", treerows: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -2557,7 +2660,7 @@ def generate_map(
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 zákaz vstupu, ÚPLNĚ
-    VESPOD = podklad) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
+    VESPOD = podklad) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
     (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
     lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
@@ -2596,7 +2699,8 @@ def generate_map(
                               ("--surfaces", surfaces, "reálný plošný pokryv"),
                               ("--landmarks", landmarks, "reálné bodové orient. prvky"),
                               ("--linefeatures", linefeatures, "reálné liniové orient. prvky"),
-                              ("--marsh", marsh, "reálné mokřady")):
+                              ("--marsh", marsh, "reálné mokřady"),
+                              ("--treerows", treerows, "reálná stromořadí")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
                              "georef výseku; noise terén je v lokálních metrech).")
@@ -2649,6 +2753,21 @@ def generate_map(
             "surfaces", lambda: _generate_real_surfaces(draw, sfdraw, lat, lon, geo_bbox),
             ([], []), tolerant, layer_errors)
         _log.info("  plošný pokryv: %d (open land + zákaz vstupu)", len(surfaces_info))
+
+    # --- stromořadí / lineární les (ISOM 406): `Liniová vegetace` → úzký zelený pás (Sez. 45) ---
+    # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body — světle
+    # zelená vegetace nad žlutou open land, ale pod hnědou terénní kostrou. Jen --treerows real.
+    # Liniová data (osa) → plošný buffer (KISS vždy 406; vegetace gate neporušuje — tvrdý objekt).
+    treerow_area_features: list[tuple] = []
+    treerows_info: list[dict] = []
+    treerow_mask_img: Image.Image | None = None
+    if treerows == "real":
+        treerow_mask_img = Image.new("L", (W, H), 0)     # GT maska stromořadí (§8.1)
+        trdraw = ImageDraw.Draw(treerow_mask_img)
+        treerow_area_features, treerows_info = _try_layer(
+            "treerows", lambda: _generate_real_tree_rows(draw, trdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  stromořadí: %d (406 lineární les)", len(treerows_info))
 
     # --- mokřady (ISOM 308 Marsh): bažina/močál + rašeliniště (Sez. 44, katalog dávka 4) ---
     # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body. Modrá
@@ -2938,9 +3057,9 @@ def generate_map(
         else:
             _log.info("  orient. prvky: 0")
 
-    # --- liniové orientační prvky (ISOM 104/513/416): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
+    # --- liniové orientační prvky (ISOM 104/513): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
     # Rastr z-order: po cestách/budovách, před body/skalami. Jen --linefeatures real. KISS vrstva →
-    # jeden symbol: sráz 104 / zeď+hradba 513 / liniová vegetace 416 (map_line_feature_to_isom).
+    # jeden symbol: sráz 104 / zeď+hradba 513 (map_line_feature_to_isom). Stromořadí 406 plošně, Sez. 45.
     linefeat_features: list[tuple] = []
     linefeatures_info: list[dict] = []
     linefeat_mask_img: Image.Image | None = None
@@ -3038,13 +3157,15 @@ def generate_map(
     if landmark_mask_img is not None:
         landmark_mask_img.save(out / "mask_landmarks.png")                  # orient. prvky (GT, multi-class: 524/526/530/417)
     if linefeat_mask_img is not None:
-        linefeat_mask_img.save(out / "mask_linefeatures.png")              # liniové prvky (GT, multi-class: 104/513/416)
+        linefeat_mask_img.save(out / "mask_linefeatures.png")              # liniové prvky (GT, multi-class: 104/513)
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
         surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=zákaz vstupu)
     if marsh_mask_img is not None:
         marsh_mask_img.save(out / "mask_marsh.png")                         # mokřady (GT, 1=marsh 308)
+    if treerow_mask_img is not None:
+        treerow_mask_img.save(out / "mask_treerows.png")                    # stromořadí (GT, 1=lineární les 406)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -3078,6 +3199,9 @@ def generate_map(
     # mokřady → 308 Marsh = plošný symbol (area, type-4 s patternem v template; uzavřený path
     # s close flagem). OOM vykreslí modrý vodorovný pattern autoritativně z definice (Sez. 44).
     marsh_omap_features = [(g, str(c)) for g, c in marsh_area_features]
+    # stromořadí → 406 Vegetation: slow running = plošný symbol (area, uzavřený path s close flagem;
+    # OOM vyplní světle zelenou z definice). Prstenec už je buffrovaný pás (Sez. 45).
+    treerow_omap_features = [(g, str(c)) for g, c in treerow_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
@@ -3087,8 +3211,8 @@ def generate_map(
     rock_area_omap_features = [(g, str(c)) for g, c in rock_area_features]
     # bodové orientační prvky (Sez. 43): 524/526/530/417 = point_object (jako 109/110/111, 204/207)
     landmark_omap_features = [(gx, gy, str(c)) for gx, gy, c in landmark_features]
-    # liniové orientační prvky (Sez. 43): 104/513/416 = liniový objekt (otevřený path); OOM
-    # vykreslí symbol z definice (104 ticky, 513 plná, 416 zelená čárkovaná)
+    # liniové orientační prvky (Sez. 43): 104/513 = liniový objekt (otevřený path); OOM
+    # vykreslí symbol z definice (104 ticky, 513 plná). Stromořadí 406 plošně (výš, Sez. 45).
     linefeat_omap_features = [(g, str(c)) for g, c in linefeat_features]
     # Mosty (Sez. 32 5. iterace dle Most.omap dema): 1 ZABAGED Most → emit 2 PARALELNÍ
     # line objekty 512 v omap_export (offset ±0,75 mm kolmo). Tunely → 1 line objekt 512
@@ -3118,7 +3242,8 @@ def generate_map(
                              surface_features=surface_omap_features,
                              landmark_features=landmark_omap_features,
                              linefeature_features=linefeat_omap_features,
-                             marsh_features=marsh_omap_features)
+                             marsh_features=marsh_omap_features,
+                             treerow_features=treerow_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
                        railways, rocks, bridges,
@@ -3186,6 +3311,19 @@ def generate_map(
             "classes": {"0": "pozadí",
                         **{str(MARSH_CLASS[c]): f"{c} {MARSH_NAME[c]}" for c in used_marsh_codes}},
             "items": marsh_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }
+    # stromořadí / lineární les (Sez. 45): injektováno zde (precedent marsh/surfaces, A1 smell).
+    if treerows == "real":
+        used_treerow_codes = sorted({t["symbol"] for t in treerows_info})
+        meta["treerows"] = {
+            "count": len(treerows_info),
+            "mask": "mask_treerows.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): TREEROW_NAME[c] for c in used_treerow_codes},
+            "classes": {"0": "pozadí",
+                        **{str(TREEROW_CLASS[c]): f"{c} {TREEROW_NAME[c]}" for c in used_treerow_codes}},
+            "items": treerows_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }
     meta["isom"] = _isom_meta()
@@ -3261,11 +3399,14 @@ def main() -> None:
                         "526 mohyla/pomník + 530 kříž/sloup + 417 významný strom + 312 pramen + "
                         "203.2 jeskyně/šachta + 311 nádrž (default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--linefeatures", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED liniové orient. prvky → ISOM 104 sráz + 513 zeď/hradba + "
-                        "416 liniová vegetace (default), off = bez nich (real vyžaduje --terrain real)")
+                   help="real = ČÚZK ZABAGED liniové orient. prvky → ISOM 104 sráz + 513 zeď/hradba "
+                        "(default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--marsh", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED mokřady (bažina/močál + rašeliniště) → ISOM 308 Marsh "
                         "(modrá vodorovná šrafa, default), off = bez nich (real vyžaduje --terrain real)")
+    p.add_argument("--treerows", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED Liniová vegetace (stromořadí) → ISOM 406 lineární les "
+                        "(světle zelený pás, default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -3302,7 +3443,7 @@ def main() -> None:
         paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
         rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
-        linefeatures=args.linefeatures, marsh=args.marsh,
+        linefeatures=args.linefeatures, marsh=args.marsh, treerows=args.treerows,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 
