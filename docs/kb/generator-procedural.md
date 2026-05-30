@@ -350,10 +350,23 @@ polygon; `.omap` = area_object 308 (OOM nakreslí pattern). Z-order nad plošný
 **✅ `--linefeatures real`** vezme liniové ZABAGED vrstvy → ISOM (KISS, `zabaged.map_line_feature_to_isom`):
 stupeň/sráz → **104 Earth bank** (plná HNĚDÁ linie + jednostranné kolmé ticky; barva opravena z černé na hnědou
 = template color 6 Brown, audit Sez. 44; orientace na nižší stranu svahu = TODO, chce DMR sklon; Σ981 = nejčastější
-dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná),
-liniová vegetace (stromořadí/mez/živý plot) → **416 Distinct vegetation boundary** (zelená čárkovaná). Render
+dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná). Render
 `_draw_line_feature` (wrapper nad `_draw_line_symbol` + ticky pro 104); multi-class `mask_linefeatures.png`. Liniové
-objekty v .omap (OOM kreslí symbol z definice). Vyžaduje `--terrain real`. Výskyt SV: sráz 71 / vegetace 83 / zeď 16.
+objekty v .omap (OOM kreslí symbol z definice). Vyžaduje `--terrain real`. Výskyt SV: sráz 71 / zeď 16.
+(Stromořadí `Liniová vegetace` jde od Sez. 45 plošně jako 406 — viz §4.9m.)
+
+### 4.9m Stromořadí jako „lineární les" (real-půlka, Sez. 45)
+**✅ `--treerows real`** vezme `Liniová vegetace` (id 15, v datech výhradně stromořadí `typveg_k=S`) → **406
+Vegetation: slow running** (světle zelený pás). **Oprava 416 → 406:** Sez. 43 mapovala na 416, ale verify-against-source
+spec ukázal, že **416 Distinct vegetation boundary = HRANICE mezi porosty** (kraj lesa / předěl uvnitř lesa), NE řada
+stromů. ISOM kreslí stromořadí buď řadou bodů 417/418 (vyžaduje polohy kmenů — data je nemají, jen osu) nebo plošně
+jako úzký pás lesa → volíme **plošně** (cesta II): osa linie → buffer na nepravidelný pás („špageta", deterministická
+sinusová perturbace — real nelosuje), šířka **0,7 mm ≈ 7 m**, výplň 406 bez obrysu. **Min. plocha 1,0 mm²** (ISOM spec:
+nejmenší zelený dot-screen je 1,0 mm² @ 1:15000) → menší úseky se zahodí. Render `_buffer_polyline_irregular` +
+`_polygon_area_px` filtr + `_draw_treerow_area`; `mask_treerows.png`; plošný objekt 406 v .omap. **První zelená
+vegetační plocha generátoru** — vegetace gate NEporušuje (tvrdý objekt z dat, ne hádaná hustota; izomorf s 308 Marsh:
+KISS jedna úroveň). Z-order nad plošným pokryvem (401), pod vrstevnicemi/liniemi. Výskyt: SV 83 / HS 121 / LS 47 /
+NV 18 / NL 4.
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

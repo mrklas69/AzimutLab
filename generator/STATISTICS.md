@@ -33,6 +33,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **312** | Spring | 10 | 6 | 16 | 23 | 10 |
 | **203.2** | Cave or rocky pit | 5 | 1 | · | · | 3 |
 | **401** | Open land | 267 | 33 | 1101 | 361 | 103 |
+| **406** | Vegetation: slow running | 83 | 4 | 47 | 121 | 18 |
 | **520** | Area that shall not be entered | 1873 | 141 | 19058 | 1907 | 500 |
 | **501** | Paved area | 1 | 1 | 59 | 3 | 1 |
 | **502** | Wide road | 212 | 15 | 3192 | 170 | 29 |
@@ -53,18 +54,17 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **417** | Prominent large tree | 38 | 1 | 12 | 9 | 1 |
 | **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
-| **416** | Distinct vegetation boundary | 83 | 4 | 47 | 121 | 18 |
 | **Σ** | Celkem objektů | 5858 | 1810 | 35535 | 7481 | 2268 |
 
 Z 39 sledovaných ISOM symbolů reálně používáme **39** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-30 09:15:11
-- **NL** (`Nová Louka/`): 2026-05-30 09:15:27
-- **LS** (`Lidové sady/`): 2026-05-30 09:16:12
-- **HS** (`Hrubá Skála/`): 2026-05-30 09:16:32
-- **NV** (`Novina/`): 2026-05-30 09:12:39
+- **SV** (`Soví vrch/`): 2026-05-30 13:04:34
+- **NL** (`Nová Louka/`): 2026-05-30 13:17:35
+- **LS** (`Lidové sady/`): 2026-05-30 13:17:59
+- **HS** (`Hrubá Skála/`): 2026-05-30 13:18:12
+- **NV** (`Novina/`): 2026-05-30 13:18:22
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-30 09:16:45.*
+*Tabulka regenerována `stats.py` v 2026-05-30 13:18:22.*

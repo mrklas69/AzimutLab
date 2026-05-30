@@ -38,10 +38,12 @@ and — since session 43 (a **systematic catalogue audit** triggered by a missin
 recurring "it's missing / we don't map that" anti-pattern, fixed for good by data-driven counts of all 149 layers
 across the 5 dev locations) — castles/chateaux → 521, **ruins** → 523 (Milštejn et al., dashed outline),
 towers/water-towers/silos/… → 524, cairns/memorials → 526, crosses/wayside shrines → 530, prominent trees → 417
-(`--landmarks`), and earth banks → 104, walls/ramparts → 513, linear vegetation → 416 (`--linefeatures`);
+(`--landmarks`), and earth banks → 104, walls/ramparts → 513 (`--linefeatures`);
 since session 44 (catalogue batch 4: water/wetland) marshes+peat bogs → 308 Marsh (`--marsh`, blue horizontal hatch),
-springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--landmarks`).
-`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+surfaces+landmarks+linefeatures+marsh+points
+springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--landmarks`); since session 45 tree rows
+(`Liniová vegetace`) → 406 Vegetation: slow running (`--treerows`, "linear forest": axis→buffer→strip; corrects the
+earlier 416 = vegetation *boundary*, which was semantically wrong for a row of trees).
+`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines)+paths+rides+water+paved+buildings+powerlines+railways+rocks+bridges+surfaces+landmarks+linefeatures+marsh+treerows+points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,

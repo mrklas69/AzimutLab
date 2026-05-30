@@ -166,7 +166,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Trvalý_travní_porost` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, louka → žlutá); odstín 401 vs 403 = gate nuance, KISS 401 |
 | `Udržovaná_zeleň` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, park → žlutá) |
 | `Ovocný_sad__zahrada` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 413 Orchard (zelené tečky) = druhá vlna |
-| `Liniová_vegetace` | linie | 416 Distinct vegetation boundary | ✓ | **Sez. 43** (`--linefeatures`, id 15 → 416 zelená čárkovaná; `typveg`=stromořadí/mez/živý plot). Liniový orient. prvek, NE plošná průchodnost → mimo vegetace gate. SV 83 / HS 121 (Σ273) |
+| `Liniová_vegetace` | linie → plocha | 406 Vegetation: slow running | ✓ | **Sez. 45** (`--treerows`, id 15 → stromořadí jako „lineární les": osa linie → buffer → úzký světle zelený pás, šířka 0,7 mm, min. plocha 1,0 mm²). **416 byla Sez. 43, oprava → 406 Sez. 45** (verify spec: 416 Distinct vegetation boundary = HRANICE porostů / kraj lesa, NE řada stromů; ISOM kreslí alej plošně nebo body 417/418, my plošně — data nesou jen osu). První zelená vegetační plocha, gate neporušuje (tvrdý objekt z dat). SV 83 / HS 121 (Σ273) |
 | `Vinice` | plocha | (414 Vineyard) | ✗ | vzácné v OB lese |
 | `Chmelnice` | plocha | (414 obdoba) | ✗ | vzácné |
 | `Hranice_užívání_půdy` | linie | (415 cultivation boundary) | ✗ | administrativní hranice využití |
@@ -263,7 +263,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | ~44 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513, liniová vegetace→416** + **Sez. 44 (dávka 4 vodní/mokřady): bažina+rašeliniště→308 (`--marsh`), pramen→312, jeskyně+šachta→203.2, nádrž→311 (`--landmarks`)** |
+| ✓ použito | ~44 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513** + **Sez. 44 (dávka 4 vodní/mokřady): bažina+rašeliniště→308 (`--marsh`), pramen→312, jeskyně+šachta→203.2, nádrž→311 (`--landmarks`)** + **Sez. 45: stromořadí `Liniová vegetace`→406 lineární les (`--treerows`, oprava 416→406)** |
 | ◐/○ odloženo | 2 | hráz 528 (legenda mapy + sporné mapování), lom 201 (plocha ≠ hrana srázu, Σ1) — viz akční seznam |
 | ○ možné | ~20 | okrajově relevantní (brod 519, podjezd 519, lanovka 510, vodopád 313, komín 524, zábrana 519, …) |
 | ✗ mimo doménu | ~80 | administrativa, POI, geodetické body, urbánní, vegetace gate, pomocné kreslicí linie |

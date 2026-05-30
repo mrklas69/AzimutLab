@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 45 (2026-05-30) — Stromořadí 416 → 406 „lineární les" (oprava sémantiky + nový `--treerows`)
+- [x] **Sémantická oprava (carry-over [!] Sez. 43).** `Liniová vegetace` (id 15, v datech výhradně stromořadí
+      `typveg_k=S`) byla Sez. 43 mapována na **416 Distinct vegetation boundary** — verify-against-source spec
+      (template `id=100 code=416`) ukázal, že **416 = HRANICE mezi porosty** (kraj lesa / předěl uvnitř lesa),
+      NE řada stromů. Vysvětlení uživatele: alej se mapuje buď (I) řadou bodů 417/418 (vyžaduje polohy kmenů) nebo
+      (II) plošně tenkou nepravidelnou „špagetou" = lineární les (stačí osa). **Data určila II** — ZABAGED dává jen osu.
+- [x] **Nový `--treerows real` → ISOM 406 Vegetation: slow running** (světle zelená `C_GREEN1`). Osa linie → buffer
+      na nepravidelný pás: `_buffer_polyline_irregular` (DETERMINISTICKÁ sinusová perturbace — real nelosuje, Sez. 20),
+      šířka **0,7 mm ≈ 7 m**, výplň bez obrysu (jako 401/520). **Min. plocha 1,0 mm²** (`_polygon_area_px` filtr; ISOM
+      spec: nejmenší zelený dot-screen = 1,0 mm² @ 1:15000 — ověřeno v `isom-2000-spec.pdf`). Plošný objekt 406 v .omap.
+- [x] **První zelená vegetační plocha generátoru** — vegetace gate NEporušuje (tvrdý objekt z dat, ne hádaná hustota;
+      izomorf s 308 Marsh: KISS jedna úroveň). Z-order nad plošným pokryvem (401), pod vrstevnicemi/liniemi.
+- [x] **Plná vertikální integrace** (mirror vrstev): `zabaged.py` (416 ven z `fetch_line_features`; nový `fetch_tree_rows`
+      + `map_tree_row_to_isom`) + `generator.py` (konstanty/buffer/filtr/render/gen/z-order/maska/meta/CLI/validace) +
+      `omap_export.py` (416 ven z USED_CODES, 406 do USED_CODES+AREA_CODES) + `stats.py` + `batch.py` (obě větve `off`, lekce B1).
+- [x] **Verify:** proc baseline **65 drží** (noise nepadla); SV.omap **Test OK** (uživatel v OOM); 5 lokalit přegenerováno,
+      stromořadí = bývalá 416 na kus (SV 83/HS 121/LS 47/NV 18/NL 4, nic nepropadlo min-area filtrem); .omap 0× objekt 416;
+      py_compile OK. Cleanup: rezidua „416 vegetace" v komentářích/docs sjednocena na 406.
+
 ## Sezení 44 (2026-05-30) — Katalog dávka 4 (mokřady/pramen/jeskyně/nádrž) + audit věrnosti renderu
 - [x] **Dávka 4 (vodní/mokřady/terén)** — verify-against-source: REST jména ověřena `?f=json` (mezery/čárky/závorky,
       ne WFS podtržítka). **`--marsh real` (nový):** `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh** (KISS vždy
@@ -42,7 +61,8 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       **417** (zelený kroužek, `C_GREEN3`). Nulové vrstvy mapovány pro úplnost. Mirror `--rocks`.
 - [x] **Dávka 3 — liniové orient. prvky** (nový `--linefeatures`, `mask_linefeatures` multi-class): sráz →
       **104 Earth bank** (plná + jednostranné ticky; Σ981 = nejčastější dosud netáhnutá), zeď/hradba → **513 Wall**,
-      liniová vegetace → **416** (zelená čárkovaná). Mirror `--powerlines`/`--rides`.
+      liniová vegetace → **416** (zelená čárkovaná; ⚠ POZDĚJI OPRAVENO Sez. 45 → 406 lineární les — 416 byla špatně).
+      Mirror `--powerlines`/`--rides`.
 - [x] **Kótovaný bod — SKIP doložený.** Nese jen `vyska` (virtuální výškopis, ne fyzická značka v krajině) →
       ne ISOM 603 (volba uživatele „virtuální → okomentovat skip"). Doloženo v katalogu.
 - [x] **Katalog kompletně zrevidován.** 14 vrstev ◐/○→✓, konzistence (tramvaj/areál duplikát), nulové doloženy

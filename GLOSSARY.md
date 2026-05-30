@@ -72,6 +72,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   entrance"; **203.1** je naopak **V** hrotem dolů = „without entrance"), **311 Well/fountain/water tank**
   (nadzemní nádrž, modrý čtverec z centroidu). Pramen/jeskyně/nádrž jdou přes `--landmarks` (bodové).
   **Konvence OOM symbolů: osa +y = DOLŮ** (rastr neflipuje); špatný předpoklad zrcadlil cave/spring (audit Sez. 44).
+- **Stromořadí / lineární les** (Sez. 45) — řada stromů podél cesty/meze (alej). ZABAGED `Liniová vegetace` (id 15).
+  Generátor `--treerows real` → **406 Vegetation: slow running** (světle zelený pás). ISOM kreslí stromořadí buď
+  řadou bodů 417/418 (nutné polohy kmenů) nebo plošně tenkým nepravidelným pásem („lineární les") — volíme **plošně**,
+  protože data nesou jen osu: osa → buffer (šířka 0,7 mm) → pás, min. plocha 1,0 mm² (ISOM minimum dimensions).
+  **NE 416 Distinct vegetation boundary** — to je HRANICE mezi porosty (kraj lesa / předěl uvnitř lesa), ne řada stromů
+  (oprava sémantiky Sez. 45, verify spec). První zelená vegetační plocha generátoru; [[vegetace-gate]] neporušuje
+  (tvrdý objekt z dat, ne hádaná hustota — izomorf s 308 Marsh).
 - **Budova / stavba** — umělý objekt na OB mapě. ISOM **521 Building** (plošný černý symbol,
   výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
   `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem
