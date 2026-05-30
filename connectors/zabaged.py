@@ -109,6 +109,15 @@ LAYER_IDS = {
     "Zeď": 39,                                   # → 513 Wall
     "Hradba, val, bašta, opevnění": 38,          # → 513 Wall (kamenné historické opevnění)
     "Liniová vegetace": 15,                      # → 416 Distinct vegetation boundary (stromořadí/mez)
+    # Vodní / mokřady / terénní bodové prvky (Sez. 44, katalog dávka 4). REST jména ověřena
+    # ?f=json (mezery/čárky/závorky, NE WFS podtržítka — paměť zabaged-rest-naming-conventions).
+    # Bažina+rašeliniště = plochy → 308 (--marsh); pramen/jeskyně/šachta/nádrž = body → --landmarks.
+    "Bažina, močál": 131,                        # plocha → 308 Marsh
+    "Rašeliniště (plocha)": 18,                  # plocha → 308 Marsh (rašeliniště = mokřad téhož symbolu)
+    "Zdroj podzemních vod": 19,                  # bod → 312 Spring (NE 313 = orientovaný prom. water feature)
+    "Vstup do jeskyně": 11,                      # bod → 203.2 Cave or rocky pit
+    "Ústí šachty, štoly": 34,                    # bod → 203.2 (důlní ústí; spec „…or mineshafts…")
+    "Nadzemní zásobní nádrž": 108,               # plocha → centroid → 311 Well/fountain/water tank
 }
 
 # Feature typy komunikací relevantní pro OB (les). Turistická_trasa se vynechává — vede
@@ -160,6 +169,13 @@ OPEN_LAND_LAYERS = ("Trvalý travní porost", "Udržovaná zeleň",
                     "Orná půda a ostatní dále nespecifikované plochy", "Ovocný sad, zahrada")
 CEMETERY_LAYERS = ("Hřbitov",)
 
+# Mokřady (Sez. 44, katalog dávka 4, real-půlka, plošná — izomorfní s open land/hřbitovem).
+# `Bažina, močál` + `Rašeliniště (plocha)` → ISOM 308 Marsh (crossable, modrý vodorovný pattern).
+# KISS vrstva → jeden symbol: nemáme atribut překonatelnosti → vždy 308 (crossable), NE 307
+# uncrossable (klasický OB předpoklad; nepřekonatelnost = terénní znalost, ne data — viz crossability
+# TODO). Rašeliniště = mokřad téhož symbolu. Mapování viz map_marsh_to_isom.
+MARSH_AREA_LAYERS = ("Bažina, močál", "Rašeliniště (plocha)")
+
 # Vodní feature typy (Sez. 17, real-půlka hydrografie). ZABAGED Polohopis dělí vodu na
 # linie (Vodní_tok) a plochy (Vodní_plocha) — izomorfní s cesty=linie. Pramen
 # (Zdroj_podzemních_vod) se NEtáhne: ve výsecích OB map je vzácný (ověřeno — v demo
@@ -205,6 +221,16 @@ LANDMARK_POINT_LAYERS_526 = ("Mohyla, pomník, náhrobek",)
 LANDMARK_POINT_LAYERS_530 = ("Kříž, sloup kulturního významu",)
 LANDMARK_POINT_LAYERS_417 = ("Významný nebo osamělý strom, lesík",)
 LANDMARK_AREA_LAYERS_524 = ("Věžovitá stavba",)        # plocha → centroid → 524 (malý footprint)
+# Vodní/terénní bodové prvky (Sez. 44, katalog dávka 4). Připojené do --landmarks (bodové,
+# izomorfní s věží/mohylou). Pozn.: 203.2 je NECELÝ ISOM kód (string) — map_landmark_to_isom
+# proto vrací int | str; render i .omap pracují přes str(code), takže míchání nevadí.
+#   312 Spring  — pramen (modré „U", ústí nahoru).
+#   203.2 Cave  — vstup do jeskyně + ústí šachty/štoly (černá „Λ" stříška, hrot nahoru — „with a distinct
+#                 entrance"; 203.1 by byl V hrotem dolů „without entrance"; oprava Sez. 44).
+#   311 Well    — nadzemní zásobní nádrž; plocha → centroid (jako Věžovitá stavba → 524).
+LANDMARK_POINT_LAYERS_312 = ("Zdroj podzemních vod",)
+LANDMARK_POINT_LAYERS_203_2 = ("Vstup do jeskyně", "Ústí šachty, štoly")
+LANDMARK_AREA_LAYERS_311 = ("Nadzemní zásobní nádrž",)  # plocha → centroid → 311 (bodový symbol)
 
 # Liniové orientační prvky (Sez. 43, audit katalogu, real-půlka, liniové — izomorfní s cestami/
 # vedením). KISS vrstva → jeden ISOM symbol (map_line_feature_to_isom):
@@ -714,6 +740,27 @@ def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
     return out
 
 
+def fetch_marsh(lat: float, lon: float, gw: int, gh: int,
+                tile_m: float = 1000.0,
+                cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné mokřady (bažina/močál + rašeliniště) pro výsek jako plošné features (Sez. 44).
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech
+    (MultiPolygon rozbalen). Mapování na ISOM (map_marsh_to_isom → 308 Marsh) výš. Izomorfní
+    s fetch_open_land/fetch_cemeteries. Klasický OB prvek (crossable marsh), čistá projekce."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in MARSH_AREA_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            rings = _geom_to_polygons(feat.get("geometry") or {})
+            if rings:
+                out.append({"layer": layer, "props": feat.get("properties", {}),
+                            "rings": rings})
+    return out
+
+
 def fetch_utility_areas(lat: float, lon: float, gw: int, gh: int,
                         tile_m: float = 1000.0,
                         cache_dir: str | Path | None = None) -> list[dict]:
@@ -819,6 +866,16 @@ def map_cemetery_to_isom(layer: str, props: dict) -> int:
     hřbitovní symbol (verify template Sez. 41) → 520 = olivová out-of-bounds plocha, tak se hřbitov
     na OB mapě kreslí. Umělá plocha, čistá projekce bez gate. Konektor vrací holý ISOM kód (int)."""
     return 520
+
+
+def map_marsh_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED mokřad na ISOM 2017-2 plošný symbol (kód, Sez. 44).
+
+    `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh** (vždy; KISS). Crossable marsh
+    (modrý vodorovný pattern). NE 307 Uncrossable marsh — data nenesou atribut překonatelnosti,
+    crossable je default OB předpoklad (nepřekonatelnost = terénní znalost, viz crossability TODO).
+    Konektor vrací holý ISOM kód (int)."""
+    return 308
 
 
 def map_utility_area_to_isom(layer: str, props: dict) -> int:
@@ -929,15 +986,19 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
     return 206
 
 
-def map_landmark_to_isom(layer: str) -> int | None:
-    """Mapuje ZABAGED bodový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43).
+def map_landmark_to_isom(layer: str) -> int | str | None:
+    """Mapuje ZABAGED bodový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43/44).
 
     KISS vrstva → jeden symbol (jako skály 204/207, budovy 521). Skupiny:
       věž/stožár/vodojem/silo/těžní věž/větrný mlýn/motor + věžovitá stavba → 524 High tower
       mohyla/pomník/náhrobek                                                → 526 Cairn
       kříž/sloup kulturního významu                                        → 530 Prom. man-made (ring)
       významný/osamělý strom, lesík                                        → 417 Prominent large tree
-    Vrací holý ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import)."""
+      pramen (zdroj podzemních vod)                                        → 312 Spring (Sez. 44)
+      vstup do jeskyně / ústí šachty, štoly                                → "203.2" Cave (Sez. 44)
+      nadzemní zásobní nádrž (plocha → centroid)                           → 311 Well/tank (Sez. 44)
+    Vrací ISOM kód (int, NEBO str "203.2" — necelý kód) nebo None; render konstanty zná
+    generator.py (žádný cyklický import). Volající i .omap pracují přes str(code) → míchání nevadí."""
     if layer in LANDMARK_POINT_LAYERS_524 or layer in LANDMARK_AREA_LAYERS_524:
         return 524
     if layer in LANDMARK_POINT_LAYERS_526:
@@ -946,6 +1007,12 @@ def map_landmark_to_isom(layer: str) -> int | None:
         return 530
     if layer in LANDMARK_POINT_LAYERS_417:
         return 417
+    if layer in LANDMARK_POINT_LAYERS_312:
+        return 312
+    if layer in LANDMARK_POINT_LAYERS_203_2:
+        return "203.2"
+    if layer in LANDMARK_AREA_LAYERS_311:
+        return 311
     return None
 
 
@@ -961,15 +1028,16 @@ def fetch_landmarks(lat: float, lon: float, gw: int, gh: int,
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
     point_layers = (*LANDMARK_POINT_LAYERS_524, *LANDMARK_POINT_LAYERS_526,
-                    *LANDMARK_POINT_LAYERS_530, *LANDMARK_POINT_LAYERS_417)
+                    *LANDMARK_POINT_LAYERS_530, *LANDMARK_POINT_LAYERS_417,
+                    *LANDMARK_POINT_LAYERS_312, *LANDMARK_POINT_LAYERS_203_2)  # Sez. 44 pramen/jeskyně
     out: list[tuple[float, float, str]] = []
     for layer in point_layers:
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
             for x, y in _geom_to_points(feat.get("geometry") or {}):
                 out.append((x, y, layer))
-    # plošné věžovité stavby → centroid (průměr vrcholů vnějšího ringu)
-    for layer in LANDMARK_AREA_LAYERS_524:
+    # plošné věžovité stavby (524) + nádrže (311) → centroid (průměr vrcholů vnějšího ringu)
+    for layer in (*LANDMARK_AREA_LAYERS_524, *LANDMARK_AREA_LAYERS_311):
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
             for ring in _geom_to_polygons(feat.get("geometry") or {}):

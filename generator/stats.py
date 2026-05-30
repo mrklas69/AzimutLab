@@ -46,6 +46,11 @@ SYMBOLS = [
     ("304",   "Crossable watercourse"),
     ("305",   "Small crossable watercourse"),
     ("306",   "Minor seasonal water channel"),
+    ("308",   "Marsh"),
+    ("311",   "Well, fountain or water tank"),
+    ("312",   "Spring"),
+    # Skalní bodové (§4.11, Sez. 44)
+    ("203.2", "Cave or rocky pit"),
     # Plošný pokryv (§4.8, Sez. 41)
     ("401",   "Open land"),
     ("520",   "Area that shall not be entered"),
@@ -111,7 +116,8 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts.update(_count_contours(folder / "contours.geojson"))
     # 2) items z 10 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
-                    "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures"):
+                    "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures",
+                    "marsh"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1

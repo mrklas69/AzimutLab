@@ -126,7 +126,7 @@ def main() -> None:
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
                 railways="off", ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off", tolerant=True, ortho=False)
+                linefeatures="off", marsh="off", tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
             meta = json.loads((inst_dir / "meta.json").read_text(encoding="utf-8"))
@@ -154,7 +154,7 @@ def main() -> None:
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
                 ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off")
+                linefeatures="off", marsh="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

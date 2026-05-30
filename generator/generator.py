@@ -310,6 +310,18 @@ SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_OUT_OF_BOUNDS: 2}
 SURFACE_FILL = {ISOM_OPEN_LAND: C_YELLOW, ISOM_OUT_OF_BOUNDS: C_OLIVE}
 
 
+# ---------- Mokřady (Sez. 44, katalog dávka 4, real-půlka, plošná) ----------
+# `Bažina, močál` + `Rašeliniště (plocha)` → ISOM 308 Marsh (crossable). Template 308 = area_symbol
+# s patternem: MODRÉ vodorovné čáry (color Blue 100%, line_spacing 0,45 mm, line_width 0,15 mm).
+# Rastr to napodobí scanline šrafou (vodorovné modré čáry ořezané na polygon); .omap věrný ze symbolu.
+# KISS vrstva → jeden symbol (vždy 308, NE 307 uncrossable — viz zabaged.map_marsh_to_isom). Z-order:
+# nad plošným pokryvem (401/520), pod liniemi/body. Mapování viz zabaged.map_marsh_to_isom.
+ISOM_MARSH = 308
+MARSH_NAME = {ISOM_MARSH: "Marsh"}
+MARSH_CLASS = {ISOM_MARSH: 1}                          # mask_marsh.png (0 = pozadí, 1 = marsh)
+MARSH_HATCH_SPACING_PX = max(2, round(0.45 * PX_PER_MM))  # rozestup vodorovných čar (template 0,45 mm)
+
+
 # ---------- Skály a balvany (Sez. 30, real-půlka §8.5) ----------
 # 3 ISOM symboly z 3 ZABAGED vrstev — KISS, vrstva = jeden symbol (jako budovy→521 / vedení→510):
 #   204 Boulder           — bod (Osamělý_balvan)
@@ -351,15 +363,35 @@ ISOM_HIGH_TOWER = 524
 ISOM_CAIRN = 526
 ISOM_PROM_RING = 530
 ISOM_LARGE_TREE = 417
+# Sez. 44 (katalog dávka 4): pramen / nádrž / jeskyně. Geometrie z template (id 72/71/31):
+#   312 Spring  — MODRÉ „U"/oblouk, ústí NAHORU (template: oblouk r≈0,54 mm, width 0,27 mm, color Blue)
+#   311 Well    — MODRÝ čtverec (obrys, ½ strany 0,465 mm, width 0,27 mm) — well/fountain/water tank
+#   203.2 Cave  — černá „Λ" (chevron / otočené V = stříška, hrot NAHORU) — NE plný trojúhelník!
+#                 (oprava Sez. 44 dle uživatele; KONVENCE: omap +y = DOLŮ, ověřeno temp/sym_correct.png:
+#                 203.1=V hrot dolů „without entrance", 203.2=Λ stříška hrot nahoru „with entrance").
+#                 Geometrie template (id 31): hrot omap y=-735 → NAHOŘE, základna omap y=+465 → dole.
+#                 Rastr = 2 chevron tahy (px-tuned); .omap = filled 203.2 (autoritativní, OOM věrná Λ).
+# 203.2 je NECELÝ ISOM kód → klíč je string "203.2" (dict snese smíšené klíče; .omap přes str(code)).
+ISOM_SPRING = 312
+ISOM_WELL = 311
+ISOM_CAVE = "203.2"
 LANDMARK_NAME = {ISOM_HIGH_TOWER: "High tower", ISOM_CAIRN: "Cairn",
-                 ISOM_PROM_RING: "Prominent man-made feature", ISOM_LARGE_TREE: "Prominent large tree"}
+                 ISOM_PROM_RING: "Prominent man-made feature", ISOM_LARGE_TREE: "Prominent large tree",
+                 ISOM_SPRING: "Spring", ISOM_WELL: "Well, fountain or water tank",
+                 ISOM_CAVE: "Cave or rocky pit"}
 # ISOM kód → třída v mask_landmarks.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
-LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4}
+LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4,
+                  ISOM_SPRING: 5, ISOM_WELL: 6, ISOM_CAVE: 7}
 # Render parametry (px-tuned pro viditelnost; .omap věrný ze symbolu). µm × PX_PER_MM/1000:
 LANDMARK_RING_R_PX = max(3, round(0.36 * PX_PER_MM))    # kroužek 530/526 (r ≈ 0,36 mm → ~2 px → min 3)
 LANDMARK_TREE_R_PX = max(3, round(0.40 * PX_PER_MM))    # kroužek 417 (r ≈ 0,40 mm)
 LANDMARK_DOT_R_PX = max(1, round(0.12 * PX_PER_MM))     # střední tečka 524/526 (~0,12 mm)
 LANDMARK_TOWER_ARM_PX = max(4, round(1.05 * PX_PER_MM)) # rameno kříže 524 (±1,05 mm ≈ 4,8 px)
+LANDMARK_SPRING_R_PX = max(3, round(0.54 * PX_PER_MM))  # oblouk pramene 312 (r ≈ 0,54 mm)
+LANDMARK_WELL_HALF_PX = max(2, round(0.465 * PX_PER_MM))  # ½ strany čtverce 311 (0,465 mm)
+LANDMARK_CAVE_APEX_PX = max(3, round(0.735 * PX_PER_MM))  # hrot „Λ" 203.2 NAD středem (0,735 mm)
+LANDMARK_CAVE_TOP_PX = max(2, round(0.465 * PX_PER_MM))   # dolní konce „Λ" POD středem (0,465 mm)
+LANDMARK_CAVE_HALF_PX = max(2, round(0.525 * PX_PER_MM))  # ½ rozevření „Λ" (0,525 mm)
 
 
 # ---------- Liniové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
@@ -376,7 +408,7 @@ LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall",
                  ISOM_VEG_BOUNDARY: "Distinct vegetation boundary"}
 # ISOM kód → třída v mask_linefeatures.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
 LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2, ISOM_VEG_BOUNDARY: 3}
-LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BLACK, ISOM_WALL: C_BLACK, ISOM_VEG_BOUNDARY: C_GREEN3}
+LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BROWN, ISOM_WALL: C_BLACK, ISOM_VEG_BOUNDARY: C_GREEN3}  # 104 sráz = HNĚDÁ (template color 6 Brown), NE černá (oprava audit Sez. 44)
 # Render styl (mode, width px, dash). 513/104 plná (104 + ticks zvlášť); 416 čárkovaná (dash ~2,0/1,0 mm).
 LINEFEAT_STYLE = {
     ISOM_EARTH_BANK: ("solid", 1, None),
@@ -966,6 +998,34 @@ def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
     _draw_area_symbol(draw, sdraw, ring_px, SURFACE_FILL[code], None, SURFACE_CLASS[code])
 
 
+def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                     ring_px: list[tuple[float, float]], code: int) -> None:
+    """Mokřad (ISOM 308 Marsh): MODRÁ vodorovná šrafa ořezaná na polygon + plná třída do GT masky.
+
+    Pattern napodobuje template 308 (modré vodorovné čáry, rozestup MARSH_HATCH_SPACING_PX); .omap
+    dostane věrný 308 area symbol. Scanline algoritmus: pro každou vodorovnou linii najdi průsečíky
+    s hranami polygonu (even-odd pravidlo), seřaď x a vyplň modře mezi sudými páry. GT maska = PLNÁ
+    výplň třídou (plošná pravda, ne jen šrafa — jako ostatní plochy)."""
+    if len(ring_px) < 3:
+        return
+    cls = MARSH_CLASS[code]
+    mdraw.polygon(ring_px, fill=cls)                    # GT maska: plná plocha
+    ys = [p[1] for p in ring_px]
+    y0, y1 = int(math.floor(min(ys))), int(math.ceil(max(ys)))
+    n = len(ring_px)
+    for y in range(y0, y1 + 1, MARSH_HATCH_SPACING_PX):
+        xs: list[float] = []
+        for i in range(n):                              # průsečíky scanline s hranami polygonu
+            ax, ay = ring_px[i]
+            bx, by = ring_px[(i + 1) % n]
+            if (ay <= y < by) or (by <= y < ay):        # hrana kříží scanline (half-open interval)
+                t = (y - ay) / (by - ay)                # lineární interpolace x v průsečíku
+                xs.append(ax + t * (bx - ax))
+        xs.sort()
+        for j in range(0, len(xs) - 1, 2):              # vyplň mezi sudými páry (uvnitř polygonu)
+            draw.line([(xs[j], y), (xs[j + 1], y)], fill=C_BLUE, width=1)
+
+
 def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                   cx: float, cy: float) -> None:
     """Bodový balvan (ISOM 204): plný černý kruh + GT maska (třída ROCK_CLASS[204]).
@@ -1009,14 +1069,17 @@ def _draw_gigantic_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw
 
 
 def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                   cx: float, cy: float, code: int) -> None:
-    """Bodový orientační prvek (Sez. 43) na mapu (`draw`) + GT maska (`mdraw`, třída LANDMARK_CLASS).
+                   cx: float, cy: float, code: int | str) -> None:
+    """Bodový orientační prvek (Sez. 43/44) na mapu (`draw`) + GT maska (`mdraw`, LANDMARK_CLASS).
 
     Render dle ISOM symbolu (px-tuned; .omap věrný ze symbolu):
       524 High tower → černý kříž „+" + střední tečka
       526 Cairn      → černý kroužek + tečka uprostřed
       530 ring       → černý kroužek (bez tečky)
       417 Large tree → ZELENÝ kroužek (C_GREEN3)
+      312 Spring     → MODRÝ oblouk „U", ústí NAHORU (Sez. 44)
+      311 Well       → MODRÝ čtverec (obrys, Sez. 44)
+      203.2 Cave     → černá „Λ" stříška (chevron, hrot NAHORU; NE plný trojúhelník — oprava Sez. 44)
     """
     cls = LANDMARK_CLASS[code]
     if code == ISOM_HIGH_TOWER:                         # kříž „+" + tečka
@@ -1037,10 +1100,29 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
             d = LANDMARK_DOT_R_PX
             draw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=C_BLACK)
             mdraw.ellipse([cx - d, cy - d, cx + d, cy + d], fill=cls)
-    else:                                               # 417 Large tree — zelený kroužek
+    elif code == ISOM_LARGE_TREE:                       # 417 Large tree — zelený kroužek
         r = LANDMARK_TREE_R_PX
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=C_GREEN3, width=1)
         mdraw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=cls, width=1)
+    elif code == ISOM_SPRING:                           # 312 Spring — modré „U", ústí NAHORU
+        # Template (omap +y = DOLŮ): volné konce na omap y=-351 → NAHOŘE, oblouk dole → ústí
+        # nahoru (∪). Stejný tvar jako 111 depression, jen modrá. PIL arc(0,180) = spodní půlkruh = ∪.
+        r = LANDMARK_SPRING_R_PX
+        bbox = [cx - r, cy - r, cx + r, cy + r]
+        draw.arc(bbox, 0, 180, fill=C_BLUE, width=1)
+        mdraw.arc(bbox, 0, 180, fill=cls, width=1)
+    elif code == ISOM_WELL:                             # 311 Well/tank — modrý čtverec (obrys)
+        s = LANDMARK_WELL_HALF_PX
+        draw.rectangle([cx - s, cy - s, cx + s, cy + s], outline=C_BLUE, width=1)
+        mdraw.rectangle([cx - s, cy - s, cx + s, cy + s], outline=cls, width=1)
+    else:                                               # 203.2 Cave — černá „Λ" stříška (hrot NAHORU)
+        # Template (omap +y = DOLŮ): hrot na omap y=-735 → NAHOŘE, základna dole → Λ (otočené V,
+        # stříška). 203.2 = „with a distinct entrance" (vstup do jeskyně). 203.1 by byl V (hrot dolů).
+        apex = (cx, cy - LANDMARK_CAVE_APEX_PX)          # hrot nahoře (Λ stříška)
+        bl = (cx - LANDMARK_CAVE_HALF_PX, cy + LANDMARK_CAVE_TOP_PX)  # levý dolní konec
+        br = (cx + LANDMARK_CAVE_HALF_PX, cy + LANDMARK_CAVE_TOP_PX)  # pravý dolní konec
+        draw.line([bl, apex, br], fill=C_BLACK, width=1)  # 2 tahy = chevron „Λ"
+        mdraw.line([bl, apex, br], fill=cls, width=1)
 
 
 def _generate_real_landmarks(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
@@ -1083,7 +1165,7 @@ def _draw_earthbank_ticks(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         while next_tick <= pos + seg:
             t = next_tick - pos
             bx, by = x0 + ux * t, y0 + uy * t       # bod na linii
-            draw.line([bx, by, bx + nx * hl, by + ny * hl], fill=C_BLACK, width=1)
+            draw.line([bx, by, bx + nx * hl, by + ny * hl], fill=C_BROWN, width=1)  # sráz = hnědá (jako linie 104)
             mdraw.line([bx, by, bx + nx * hl, by + ny * hl], fill=cls, width=1)
             next_tick += EARTHBANK_TICK_SPACING_PX
         pos += seg
@@ -1882,6 +1964,30 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
     return area_features, surfaces_info
 
 
+def _generate_real_marsh(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+    """Reálné mokřady (real-půlka, Sez. 44): bažina/močál + rašeliniště → 308 Marsh (modrá šrafa).
+
+    Mirror _generate_real_surfaces (RAW S-JTSK → grid → px → šrafovaný polygon, bez generalizace).
+    Vrací (area_features [(grid, code)], marsh_info) v souřadnicích MŘÍŽKY (zdroj pro .omap).
+    V suchém výseku bez mokřadů = 0 prvků (žádný šum)."""
+    from zabaged import fetch_marsh, map_marsh_to_isom
+    area_features: list[tuple] = []
+    marsh_info: list[dict] = []
+    for f in fetch_marsh(lat, lon, GW, GH, TILE_M):
+        code = map_marsh_to_isom(f["layer"], f["props"])
+        for ring in f["rings"]:
+            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
+            px = [_grid_to_px(gx, gy) for gx, gy in grid]
+            if len(px) < 3:
+                continue
+            _draw_marsh_area(draw, mdraw, px, code)
+            area_features.append((grid, code))
+            marsh_info.append({"symbol": code, "symbol_name": MARSH_NAME[code],
+                               "kind": "area", "layer": f["layer"]})
+    return area_features, marsh_info
+
+
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
@@ -2412,7 +2518,7 @@ def generate_map(
         paved: str = "real", buildings: str = "real", powerlines: str = "real",
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
-        linefeatures: str = "real",
+        linefeatures: str = "real", marsh: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -2489,7 +2595,8 @@ def generate_map(
                               ("--bridges", bridges, "reálné mosty/tunely/lávky"),
                               ("--surfaces", surfaces, "reálný plošný pokryv"),
                               ("--landmarks", landmarks, "reálné bodové orient. prvky"),
-                              ("--linefeatures", linefeatures, "reálné liniové orient. prvky")):
+                              ("--linefeatures", linefeatures, "reálné liniové orient. prvky"),
+                              ("--marsh", marsh, "reálné mokřady")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
                              "georef výseku; noise terén je v lokálních metrech).")
@@ -2542,6 +2649,20 @@ def generate_map(
             "surfaces", lambda: _generate_real_surfaces(draw, sfdraw, lat, lon, geo_bbox),
             ([], []), tolerant, layer_errors)
         _log.info("  plošný pokryv: %d (open land + zákaz vstupu)", len(surfaces_info))
+
+    # --- mokřady (ISOM 308 Marsh): bažina/močál + rašeliniště (Sez. 44, katalog dávka 4) ---
+    # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body. Modrá
+    # vodorovná šrafa ořezaná na polygon. Jen --marsh real. KISS vrstva → vždy 308 (crossable).
+    marsh_area_features: list[tuple] = []
+    marsh_info: list[dict] = []
+    marsh_mask_img: Image.Image | None = None
+    if marsh == "real":
+        marsh_mask_img = Image.new("L", (W, H), 0)       # GT maska mokřadů (§8.1)
+        mhdraw = ImageDraw.Draw(marsh_mask_img)
+        marsh_area_features, marsh_info = _try_layer(
+            "marsh", lambda: _generate_real_marsh(draw, mhdraw, lat, lon, geo_bbox),
+            ([], []), tolerant, layer_errors)
+        _log.info("  mokřady: %d (308 Marsh)", len(marsh_info))
 
     # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
     cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic
@@ -2807,11 +2928,12 @@ def generate_map(
             "landmarks",
             lambda: _generate_real_landmarks(draw, ldraw_lm, lat, lon, geo_bbox),
             ([], []), tolerant, layer_errors)
-        by_code_lm: dict[int, int] = {}
+        by_code_lm: dict[int | str, int] = {}
         for it in landmarks_info:
             by_code_lm[it["symbol"]] = by_code_lm.get(it["symbol"], 0) + 1
         if by_code_lm:
-            parts = [f"{LANDMARK_NAME[c]}({c}):{n}" for c, n in sorted(by_code_lm.items())]
+            # key=str: kódy míchají int (524/312/311) i str ("203.2") → sorted bez klíče padne (Sez. 44)
+            parts = [f"{LANDMARK_NAME[c]}({c}):{n}" for c, n in sorted(by_code_lm.items(), key=lambda kv: str(kv[0]))]
             _log.info("  orient. prvky: %d (%s)", len(landmarks_info), ", ".join(parts))
         else:
             _log.info("  orient. prvky: 0")
@@ -2921,6 +3043,8 @@ def generate_map(
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
         surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=zákaz vstupu)
+    if marsh_mask_img is not None:
+        marsh_mask_img.save(out / "mask_marsh.png")                         # mokřady (GT, 1=marsh 308)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -2951,6 +3075,9 @@ def generate_map(
     # plošný pokryv → 401 (open land) / 520 (zákaz vstupu) = plošné symboly (area, uzavřený path
     # s close flagem; OOM vyplní plnou barvou). Sez. 41-42.
     surface_omap_features = [(g, str(c)) for g, c in surface_area_features]
+    # mokřady → 308 Marsh = plošný symbol (area, type-4 s patternem v template; uzavřený path
+    # s close flagem). OOM vykreslí modrý vodorovný pattern autoritativně z definice (Sez. 44).
+    marsh_omap_features = [(g, str(c)) for g, c in marsh_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
@@ -2990,7 +3117,8 @@ def generate_map(
                              footbridge_features=footbridge_omap_features,
                              surface_features=surface_omap_features,
                              landmark_features=landmark_omap_features,
-                             linefeature_features=linefeat_omap_features)
+                             linefeature_features=linefeat_omap_features,
+                             marsh_features=marsh_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
     meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
                        railways, rocks, bridges,
@@ -3020,7 +3148,9 @@ def generate_map(
     # bodové orientační prvky (Sez. 43): injektováno zde (ne přes _build_meta, A1 smell; precedent
     # surfaces/isom/georef). Sekce jen když --landmarks real; struktura izomorfní (stats.py ji čte stejně).
     if landmarks == "real":
-        used_landmark_codes = sorted({lm["symbol"] for lm in landmarks_info})
+        # key=str: kódy landmarků míchají int (524/312/311) i str ("203.2") → sorted bez klíče
+        # by spadl na TypeError (Py3 neporovná int<str). Sez. 44.
+        used_landmark_codes = sorted({lm["symbol"] for lm in landmarks_info}, key=str)
         meta["landmarks"] = {
             "count": len(landmarks_info),
             "mask": "mask_landmarks.png",
@@ -3042,6 +3172,20 @@ def generate_map(
             "classes": {"0": "pozadí",
                         **{str(LINEFEAT_CLASS[c]): f"{c} {LINEFEAT_NAME[c]}" for c in used_linefeat_codes}},
             "items": linefeatures_info,
+            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+        }
+    # mokřady (Sez. 44): injektováno zde (precedent surfaces/landmarks, A1 smell). Sekce jen
+    # když --marsh real; struktura izomorfní s ostatními vrstvami (stats.py ji čte stejně).
+    if marsh == "real":
+        used_marsh_codes = sorted({m["symbol"] for m in marsh_info})
+        meta["marsh"] = {
+            "count": len(marsh_info),
+            "mask": "mask_marsh.png",
+            "source": "cuzk_zabaged",
+            "symbols": {str(c): MARSH_NAME[c] for c in used_marsh_codes},
+            "classes": {"0": "pozadí",
+                        **{str(MARSH_CLASS[c]): f"{c} {MARSH_NAME[c]}" for c in used_marsh_codes}},
+            "items": marsh_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }
     meta["isom"] = _isom_meta()
@@ -3114,11 +3258,14 @@ def main() -> None:
                         "(real vyžaduje --terrain real; les zůstává bílá = vegetace gate)")
     p.add_argument("--landmarks", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED bodové orient. prvky → ISOM 524 věž (věž/vodojem/silo/…) + "
-                        "526 mohyla/pomník + 530 kříž/sloup + 417 významný strom (default), off = bez nich "
-                        "(real vyžaduje --terrain real)")
+                        "526 mohyla/pomník + 530 kříž/sloup + 417 významný strom + 312 pramen + "
+                        "203.2 jeskyně/šachta + 311 nádrž (default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--linefeatures", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED liniové orient. prvky → ISOM 104 sráz + 513 zeď/hradba + "
                         "416 liniová vegetace (default), off = bez nich (real vyžaduje --terrain real)")
+    p.add_argument("--marsh", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED mokřady (bažina/močál + rašeliniště) → ISOM 308 Marsh "
+                        "(modrá vodorovná šrafa, default), off = bez nich (real vyžaduje --terrain real)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -3155,7 +3302,7 @@ def main() -> None:
         paths=args.paths, rides=args.rides, water=args.water, paved=args.paved, buildings=args.buildings,
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
         rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
-        linefeatures=args.linefeatures,
+        linefeatures=args.linefeatures, marsh=args.marsh,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 

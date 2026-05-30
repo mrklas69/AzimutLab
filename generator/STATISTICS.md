@@ -28,6 +28,10 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **304** | Crossable watercourse | 70 | 90 | 124 | 28 | 43 |
 | **305** | Small crossable watercourse | 107 | 119 | 148 | 90 | 88 |
 | **306** | Minor seasonal water channel | 43 | 82 | 6 | 17 | 2 |
+| **308** | Marsh | 5 | 9 | · | 10 | 15 |
+| **311** | Well, fountain or water tank | · | · | 6 | 2 | · |
+| **312** | Spring | 10 | 6 | 16 | 23 | 10 |
+| **203.2** | Cave or rocky pit | 5 | 1 | · | · | 3 |
 | **401** | Open land | 267 | 33 | 1101 | 361 | 103 |
 | **520** | Area that shall not be entered | 1873 | 141 | 19058 | 1907 | 500 |
 | **501** | Paved area | 1 | 1 | 59 | 3 | 1 |
@@ -50,17 +54,17 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
 | **416** | Distinct vegetation boundary | 83 | 4 | 47 | 121 | 18 |
-| **Σ** | Celkem objektů | 5838 | 1794 | 35513 | 7446 | 2240 |
+| **Σ** | Celkem objektů | 5858 | 1810 | 35535 | 7481 | 2268 |
 
-Z 35 sledovaných ISOM symbolů reálně používáme **35** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 39 sledovaných ISOM symbolů reálně používáme **39** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-29 22:18:52
-- **NL** (`Nová Louka/`): 2026-05-29 22:24:35
-- **LS** (`Lidové sady/`): 2026-05-29 22:26:16
-- **HS** (`Hrubá Skála/`): 2026-05-29 22:27:09
-- **NV** (`Novina/`): 2026-05-29 22:27:45
+- **SV** (`Soví vrch/`): 2026-05-30 09:15:11
+- **NL** (`Nová Louka/`): 2026-05-30 09:15:27
+- **LS** (`Lidové sady/`): 2026-05-30 09:16:12
+- **HS** (`Hrubá Skála/`): 2026-05-30 09:16:32
+- **NV** (`Novina/`): 2026-05-30 09:12:39
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-29 22:28:17.*
+*Tabulka regenerována `stats.py` v 2026-05-30 09:16:45.*
