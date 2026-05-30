@@ -55,7 +55,6 @@ SYMBOLS = [
     ("401",   "Open land"),
     ("406",   "Vegetation: slow running"),
     ("412",   "Cultivated land"),
-    ("413",   "Orchard"),
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
     ("501",   "Paved area"),

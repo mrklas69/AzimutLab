@@ -159,13 +159,13 @@ PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: par
 # Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou/budovou).
 # Dvě skupiny podle ISOM:
 #  OPEN_LAND = otevřené plochy. Druh nese VRSTVA (Sez. 47, druhá vlna): louka/park → 401 Open land
-#    (plná žlutá); pole `Orná půda…` → 412 Cultivated land (žlutá + černý tečkový pattern); sad
-#    `Ovocný sad, zahrada` → 413 Orchard (žlutá + zelený tečkový pattern). Sez. 41 bylo KISS vše→401;
-#    Sez. 47 rozliší kulturu (mapping nese vrstva, viz map_open_land_to_isom). Les NENÍ open land —
-#    zůstává bílá (default pozadí, vegetace gate).
+#    (plná žlutá); pole `Orná půda…` → 412 Cultivated land (žlutá + černý tečkový pattern); sad/zahrada
+#    `Ovocný sad, zahrada` → 520 olivová (Sez. 49: zahrady u domů/chalup, oplocené = out-of-bounds, ne
+#    běhatelný sad — oprava Sez. 48 = 413 Orchard). Sez. 41 bylo KISS vše→401; Sez. 47/49 rozliší kulturu
+#    (mapping nese vrstva, viz map_open_land_to_isom). Les NENÍ open land — zůstává bílá (vegetace gate).
 #  CEMETERY = hřbitov → 520 Area that shall not be entered (plná olivová, out-of-bounds). ISOM nemá
 #    vlastní hřbitovní symbol → 520 (verify template Sez. 41). Umělá plocha, čistá projekce bez gate.
-# Render: 401/520 plná výplň; 412/413 žlutá výplň + tečkový pattern (Sez. 47). Mapování viz map_*_to_isom.
+# Render: 401/520 plná výplň; 412 žlutá výplň + černý tečkový pattern (Sez. 47). Mapování viz map_*_to_isom.
 OPEN_LAND_LAYERS = ("Trvalý travní porost", "Udržovaná zeleň",
                     "Orná půda a ostatní dále nespecifikované plochy", "Ovocný sad, zahrada")
 CEMETERY_LAYERS = ("Hřbitov",)
@@ -707,12 +707,12 @@ def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
 def fetch_open_land(lat: float, lon: float, gw: int, gh: int,
                     tile_m: float = 1000.0,
                     cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí reálné otevřené plochy (louka/park/pole/sad) pro výsek jako plošné features.
+    """Vrátí reálné otevřené plochy (louka/park/pole + sad/zahrada) pro výsek jako plošné features.
 
     Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy ploch v S-JTSK
-    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_open_land_to_isom → 401) výš (Sez. 41).
-    Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA (louka 139 ≠ pole 138
-    ≠ sad 135 ≠ park 134); MVP je všechny → 401 (volba uživatele). Les NENÍ open land (vegetace gate)."""
+    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_open_land_to_isom) výš (Sez. 41/47/49).
+    Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA (louka 139 / park 134 → 401,
+    pole 138 → 412, sad/zahrada 135 → 520 olivová). Les NENÍ open land (vegetace gate)."""
     cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
     bbox = build_bbox(lat, lon, gw, gh, tile_m)
     out: list[dict] = []
@@ -861,17 +861,17 @@ def map_open_land_to_isom(layer: str, props: dict) -> int:
     Druh plochy nese VRSTVA (Sez. 47, druhá vlna land-cover):
       - `Orná půda a ostatní dále nespecifikované plochy` (138) → **412 Cultivated land**
         (žlutá + černý tečkový pattern, orientace k severu);
-      - `Ovocný sad, zahrada` (135) → **413 Orchard** (žlutá + zelený tečkový pattern). Celá vrstva
-        (sad i zahrada) → 413; privátní zahrady u domů pak přemaže olivová 520 z RÚIAN (kreslí se NAD
-        surfaces, z-order téma 2 Sez. 42) → reálně zůstanou 413 jen ne-privátní sady (volba uživatele).
+      - `Ovocný sad, zahrada` (135) → **520 Area that shall not be entered** (olivová). V ČR krajině
+        jde převážně o zahrady u rodinných domů a chalup — oplocené, nepřístupné běžci → out-of-bounds,
+        ne běhatelný ovocný sad (rozhodnutí uživatele Sez. 49, oprava Sez. 48 = chybné 413 Orchard).
       - `Trvalý travní porost` (louka, 139) + `Udržovaná zeleň` (park, 134) → **401 Open land**
         (plná žlutá; louka/park nejsou kultura → bez patternu).
-    Pod ISOM min. plochou (412: 3×3 mm; 413: 2×2 mm) generátor spadne na 401 (řeší render, ne mapper).
+    Pod ISOM min. plochou (412: 3×3 mm) pole spadne na 401 (řeší render, ne mapper).
     Konektor vrací holý ISOM kód (int)."""
     if layer == "Orná půda a ostatní dále nespecifikované plochy":
         return 412
     if layer == "Ovocný sad, zahrada":
-        return 413
+        return 520
     return 401
 
 

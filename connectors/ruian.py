@@ -37,7 +37,7 @@ _REST_SERVER = "https://ags.cuzk.gov.cz/arcgis/rest/services/RUIAN/MapServer"
 PARCELA_LAYER_ID = 5
 
 # Číselník druhu pozemku (codedValue doména `druhpozemkukod`, ověřeno ze serveru, Sez. 42).
-# Drženo pro dokumentaci + budoucí druhou vlnu (sad 6 → 413, pole 2 → 412 apod.).
+# Drženo pro dokumentaci + budoucí druhou vlnu (pole 2 → 412; sad/zahrada 5,6 už → 520 olivová ze ZABAGED, Sez. 49).
 DRUH_POZEMKU = {
     2: "orná půda", 3: "chmelnice", 4: "vinice", 5: "zahrada", 6: "ovocný sad",
     7: "trvalý travní porost", 8: "trvalý travní porost", 10: "lesní pozemek",
