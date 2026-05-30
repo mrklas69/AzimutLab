@@ -2,6 +2,20 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 46 (2026-05-30) — %AUDIT:DOCS (zralý audit dokumentace)
+- [x] **%AUDIT:DOCS** (+11 sez od Sez. 34, práh 10). Přečteno 27 `.md` (fan-out 3 paralelní Explore agenti
+      po oblastech, nálezy kriticky profiltrovány — část byla šum/halucinace). **0 kritických nálezů** —
+      propagace Sez. 44/45 čistá (zásluha propagačního checklistu Sez. 34).
+- [x] **Opraveno 5 (kosmetické/doporučené):** (1) `DIARY.md` index přeskládán do číselného pořadí (byl dle
+      pořadí *psaní* přes přechody strojů ntbhej↔mrkla; skript `temp/sort_diary.py` se sanity-asserty, 0 ztrát);
+      (2) spec §4.9 sekvenční číslování (ad-hoc „4.9k-bis" → l/m/n; 2 odkazy); (3) `TODO.md` redundantní inline
+      poznámka 416→406; (4) `README.md` mezery kolem `+` v exports řádku; (5) kotva sezení 1 v DIARY.
+- [x] **Zamítnuto (agentí šum/halucinace):** „prohlubeň→prohlubň" (prohlubeň je správně), GLOSSARY pořadí
+      „form line / pomocná vrstevnice" (stylistická preference), „chybí centrální CLI tabulka" (feature request).
+- [x] **Ověřeno správné:** CLI flagy (`--treerows`/`--marsh` všude), ISOM 39/39 (406 ano/416 ne), masky,
+      počty stromořadí konzistentní napříč 6 docs, 416 rezidua v živých docs jen historická, DONE↔TODO konzistentní,
+      terminologie (S-JTSK/ZABAGED®/desetinné čárky) jednotná, GLOSSARY wikilinks bez broken cílů.
+
 ## Sezení 45 (2026-05-30) — Stromořadí 416 → 406 „lineární les" (oprava sémantiky + nový `--treerows`)
 - [x] **Sémantická oprava (carry-over [!] Sez. 43).** `Liniová vegetace` (id 15, v datech výhradně stromořadí
       `typveg_k=S`) byla Sez. 43 mapována na **416 Distinct vegetation boundary** — verify-against-source spec

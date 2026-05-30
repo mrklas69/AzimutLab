@@ -339,23 +339,23 @@ Výskyt: pramen Σ65 (přesně sedí na probe), jeskyně+šachta Σ9, nádrž Σ
 Sez. 44):** OOM `.omap` symbol coords mají osu **+y = DOLŮ** — rastrový render NEFLIPUJE (`screen_y = cy + omap_y`);
 opačný předpoklad zrcadlil cave/spring → paměť `omap-symbol-y-axis-down`.
 
-### 4.9k-bis Mokřady (real-půlka, Sez. 44, dávka 4)
+### 4.9l Mokřady (real-půlka, Sez. 44, dávka 4)
 **✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**
 (`zabaged.map_marsh_to_isom`, KISS vždy crossable 308 — data nenesou atribut překonatelnosti, NE 307 uncrossable).
 Render `_draw_marsh_area` = MODRÁ vodorovná šrafa (scanline, rozestup 0,45 mm dle template patternu) ořezaná na
 polygon; `.omap` = area_object 308 (OOM nakreslí pattern). Z-order nad plošným pokryvem (401/520), pod liniemi.
 `mask_marsh.png`. Výskyt: NV 15 / HS 10 / NL 9 / SV 5 / LS 0 (sedí na probe Sez. 43).
 
-### 4.9l Liniové orientační prvky (real-půlka, Sez. 43)
+### 4.9m Liniové orientační prvky (real-půlka, Sez. 43)
 **✅ `--linefeatures real`** vezme liniové ZABAGED vrstvy → ISOM (KISS, `zabaged.map_line_feature_to_isom`):
 stupeň/sráz → **104 Earth bank** (plná HNĚDÁ linie + jednostranné kolmé ticky; barva opravena z černé na hnědou
 = template color 6 Brown, audit Sez. 44; orientace na nižší stranu svahu = TODO, chce DMR sklon; Σ981 = nejčastější
 dosud netáhnutá), zeď + hradba/val/bašta → **513 Wall** (plná). Render
 `_draw_line_feature` (wrapper nad `_draw_line_symbol` + ticky pro 104); multi-class `mask_linefeatures.png`. Liniové
 objekty v .omap (OOM kreslí symbol z definice). Vyžaduje `--terrain real`. Výskyt SV: sráz 71 / zeď 16.
-(Stromořadí `Liniová vegetace` jde od Sez. 45 plošně jako 406 — viz §4.9m.)
+(Stromořadí `Liniová vegetace` jde od Sez. 45 plošně jako 406 — viz §4.9n.)
 
-### 4.9m Stromořadí jako „lineární les" (real-půlka, Sez. 45)
+### 4.9n Stromořadí jako „lineární les" (real-půlka, Sez. 45)
 **✅ `--treerows real`** vezme `Liniová vegetace` (id 15, v datech výhradně stromořadí `typveg_k=S`) → **406
 Vegetation: slow running** (světle zelený pás). **Oprava 416 → 406:** Sez. 43 mapovala na 416, ale verify-against-source
 spec ukázal, že **416 Distinct vegetation boundary = HRANICE mezi porosty** (kraj lesa / předěl uvnitř lesa), NE řada
