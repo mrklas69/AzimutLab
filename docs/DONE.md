@@ -2,6 +2,8 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+- [x] **Sezení 48 — přesun pracovních dokumentů root → `docs/`** — `git mv` 6 souborů (TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY) do `docs/` (zachována historie); v rootu zůstaly jen `README.md` + `CLAUDE.md` (GitHub/harness konvence). Odkazy opraveny v živých dokumentech (README layout + Docs sekce, PROMPTS %BEGIN kontext); diáře needitovány (historie). *(Kultura pole 412 / sad 413 — kód hotov, ale plný render-verify nedokončen → zůstává `[~]` v TODO, dotáhnout Sez. 49.)*
+
 ## Sezení 46 (2026-05-30) — %AUDIT:DOCS (zralý audit dokumentace)
 - [x] **%AUDIT:DOCS** (+11 sez od Sez. 34, práh 10). Přečteno 27 `.md` (fan-out 3 paralelní Explore agenti
       po oblastech, nálezy kriticky profiltrovány — část byla šum/halucinace). **0 kritických nálezů** —

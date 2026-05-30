@@ -121,6 +121,11 @@ docs/
   PROMPTS.md           # %BEGIN / %END macros
   architecture.md      # canonical DAG: layers, UC dependencies, Pic2Omap relationship
   diary/YYYY-MM-DD.md  # session log
+  TODO.md / DONE.md    # work tracking
+  DIARY.md             # session index
+  IDEAS.md             # the 5 UC as a DAG, MVP cut, pending decisions
+  RESEARCH.md          # survey of existing tools / methods
+  GLOSSARY.md          # project terminology
   kb/                  # the knowledgebase (heart of UC1)
     data-sources.md    #   UC2 survey: ČÚZK / geoportál / ortofoto / LIDAR + licences
     isom-issprom.md    #   symbol semantics, spec links
@@ -139,23 +144,21 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)
-IDEAS.md               # the 5 UC as a DAG, MVP cut, pending decisions
-RESEARCH.md            # survey of existing tools / methods
-GLOSSARY.md            # project terminology
-TODO.md / DONE.md      # work tracking
-DIARY.md               # session index
 ```
+
+(All working documents — TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY — live under `docs/`
+since session 47; only README.md and CLAUDE.md stay at the repo root.)
 
 ## Docs
 
 Working documents are in Czech (per the global conventions):
 
 - [docs/architecture.md](docs/architecture.md) — canonical UC DAG & layering
-- [GLOSSARY.md](GLOSSARY.md) — project terminology
-- [IDEAS.md](IDEAS.md) — design brainstorm
-- [RESEARCH.md](RESEARCH.md) — survey of tools / methods / sources
-- [DIARY.md](DIARY.md) — session log (detail in `docs/diary/`)
-- [TODO.md](TODO.md) / [DONE.md](DONE.md) — work tracking
+- [docs/GLOSSARY.md](docs/GLOSSARY.md) — project terminology
+- [docs/IDEAS.md](docs/IDEAS.md) — design brainstorm
+- [docs/RESEARCH.md](docs/RESEARCH.md) — survey of tools / methods / sources
+- [docs/DIARY.md](docs/DIARY.md) — session log (detail in `docs/diary/`)
+- [docs/TODO.md](docs/TODO.md) / [docs/DONE.md](docs/DONE.md) — work tracking
 
 ## License
 

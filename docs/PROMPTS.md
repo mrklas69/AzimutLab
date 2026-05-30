@@ -8,8 +8,10 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    prací — jinak sezení běží na zastaralém stavu. (Stalo se 2026-05-25: klon byl
    20 commitů pozadu → redundantní sezení odhalené až při pushi v %END.)
    Pozor: `git status` „clean" ≠ up-to-date.
-1. Načti kontext: README.md, `docs/architecture.md`, TODO.md, DIARY.md +
-   poslední 1–2 diáře (docs/diary/), IDEAS.md dle potřeby.
+1. Načti kontext: README.md (root), `docs/architecture.md`, `docs/TODO.md`, `docs/DIARY.md` +
+   poslední 1–2 diáře (docs/diary/), `docs/IDEAS.md` dle potřeby.
+   (Pracovní dokumenty TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY žijí v `docs/` od Sez. 47;
+   v rootu zůstaly jen README.md a CLAUDE.md.)
 2. Audit cadence check (prahy z globálního CLAUDE.md) — spočítej od posledního
    výskytu auditu v diáři: %AUDIT:CODE ≥8 sez / ≥500 LOC, %AUDIT:DOCS ≥10,
    IDEAS/TODO pruning ≥12, %CALIBRATE ≥15. Práh překročen o ≥2 → první bod sezení.
