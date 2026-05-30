@@ -39,10 +39,12 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
-- **plošný pokryv** — `--surfaces real` (Sez. 41-42): open land (louka/park/pole/sad) → ISOM **401** (plná žlutá,
-  KISS „open land jako jedna žlutá"; pole 412 / sad 413 s patternem = druhá vlna) + **olivová 520 Area which shall
-  not be entered** ze tří zdrojů (Sez. 42): hřbitov + **RÚIAN privátní pozemky** (zahrada+zastavěná, `ruian.py`) +
-  **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520, asfalt 408/409 → 501). Kůlny (105)
+- **plošný pokryv** — `--surfaces real` (Sez. 41-49): open land (louka/park) → ISOM **401** (plná žlutá, KISS
+  „open land jako jedna žlutá"); **pole → 412 Cultivated** (žlutá + černý tečkový pattern, Sez. 47-48) + **olivová
+  520 Area which shall not be entered** ze čtyř zdrojů (Sez. 42 + 49): hřbitov + **sad/zahrada** (`Ovocný sad,
+  zahrada` — zahrady u domů/chalup, oplocené; Sez. 49 oprava chybného 413 Orchard) + **RÚIAN privátní pozemky**
+  (zahrada+zastavěná, `ruian.py`) + **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520,
+  asfalt 408/409 → 501). Kůlny (105)
   → 521. Parkoviště + asfalt → 501 přes `--paved`. **Z-order vespod** (podklad pod
   vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`

@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 49 (2026-05-30) — kultura 412 dotažena + sad/zahrada → 520 (oprava 413)
+- [x] **Render-verify kultury 412 dotažen** (carry-over `[!]` Sez. 48). **Root cause „render nedoběhne" nalezen:**
+      `_draw_dotted_surface_area` (nový kód Sez. 48) měl **nekonečnou smyčku** — vnější `while y <= y1` nikdy
+      neinkrementovalo `y` (chybělo `y += sp`; `_draw_marsh_area` má `for range` → nezamrzl, dotted přepsaný na
+      `while` inkrement vypustil). Censure Sez. 48 to mylně svedl na „2 paralelní běhy + ortofoto" = **mis-diagnostika
+      symptomu, ne příčiny**. Diagnostika: CPU monotónně rostlo (123→272 s), RAM konstantní, zaseknuté mezi logem
+      „terén" a „plošný pokryv". Po fixu render SV ~15 s. **Verify:** pole 412 černé tečky (C_BLACK), sad → viz níže;
+      .omap 401+412.1; degradace pod min. 9 mm² OK; 5 lokalit přegenerováno.
+- [x] **`Ovocný sad, zahrada` (135) → 520 olivová** (oprava chybného 413 Orchard Sez. 48; rozhodnutí uživatele).
+      V ČR krajině jde převážně o zahrady u rodinných domů/chalup — oplocené, nepřístupné běžci → out-of-bounds,
+      ne běhatelný ovocný sad (vizuál SV potvrdil: „sady" = zelené tečk. plochy v zástavbě). **413 Orchard úplně
+      smazán** (mrtvý kód: `ISOM_ORCHARD`, `SURFACE_DOT/CLASS/FILL/MIN_AREA[413]`, omap_export, stats; grep 0 živých
+      reziduí). Verify: 413 = 0 napříč 5 lokalit, sady přesunuty do 520, 412 pole beze změny, maska 3 třídy.
+- [x] **Ortofoto podklad vrácen** — `--no-ortho` (rychlý verify) ho vyřadil; uživatel ho používá ke kontrole.
+      5 lokalit přegenerováno s ortofotem (`ortofoto.png` + připnutý `<template>` v `.omap`, opacity 0.5).
+
 - [x] **Sezení 48 — přesun pracovních dokumentů root → `docs/`** — `git mv` 6 souborů (TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY) do `docs/` (zachována historie); v rootu zůstaly jen `README.md` + `CLAUDE.md` (GitHub/harness konvence). Odkazy opraveny v živých dokumentech (README layout + Docs sekce, PROMPTS %BEGIN kontext); diáře needitovány (historie). *(Kultura pole 412 / sad 413 — kód hotov, ale plný render-verify nedokončen → zůstává `[~]` v TODO, dotáhnout Sez. 49.)*
 
 ## Sezení 46 (2026-05-30) — %AUDIT:DOCS (zralý audit dokumentace)

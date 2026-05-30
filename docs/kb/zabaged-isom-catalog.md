@@ -162,10 +162,10 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Lesní_půda_s_kosodřevinou` | plocha | (410 fight) | ✗ gate | druh ≠ průchodnost |
 | `Lesní_půda_s_křovinatým_porostem` | plocha | (406–410) | ✗ gate | druh ≠ průchodnost |
 | `Významný_nebo_osamělý_strom__lesík` | bod | 417 Prominent large tree | ◐ | osamělý strom = OB objekt |
-| `Orná_půda_a_ostatní_dále_nespecifikované_plochy` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 412 Cultivated (pattern) = druhá vlna |
+| `Orná_půda_a_ostatní_dále_nespecifikované_plochy` | plocha | 412 Cultivated land | ✓ | **Sez. 41** (`--surfaces`, KISS → 401); **Sez. 47-48 druhá vlna → 412** (žlutá + černý tečkový pattern, template 412.1; min. 9 mm² → 401). SV 16 / NL 7 / LS 21 / HS 57 / NV 11 |
 | `Trvalý_travní_porost` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, louka → žlutá); odstín 401 vs 403 = gate nuance, KISS 401 |
 | `Udržovaná_zeleň` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, park → žlutá) |
-| `Ovocný_sad__zahrada` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`); MVP KISS → 401 žlutá; ISOM-věrné 413 Orchard (zelené tečky) = druhá vlna |
+| `Ovocný_sad__zahrada` | plocha | 520 Area that shall not be entered | ✓ | **Sez. 41** (`--surfaces`, KISS → 401); **Sez. 48 → 413 Orchard, Sez. 49 oprava → 520 olivová**: v ČR krajině jde převážně o zahrady u rodinných domů/chalup — oplocené, nepřístupné → out-of-bounds, ne běhatelný sad (rozhodnutí uživatele). SV 167 / NL 4 / LS 700 / HS 158 / NV 52 přesunuto do 520 |
 | `Liniová_vegetace` | linie → plocha | 406 Vegetation: slow running | ✓ | **Sez. 45** (`--treerows`, id 15 → stromořadí jako „lineární les": osa linie → buffer → úzký světle zelený pás, šířka 0,7 mm, min. plocha 1,0 mm²). **416 byla Sez. 43, oprava → 406 Sez. 45** (verify spec: 416 Distinct vegetation boundary = HRANICE porostů / kraj lesa, NE řada stromů; ISOM kreslí alej plošně nebo body 417/418, my plošně — data nesou jen osu). První zelená vegetační plocha, gate neporušuje (tvrdý objekt z dat). SV 83 / HS 121 (Σ273) |
 | `Vinice` | plocha | (414 Vineyard) | ✗ | vzácné v OB lese |
 | `Chmelnice` | plocha | (414 obdoba) | ✗ | vzácné |

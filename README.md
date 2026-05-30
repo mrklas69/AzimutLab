@@ -28,8 +28,11 @@ not as intermediate contours, per the ISOM rule); — since session 30 — real 
 (`--bridges real`, ISOM 512/512.2, raster unified with the `.omap` two-parallels layout in session 35);
 and — session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
 dashed line, no runnability background as vegetation is a UC5 prediction, not data); and — since session 41 —
-real land cover (`--surfaces real`: open land meadow/park/field/orchard → ISOM 401 yellow, KISS "open land as
-one yellow"; ISOM 520 olive out-of-bounds = cemetery ∪ private land ∪ utility-zoning compounds; car parks/asphalt
+real land cover (`--surfaces real`: open land meadow/park → ISOM 401 yellow, KISS "open land as one yellow";
+arable field → ISOM 412 Cultivated land (yellow + black dot pattern, since session 47-48); orchards/gardens
+(`Ovocný sad, zahrada`) → ISOM 520 olive out-of-bounds since session 49 (correcting the session-48 413 Orchard —
+in the Czech landscape these are fenced gardens around houses/cottages, off-limits to runners, not runnable orchards);
+ISOM 520 olive out-of-bounds = cemetery ∪ orchards/gardens ∪ private land ∪ utility-zoning compounds; car parks/asphalt
 → 501 via `--paved`; drawn at the very bottom of the z-order, forest stays white = vegetation gate); and — since
 session 42 — real **private land** as olive 520 from a second ČÚZK source, **RÚIAN cadastre** (`ruian.py`: parcels
 of land-use type garden + built-up area → off-limits to runners), plus utility-zoning compounds (ZABAGED layer 114:
