@@ -49,23 +49,24 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **523** | Ruin | 8 | · | 7 | 5 | · |
 | **512** | Bridge/tunnel | 17 | 13 | 67 | 11 | 21 |
 | **512.2** | Footbridge | 7 | 5 | 11 | 2 | 5 |
-| **524** | High tower | 6 | 1 | 30 | 9 | 1 |
+| **524** | High tower | 7 | 1 | 42 | 9 | 1 |
 | **526** | Cairn | 4 | 13 | 21 | 9 | · |
 | **530** | Prominent man-made feature | 33 | 8 | 53 | 50 | 5 |
 | **417** | Prominent large tree | 38 | 1 | 12 | 9 | 1 |
 | **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
-| **Σ** | Celkem objektů | 5858 | 1810 | 35535 | 7481 | 2268 |
+| **519** | Crossing point | · | · | 2 | · | · |
+| **Σ** | Celkem objektů | 5859 | 1810 | 35549 | 7481 | 2268 |
 
-Z 40 sledovaných ISOM symbolů reálně používáme **40** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 41 sledovaných ISOM symbolů reálně používáme **41** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-31 01:26:16
-- **NL** (`Nová Louka/`): 2026-05-31 01:26:37
-- **LS** (`Lidové sady/`): 2026-05-31 01:27:35
-- **HS** (`Hrubá Skála/`): 2026-05-31 01:28:01
-- **NV** (`Novina/`): 2026-05-31 01:28:21
+- **SV** (`Soví vrch/`): 2026-05-31 18:08:37
+- **NL** (`Nová Louka/`): 2026-05-31 18:09:01
+- **LS** (`Lidové sady/`): 2026-05-31 18:03:51
+- **HS** (`Hrubá Skála/`): 2026-05-31 18:09:30
+- **NV** (`Novina/`): 2026-05-31 18:09:50
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-31 01:28:21.*
+*Tabulka regenerována `stats.py` v 2026-05-31 18:09:51.*

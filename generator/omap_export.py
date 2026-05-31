@@ -45,6 +45,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
               "524", "526", "530", "417",  # bodové orient. prvky Sez. 43 (věž/mohyla/kříž/strom)
               "104", "513",              # liniové orient. prvky Sez. 43 (sráz/zeď)
+              "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
               "308", "406")              # mokřady Sez. 44 (308 Marsh) + stromořadí Sez. 45 (406 lineární les)
 # 523 Ruin (Sez. 43): zřícenina jde v building_features jako uzavřený area_object se symbolem 523
@@ -54,7 +55,8 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
 # Skály: 204 Boulder je kruh (rotace nemá smysl), 207 Boulder cluster je trojúhelník
 # orientovaný na sever (template: „symbol is orientated to north") → ani jeden nerotuje.
 # 512.2 Footbridge je point_symbol rotatable=true (kolmá čárka přes vodu, rotace = úhel kolmý k toku).
-ROTATABLE_CODES = frozenset({"110", "512.2"})
+# 519 Crossing point je point_symbol rotatable=true (2 čárky „brány", rotace = úhel tangenty zdi, Sez. 52).
+ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 
 # Plošné (area) ISOM kódy generátoru — OOM vyplní plošný symbol JEN u uzavřeného path
 # (poslední bod nese close flag). Liniové kódy (vrstevnice/cesty/vodní toky) zůstávají
@@ -101,7 +103,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                landmark_features: list[tuple] | None = None,
                linefeature_features: list[tuple] | None = None,
                marsh_features: list[tuple] | None = None,
-               treerow_features: list[tuple] | None = None) -> dict:
+               treerow_features: list[tuple] | None = None,
+               barrier_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -170,6 +173,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
     n_formlines = n_rocks = n_bridges = n_rides = n_surfaces = n_landmarks = n_linefeatures = n_marsh = n_treerows = 0
+    n_barriers = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -377,6 +381,13 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
                     f'<coords count="1">{x} {y};</coords></object>')
         n_bridges += 1
+    # Prostupy (Sez. 52): 519 Crossing point = bodový objekt (rotatable=true, jako lávka). Rotace
+    # v RADIÁNECH = úhel tangenty nosné zdi. Tuple (gx, gy, code, rot_rad).
+    for gx, gy, code, rot in (barrier_features or []):
+        x, y = paper(gx, gy)
+        objs.append(f'<object type="0" symbol="{sym[str(code)]}" rotation="{rot:.4f}">'
+                    f'<coords count="1">{x} {y};</coords></object>')
+        n_barriers += 1
 
     # vložení objektů do prázdného <objects count="0"> template (jediný výskyt — ověřeno)
     objects_open = f'<objects count="{len(objs)}">{"".join(objs)}'
@@ -430,4 +441,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             "railways": n_railways, "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
             "bridges": n_bridges, "surfaces": n_surfaces, "landmarks": n_landmarks,
             "linefeatures": n_linefeatures, "marsh": n_marsh, "treerows": n_treerows,
+            "barriers": n_barriers,
             "points": n_points, "objects": len(objs)}

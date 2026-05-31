@@ -408,6 +408,23 @@ LANDMARK_CAVE_TOP_PX = max(2, round(0.465 * PX_PER_MM))   # dolní konce „Λ" 
 LANDMARK_CAVE_HALF_PX = max(2, round(0.525 * PX_PER_MM))  # ½ rozevření „Λ" (0,525 mm)
 
 
+# ---------- Crossing point (Sez. 52, real-půlka, bodová ORIENTOVANÁ vrstva) ----------
+# ISOM 519 Crossing point = průchod plotem/zdí (branka, schůdky). ZABAGED `Zábrana` ležící na
+# nosné zdi 513 → 519 (filtr + tangenta dělá zabaged.fetch_barriers; závory na cestách se zahodí).
+# Symbol = 2 rovnoběžné čárky (template id 134: x=±450 µm, délka 1500 µm, width 270 µm) tvořící
+# „bránu"; rotatable → osa symbolu = směr plotu (plot prochází mezerou mezi čárkami). KISS vrstva
+# → jeden symbol, single-class maska. Orientace = jediná taková vedle řopíků/lávek (Sez. 52).
+ISOM_CROSSING_POINT = 519
+BARRIER_NAME = {ISOM_CROSSING_POINT: "Crossing point"}
+BARRIER_CLASS = {ISOM_CROSSING_POINT: 1}                  # single-class maska (jen 519)
+BARRIER_HALF_GAP_PX = max(2, round(0.45 * PX_PER_MM))    # ½ rozteče čárek PODÉL zdi (template x=±450 µm)
+BARRIER_HALF_LEN_PX = max(3, round(0.75 * PX_PER_MM))    # ½ délky čárky KOLMO na zeď (template 1500/2 µm)
+# Přerušení nosné zdi 513 pod brankou (ISOM 519: „line shall be broken at the crossing point" —
+# nepřekonatelný plot se v průchodu přeruší, Sez. 52). Mezera = šířka symbolu „brány".
+BARRIER_BREAK_HALF_MM = 0.6                              # ½ mezery v plotě pod brankou (mezera 1,2 mm)
+BARRIER_BREAK_NEAR_M = 6.0                               # práh „brána leží na této zdi" (mírně > fetch 5 m)
+
+
 # ---------- Liniové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
 # 2 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
 #   104 Earth bank — terénní sráz: plná HNĚDÁ linie + krátké JEDNOSTRANNÉ kolmé čárky (ticks).
@@ -1250,6 +1267,24 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         mdraw.line([bl, apex, br], fill=cls, width=1)
 
 
+def _draw_crossing_point(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                         cx: float, cy: float, ux: float, uy: float) -> None:
+    """ISOM 519 Crossing point: dvě čárky tvořící „bránu" v plotě (Sez. 52).
+
+    (ux,uy) = jednotková tangenta nosné zdi v px. Čárky jsou KOLMÉ na zeď (směr normály),
+    posunuté ±BARRIER_HALF_GAP_PX PODÉL zdi → plot prochází mezerou mezi nimi. px-tuned;
+    .omap věrný ze symbolu (rotatable bodový objekt, rotace = úhel tangenty)."""
+    nx, ny = -uy, ux                                  # normála na zeď = směr čárek
+    g, h = BARRIER_HALF_GAP_PX, BARRIER_HALF_LEN_PX
+    cls = BARRIER_CLASS[ISOM_CROSSING_POINT]
+    for s in (1, -1):                                 # dvě čárky ±gap podél zdi
+        mx, my = cx + s * g * ux, cy + s * g * uy     # střed čárky
+        a = (mx - h * nx, my - h * ny)
+        b = (mx + h * nx, my + h * ny)
+        draw.line([a, b], fill=C_BLACK, width=1)
+        mdraw.line([a, b], fill=cls, width=1)
+
+
 def _generate_real_landmarks(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
                              lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
     """Reálné bodové orientační prvky (real-půlka, Sez. 43): věž 524 / mohyla 526 / kříž 530 /
@@ -1269,6 +1304,34 @@ def _generate_real_landmarks(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDr
         landmarks_info.append({"symbol": code, "symbol_name": LANDMARK_NAME[code],
                                "kind": "point", "layer": layer})
     return landmark_features, landmarks_info
+
+
+def _generate_real_barriers(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                            geo_bbox: tuple, barrier_raw: list) -> tuple[list, list]:
+    """Reálné zábrany na nosné zdi 513 → ISOM 519 Crossing point (real-půlka, Sez. 52).
+
+    Mirror _generate_real_landmarks, ale ORIENTOVANÁ: tangenta nosné zdi (S-JTSK) se přepočte do
+    px směru transformací dvou bodů (p a p+tangenta) — robustní vůči konvenci os (jako řopíky).
+    `barrier_raw` = [(x, y, tdx, tdy)] ze zabaged.fetch_barriers (spočteno 1× v generate_map, sdíleno
+    s přerušením zdi). Vrací (barrier_features [(gx, gy, rot_rad, code)], barriers_info); rot pro .omap
+    (radiány, px konvence jako lávka 512.2)."""
+    barrier_features: list[tuple] = []
+    barriers_info: list[dict] = []
+    code = ISOM_CROSSING_POINT
+    for x, y, tdx, tdy in barrier_raw:
+        gx, gy = _sjtsk_to_grid(x, y, geo_bbox)
+        px, py = _grid_to_px(gx, gy)
+        gx2, gy2 = _sjtsk_to_grid(x + tdx, y + tdy, geo_bbox)   # druhý bod podél tangenty
+        px2, py2 = _grid_to_px(gx2, gy2)
+        ux, uy = px2 - px, py2 - py
+        norm = math.hypot(ux, uy) or 1.0
+        ux, uy = ux / norm, uy / norm
+        _draw_crossing_point(draw, bdraw, px, py, ux, uy)
+        rot = math.atan2(uy, ux)                                # orientace symbolu (tangenta zdi)
+        barrier_features.append((gx, gy, rot, code))
+        barriers_info.append({"symbol": code, "symbol_name": BARRIER_NAME[code],
+                              "kind": "point", "layer": "Zábrana"})
+    return barrier_features, barriers_info
 
 
 def _draw_earthbank_ticks(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1309,13 +1372,22 @@ def _draw_line_feature(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
 
 
 def _generate_real_line_features(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.ImageDraw,
-                                 lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+                                 lat: float, lon: float, geo_bbox: tuple,
+                                 barrier_break_px: list | None = None) -> tuple[list, list]:
     """Reálné liniové orientační prvky (real-půlka, Sez. 43): sráz 104 / zeď 513 ze ZABAGED.
     Mirror _generate_real_powerlines (linie). Vrací (linefeat_features [(grid, code)],
-    linefeatures_info). (Stromořadí jde plošně jako 406, viz _generate_real_tree_rows, Sez. 45.)"""
+    linefeatures_info). (Stromořadí jde plošně jako 406, viz _generate_real_tree_rows, Sez. 45.)
+
+    `barrier_break_px` = px body bran (Sez. 52): zeď 513 se v jejich místě PŘERUŠÍ (ISOM 519
+    „line broken at the crossing point" — průchod plotem). Sráz 104 se neřeže. Přerušená zeď =
+    víc grid kusů (omap i rastr mají mezeru), ale info zůstává 1× per zeď (count 513 nezkreslí
+    mezeru jako nový prvek)."""
     from zabaged import fetch_line_features, map_line_feature_to_isom
     linefeat_features: list[tuple] = []
     linefeatures_info: list[dict] = []
+    break_px = barrier_break_px or []
+    half = BARRIER_BREAK_HALF_MM * PX_PER_MM
+    near = BARRIER_BREAK_NEAR_M / (WORLD_W_M / W)           # práh „brána na této zdi" (m → plátno px)
     for f in fetch_line_features(lat, lon, GW, GH, TILE_M):
         code = map_line_feature_to_isom(f["layer"])
         if code is None:
@@ -1325,10 +1397,25 @@ def _generate_real_line_features(draw: ImageDraw.ImageDraw, ldraw: ImageDraw.Ima
             px = [_grid_to_px(gx, gy) for gx, gy in grid]
             if len(px) < 2:
                 continue
-            _draw_line_feature(draw, ldraw, px, code)
-            linefeat_features.append((grid, code))
+            # zeď 513 přerušit pod brankami (519); sráz 104 nechat celý
+            if code == ISOM_WALL and break_px:
+                cum = _cum_distance_px(grid)
+                zones = []
+                for bpx, bpy in break_px:
+                    pc, dist = _project_to_line(bpx, bpy, px, cum)
+                    if dist <= near:
+                        zones.append((pc - half, pc + half))
+                pieces = _split_by_zones_interp(grid, cum, zones) if zones else [grid]
+            else:
+                pieces = [grid]
             linefeatures_info.append({"symbol": code, "symbol_name": LINEFEAT_NAME[code],
-                                      "kind": "line", "layer": f["layer"]})
+                                      "kind": "line", "layer": f["layer"]})  # 1× per zeď (i přerušenou)
+            for piece in pieces:
+                ppx = [_grid_to_px(gx, gy) for gx, gy in piece]
+                if len(ppx) < 2:
+                    continue
+                _draw_line_feature(draw, ldraw, ppx, code)
+                linefeat_features.append((piece, code))
     return linefeat_features, linefeatures_info
 
 
@@ -2598,6 +2685,7 @@ def generate_map(
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
         linefeatures: str = "real", marsh: str = "real", treerows: str = "real",
+        barriers: str = "real",
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -2677,7 +2765,8 @@ def generate_map(
                               ("--landmarks", landmarks, "reálné bodové orient. prvky"),
                               ("--linefeatures", linefeatures, "reálné liniové orient. prvky"),
                               ("--marsh", marsh, "reálné mokřady"),
-                              ("--treerows", treerows, "reálná stromořadí")):
+                              ("--treerows", treerows, "reálná stromořadí"),
+                              ("--barriers", barriers, "reálné prostupy (zábrany na zdi)")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
                              "georef výseku; noise terén je v lokálních metrech).")
@@ -3034,9 +3123,21 @@ def generate_map(
         else:
             _log.info("  orient. prvky: 0")
 
+    # --- zábrany na zdi: PRE-FETCH (Sez. 52) ---
+    # Spočítat brány JEDNOU, před linefeatures: (a) zeď 513 se pod nimi přeruší (break_px),
+    # (b) symboly 519 se z týchž dat vykreslí níž. fetch_barriers stahuje i zdi 513 (sám) →
+    # break je konzistentní se zdmi, které linefeatures kreslí. Tolerantní (síť) přes _try_layer.
+    barrier_raw: list = []
+    if barriers == "real":
+        from zabaged import fetch_barriers
+        barrier_raw = _try_layer("barriers", lambda: fetch_barriers(lat, lon, GW, GH, TILE_M),
+                                 [], tolerant, layer_errors)
+    barrier_break_px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y, _, _ in barrier_raw]
+
     # --- liniové orientační prvky (ISOM 104/513): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
     # Rastr z-order: po cestách/budovách, před body/skalami. Jen --linefeatures real. KISS vrstva →
     # jeden symbol: sráz 104 / zeď+hradba 513 (map_line_feature_to_isom). Stromořadí 406 plošně, Sez. 45.
+    # Zeď 513 se přerušuje pod brankami 519 (barrier_break_px, ISOM „line broken at crossing point").
     linefeat_features: list[tuple] = []
     linefeatures_info: list[dict] = []
     linefeat_mask_img: Image.Image | None = None
@@ -3045,7 +3146,7 @@ def generate_map(
         ldraw_lf = ImageDraw.Draw(linefeat_mask_img)
         linefeat_features, linefeatures_info = _try_layer(
             "linefeatures",
-            lambda: _generate_real_line_features(draw, ldraw_lf, lat, lon, geo_bbox),
+            lambda: _generate_real_line_features(draw, ldraw_lf, lat, lon, geo_bbox, barrier_break_px),
             ([], []), tolerant, layer_errors)
         by_code_lf: dict[int, int] = {}
         for it in linefeatures_info:
@@ -3055,6 +3156,18 @@ def generate_map(
             _log.info("  liniové prvky: %d (%s)", len(linefeatures_info), ", ".join(parts))
         else:
             _log.info("  liniové prvky: 0")
+
+    # --- zábrany na nosné zdi (ISOM 519 Crossing point): RENDER symbolů (Sez. 52) ---
+    # Rastr z-order: navrch (bodový orient. symbol jako landmarks). Data z pre-fetch fáze výš
+    # (barrier_raw); tady jen vykreslíme „branky" 519. Zeď pod nimi už je přerušená (linefeatures).
+    barrier_features: list[tuple] = []
+    barriers_info: list[dict] = []
+    barrier_mask_img: Image.Image | None = None
+    if barriers == "real":
+        barrier_mask_img = Image.new("L", (W, H), 0)     # GT maska prostupů (§8.1), single-class (519)
+        bdraw_b = ImageDraw.Draw(barrier_mask_img)
+        barrier_features, barriers_info = _generate_real_barriers(draw, bdraw_b, geo_bbox, barrier_raw)
+        _log.info("  prostupy (519 na zdi): %d", len(barriers_info))
 
     # --- mosty + tunely + lávky (ISOM 512 + 512.2): RENDER fáze (Sez. 32 spec-driven) ---
     # Data už máme z pre-fetch fáze. Tady jen vykreslíme závorky (rastr z-order: úplně navrch
@@ -3135,6 +3248,8 @@ def generate_map(
         landmark_mask_img.save(out / "mask_landmarks.png")                  # orient. prvky (GT, multi-class: 524/526/530/417)
     if linefeat_mask_img is not None:
         linefeat_mask_img.save(out / "mask_linefeatures.png")              # liniové prvky (GT, multi-class: 104/513)
+    if barrier_mask_img is not None:
+        barrier_mask_img.save(out / "mask_barriers.png")                    # prostupy 519 (GT, single-class)
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
@@ -3191,6 +3306,9 @@ def generate_map(
     # liniové orientační prvky (Sez. 43): 104/513 = liniový objekt (otevřený path); OOM
     # vykreslí symbol z definice (104 ticky, 513 plná). Stromořadí 406 plošně (výš, Sez. 45).
     linefeat_omap_features = [(g, str(c)) for g, c in linefeat_features]
+    # zábrany → 519 Crossing point = point_object s ROTACÍ (rotatable, jako lávka 512.2; Sez. 52).
+    # rot v radiánech (px konvence) = orientace „brány" podél nosné zdi.
+    barrier_omap_features = [(gx, gy, "519", rot) for gx, gy, rot, _ in barrier_features]
     # Mosty (Sez. 32 5. iterace dle Most.omap dema): 1 ZABAGED Most → emit 2 PARALELNÍ
     # line objekty 512 v omap_export (offset ±0,75 mm kolmo). Tunely → 1 line objekt 512
     # (uživatelův template kreslí jednu závorku na konci, vstup+výstup symetrické).
@@ -3220,7 +3338,8 @@ def generate_map(
                              landmark_features=landmark_omap_features,
                              linefeature_features=linefeat_omap_features,
                              marsh_features=marsh_omap_features,
-                             treerow_features=treerow_omap_features)
+                             treerow_features=treerow_omap_features,
+                             barrier_features=barrier_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
     # reálné ZABAGED/RÚIAN vrstvy → meta sekce přes _layer_meta_section (A1 Sez. 50, DRY: jediná
     # struktura sekce + jediná cesta uvnitř i vně _build_meta, zrušena dřívější asymetrie). Tabulka
@@ -3239,7 +3358,8 @@ def generate_map(
             (landmarks, "landmarks", "mask_landmarks.png", landmarks_info, LANDMARK_NAME, LANDMARK_CLASS),
             (linefeatures, "linefeatures", "mask_linefeatures.png", linefeatures_info, LINEFEAT_NAME, LINEFEAT_CLASS),
             (marsh, "marsh", "mask_marsh.png", marsh_info, MARSH_NAME, MARSH_CLASS),
-            (treerows, "treerows", "mask_treerows.png", treerows_info, TREEROW_NAME, TREEROW_CLASS)):
+            (treerows, "treerows", "mask_treerows.png", treerows_info, TREEROW_NAME, TREEROW_CLASS),
+            (barriers, "barriers", "mask_barriers.png", barriers_info, BARRIER_NAME, BARRIER_CLASS)):
         if mode == "real":
             real_sections[key] = _layer_meta_section(mask_name, info, name_map, class_map)
     # mosty/tunely/lávky: vlastní sekce (most+tunel sdílí ISOM 512, hardcoded symbols + maskové
@@ -3343,6 +3463,10 @@ def main() -> None:
     p.add_argument("--treerows", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Liniová vegetace (stromořadí) → ISOM 406 lineární les "
                         "(světle zelený pás, default), off = bez nich (real vyžaduje --terrain real)")
+    p.add_argument("--barriers", choices=["off", "real"], default="real",
+                   help="real = ČÚZK ZABAGED Zábrana ležící na zdi 513 → ISOM 519 Crossing point "
+                        "(průchod plotem; default), off = bez nich (real vyžaduje --terrain real; "
+                        "závory na cestách se zahazují, vrstva je řídká)")
     p.add_argument("--only-real", action="store_true",
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
@@ -3380,6 +3504,7 @@ def main() -> None:
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
         rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
         linefeatures=args.linefeatures, marsh=args.marsh, treerows=args.treerows,
+        barriers=args.barriers,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 

@@ -7,7 +7,8 @@ přibyly: voda (toky+plochy, 17), budovy (18), el. vedení + stožáry (24), že
 kolejiště (28+31), řopíky + státní hranice (27), skály/balvany (30), mosty/tunely/lávky (32-33),
 lesní průseky (36), plošný pokryv / land-cover + areály účelové zástavby (41-42), bodové orient.
 prvky (věž/kříž/strom/pramen/jeskyně/nádrž, 43-44), liniové orient. prvky (sráz/zeď, 43), mokřady
-(44), stromořadí = lineární les (45), kultura pole + sad/zahrada (48-49). Plný výčet = `*_LAYERS`
+(44), stromořadí = lineární les (45), kultura pole + sad/zahrada (48-49), komín → 524 + zábrana →
+519 na nosné zdi (52). Plný výčet = `*_LAYERS`
 konstanty níže + `docs/kb/zabaged-isom-catalog.md`.
 Vše bere tentýž výsek přes sdílený dmr.build_bbox() → reálné prvky padnou bezešvě na tentýž terén
 jako vrstevnice z DMR. Mapování ZABAGED→ISOM dělají `map_*_to_isom` funkce (po verify atributů).
@@ -108,8 +109,10 @@ LAYER_IDS = {
     "Těžní věž": 30,                             # → 524 (0, pro úplnost)
     "Větrný mlýn": 32,                           # → 524 (0, pro úplnost)
     "Větrný motor": 33,                          # → 524 (0, pro úplnost)
+    "Tovární komín": 31,                         # → 524 High tower (Sez. 52; LS 12/SV 1, atribut vyska_obj nevyužit — KISS)
     # Liniové orientační prvky (Sez. 43, audit katalogu): terénní sráz / zeď.
     "Stupeň, sráz": 95,                          # → 104 Earth bank (Σ981 = nejčastější netáhnutá!)
+    "Zábrana": 54,                               # → 519 Crossing point (Sez. 52; jen na nosné zdi 513, viz fetch_barriers)
     "Zeď": 39,                                   # → 513 Wall
     "Hradba, val, bašta, opevnění": 38,          # → 513 Wall (kamenné historické opevnění)
     "Liniová vegetace": 15,                      # → 406 lineární les (stromořadí; Sez. 45, NE 416 = hranice porostů)
@@ -213,7 +216,8 @@ RUIN_AREA_LAYERS = ("Rozvalina, zřícenina",)
 # 204/207). ISOM kategorie 52x-53x + 417. KISS vrstva → jeden ISOM symbol (jako skály/budovy);
 # rozliší map_landmark_to_isom. Skupiny dle cílového ISOM kódu:
 #   524 High tower  — vysoká věž/stožár (věž kostela/kaple, vodojem věžový, silo, těžní věž, větrný
-#                     mlýn/motor); + plošná `Věžovitá stavba` (footprint 3 m² → centroid, ne 521).
+#                     mlýn/motor, tovární komín); + plošná `Věžovitá stavba` (footprint 3 m² → centroid,
+#                     ne 521). Komín (Sez. 52) má atribut `vyska_obj`, ale 524 nemá výškové varianty → KISS.
 #   526 Cairn       — mohyla/pomník/náhrobek (memorial stone / trig point).
 #   530 Prom. ring  — kříž/sloup kulturního významu (boží muka — prominent man-made feature, ring).
 #   417 Large tree  — významný/osamělý strom (ZELENÝ kroužek; bodový orientační prvek, ne plošná
@@ -221,7 +225,7 @@ RUIN_AREA_LAYERS = ("Rozvalina, zřícenina",)
 # Vodojem/silo/těžní/mlýn/motor mají 0 výskytů ve všech 5 DEV_LOCATIONS (probe Sez. 43), ale ISOM
 # ekvivalent existuje → mapujeme i je (princip „nic užitečného nevypadne" — jinde se vyskytnou).
 LANDMARK_POINT_LAYERS_524 = ("Věž, věžovitá nástavba", "Vodojem věžový", "Silo",
-                             "Těžní věž", "Větrný mlýn", "Větrný motor")
+                             "Těžní věž", "Větrný mlýn", "Větrný motor", "Tovární komín")
 LANDMARK_POINT_LAYERS_526 = ("Mohyla, pomník, náhrobek",)
 LANDMARK_POINT_LAYERS_530 = ("Kříž, sloup kulturního významu",)
 LANDMARK_POINT_LAYERS_417 = ("Významný nebo osamělý strom, lesík",)
@@ -244,6 +248,17 @@ LANDMARK_AREA_LAYERS_311 = ("Nadzemní zásobní nádrž",)  # plocha → centro
 #   513 Wall       — zeď + hradba/val/bašta/opevnění (kamenné; `typzed` null → KISS 513).
 LINE_FEATURE_LAYERS_104 = ("Stupeň, sráz",)
 LINE_FEATURE_LAYERS_513 = ("Zeď", "Hradba, val, bašta, opevnění")
+
+# Zábrana → ISOM 519 Crossing point (Sez. 52, real-půlka, bodová ORIENTOVANÁ — vedle řopíků/lávek
+# jediná taková). ZABAGED `Zábrana` (id 54) nese jediný typ (`typ_k=Z` = „Závora, brána"). ISOM 519
+# = průchod PŘES plot/zeď (branka, schůdky), NE závora na cestě → mapujeme JEN zábrany ležící na
+# nosné linii 513 (zeď/hradba); závory na cestách (v OB irelevantní — běžec je obejde) se zahodí.
+# Verify-against-source Sez. 52: z 66 zábran na LS leží na 513 jen 2 (medián vzdálenosti od zdi
+# 183 m) → vrstva je řídká, ale spravedlivě naplní skutečné průchody v plotě (volba uživatele
+# „úplnost i za nízký výtěžek"). Orientace symbolu = tangenta nosné zdi (plot prochází mezi čárkami).
+BARRIER_LAYERS = ("Zábrana",)
+BARRIER_WALL_LAYERS = LINE_FEATURE_LAYERS_513      # nosné linie (DRY: tytéž zdi jako --linefeatures)
+BARRIER_MAX_WALL_DIST_M = 5.0                       # bod ≤ 5 m od zdi = „na zdi" (měření Sez. 52: ≤1 m i ≤5 m = 2/66)
 
 # Stromořadí jako „lineární les" (Sez. 45, real-půlka, liniová DATA → plošná REPREZENTACE).
 # `Liniová vegetace` (id 15) je v datech výhradně stromořadí (`typveg_k=S`). ISOM 416 Distinct
@@ -868,7 +883,7 @@ def map_landmark_to_isom(layer: str) -> int | str | None:
     """Mapuje ZABAGED bodový orientační prvek na ISOM 2017-2 symbol (kód, Sez. 43/44).
 
     KISS vrstva → jeden symbol (jako skály 204/207, budovy 521). Skupiny:
-      věž/stožár/vodojem/silo/těžní věž/větrný mlýn/motor + věžovitá stavba → 524 High tower
+      věž/stožár/vodojem/silo/těžní věž/větrný mlýn/motor/tovární komín + věžovitá stavba → 524 High tower
       mohyla/pomník/náhrobek                                                → 526 Cairn
       kříž/sloup kulturního významu                                        → 530 Prom. man-made (ring)
       významný/osamělý strom, lesík                                        → 417 Prominent large tree
@@ -948,6 +963,64 @@ def fetch_line_features(lat: float, lon: float, gw: int, gh: int,
     Mapování na ISOM (map_line_feature_to_isom) výš. Izomorfní s fetch_powerlines/fetch_railways."""
     return _collect_features((*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513),
                              lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
+
+
+def _nearest_wall_tangent(p: tuple[float, float],
+                          walls: list[list[tuple[float, float]]]) -> tuple[float, tuple[float, float]]:
+    """Nejbližší segment zdí 513 k bodu `p`: vrátí (vzdálenost [m], jednotková tangenta (tdx,tdy)).
+
+    Bez segmentů → (inf, (1,0)). Tangenta = směr nejbližšího segmentu zdi (orientace „brány" 519)."""
+    px, py = p
+    best_d, best_t = float("inf"), (1.0, 0.0)
+    for ln in walls:
+        for i in range(len(ln) - 1):
+            ax, ay = ln[i]
+            bx, by = ln[i + 1]
+            dx, dy = bx - ax, by - ay
+            seg2 = dx * dx + dy * dy
+            if seg2 == 0.0:
+                continue
+            t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg2))
+            qx, qy = ax + t * dx, ay + t * dy
+            d = ((px - qx) ** 2 + (py - qy) ** 2) ** 0.5
+            if d < best_d:
+                seg = seg2 ** 0.5
+                best_d, best_t = d, (dx / seg, dy / seg)
+    return best_d, best_t
+
+
+def map_barrier_to_isom(layer: str) -> int | None:
+    """Zábrana (`Zábrana` = závora/brána) → ISOM 519 Crossing point (Sez. 52). KISS vrstva → vždy 519.
+    Filtr „jen na nosné zdi 513" dělá fetch_barriers (viz BARRIER_* konstanty); tady jen kód symbolu."""
+    return 519 if layer in BARRIER_LAYERS else None
+
+
+def fetch_barriers(lat: float, lon: float, gw: int, gh: int,
+                   tile_m: float = 1000.0,
+                   cache_dir: str | Path | None = None) -> list[tuple[float, float, float, float]]:
+    """Vrátí zábrany ležící NA nosné zdi 513 jako (x, y, tdx, tdy) v S-JTSK (Sez. 52).
+
+    ISOM 519 Crossing point = průchod plotem/zdí, ne závora na cestě → bod `Zábrana` se mapuje
+    POUZE pokud leží ≤ BARRIER_MAX_WALL_DIST_M od linie 513 (zeď/hradba); ostatní (závory na
+    lesních/účelových cestách, medián 183 m od zdi — verify Sez. 52) se zahodí. (tdx,tdy) =
+    jednotková tangenta nosné zdi (orientace symbolu „brány"); generator ji přepočte do gridu.
+    Izomorfní s řopíky (orientovaný bod vázaný na linii), jen orientace = tangenta (ne normála)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    walls: list[list[tuple[float, float]]] = []           # nosné zdi 513 (linie)
+    for layer in BARRIER_WALL_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            walls.extend(_geom_to_lines(feat.get("geometry") or {}))
+    out: list[tuple[float, float, float, float]] = []     # zábrany u zdi → bod + tangenta
+    for layer in BARRIER_LAYERS:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            for x, y in _geom_to_points(feat.get("geometry") or {}):
+                dist, (tdx, tdy) = _nearest_wall_tangent((x, y), walls)
+                if dist <= BARRIER_MAX_WALL_DIST_M:
+                    out.append((x, y, tdx, tdy))
+    return out
 
 
 def map_tree_row_to_isom(layer: str) -> int:

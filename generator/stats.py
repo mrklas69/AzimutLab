@@ -2,7 +2,7 @@
 
 Pro každou lokalitu (maps/<dirname>/) přečte:
 - meta.json: počty symbolů ze sekcí (paths/rides/water/paved/buildings/powerlines/railways/rocks/
-  bridges/surfaces/landmarks/linefeatures/marsh/treerows + point_symbols) — každá items má
+  bridges/surfaces/landmarks/linefeatures/marsh/treerows/barriers + point_symbols) — každá items má
   `symbol: int` (např. 503, 304, 5122=512.2),
 - contours.geojson: vrstevnice 101/102/103 (každý feature má properties.symbol),
 - mtime meta.json: čas poslední regenerace.
@@ -81,6 +81,8 @@ SYMBOLS = [
     # Liniové orientační prvky (Sez. 43)
     ("104",   "Earth bank"),
     ("513",   "Wall"),
+    # Prostupy (Sez. 52): zábrana na zdi → Crossing point
+    ("519",   "Crossing point"),
 ]
 
 
@@ -114,10 +116,10 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts: Counter = Counter()
     # 1) vrstevnice 101/102/103 z contours.geojson (meta agreguje jen total)
     counts.update(_count_contours(folder / "contours.geojson"))
-    # 2) items z 14 sekcí (každá má seznam s {"symbol": <int>})
+    # 2) items z 15 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
                     "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures",
-                    "marsh", "treerows"):
+                    "marsh", "treerows", "barriers"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1
