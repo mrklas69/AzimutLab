@@ -21,7 +21,10 @@ ISOM 510, cross-ticks on real pylons), real pillboxes (`--ropiky real`, Czechosl
 fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border, since session 27), and
 — since session 28 — real railways (`--railways real`, `Železniční_trať`+`_vlečka` → ISOM 509 combined
 symbol) and railway yards (`--paved real`, `Kolejiště` → ISOM 501 paved area; the "ten parallel tracks"
-at a station are one area in the data, not lines), and — since session 29 — auxiliary contours
+at a station are one area in the data, not lines; since session 54 also `Ostatní plocha v sídlech` → **501.1
+paved area without bounding line** — the administrative fill of built-up areas, drawn as a base layer beneath
+everything, its hundreds of holes for buildings/greenery/roads cut out via the new **hole support** — see below),
+and — since session 29 — auxiliary contours
 (form lines, ISOM 103) derived from the DMR where terrain is gently sloped yet curved (drawn sparingly,
 not as intermediate contours, per the ISOM rule); — since session 30 — real rocks/boulders
 (`--rocks real`, ISOM 204/207/206); — sessions 31–33 — real bridges/tunnels/footbridges
@@ -72,7 +75,13 @@ rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future tas
 on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request — **fixed in session 26 by
 switching `zabaged.py` from WFS to ArcGIS REST `MapServer/<id>/query`** with reliable `resultOffset` paging
 (dense towns now complete: SV 1078, LS 8273 buildings). Session 27 added a `logging` progress/summary to
-`generate_map` (CLI shows it; batch stays quiet).**
+`generate_map` (CLI shows it; batch stays quiet). Session 54 added **hole support** across all area layers
+(`geom_to_polygons` now returns GeoJSON inner rings; the raster cuts them out via even-odd scanline, the
+`.omap` via hole-flags) — without it a large administrative polygon (501.1) would flood the extent. The same
+session marked the project's first **large-area base fill beneath many other symbols** (501.1), which the
+default ISOM Mapper palette couldn't handle: a custom colour "Dolní hnědá 50%" was added to
+`template_classic.omap` at the very bottom of the colour-table priority so roads/paths stay on top (see
+`docs/GLOSSARY.md` and the `omap-colortable-base-fill-priority` lesson).**
 
 ## What this is
 

@@ -71,6 +71,14 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
   2017-2 template `template_classic.omap` → věrná geometrie bodů (110 elipsa, 111 oblouk) + plná
   symbolová knihovna. Vrstevnice jsou přímo polylinie z contourpy — ne vektorizace pixelů.
 
+> ⚠ **`template_classic.omap` je foundation artefakt, ne generovaný soubor.** Ručně ho vyrobil
+> uživatel v OpenOrienteering Mapper (Sez. 14, přepsán Sez. 18) — drží symbol IDs, color-table
+> (vč. rozlišení Upper/Lower brown 50% pro z-order priorit) a georef, z nichž `omap_export.py` čte.
+> **K jeho výrobě/regeneraci NESTAČÍ uložit novou prázdnou mapu** (File → New, ISOM 2017-2) — nese
+> specifické úpravy nad výchozí sadou (varianty symbolů 501.1/512.2, čistá `<objects>` bez cizího
+> balastu). Přesný postup výroby drží uživatel; při potřebě změny template si vyžádej aktualizovanou
+> verzi od něj, needituj naslepo.
+
 **Přestavba (Sezení 11):** generátor stavíme „znovu a lépe", vrstvu po vrstvě, s
 důrazem na vizuální věrnost. **Procedurální (noise-půlka)** plošné vrstvy (vegetace, paseky, bažiny,
 balvany) byly vědomě **zahozeny** (vypadaly uměle → kazily by domain gap feederu); historie v gitu.
@@ -125,9 +133,9 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
-| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` / `mask_landmarks.png` / `mask_linefeatures.png` / `mask_marsh.png` / `mask_treerows.png` | masky reálných vrstev 508 / 510 / 509 / 501 / 204·206·207 / 512·512.2 / 401·402·402.1·412·520 / bodové orient. (524·526·530·417·312·311·203.2) / liniové orient. (104·513) / 308 Marsh / 406 stromořadí (každá jen při své `--…real`; multi-class kde víc tříd) |
+| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` / `mask_landmarks.png` / `mask_linefeatures.png` / `mask_marsh.png` / `mask_treerows.png` | masky reálných vrstev 508 / 510 / 509 / 501·501.1 / 204·206·207 / 512·512.2 / 401·402·402.1·412·520 / bodové orient. (524·526·530·417·312·311·203.2) / liniové orient. (104·513) / 308 Marsh / 406 stromořadí (každá jen při své `--…real`; multi-class kde víc tříd) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
-| `<lokalita>.omap` | OpenOrienteering Mapper mapa (vždy; název = výstupní složka, Sez. 42; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 (olivová: hřbitov + RÚIAN privátní + areály 114) + stromořadí 406 lineární les + řopíky + body 109/110/111, plná ISOM knihovna) |
+| `<lokalita>.omap` | OpenOrienteering Mapper mapa (vždy; název = výstupní složka, Sez. 42; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + ostatní plocha v sídlech 501.1 (base, s děrami, Sez. 54) + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 (olivová: hřbitov + RÚIAN privátní + areály 114) + stromořadí 406 lineární les + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu + blok `georef` (S-JTSK bbox, pixel_size_m, world_file, north, grivation_deg) |
 
 Verify nástroj: **`compare_real_vs_gen.py`** — strojové porovnání generátoru se živě mapovanou OB mapou

@@ -67,7 +67,10 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 45 stromořadí `Liniová vegetace` → 406 Vegetation: slow running (`--treerows`, lineární les: osa→buffer→pás;
   oprava 416 = hranice porostů byla sémanticky špatně)**;
   **Sez. 52 komín → 524 (`--landmarks`) + zábrana → 519 Crossing point (`--barriers`, jen bod na zdi 513 = průchod
-  plotem; zeď se pod brankou přeruší) — poslední kandidáti, ZABAGED katalog vyčerpán**),
+  plotem; zeď se pod brankou přeruší) — poslední kandidáti, ZABAGED katalog vyčerpán**;
+  **Sez. 54 `Ostatní plocha v sídlech` 115 → 501.1 Paved area bez obrysu (`--paved`, base výplň sídla vespod)
+  — odemčeno novou podporou děr (holes): `geom_to_polygons` vrací vnitřní prsteny, plošné vrstvy je vyříznou
+  (enabler napříč voda/budovy/pokryv); + color-table průlom „Dolní hnědá 50%" v template**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
   zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:

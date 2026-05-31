@@ -113,6 +113,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NEJSOU linie — ZABAGED je generalizuje do jedné plochy `Kolejiště`** (Liberec hl. n. ~19 ha). V `.omap`
   jako **kombinovaný 501 (s obrysem)**, ne 501.1 bez obrysu — **do kolejiště se nevstupuje**, bounding line
   je významová (rozhodnutí uživatele, Sez. 28; viz [[crossability]]). Sym id 105 (501.1 = id 106, čistá plocha).
+- **501.1 Paved area (bez obrysu) / „ostatní plocha v sídlech"** — ZABAGED `Ostatní plocha v sídlech` (id 115)
+  → **501.1** (`--paved`, Sez. 54): administrativní výplň zastavěného území (náměstí/dvory/parkoviště mezi
+  budovami), **bez obrysu** (defaultně přístupná, na rozdíl od 501 kolejiště). Obří děravé polygony — díry
+  (budovy/zeleň/cesty) vykrojí **[[podpora děr (holes)]]**; kreslí se VESPOD (z-order base, pod 520). Barva
+  **„Dolní hnědá 50%"** (rastr `C_PAVED` světlejší než silnice; omap color priority 35 dole — viz [[Horní vs
+  Dolní hnědá 50%]]). První velkoplošná base výplň pod mnoha symboly → default ISOM paleta Mapperu nestačila.
+- **Podpora děr (holes)** — plošné symboly (501.1, voda, budovy, pokryv…) nesou z GeoJSON vnitřní prsteny
+  (výřezy). `geom_to_polygons` vrací `[vnější, díra1, …]`; rastr je vyřízne even-odd scanline, `.omap`
+  hole-flagem (Sez. 54). Bez nich velký polygon zalije výsek (501.1 by zalilo 41 % sídla).
+- **Horní vs Dolní hnědá 50%** — ISOM má dva color sloty stejného odstínu (Upper/Lower brown 50%, identické
+  CMYK), lišící se **color-table prioritou** v OOM: Upper (silnice 502) NAD Lower (paved 501/501.1). Sez. 54:
+  do `template_classic.omap` přidána vlastní „Dolní hnědá 50%" na prioritu úplně dole, aby velkoplošná 501.1
+  base nepřekrývala silniční okraje (paměť `omap-colortable-base-fill-priority`).
 - **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41-53):
   reálná plošná půlka ze ZABAGED + RÚIAN → ISOM symboly. **Open land → 401** (plná ŽLUTÁ, bez obrysu): louka
   (`Trvalý travní porost`) — není kultura, bez patternu. **Udržovaná zeleň → 402 / 402.1** (Sez. 53): štěpení podle

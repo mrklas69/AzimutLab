@@ -255,6 +255,29 @@ Paved area** (`map_paved_to_isom`). Plošná, izomorfní s budovou/vodní plocho
 do jedné plochy `Kolejiště` (Liberec hl. n. ~19 ha). V `.omap` jako **kombinovaný 501 (s obrysovou linií)**,
 ne 501.1 (čistá plocha bez obrysu) — do kolejiště se nevstupuje, bounding line je významová (ISOM crossability).
 
+**✅ Ostatní plocha v sídlech → 501.1 (real-půlka, Sez. 54):** `--paved real` bere i `Ostatní plocha v sídlech`
+(id 115) → ISOM **501.1 Paved area BEZ obrysu** (`map_paved_to_isom` rozliší 501.1; `PAVED_OUTLINE[501.1]=None`).
+Administrativní výplň zastavěného území (náměstí/dvory/parkoviště mezi budovami), defaultně přístupná → bez
+bounding line. **Obří děravé polygony** (2371/1734 ha, stovky vnitřních prstenů pro budovy/zeleň/cesty) → vyžaduje
+[podporu děr §4.9e′]; bez ní by 501.1 zalilo 41 % sídla (Sez. 53). **Z-order: dvouprůchod** `_generate_real_paved(urban_base=True)`
+kreslí 501.1 ÚPLNĚ VESPOD (před surfaces → olivová 520 RÚIAN parcel ji nahoře překryje), `urban_base=False` kreslí
+501 kolejiště na původní pozici. Barva **„Dolní hnědá 50%"** (rastr `C_PAVED` světlejší než silnice; v `.omap`
+vlastní color-table slot na prioritě úplně dole, aby silnice/pěšiny vynikly — viz §4.9e″).
+
+**§4.9e′ Podpora děr (holes) — enabler, Sez. 54.** Plošné symboly nesou z GeoJSON vnitřní prsteny (výřezy).
+`arcgis.geom_to_polygons` vrací `[[vnější, díra1, …], …]` (RFC 7946 `coords[1:]`); rastr `_draw_area_symbol`
++ scanline helpery vyříznou díry **even-odd** (`_fill_rings_scanline`; bez děr rychlá PIL cesta = 0 regrese);
+`.omap` `area_object` zřetězí prsteny, hole-flag 18 na hranicích, **poslední prsten close-only (2)** (konvence
+z reálných map SampleMap/Blatná). Behavior-preserving co do počtu objektů (díra = další prsten v TÉMŽE objektu).
+Dotýká se VŠECH plošných vrstev (voda/budovy/520/308/406/402…) → izomorfismus `_draw_area_symbol`.
+
+**§4.9e″ Color-table priorita pro velkoplošnou base výplň — Sez. 54 (PRŮLOM).** 501.1 = první plošný symbol
+ležící POD velkým množstvím jiných symbolů přes celé sídlo. Default ISOM paleta Mapperu NESTAČILA: 501.1 sdílel
+color „Upper brown 50%" se silnicemi a v color-table prioritě překrýval jejich černé okraje → silnice mizely.
+Fix: do `template_classic.omap` přidána vlastní color **„Dolní hnědá 50%" priority 35 (úplně dole)**, 501.1
+přepojen na ni. Lekce: base-layer plošný symbol potřebuje vlastní color slot uspořádaný pod vším překrývajícím
+(rastr ≠ omap: rastr kreslí pořadím, OOM prioritou). Paměť `omap-colortable-base-fill-priority`.
+
 ### 4.9f Skály a balvany (real-půlka, Sez. 30)
 **✅ Reálné skály:** `--rocks real` vezme ze ZABAGED Polohopis (ArcGIS REST) tři vrstvy → tři ISOM symboly
 (KISS „vrstva = jeden symbol", izomorfní s budovy→521): `Osamělý_balvan__skála__skalní_suk` (bod) →

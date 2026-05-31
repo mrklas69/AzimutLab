@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 54 (2026-05-31) — podpora děr (holes) + `Ostatní plocha v sídlech` → 501.1 + color-table průlom
+- [x] **Podpora děr (holes) v plošných vrstvách (ENABLER).** ZABAGED/GeoJSON nese vnitřní prsteny (díry)
+      u velkých polygonů; dosud parser zahazoval. Tři vrstvy: **(1) parser** `arcgis.geom_to_polygons`
+      vrací `[[vnější, díra1, …], …]` (RFC 7946 `coords[1:]`); **(2) rastr** `_draw_area_symbol` +
+      scanline helpery (`_draw_dotted_surface_area`/`_draw_marsh_area`) — bez děr RYCHLÁ PIL cesta
+      (0 regrese), s děrami even-odd scanline `_fill_rings_scanline` vyřízne výřezy; **(3) `.omap`**
+      `area_object` zřetězí prsteny, hole-flag 18 (16 hole+2 close) na hranicích, **poslední prsten
+      close-only (2)** — konvence ověřena proti reálným mapám (SampleMap/Blatná). DRY helper
+      `_poly_to_grid_px`; 6 call-sitů + treerow/ropík obaleny na tvar list-ringů.
+- [x] **Verify holes:** proc baseline 65 drží; LS reálný **35639 = čistý HEAD 35639** (behavior-preserving
+      — díra je další prsten v TÉMŽE objektu, ne nový); rastr 13002 px vykrojeno přesně v zastavěné
+      oblasti (RÚIAN 185 děr); `.omap` 1822 objektů s děrami, 0 chybných flagů. Verify-against-source:
+      probe 115 = 1363 děr na LS (68–78 % plochy obřích polygonů).
+- [x] **`Ostatní plocha v sídlech` (115) → 501.1 Paved area bez obrysu** (odemčeno děrami). `map_paved_to_isom`
+      rozliší 501.1 (float); `PAVED_OUTLINE` (501 obrys / 501.1 bez), `PAVED_CLASS` třída 2. **Z-order
+      dvouprůchod** `_generate_real_paved(urban_base=…)`: 501.1 base ÚPLNĚ VESPOD (před surfaces) → olivová
+      520 RÚIAN parcel ji nahoře překryje (verify: 520 px 1071020=1071020, nedotčené); 501 kolejiště nahoře.
+      LS 501.1 = 9 objektů, 10 % výseku (ne 41 % záplava Sez. 53). LAYER_IDS 115; USED_CODES+AREA_CODES 501.1.
+- [x] **Barva „Dolní hnědá 50%" (PRŮLOM color-table).** 501.1 je první velkoplošná base výplň pod mnoha
+      symboly. Rastr: nová `C_PAVED=(240,205,175)` (paleta „paved", světlejší než silnice `C_ROAD`, aby
+      silnice vynikly). `.omap`: **`template_classic.omap` color-table rozšířena** — nová color „Dolní hnědá
+      50%" priority 35 (úplně dole, pod silničními okraji color 14 i pěšinami color 2), symbol 501.1 (id 106)
+      přepojen z color 11 (chybně sdílel Upper brown se silnicemi) → 35. Default ISOM paleta NESTAČILA. OOM
+      verify uživatelem ✓. Lekce → paměť `omap-colortable-base-fill-priority`, poznámka v `omap_export.py`.
+- [x] **Template foundation poznámka:** `omap_export.py` hlavička + `generator/README.md` — template je ruční
+      artefakt, k výrobě nestačí prázdná OOM mapa, needitovat naslepo (jen s přesnými kroky uživatele).
+
 ## Sezení 53 (2026-05-31) — udržovaná zeleň → 402 / 402.1 (štěpení podle atributu)
 - [x] **`Udržovaná zeleň` (134) → ISOM 402 / 402.1** (`--surfaces`, štěpení podle atributu `typ_pudy_k`).
       Verify-against-source probe: vrstva nese `typ_pudy_k` ∈ {`PO` „park, okrasná zahrada", `UZ` „ostatní
