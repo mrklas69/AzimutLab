@@ -43,6 +43,7 @@ PALETTE: dict[str, Swatch] = {
     "olive":  Swatch((150, 158, 56),  "olivová — zákaz vstupu/hřbitov (ISOM 520; aprox., doladit okem)"),
     "brown":  Swatch((160, 95, 31),   "vrstevnice, rýhy"),
     "road":   Swatch((232, 167, 116), "silnice 502 — výplň (ISOM Upper brown 50%)"),
+    "paved":  Swatch((240, 205, 175), "zpevněná plocha 501/501.1 (ISOM Lower brown 50%; aprox. SVĚTLEJŠÍ než silnice Upper — v ISOM mají identické CMYK, rastr je odliší jasem, aby silnice na ploše vynikly; Sez. 54)"),
     "blue":   Swatch((46, 194, 248),  "voda, mokřad"),
     "black":  Swatch((0, 0, 0),       "skály, cesty, stavby"),
     "purple": Swatch((196, 0, 172),   "trať (purpurová) — §4.13, zatím neimplementováno"),
@@ -60,6 +61,7 @@ C_GREEN3 = PALETTE["green3"].rgb
 C_OLIVE  = PALETTE["olive"].rgb
 C_BROWN  = PALETTE["brown"].rgb
 C_ROAD   = PALETTE["road"].rgb
+C_PAVED  = PALETTE["paved"].rgb
 C_BLUE   = PALETTE["blue"].rgb
 C_BLACK  = PALETTE["black"].rgb
 C_PURPLE = PALETTE["purple"].rgb

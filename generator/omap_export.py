@@ -28,8 +28,23 @@ import math
 import re
 from pathlib import Path
 
-# Čistý ISOM 2017-2 template (vyrobil uživatel v OOM: Sez. 14, naposled přepsán Sez. 18).
-# Verzovaný vedle modulu v generator/.
+# Čistý ISOM 2017-2 template (vyrobil uživatel v OOM: Sez. 14, přepsán Sez. 18; color-table
+# rozšířena Sez. 54). Verzovaný vedle modulu v generator/ — je to FOUNDATION artefakt (symbol IDs,
+# color-table s PRIORITAMI, georef), na němž stojí celý .omap export. NE generovaný kódem.
+#
+# !! K VÝROBĚ/REGENERACI NESTAČÍ uložit novou prázdnou mapu z OOM (File → New, ISOM 2017-2).
+#    Template je ručně připravený a nese úpravy nad výchozí ISOM sadou (rozlišení Upper/Lower brown
+#    50%, varianty symbolů 501.1 / 512.2, čistá <objects>/<templates>). Přesný postup výroby drží
+#    uživatel (autor) — viz generator/README „template". Template needituj naslepo (jen s přesnými
+#    kroky od uživatele, jako Sez. 54).
+#
+# PRŮLOM Sez. 54 (color-table priorita pro velkoplošnou base výplň): 501.1 „ostatní plocha v sídlech"
+#    je první plošný symbol ležící POD velkým množstvím jiných ploch/linií/bodů (silnice, pěšiny,
+#    budovy, body) přes celé sídlo. Default ISOM paleta NESTAČILA: 501.1 sdílel color „Upper brown 50%"
+#    (11) se silnicemi a v color-table prioritě překrýval jejich černé okraje (14, pod 11) → silnice
+#    mizely. Fix: přidána vlastní color „Dolní hnědá 50%" (priority 35 = ÚPLNĚ DOLE, pod silničními
+#    okraji i pěšinami), 501.1 (id 106) přepojen 11→35. Lekce: base-layer plošný symbol potřebuje
+#    VLASTNÍ color slot uspořádaný v prioritě pod vším, co přes něj leží — ne sdílet s nadřazeným.
 TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
@@ -38,7 +53,7 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 # type 16, nepřiřaditelný objektu). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
 USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
-              "304", "305", "306", "301.1", "521", "523", "510", "509", "501", "109", "110", "111",
+              "304", "305", "306", "301.1", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
               "204", "206", "207",       # skály/balvany Sez. 30 (204 bod, 207 bod, 206 plocha)
               "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
               "401", "520",              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
@@ -64,7 +79,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301.1", "521", "501", "206", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53
+AREA_CODES = frozenset({"301.1", "521", "501", "501.1", "206", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -158,18 +173,36 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         return (f'<object type="1" symbol="{sym[code]}">'
                 f'<coords count="{len(coords)}">{coord_str}</coords></object>')
 
-    def area_object(ring, code: str) -> str | None:
+    def area_object(rings, code: str) -> str | None:
         """Plošný objekt (ISOM area symbol): uzavřený path s close flagem na posledním bodě.
         OOM vyplní area symbol jen u UZAVŘENÉHO path — flagless by zůstal jen obrysem/se
-        nevykreslil. Flag uzavře poslední bod zpět na první (ZABAGED ring má first==last)."""
-        coords = [paper(gx, gy) for gx, gy in ring]
-        if len(coords) < 3:
+        nevykreslil. Flag uzavře poslední bod zpět na první (ZABAGED ring má first==last).
+
+        `rings` = [vnější, díra1, …] (Sez. 54). Více prstenů (díry/výřezy) jde do JEDNOHO objektu:
+        prsteny zřetězené, hranice mezi nimi nese `OOM_CLOSE_FLAG` (18 = 16 hole point + 2 close).
+        Flag 16 značí „následuje další prsten" → OOM vykrojí vnitřní prsteny even-odd pravidlem.
+        **POSLEDNÍ prsten končí jen close (2), BEZ hole bitu** — konvence z reálných OB map
+        (verify-against-source: SampleMap/Blatná mají hole-bit jen na hranicích, ne na úplném konci).
+        Jednoprstencový objekt (drtivá většina ploch) zachovává close+hole 18 jako dřív (OOM toleruje;
+        precedent reálná Soví vrch.omap) → 0 regrese."""
+        valid = [r for r in rings if len(r) >= 3]
+        if not valid:
             return None
-        parts = [f"{x} {y}" for x, y in coords]
-        parts[-1] += f" {OOM_CLOSE_FLAG}"
+        parts: list[str] = []
+        total = 0
+        last = len(valid) - 1
+        for ri, ring in enumerate(valid):
+            coords = [paper(gx, gy) for gx, gy in ring]
+            rp = [f"{x} {y}" for x, y in coords]
+            if ri == last and last > 0:                 # poslední z VÍCE prstenů → jen close (2), bez hole bitu
+                rp[-1] += " 2"
+            else:                                       # vnitřní hranice / jediný prsten → close+hole (18)
+                rp[-1] += f" {OOM_CLOSE_FLAG}"
+            parts.extend(rp)
+            total += len(coords)
         coord_str = ";".join(parts) + ";"
         return (f'<object type="1" symbol="{sym[code]}">'
-                f'<coords count="{len(coords)}">{coord_str}</coords></object>')
+                f'<coords count="{total}">{coord_str}</coords></object>')
 
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0

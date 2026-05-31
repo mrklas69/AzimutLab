@@ -80,6 +80,7 @@ LAYER_IDS = {
     # jména ověřena ?f=json + temp probe count (SV/LS/NL). POZOR: REST jména s MEZERAMI/ČÁRKAMI
     # a diakritikou (jako tramvaj/lávka), ne WFS escape. Vinice (136)/Chmelnice (137)/kosodřevina
     # (141) vynechány — 0 prvků ve všech DEV_LOCATIONS.
+    "Ostatní plocha v sídlech": 115,    # → 501.1 (Sez. 54; administrativní výplň sídla s děrami)
     "Hřbitov": 116,
     "Parkoviště, odpočívka": 123,
     "Udržovaná zeleň": 134,
@@ -162,6 +163,12 @@ RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka", "Tramvajová d
 # symbol: hnědá 50% výplň + obrysová linie). Mapování viz map_paved_to_isom. Vzor pro budoucí
 # další zdroje 501 (parkoviště ap.). Jinde než u nádraží/zpevněných ploch = 0 prvků.
 PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: parkoviště → 501 (DRY s kolejiště)
+# `Ostatní plocha v sídlech` (id 115) → 501.1 Paved area BEZ obrysu (Sez. 54). Administrativní výplň
+# zastavěného území: obří polygon se STOVKAMI DĚR (budovy/zeleň/cesty vykrojené ven) — díry teď parser
+# nese (geom_to_polygons, Sez. 54), takže 501.1 vyplní jen volné plochy mezi nimi (náměstí/dvory/
+# parkoviště), ne celé sídlo (Sez. 53 bez děr zalila 41 % výseku → odloženo na holes). Samostatná
+# konstanta (jiný symbol i sémantika než kolejiště), ale táhne se týmž fetch_paved_areas (DRY).
+OTHER_URBAN_AREA_LAYERS = ("Ostatní plocha v sídlech",)
 
 # Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou/budovou).
 # Dvě skupiny podle ISOM:
@@ -430,14 +437,17 @@ def fetch_railways(lat: float, lon: float, gw: int, gh: int,
 def fetch_paved_areas(lat: float, lon: float, gw: int, gh: int,
                       tile_m: float = 1000.0,
                       cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí reálné zpevněné plochy (kolejiště) pro výsek (lat, lon) jako plošné features.
+    """Vrátí reálné zpevněné plochy (kolejiště/parkoviště → 501; ostatní plocha v sídlech → 501.1)
+    pro výsek (lat, lon) jako plošné features.
 
-    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy ploch v S-JTSK
-    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_paved_to_isom → 501) se dělá výš
-    (Sez. 28). Izomorfní s fetch_buildings/area-půlkou fetch_water (plochy mají rings).
-    V lesních výsecích bez nádraží = 0 prvků (žádný šum). Tentýž výsek (sdílený build_bbox)."""
-    return _collect_features(PAVED_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
-                             _geom_to_polygons, "rings")
+    Každý prvek: {"layer", "props", "rings": [[outer, díra…]..]} — polygony (s děrami, Sez. 54)
+    v S-JTSK metrech. Mapování na ISOM (map_paved_to_isom → 501/501.1) se dělá výš (Sez. 28/54).
+    Izomorfní s fetch_buildings/area-půlkou fetch_water. V lesních výsecích bez nádraží/sídla = 0
+    prvků (žádný šum). Tentýž výsek (sdílený build_bbox)."""
+    # 501.1 (ostatní plocha v sídlech) PRVNÍ → kreslí se VESPOD paved kanálu (administrativní výplň
+    # pod kolejištěm/parkovištěm 501; z-order = pořadí features, Sez. 54).
+    return _collect_features(OTHER_URBAN_AREA_LAYERS + PAVED_AREA_LAYERS,
+                             lat, lon, gw, gh, tile_m, cache_dir, _geom_to_polygons, "rings")
 
 
 def fetch_water(lat: float, lon: float, gw: int, gh: int,
@@ -724,18 +734,20 @@ def map_railway_to_isom(layer: str, props: dict) -> int:
     return 509
 
 
-def map_paved_to_isom(layer: str, props: dict) -> int:
+def map_paved_to_isom(layer: str, props: dict) -> float:
     """Mapuje ZABAGED zpevněnou plochu na ISOM 2017-2 plošný symbol (kód).
 
-    `Kolejiště` → **501 Paved area** (vždy; KISS, jako budovy→521). 501 je v template_classic.omap
-    kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 = rozhodnutí uživatele
-    (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu, ne na jednotlivé
-    koleje. Parkoviště (Sez. 41) → taky 501 (zpevněná plocha, DRY). Konektor vrací holý ISOM kód
-    (int) — render zná generator.py (žádný cyklický import).
+    `Kolejiště`/`Parkoviště` → **501 Paved area** (s obrysem; KISS, jako budovy→521). 501 je
+    v template_classic.omap kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 =
+    rozhodnutí uživatele (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu.
 
-    Pozn.: `Ostatní plocha v sídlech` (115) → 501.1 (bez obrysu) ZKOUŠENO Sez. 53, ale ODLOŽENO —
-    vrstva je administrativní výplň sídla (obří polygon se stovkami děr pro budovy/zeleň/cesty);
-    náš parser díry ignoruje → zalila 41 % výseku. Čeká na podporu děr (holes), viz TODO."""
+    `Ostatní plocha v sídlech` (115) → **501.1 Paved area BEZ obrysu** (Sez. 54). Administrativní výplň
+    zastavěného území; díry (budovy/zeleň/cesty) parser nově nese (Sez. 54) → 501.1 vyplní jen volné
+    plochy mezi nimi (náměstí/dvory/parkoviště), ne celé sídlo (kontrast Sez. 53 bez děr = 41 % zality).
+    Necelý kód 501.1 → float (render přes str(code), precedent 402.1/412.1). Konektor vrací holý ISOM
+    kód — render zná generator.py (žádný cyklický import)."""
+    if layer == "Ostatní plocha v sídlech":
+        return 501.1
     return 501
 
 
@@ -949,10 +961,11 @@ def fetch_landmarks(lat: float, lon: float, gw: int, gh: int,
     for layer in (*LANDMARK_AREA_LAYERS_524, *LANDMARK_AREA_LAYERS_311):
         fc = _fetch_layer(layer, bbox, cache_dir)
         for feat in fc.get("features", []):
-            for ring in _geom_to_polygons(feat.get("geometry") or {}):
-                if ring:
-                    cx = sum(p[0] for p in ring) / len(ring)
-                    cy = sum(p[1] for p in ring) / len(ring)
+            for poly in _geom_to_polygons(feat.get("geometry") or {}):
+                outer = poly[0] if poly else None       # poly = [vnější, díra…]; centroid z vnějšího (Sez. 54)
+                if outer:
+                    cx = sum(p[0] for p in outer) / len(outer)
+                    cy = sum(p[1] for p in outer) / len(outer)
                     out.append((cx, cy, layer))
     return out
 

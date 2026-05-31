@@ -61,6 +61,7 @@ SYMBOLS = [
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
     ("501",   "Paved area"),
+    ("501.1", "Paved area (no bounding line)"),
     ("502",   "Wide road"),
     ("503",   "Road"),
     ("504",   "Vehicle track"),

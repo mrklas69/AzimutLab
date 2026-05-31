@@ -99,18 +99,24 @@ def geom_to_lines(geom: dict) -> list[list[tuple[float, float]]]:
     return []
 
 
-def geom_to_polygons(geom: dict) -> list[list[tuple[float, float]]]:
-    """Rozbalí GeoJSON plochu na seznam vnějších prstenců [(x,y), ...] (S-JTSK metry).
+def geom_to_polygons(geom: dict) -> list[list[list[tuple[float, float]]]]:
+    """Rozbalí GeoJSON plochu na seznam POLYGONŮ, každý jako prsteny [vnější, díra1, …] (S-JTSK metry).
 
-    Polygon nebo MultiPolygon (voda, budovy, pokryv, parcely). Bereme jen vnější prstenec
-    (coords[0]) každého polygonu; vnitřní díry (ostrovy) zatím ignorujeme. Linie/bod se ignorují.
+    Polygon nebo MultiPolygon (voda, budovy, pokryv, parcely). GeoJSON (RFC 7946) drží vnější
+    obrys jako `coords[0]` a vnitřní DÍRY (výřezy/ostrovy) jako `coords[1:]`. Vracíme je VČETNĚ
+    děr (Sez. 54): velké administrativní plochy (ZABAGED `Ostatní plocha v sídlech`) jsou ze
+    70–80 % díry (budovy/zeleň/cesty vykrojené ven) — bez nich by vnější obrys zalil celé sídlo.
+
+    Návratový tvar: `[[outer, hole1, …], …]` — list polygonů; polygon = list prstenů (první vnější,
+    zbytek díry); prsten = list bodů. Konzument bere `poly[0]` vnější, `poly[1:]` díry. Linie/bod ignor.
     """
     gtype = geom.get("type")
     coords = geom.get("coordinates")
     if gtype == "Polygon":
-        return [[(float(x), float(y)) for x, y, *_ in coords[0]]] if coords else []
+        return [[[(float(x), float(y)) for x, y, *_ in ring] for ring in coords]] if coords else []
     if gtype == "MultiPolygon":
-        return [[(float(x), float(y)) for x, y, *_ in poly[0]] for poly in coords if poly]
+        return [[[(float(x), float(y)) for x, y, *_ in ring] for ring in poly]
+                for poly in coords if poly]
     return []
 
 

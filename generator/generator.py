@@ -53,7 +53,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_PAVED, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -280,14 +280,17 @@ RIDE_STYLE = {ISOM_NARROW_RIDE: ("dashed", 1, (3.0 * PX_PER_MM, 0.375 * PX_PER_M
 
 # Zpevněné plochy / kolejiště (Sez. 28, real-půlka, plošná — izomorfní s budovou 521 / vodní
 # plochou 301): ZABAGED Kolejiště → ISOM 501 Paved area. 501 je v template KOMBINOVANÝ symbol
-# (hnědá 50% výplň + obrysová linie). Raster: výplň = C_ROAD (zavedená hnědá zpevněného povrchu,
-# DRY se silnicí 502 — paved i silnice jsou hnědé), obrys = C_BROWN (= template bounding line
-# Brown 100%). Mapování viz zabaged.map_paved_to_isom (vždy 501). Volba 501 pro kolejiště =
-# rozhodnutí uživatele (Sez. 28): nádraží se generalizuje na zpevněnou plochu, ne jednotlivé koleje.
-ISOM_PAVED = 501                   # zpevněná plocha (kolejiště/parkoviště) → hnědá výplň + obrysová linie
-PAVED_NAME = {ISOM_PAVED: "Paved area"}
-# ISOM kód → třída v mask_paved.png (0 = pozadí). Jediná třída (1).
-PAVED_CLASS = {ISOM_PAVED: 1}
+# (hnědá 50% výplň + obrysová linie). Raster: výplň = C_PAVED (Lower brown 50%, ISOM color 13 — odlišná
+# od silnice 502 = C_ROAD Upper brown 50%; v ISOM mají identické CMYK, rastr je odliší jasem, aby silnice
+# na zpevněné ploše 501.1 vynikly — Sez. 54), obrys = C_BROWN (= template bounding line Brown 100%).
+# Mapování viz zabaged.map_paved_to_isom (501 kolejiště / 501.1 ostatní plocha v sídlech).
+ISOM_PAVED = 501                   # zpevněná plocha s obrysem (kolejiště/parkoviště) → hnědá výplň + obrysová linie
+ISOM_PAVED_NB = 501.1              # zpevněná plocha BEZ obrysu (ostatní plocha v sídlech, 115; Sez. 54)
+PAVED_NAME = {ISOM_PAVED: "Paved area", ISOM_PAVED_NB: "Paved area (no bounding line)"}
+# ISOM kód → třída v mask_paved.png (0 = pozadí). 501 = třída 1, 501.1 = třída 2 (rozliš pro UC5).
+PAVED_CLASS = {ISOM_PAVED: 1, ISOM_PAVED_NB: 2}
+# obrys per symbol: 501 má bounding line (černá), 501.1 je BEZ obrysu (administrativní výplň, Sez. 54).
+PAVED_OUTLINE = {ISOM_PAVED: C_BLACK, ISOM_PAVED_NB: None}
 
 # Plošný pokryv / land-cover (Sez. 41-42, real-půlka, plošná — izomorfní s vodní plochou 301 /
 # budovou 521 / kolejiště 501). Dvě třídy v JEDNÉ vrstvě `--surfaces` (multi-class maska):
@@ -572,6 +575,18 @@ def _sjtsk_to_grid(x: float, y: float, bbox: tuple) -> tuple[float, float]:
     """
     xmin, ymin, xmax, ymax = bbox
     return ((x - xmin) / (xmax - xmin) * (GW - 1), (ymax - y) / (ymax - ymin) * (GH - 1))
+
+
+def _poly_to_grid_px(poly: list[list[tuple[float, float]]], geo_bbox: tuple) -> tuple[list, list]:
+    """ZABAGED polygon [vnější, díra1, …] (S-JTSK) → (grid_rings, px_rings) (Sez. 54).
+
+    Mirror starého per-ring transformu (S-JTSK → grid → px), jen přes VŠECHNY prsteny polygonu.
+    `grid_rings` jdou do .omap (mřížkové souřadnice), `px_rings` do rastru. Sjednocuje 6 plošných
+    call-sitů (voda/budovy/paved/surfaces/marsh/skály) — DRY."""
+    grid_rings = [[_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring] for ring in poly]
+    px_rings = [[_grid_to_px(gx, gy) for gx, gy in g] for g in grid_rings]
+    return grid_rings, px_rings
+
 
 # =====================================================================
 #  Skalární pole (§2-3)
@@ -1019,82 +1034,126 @@ def _draw_footbridge(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     mdraw.line([p1, p2], fill=BRIDGE_CLASS_FOOTBRIDGE, width=FOOTBRIDGE_WIDTH_PX)
 
 
+def _fill_rings_scanline(d: ImageDraw.ImageDraw,
+                         rings_px: list[list[tuple[float, float]]], fill) -> None:
+    """Vyplní víceprstencový polygon [vnější, díra1, …] na `d` přes even-odd scanline (Sez. 54).
+
+    PIL `polygon` výřezy neumí. Hrany VŠECH prstenů (vnější + díry) se na každém řádku sčítají do
+    jednoho seznamu průsečíků: mezi vnějškem a dírou lichý počet (kreslí se), uvnitř díry sudý
+    (vynechá se) → díra zůstane prázdná. Hrany se počítají PER PRSTEN (uzavření `%n` v rámci
+    prstenu, ne přes jeho hranici). Sdílí princip se scanline v _draw_marsh_area/_draw_dotted_."""
+    ys = [p[1] for ring in rings_px for p in ring]
+    y0, y1 = int(math.floor(min(ys))), int(math.ceil(max(ys)))
+    for y in range(y0, y1 + 1):
+        xs: list[float] = []
+        for ring in rings_px:
+            n = len(ring)
+            for i in range(n):
+                ax, ay = ring[i]
+                bx, by = ring[(i + 1) % n]
+                if (ay <= y < by) or (by <= y < ay):        # hrana kříží řádek (half-open)
+                    t = (y - ay) / (by - ay)
+                    xs.append(ax + t * (bx - ax))
+        xs.sort()
+        for j in range(0, len(xs) - 1, 2):                  # vyplň mezi sudými páry (uvnitř, ne v díře)
+            d.line([(xs[j], y), (xs[j + 1], y)], fill=fill, width=1)
+
+
 def _draw_area_symbol(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
-                      ring_px: list[tuple[float, float]],
+                      rings_px: list[list[tuple[float, float]]],
                       fill: tuple, outline: tuple, mask_class: int) -> None:
     """Plošný ISOM symbol: barevná výplň + obrysová linie na mapu + třída do GT masky.
 
     Sjednocuje plochy stejně, jako _draw_line_symbol sjednotil linie (Sez. 17): vodní
-    plocha (modrá) i budova (černá) jsou týž tvar lišící se jen barvou. PIL polygon
-    vyplní uzavřený prstenec, `outline` dá obrys (břeh/zeď). Maska dostane PLNOU výplň
-    třídou (plošná GT, ne jen obrys)."""
-    if len(ring_px) < 3:
+    plocha (modrá) i budova (černá) jsou týž tvar lišící se jen barvou. `rings_px` = prsteny
+    [vnější, díra1, …] (Sez. 54). Bez děr (drtivá většina ploch) jde RYCHLÁ cesta: PIL C polygon
+    (beze změny chování). S děrami (velké administrativní plochy) even-odd scanline vyřízne výřezy.
+    Maska dostane PLNOU výplň třídou (plošná GT, ne jen obrys)."""
+    outer = rings_px[0]
+    if len(outer) < 3:
         return
-    draw.polygon(ring_px, fill=fill, outline=outline)
-    adraw.polygon(ring_px, fill=mask_class)
+    holes = [h for h in rings_px[1:] if len(h) >= 3]
+    if not holes:                                       # rychlá cesta: žádné díry → PIL polygon (C)
+        draw.polygon(outer, fill=fill, outline=outline)
+        adraw.polygon(outer, fill=mask_class)
+        return
+    rings = [outer, *holes]
+    if fill is not None:
+        _fill_rings_scanline(draw, rings, fill)
+    _fill_rings_scanline(adraw, rings, mask_class)
+    if outline is not None:                             # obrys: každý prsten zvlášť (vnější i díry = hranice)
+        for ring in rings:
+            draw.line(list(ring) + [ring[0]], fill=outline)
 
 
 def _draw_water_area(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
-                     ring_px: list[tuple[float, float]], code: int) -> None:
+                     rings_px: list[list[tuple[float, float]]], code: int) -> None:
     """Vodní plocha (ISOM 301): modrá výplň + černý břeh — wrapper nad _draw_area_symbol."""
-    _draw_area_symbol(draw, wdraw, ring_px, C_BLUE, C_BLACK, WATER_CLASS[code])
+    _draw_area_symbol(draw, wdraw, rings_px, C_BLUE, C_BLACK, WATER_CLASS[code])
 
 
 def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
-                        ring_px: list[tuple[float, float]], code: int) -> None:
+                        rings_px: list[list[tuple[float, float]]], code: int) -> None:
     """Budovová stavba: 521 budova = plná černá výplň + obrys; 523 zřícenina = jen černý OBRYS
     bez výplně (ruina je neúplná stavba — odliší se od plné budovy; Sez. 43). Rastr kreslí plný
     obrys (zříceniny jsou malé, čárkování by zaniklo); .omap dostane věrný 523 dashed ze symbolu
     (princip „rastr px-tuned vs .omap věrný", Sez. 28/29). Wrapper nad _draw_area_symbol."""
     fill = C_BLACK if code == ISOM_BUILDING else None
-    _draw_area_symbol(draw, bdraw, ring_px, fill, C_BLACK, BUILDING_CLASS[code])
+    _draw_area_symbol(draw, bdraw, rings_px, fill, C_BLACK, BUILDING_CLASS[code])
 
 
 def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
-                     ring_px: list[tuple[float, float]], code: int) -> None:
-    """Zpevněná plocha / kolejiště / parkoviště (ISOM 501): hnědá výplň + ČERNÝ obrys — wrapper nad
-    _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area). Obrys = černý (verify
-    Sez. 50: template 501 „Paved area, with bounding line" = thin BLACK line, jako budova 521/206 —
-    dřív hnědý C_BROWN, oprava Stale nálezu Sez. 44)."""
-    _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BLACK, PAVED_CLASS[code])
+                     rings_px: list[list[tuple[float, float]]], code: float) -> None:
+    """Zpevněná plocha (ISOM 501 kolejiště/parkoviště / 501.1 ostatní plocha v sídlech): hnědá výplň +
+    obrys dle symbolu — wrapper nad _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area).
+    501 má ČERNÝ obrys (template „Paved area, with bounding line" = thin BLACK line; verify Sez. 50);
+    501.1 je BEZ obrysu (PAVED_OUTLINE, Sez. 54 — administrativní výplň, ne ohraničená plocha)."""
+    _draw_area_symbol(draw, adraw, rings_px, C_PAVED, PAVED_OUTLINE[code], PAVED_CLASS[code])
 
 
 def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
-                       ring_px: list[tuple[float, float]], code: int) -> None:
+                       rings_px: list[list[tuple[float, float]]], code: int) -> None:
     """Plošný pokryv (ISOM 401 open land žlutá / 520 zákaz vstupu olivová): plná výplň BEZ obrysu
     — wrapper nad _draw_area_symbol (izomorfní s _draw_paved_area, jen outline=None: open land ani
     out-of-bounds nemají bounding line; barva dle SURFACE_FILL, třída dle SURFACE_CLASS)."""
-    _draw_area_symbol(draw, sdraw, ring_px, SURFACE_FILL[code], None, SURFACE_CLASS[code])
+    _draw_area_symbol(draw, sdraw, rings_px, SURFACE_FILL[code], None, SURFACE_CLASS[code])
 
 
 def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
-                              ring_px: list[tuple[float, float]], code: int) -> None:
+                              rings_px: list[list[tuple[float, float]]], code: int) -> None:
     """Plocha s tečkovým patternem (ISOM 412 pole / 402 park / 402.1 ostatní zeleň): ŽLUTÁ výplň +
     tečkový pattern ořezaný na polygon + plná třída do GT masky (Sez. 47/53). Barva/poloměr/rozestup
     teček řídí SURFACE_DOT[code]: 412 černé (r 0,15 mm, grid 1,2 mm); 402 bílé / 402.1 zelené (r 0,3 mm,
     grid 1,05 mm). .omap dostane věrný symbol (412 = 401 + 412.1 combined; 402/402.1 = samostatný
     combined area symbol z template).
 
-    Tečky leží na PRAVIDELNÉ mřížce kotvené GLOBÁLNĚ (násobky rozestupu od počátku rastru) → pattern
-    lícuje napříč sousedními plochami (vypadá jako jeden rastr, ISOM „orientated to north"). Scanline
-    odvozen z _draw_marsh_area: po řádcích gridu najdi průsečíky s hranami (even-odd) a teč jen uvnitř."""
-    if len(ring_px) < 3:
+    `rings_px` = [vnější, díra1, …] (Sez. 54). Tečky leží na PRAVIDELNÉ mřížce kotvené GLOBÁLNĚ
+    (násobky rozestupu od počátku rastru) → pattern lícuje napříč sousedními plochami (ISOM „orientated
+    to north"). Scanline (even-odd přes hrany VŠECH prstenů) teč jen uvnitř a vynechá díry."""
+    outer = rings_px[0]
+    if len(outer) < 3:
         return
-    draw.polygon(ring_px, fill=SURFACE_FILL[code])       # žluté pozadí (jako 401)
-    sdraw.polygon(ring_px, fill=SURFACE_CLASS[code])     # GT maska: plná plocha
+    rings = [outer, *(h for h in rings_px[1:] if len(h) >= 3)]
+    if len(rings) > 1:                                   # s děrami: pozadí/maska přes scanline (PIL výřezy neumí)
+        _fill_rings_scanline(draw, rings, SURFACE_FILL[code])
+        _fill_rings_scanline(sdraw, rings, SURFACE_CLASS[code])
+    else:                                               # bez děr: rychlá PIL cesta (beze změny chování)
+        draw.polygon(outer, fill=SURFACE_FILL[code])    # žluté pozadí (jako 401)
+        sdraw.polygon(outer, fill=SURFACE_CLASS[code])  # GT maska: plná plocha
     dot_color, dot_r, sp = SURFACE_DOT[code]              # barva, poloměr, rozestup teček (per-symbol)
-    ys = [p[1] for p in ring_px]
+    ys = [p[1] for ring in rings for p in ring]
     y0, y1 = min(ys), max(ys)
-    n = len(ring_px)
     y = math.ceil(y0 / sp) * sp                          # první řádek mřížky uvnitř bboxu (globální kotva)
     while y <= y1:
         xs: list[float] = []
-        for i in range(n):                              # průsečíky scanline s hranami polygonu
-            ax, ay = ring_px[i]
-            bx, by = ring_px[(i + 1) % n]
-            if (ay <= y < by) or (by <= y < ay):        # hrana kříží řádek (half-open interval)
-                t = (y - ay) / (by - ay)
-                xs.append(ax + t * (bx - ax))
+        for ring in rings:                              # průsečíky scanline s hranami (per prsten → díry vynechány)
+            n = len(ring)
+            for i in range(n):
+                ax, ay = ring[i]
+                bx, by = ring[(i + 1) % n]
+                if (ay <= y < by) or (by <= y < ay):    # hrana kříží řádek (half-open interval)
+                    t = (y - ay) / (by - ay)
+                    xs.append(ax + t * (bx - ax))
         xs.sort()
         for j in range(0, len(xs) - 1, 2):              # uvnitř polygonu = mezi sudými páry průsečíků
             x = math.ceil(xs[j] / sp) * sp              # první tečka mřížky v intervalu (globální kotva)
@@ -1105,28 +1164,34 @@ def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageD
 
 
 def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                     ring_px: list[tuple[float, float]], code: int) -> None:
+                     rings_px: list[list[tuple[float, float]]], code: int) -> None:
     """Mokřad (ISOM 308 Marsh): MODRÁ vodorovná šrafa ořezaná na polygon + plná třída do GT masky.
 
     Pattern napodobuje template 308 (modré vodorovné čáry, rozestup MARSH_HATCH_SPACING_PX); .omap
-    dostane věrný 308 area symbol. Scanline algoritmus: pro každou vodorovnou linii najdi průsečíky
-    s hranami polygonu (even-odd pravidlo), seřaď x a vyplň modře mezi sudými páry. GT maska = PLNÁ
-    výplň třídou (plošná pravda, ne jen šrafa — jako ostatní plochy)."""
-    if len(ring_px) < 3:
+    dostane věrný 308 area symbol. `rings_px` = [vnější, díra1, …] (Sez. 54). Scanline: pro každou
+    vodorovnou linii najdi průsečíky s hranami VŠECH prstenů (even-odd), seřaď x a vyplň modře mezi
+    sudými páry (díry vynechány). GT maska = PLNÁ výplň třídou (plošná pravda, ne jen šrafa)."""
+    outer = rings_px[0]
+    if len(outer) < 3:
         return
+    rings = [outer, *(h for h in rings_px[1:] if len(h) >= 3)]
     cls = MARSH_CLASS[code]
-    mdraw.polygon(ring_px, fill=cls)                    # GT maska: plná plocha
-    ys = [p[1] for p in ring_px]
+    if len(rings) > 1:                                  # s děrami: maska přes scanline (PIL výřezy neumí)
+        _fill_rings_scanline(mdraw, rings, cls)
+    else:
+        mdraw.polygon(outer, fill=cls)                  # bez děr: rychlá PIL cesta (plná plocha)
+    ys = [p[1] for ring in rings for p in ring]
     y0, y1 = int(math.floor(min(ys))), int(math.ceil(max(ys)))
-    n = len(ring_px)
     for y in range(y0, y1 + 1, MARSH_HATCH_SPACING_PX):
         xs: list[float] = []
-        for i in range(n):                              # průsečíky scanline s hranami polygonu
-            ax, ay = ring_px[i]
-            bx, by = ring_px[(i + 1) % n]
-            if (ay <= y < by) or (by <= y < ay):        # hrana kříží scanline (half-open interval)
-                t = (y - ay) / (by - ay)                # lineární interpolace x v průsečíku
-                xs.append(ax + t * (bx - ax))
+        for ring in rings:                              # průsečíky scanline s hranami (per prsten → díry vynechány)
+            n = len(ring)
+            for i in range(n):
+                ax, ay = ring[i]
+                bx, by = ring[(i + 1) % n]
+                if (ay <= y < by) or (by <= y < ay):    # hrana kříží scanline (half-open interval)
+                    t = (y - ay) / (by - ay)            # lineární interpolace x v průsečíku
+                    xs.append(ax + t * (bx - ax))
         xs.sort()
         for j in range(0, len(xs) - 1, 2):              # vyplň mezi sudými páry (uvnitř polygonu)
             draw.line([(xs[j], y), (xs[j + 1], y)], fill=C_BLUE, width=1)
@@ -1185,8 +1250,9 @@ def _buffer_polyline_irregular(axis_px: list[tuple[float, float]],
 def _draw_treerow_area(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDraw,
                        ring_px: list[tuple[float, float]]) -> None:
     """Stromořadí / lineární les (ISOM 406): plná SVĚTLE ZELENÁ výplň BEZ obrysu + GT maska
-    (izomorfní s _draw_surface_area; 406 je plošný vegetační symbol, hranici nemá)."""
-    _draw_area_symbol(draw, tdraw, ring_px, C_GREEN1, None, TREEROW_CLASS[ISOM_TREE_ROW])
+    (izomorfní s _draw_surface_area; 406 je plošný vegetační symbol, hranici nemá). Buffrovaný
+    pás je JEDEN prsten bez děr → předáno _draw_area_symbol jako [ring_px] (tvar list-ringů, Sez. 54)."""
+    _draw_area_symbol(draw, tdraw, [ring_px], C_GREEN1, None, TREEROW_CLASS[ISOM_TREE_ROW])
 
 
 def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1222,13 +1288,13 @@ def _draw_boulder_cluster(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
 
 
 def _draw_gigantic_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                           ring_px: list[tuple[float, float]]) -> None:
+                           rings_px: list[list[tuple[float, float]]]) -> None:
     """Masivní skalní formace (ISOM 206 Gigantic boulder): plná černá plocha + GT maska.
 
     Template_classic.omap (id 35): `area_symbol inner_color="2" min_area="0" patterns="0"`
     = jen plná černá výplň (žádný pattern, žádný obrys jiné barvy). Mirror _draw_building_area,
     jen třída masky jiná (ROCK_CLASS[206])."""
-    _draw_area_symbol(draw, mdraw, ring_px, C_BLACK, C_BLACK, ROCK_CLASS[ISOM_GIGANTIC_BOULDER])
+    _draw_area_symbol(draw, mdraw, rings_px, C_BLACK, C_BLACK, ROCK_CLASS[ISOM_GIGANTIC_BOULDER])
 
 
 def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -1891,13 +1957,12 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
         code = map_water_to_isom(f["layer"], f["props"])
         if code is None:
             continue
-        for ring in f["rings"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 3:
+        for poly in f["rings"]:
+            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+            if len(px_rings[0]) < 3:
                 continue
-            _draw_water_area(draw, wdraw, px, code)
-            area_features.append((grid, code))
+            _draw_water_area(draw, wdraw, px_rings, code)
+            area_features.append((grid_rings, code))
             water_info.append({"symbol": code, "symbol_name": WATER_NAME[code], "kind": "area",
                                "layer": f["layer"]})
     return line_features, area_features, water_info
@@ -1921,13 +1986,12 @@ def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDr
         code = map_building_to_isom(f["layer"], f["props"])
         if code is None:
             continue
-        for ring in f["rings"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 3:
+        for poly in f["rings"]:
+            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+            if len(px_rings[0]) < 3:
                 continue
-            _draw_building_area(draw, bdraw, px, code)
-            area_features.append((grid, code))
+            _draw_building_area(draw, bdraw, px_rings, code)
+            area_features.append((grid_rings, code))
             building_info.append({"symbol": code, "symbol_name": BUILDING_NAME[code],
                                   "kind": "area", "layer": f["layer"]})
     return area_features, building_info
@@ -2041,14 +2105,22 @@ def _generate_real_rides(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
 
 
 def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
-                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálné zpevněné plochy (real-půlka, Sez. 28+42): plochy ze ZABAGED → ISOM 501.
+                         lat: float, lon: float, geo_bbox: tuple,
+                         *, urban_base: bool = False) -> tuple[list, list]:
+    """Reálné zpevněné plochy (real-půlka, Sez. 28+42+54): plochy ze ZABAGED → ISOM 501 / 501.1.
 
     Mirror _generate_real_buildings (RAW S-JTSK → grid → px → polygon, bez generalizace).
-    Zdroje 501: kolejiště + parkoviště (fetch_paved_areas) + asfaltové dopravní plochy z areálů
-    účelové zástavby (114: autobusové nádraží / čerpací stanice — Sez. 42). Areály 114 mapují i na
-    520 (oplocené areály) → ty sem NEpatří (jsou v surfaces kanálu), proto filtr `code == 501`.
-    Vrací (area_features [(grid, code)], paved_info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
+    Zdroje 501 (s obrysem): kolejiště + parkoviště (fetch_paved_areas) + asfaltové dopravní plochy
+    z areálů účelové zástavby (114: autobusové nádraží / čerpací stanice — Sez. 42). Zdroj 501.1
+    (BEZ obrysu): ostatní plocha v sídlech (115, Sez. 54 — díry vykrojí budovy/zeleň/cesty).
+    Areály 114 mapují i na 520 (oplocené areály) → ty sem NEpatří (surfaces kanál), proto filtr
+    `code in PAVED_CLASS` (vezme 501/501.1, přeskočí 520).
+
+    **Dva z-order průchody (Sez. 54):** `urban_base=True` kreslí JEN 501.1 (administrativní výplň
+    sídla = ÚPLNĚ VESPOD, před surfaces → olivová 520 privátních parcel ji překryje, je věrnější);
+    `urban_base=False` (default) kreslí JEN 501 (kolejiště/parkoviště NAD pokryvem, původní pozice).
+    Sdílí jednu paved masku (volá se 2× s týmž adraw). Vrací (area_features [(grid_rings, code)],
+    paved_info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
     from zabaged import (fetch_paved_areas, map_paved_to_isom,
                          fetch_utility_areas, map_utility_area_to_isom)
     area_features: list[tuple] = []
@@ -2057,15 +2129,16 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                           (fetch_utility_areas(lat, lon, GW, GH, TILE_M), map_utility_area_to_isom)):
         for f in feats:
             code = mapper(f["layer"], f["props"])
-            if code != ISOM_PAVED:      # 520 (oplocené areály 114) patří do surfaces kanálu, ne sem
+            if code not in PAVED_CLASS:    # 520 (oplocené areály 114) patří do surfaces kanálu, ne sem
                 continue
-            for ring in f["rings"]:
-                grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-                px = [_grid_to_px(gx, gy) for gx, gy in grid]
-                if len(px) < 3:
+            if (code == ISOM_PAVED_NB) != urban_base:    # base průchod jen 501.1, top jen 501 (z-order Sez. 54)
+                continue
+            for poly in f["rings"]:
+                grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+                if len(px_rings[0]) < 3:
                     continue
-                _draw_paved_area(draw, adraw, px, code)
-                area_features.append((grid, code))
+                _draw_paved_area(draw, adraw, px_rings, code)
+                area_features.append((grid_rings, code))
                 paved_info.append({"symbol": code, "symbol_name": PAVED_NAME[code],
                                    "kind": "area", "layer": f["layer"]})
     return area_features, paved_info
@@ -2101,20 +2174,19 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
             code = mapper(f["layer"], f["props"])
             if code not in SURFACE_FILL:    # 501 (asfaltové areály 114) patří do paved kanálu, ne sem
                 continue
-            for ring in f["rings"]:
-                grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-                px = [_grid_to_px(gx, gy) for gx, gy in grid]
-                if len(px) < 3:
+            for poly in f["rings"]:
+                grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+                if len(px_rings[0]) < 3:
                     continue
-                # kultura pod ISOM min. plochou → degraduj na 401 open land (Sez. 47)
+                # kultura pod ISOM min. plochou → degraduj na 401 open land (Sez. 47; filtr na vnějším prstenu)
                 draw_code = code
-                if code in SURFACE_MIN_AREA_PX2 and _polygon_area_px(px) < SURFACE_MIN_AREA_PX2[code]:
+                if code in SURFACE_MIN_AREA_PX2 and _polygon_area_px(px_rings[0]) < SURFACE_MIN_AREA_PX2[code]:
                     draw_code = ISOM_OPEN_LAND
                 if draw_code in SURFACE_DOT:
-                    _draw_dotted_surface_area(draw, sdraw, px, draw_code)
+                    _draw_dotted_surface_area(draw, sdraw, px_rings, draw_code)
                 else:
-                    _draw_surface_area(draw, sdraw, px, draw_code)
-                area_features.append((grid, draw_code))
+                    _draw_surface_area(draw, sdraw, px_rings, draw_code)
+                area_features.append((grid_rings, draw_code))
                 surfaces_info.append({"symbol": draw_code, "symbol_name": SURFACE_NAME[draw_code],
                                       "kind": "area", "layer": f["layer"]})
     return area_features, surfaces_info
@@ -2132,13 +2204,12 @@ def _generate_real_marsh(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     marsh_info: list[dict] = []
     for f in fetch_marsh(lat, lon, GW, GH, TILE_M):
         code = map_marsh_to_isom(f["layer"], f["props"])
-        for ring in f["rings"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 3:
+        for poly in f["rings"]:
+            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+            if len(px_rings[0]) < 3:
                 continue
-            _draw_marsh_area(draw, mdraw, px, code)
-            area_features.append((grid, code))
+            _draw_marsh_area(draw, mdraw, px_rings, code)
+            area_features.append((grid_rings, code))
             marsh_info.append({"symbol": code, "symbol_name": MARSH_NAME[code],
                                "kind": "area", "layer": f["layer"]})
     return area_features, marsh_info
@@ -2168,7 +2239,7 @@ def _generate_real_tree_rows(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDr
             _draw_treerow_area(draw, tdraw, ring_px)
             # px prstenec → mřížka (inverze _grid_to_px: gx = px/W·(GW−1)) pro .omap (týž tvar)
             grid = [(px / W * (GW - 1), py / H * (GH - 1)) for px, py in ring_px]
-            area_features.append((grid, code))
+            area_features.append(([grid], code))    # jeden prsten bez děr → tvar list-ringů (Sez. 54)
             treerows_info.append({"symbol": code, "symbol_name": TREEROW_NAME[code],
                                   "kind": "area", "layer": f["layer"]})
     return area_features, treerows_info
@@ -2222,13 +2293,12 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     # 3) Skalní útvary (polygon) → 206 Gigantic boulder (vždy, plná plocha)
     for f in fetch_rock_areas(lat, lon, GW, GH, TILE_M):
         code = map_rock_area_to_isom(f["layer"], f["props"])
-        for ring in f["rings"]:
-            grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in ring]
-            px = [_grid_to_px(gx, gy) for gx, gy in grid]
-            if len(px) < 3:
+        for poly in f["rings"]:
+            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+            if len(px_rings[0]) < 3:
                 continue
-            _draw_gigantic_boulder(draw, rdraw, px)
-            rock_area_features.append((grid, code))
+            _draw_gigantic_boulder(draw, rdraw, px_rings)
+            rock_area_features.append((grid_rings, code))
             rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
                                "layer": f["layer"]})
 
@@ -2660,8 +2730,8 @@ def _generate_real_ropiky(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
             return out
 
         bring = place(building_um)
-        _draw_building_area(draw, bdraw, bring, ISOM_BUILDING)      # černá 521 + maska budov
-        ropik_features.append((_to_grid(bring), 521))
+        _draw_building_area(draw, bdraw, [bring], ISOM_BUILDING)    # černá 521 + maska budov ([bring] = tvar list-ringů, Sez. 54)
+        ropik_features.append(([_to_grid(bring)], 521))            # jeden prsten bez děr → list-ringů
         for cline_um in contours_um:
             cline = place(cline_um)
             if len(cline) >= 2:
@@ -2824,6 +2894,23 @@ def generate_map(
     # protože plošný pokryv (z-order vespod, kreslí se hned) ho potřebuje už před vrstevnicemi.
     layer_errors: dict[str, str] = {}
 
+    # --- zpevněná base (ISOM 501.1 „ostatní plocha v sídlech"): ÚPLNĚ VESPOD, pod pokryvem (Sez. 54) ---
+    # 501.1 = administrativní výplň sídla (díry vykrojí budovy/zeleň/cesty). Kreslí se PŘED surfaces →
+    # olivová 520 privátních parcel (RÚIAN, věrnější) ji NAHOŘE překryje (z-order: privátní/nepřístupné má
+    # přednost před „zpevněná"). Sdílí paved masku s 501 kolejištěm (top fáze níž). Jen --paved real.
+    paved_area_features: list[tuple] = []
+    paved_info: list[dict] = []
+    paved_mask_img: Image.Image | None = None
+    adraw: ImageDraw.ImageDraw | None = None
+    if paved == "real":
+        paved_mask_img = Image.new("L", (W, H), 0)       # GT maska zpevněných ploch (§8.1), sdílená oběma fázemi
+        adraw = ImageDraw.Draw(paved_mask_img)
+        base_feats, base_info = _try_layer(
+            "paved-base", lambda: _generate_real_paved(draw, adraw, lat, lon, geo_bbox, urban_base=True),
+            ([], []), tolerant, layer_errors)
+        paved_area_features += base_feats
+        paved_info += base_info
+
     # --- plošný pokryv / land-cover (ISOM 401 open land + 520 zákaz vstupu): ÚPLNĚ VESPOD (Sez. 41-42) ---
     # Rastr z-order: PRVNÍ kresba na bílé plátno = podklad pod vrstevnicemi i vším ostatním. Žlutá
     # open land (louka/park) + pole 412 + olivová zákaz vstupu (hřbitov + privátní pozemek RÚIAN + sad/zahrada)
@@ -2965,17 +3052,15 @@ def generate_map(
 
     # --- zpevněné plochy / kolejiště (ISOM 501): reálné ze ZABAGED REST (real-půlka, Sez. 28) ---
     # Rastr z-order: brzy (po terénu/bodech, PŘED vodou/cestami) — hnědá plocha je podklad, na
-    # němž leží koleje (509), cesty i budovy. V lesních výsecích bez nádraží = 0 prvků. Jen --paved real.
-    paved_area_features: list[tuple] = []
-    paved_info: list[dict] = []
-    paved_mask_img: Image.Image | None = None
+    # němž leží koleje (509), cesty i budovy. NAD pokryvem (501.1 base + 401/520 už nakresleny výš).
+    # Sdílí paved masku s 501.1 base fází. V lesních výsecích bez nádraží = 0 prvků. Jen --paved real.
     if paved == "real":
-        paved_mask_img = Image.new("L", (W, H), 0)       # GT maska zpevněných ploch (§8.1)
-        adraw = ImageDraw.Draw(paved_mask_img)
-        paved_area_features, paved_info = _try_layer(
-            "paved", lambda: _generate_real_paved(draw, adraw, lat, lon, geo_bbox),
+        top_feats, top_info = _try_layer(
+            "paved", lambda: _generate_real_paved(draw, adraw, lat, lon, geo_bbox, urban_base=False),
             ([], []), tolerant, layer_errors)
-        _log.info("  zpevněné plochy: %d", len(paved_info))
+        paved_area_features += top_feats
+        paved_info += top_info
+        _log.info("  zpevněné plochy: %d (501 kolejiště/parkoviště + 501.1 ostatní plocha v sídlech)", len(paved_info))
 
     # --- voda (hydrografie): reálná ze ZABAGED REST (real-půlka, Sez. 17) ---
     # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém
@@ -3300,11 +3385,11 @@ def generate_map(
     # lesní průseky = liniový symbol 508 (čárkovaný, type-1 v template) → otevřený path; OOM
     # vykreslí čárkování z definice symbolu (dash 3,0 / break 0,375 mm)
     ride_omap_features = [(g, "508") for g, _ in ride_features]
-    # zpevněné plochy → 501 (KOMBINOVANÝ symbol: hnědá výplň + OBRYSOVÁ LINIE). Bounding line je
-    # významová — do kolejiště se nevstupuje (rozhodnutí uživatele Sez. 28), proto NE čistě plošný
-    # 501.1 (bez obrysu, jako voda). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní
-    # area-část kombinovaného symbolu a nakreslí obrys (jako u vody 301 combined).
-    paved_omap_features = [(g, "501") for g, _ in paved_area_features]
+    # zpevněné plochy → 501 (KOMBINOVANÝ symbol: hnědá výplň + OBRYSOVÁ LINIE; kolejiště, do nějž se
+    # nevstupuje — rozhodnutí uživatele Sez. 28) / 501.1 (plošný BEZ obrysu; ostatní plocha v sídlech
+    # 115, Sez. 54). Uzavřený prstenec s close flagem (viz AREA_CODES); OOM vyplní area-část a u 501
+    # nakreslí obrys. Code z featur (NE hardcode — jinak by 501.1 vypadlo jako 501).
+    paved_omap_features = [(g, str(c)) for g, c in paved_area_features]
     # plošný pokryv → 401 (open land) / 520 (zákaz vstupu) = plošné symboly (area, uzavřený path
     # s close flagem; OOM vyplní plnou barvou). Sez. 41-42.
     surface_omap_features = [(g, str(c)) for g, c in surface_area_features]
