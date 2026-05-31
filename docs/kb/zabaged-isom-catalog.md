@@ -67,11 +67,11 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Lávka (linie)` | linie | 512.2 Footbridge | ✓ | lávka pro pěší (REST jméno **s mezerou a závorkou**, ne podtržítka); DOKONČENO Sez. 33 |
 | `Lávka (bod)` | bod | 512.2 Footbridge | ✓ | bodová varianta lávky (REST jméno s mezerou); single dash 1,25 mm × 0,25 mm template id=127; DOKONČENO Sez. 33 |
 | `Tunel` | linie | 512 Bridge/tunnel | ✓ | žel./silniční tunel; ISOM 512 = stejný symbol pro most i tunel (spec str. 32: „Bridges and tunnels are represented using the same basic symbols"); DOKONČENO Sez. 33 (portály 90° na vjezdech) |
-| `Brod` | linie | (519 Crossing point) | ○ | brod přes tok; ISOM nemá vlastní symbol, nejblíž žádný |
+| `Brod` | linie | (519 Crossing point) | ○ | brod přes tok; ISOM nemá vlastní symbol. **Změřeno Sez. 55:** SV 3 / NL 1 / LS 1 / HS 1 = Σ6 |
 | `Propustek__linie_` | linie | — | ○ | propustek pod cestou; drobnost, většinou nekreslit |
 | `Propustek__bod_` | bod | — | ○ | bodová varianta |
-| `Podjezd (linie)` | linie | (519 Crossing point?) | ○ | tematická skupina s Most/Tunel; verify ISOM 519 spec před implementací |
-| `Podjezd (bod)` | bod | (519 Crossing point?) | ○ | bodová varianta; viz výše |
+| `Podjezd (linie)` | linie | (519 Crossing point?) | ○ | tematická skupina s Most/Tunel; verify ISOM 519 spec před implementací. **Změřeno Sez. 55:** LS 11 / HS 1 = Σ12 |
+| `Podjezd (bod)` | bod | (519 Crossing point?) | ○ | bodová varianta; viz výše. **Změřeno Sez. 55:** LS 1 = Σ1 |
 | `Přívoz` | linie | — | ✗ | přes splavnou řeku, vzácné v OB |
 | `Přístaviště` | bod | — | ✗ | voda, urbánní |
 | `Hraniční_přechod__přeshraniční_propojení` | bod | — | ✗ | administrativní |
@@ -82,8 +82,8 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 |---|---|---|---|---|
 | `Železniční_trať` | linie | 509 Railway | ✓ | **POUŽITO Sez. 28** (`--railways`, id 75, kombinovaný symbol) |
 | `Železniční_vlečka` | linie | 509 Railway | ✓ | **POUŽITO Sez. 28** (id 76; u nádraží svazek kolejí) |
-| `Lanová_dráha__lyžařský_vlek` | linie | 510 Power line, cableway or skilift | ○ | hory / lyž. areály |
-| `Stožár_lanové_dráhy` | bod | 510 (carrying mast) | ○ | stožár lanovky |
+| `Lanová dráha, lyžařský vlek` | linie | 510 Power line, cableway or skilift | ✓ | **Sez. 55** (`--powerlines`, id 72; REST jméno s mezerou/čárkou). ISOM 510 = „Power line, cableway *or skilift*" = TÝŽ symbol jako vedení → sloučeno do `--powerlines` (mirror vedení; KISS). `typ_ldv_k` (vlek/lanovka/kabinová) ISOM nerozlišuje → vždy 510. NL 2 / LS 1 (Ještěd) |
+| `Stožár lanové dráhy` | bod | 510 (carrying mast) | ✓ | **Sez. 55** (`--powerlines`, id 61; přidáno do `POWERLINE_MAST_LAYERS` — příčky symbolu 510 na poloze sloupů, fáze 1, mirror `Stožár_elektrického_vedení`). NL 4 / LS 2 |
 | `Tramvajová_dráha` | linie | 509 Railway | ✓ | **POUŽITO Sez. 31** (`--railways`, id 71; oprava Sez. 28 vynechání — tramvajová točna LS chyběla; 509 nerozlišuje tramvaj od železnice). LS 25 |
 | `Metro` | linie | — | ✗ | podzemní / urbánní |
 | `Kolejiště` | plocha | 501 Paved area | ✓ | **POUŽITO Sez. 28** (`--paved`, id 122; „10 kolejí" = plocha, ne linie; do kolejiště se nevstupuje → 501 s obrysem) |
@@ -115,12 +115,12 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Vodní_tok` | linie | 304 / 305 / 306 | ✓ | dle pojmenovanosti/stálosti; podzemní (`typtoku_k`=004) nekreslit |
 | `Vodní_plocha` | plocha | 301 Uncrossable body of water | ✓ | výplň + břehová linie |
 | `Zdroj podzemních vod` | bod | 312 Spring | ✓ | **Sez. 44** (`--landmarks`, modré „U" ústím nahoru ∪); pramen Σ65 napříč 5 lokalitami (REST jméno s mezerami) |
-| `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád |
-| `Vodopád__bod_` | bod | 313 Prominent water feature | ○ | bodová varianta |
+| `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád. **Změřeno Sez. 55:** 0 ve všech 5 výsecích |
+| `Vodopád__bod_` | bod | 313 Prominent water feature | ○ | bodová varianta. **Změřeno Sez. 55:** SV 1 / HS 1 = Σ2 |
 | `Pozemní_nádrž` | plocha | 301 | ✓ | **použito Sez. 27** — koupaliště/bazény (`podtypob_k='BA'`) i ostatní → 301 (Lesní koupaliště LS) |
 | `Nadzemní zásobní nádrž` | plocha | 311 Well/fountain/water tank | ✓ | **Sez. 44** (`--landmarks`, plocha → centroid → modrý čtverec); Σ8 (LS 6 / HS 2) |
 | `Břehová_čára` | linie | 301.4 bank line | ✗ | obrys vodní plochy — odvozeno z 301, netáhnout zvlášť |
-| `Přehradní_hráz__jez` | linie | (528 Prom. line) | ○ | hráz/jez — ODLOŽENO (Sez. 44): ISOM 528 vyžaduje definici v legendě mapy (ruční krok), mapování hráz↔528 sporné (jez = spíš přerušení toku 304); Σ13 |
+| `Přehradní_hráz__jez` | linie | (528 Prom. line) | ○ | hráz/jez — ODLOŽENO (Sez. 44): ISOM 528 vyžaduje definici v legendě mapy (ruční krok), mapování hráz↔528 sporné (jez = spíš přerušení toku 304). **Změřeno Sez. 55:** SV 3 / NL 3 / LS 7 = Σ13 |
 | `Plavební_komora` | linie | — | ✗ | splavná řeka |
 | `Lodní_výtah__zdvihadlo` | linie | — | ✗ | splavná řeka |
 | `Akvadukt__shybka` | linie | — | ✗ | technický vodní objekt |
@@ -142,10 +142,10 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Osamělý_balvan__skála__skalní_suk` | bod | 204 Boulder | ✓ | Sez. 30 (`--rocks`); ZABAGED bez atributu typu/výšky → 205 odpadlo, KISS |
 | `Skalní_útvary` | plocha | 206 Gigantic boulder | ✓ | Sez. 30 (`--rocks`, plná černá plocha); hybridní 202/206 podle plochy zavrženo „bez datového podkladu" |
 | `Skupina_balvanů__bod_` | bod | 207 Boulder cluster | ✓ | Sez. 30 (`--rocks`) |
-| `Skupina_balvanů__linie_` | linie | 208 Boulder field | ◐ | pole balvanů — odloženo (3 prvky na Hrubé Skále) |
-| `Sesuv_půdy__suť` | plocha | 210 Stony ground | ◐ | suť — odloženo (0 prvků na Hrubé Skále, verify v Jeseníkách / Krkonoších) |
+| `Skupina_balvanů__linie_` | linie | 208 Boulder field | ◐ | pole balvanů — odloženo. **Změřeno Sez. 55** (`returnCountOnly` 5 lokalit): SV 7 / HS 3 / NV 4 = **Σ14** (ne „3 na HS"). Vyžaduje nový render (buffer linie → plocha s ISOM area pattern trojúhelníky) |
+| `Sesuv_půdy__suť` | plocha | 210 Stony ground | ◐ | suť — odloženo. **Změřeno Sez. 55:** SV 1 = Σ1 (marginální; verify v Jeseníkách / Krkonoších) |
 | `Vstup do jeskyně` | bod | 203.2 Cave | ✓ | **Sez. 44** (`--landmarks`, černá „Λ" stříška hrotem nahoru = „with a distinct entrance"; NE plný trojúhelník — oprava dle uživatele; 203.1 = V hrotem dolů „without entrance"). Σ s šachtou 9 |
-| `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom — ODLOŽENO (Sez. 44): plocha lomu ≠ hrana srázu (201 značí linii s ticky), Σ1 marginální |
+| `Povrchová_těžba__lom` | plocha | 201 Impassable cliff | ○ | lom — ODLOŽENO (Sez. 44): plocha lomu ≠ hrana srázu (201 značí linii s ticky). **Změřeno Sez. 55:** LS 1 = Σ1 (kamenolom; marginální) |
 | `Ústí šachty, štoly` | bod | 203.2 Cave | ✓ | **Sez. 44** (`--landmarks`, týž symbol jako jeskyně — spec „…or mineshafts…") |
 | `Stupeň__sráz` | linie | 104 Earth bank | ✓ | **Sez. 43** (`--linefeatures`, id 95 → 104 plná linie + jednostranné ticky; zemní sráz, NE skalní 201). **Σ981 = nejčastější dosud netáhnutá**. SV 71 / LS 393 / HS 377 |
 | `Rokle__výmol` | linie | 107 Erosion gully / 108 | ○ | erozní rýha |
@@ -161,7 +161,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Lesní_půda_se_stromy_kategorizovaná__bod_` | bod | — | ✗ gate | dtto |
 | `Lesní_půda_s_kosodřevinou` | plocha | (410 fight) | ✗ gate | druh ≠ průchodnost |
 | `Lesní_půda_s_křovinatým_porostem` | plocha | (406–410) | ✗ gate | druh ≠ průchodnost |
-| `Významný_nebo_osamělý_strom__lesík` | bod | 417 Prominent large tree | ◐ | osamělý strom = OB objekt |
+| `Významný_nebo_osamělý_strom__lesík` | bod | 417 Prominent large tree | ✓ | **Sez. 43** (`--landmarks`, `LANDMARK_POINT_LAYERS_417`; osamělý strom = OB objekt, zelený kroužek). Drift v katalogu (◐) opraven Sez. 55 — implementace existuje (`map_landmark_to_isom` → 417) |
 | `Orná_půda_a_ostatní_dále_nespecifikované_plochy` | plocha | 412 Cultivated land | ✓ | **Sez. 41** (`--surfaces`, KISS → 401); **Sez. 47-48 druhá vlna → 412** (žlutá + černý tečkový pattern, template 412.1; min. 9 mm² → 401). SV 16 / NL 7 / LS 21 / HS 57 / NV 11 |
 | `Trvalý_travní_porost` | plocha | 401 Open land | ✓ | **Sez. 41** (`--surfaces`, louka → žlutá); odstín 401 vs 403 = gate nuance, KISS 401 |
 | `Udržovaná_zeleň` | plocha | 402 / 402.1 | ✓ | **Sez. 41** (`--surfaces`, → 401 žlutá); **Sez. 53** štěpení podle `typ_pudy_k`: `PO` park/okrasná zahrada → **402 Open land with scattered trees** (žlutá + bílé tečky), `UZ` ostatní udržovaná zeleň → **402.1 …with scattered bushes** (žlutá + zelené tečky). LS 3 PO / 14 UZ. 402.1 = první „scattered bushes" zeleň z dat, gate neporušuje (mirror 406) |
@@ -263,9 +263,9 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Stav | Počet | Které |
 |---|---|---|
-| ✓ použito | ~44 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513** + **Sez. 44 (dávka 4 vodní/mokřady): bažina+rašeliniště→308 (`--marsh`), pramen→312, jeskyně+šachta→203.2, nádrž→311 (`--landmarks`)** + **Sez. 45: stromořadí `Liniová vegetace`→406 lineární les (`--treerows`, oprava 416→406)** |
-| ◐/○ odloženo | 2 | hráz 528 (legenda mapy + sporné mapování), lom 201 (plocha ≠ hrana srázu, Σ1) — viz akční seznam |
-| ○ možné | ~20 | okrajově relevantní (brod 519, podjezd 519, lanovka 510, vodopád 313, komín 524, zábrana 519, …) |
+| ✓ použito | ~46 | cesty + voda + budovy + vedení + řopíky (Sez. 16–27) + železnice/kolejiště/**tramvaj** (28/31) + skály (30) + mosty/tunely/lávky (32–33) + lesní průseky (36) + **plošný pokryv: open land→401, hřbitov→520, parkoviště→501 (Sez. 41)** + **areály 114→520/501, kůlny 105→521 (Sez. 42)** + **RÚIAN privátní pozemky→520 (Sez. 42, `ruian.py`)** + **Sez. 43 (systematický audit katalogu): zámek/hrad→521, zřícenina→523, věž/věžovitá stavba/vodojem/silo/těžní/mlýn/motor→524, mohyla→526, kříž→530, strom→417, sráz→104, zeď/hradba→513** + **Sez. 44 (dávka 4 vodní/mokřady): bažina+rašeliniště→308 (`--marsh`), pramen→312, jeskyně+šachta→203.2, nádrž→311 (`--landmarks`)** + **Sez. 45: stromořadí `Liniová vegetace`→406 lineární les (`--treerows`, oprava 416→406)** + **Sez. 52: komín→524, zábrana→519** + **Sez. 53-54: udržovaná zeleň→402/402.1, ostatní plocha v sídlech→501.1 (holes)** + **Sez. 55: lanovka/vlek+stožár→510 (`--powerlines`, mirror el. vedení)** |
+| ◐/○ odloženo | ~10 | **se ZMĚŘENÝMI počty (Sez. 55, `temp/probe_remaining_layers.py`):** balvany-linie 208 (Σ14: SV 7/HS 3/NV 4), podjezd 519 (Σ12: LS 11), hráz 528 (Σ13: legenda mapy + sporné), brod 519 (Σ6), vodopád 313 (Σ2), lom 201 (Σ1: LS), suť 210 (Σ1) — viz akční seznam |
+| ○ možné | ~10 | okrajově relevantní (lanovka přesunuta do ✓ Sez. 55; rokle 107 Σ0, silnice ve výstavbě Σ0, …) |
 | ✗ mimo doménu | ~80 | administrativa, POI, geodetické body, urbánní, vegetace gate, pomocné kreslicí linie |
 
 > **Verify-against-source data-driven (Sez. 43):** výskyt VŠECH 149 vrstev změřen napříč 5
@@ -282,7 +282,14 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 4. **`Přehradní_hráz__jez` → 528** (id 22, Σ13) — **ODLOŽENO Sez. 44**: 528 vyžaduje definici v legendě mapy (ruční krok kartografa), mapování hráz↔528 sporné (jez = spíš přerušení toku). Vyžaduje rozhodnutí uživatele.
 5. ~~`Nadzemní zásobní nádrž` → 311~~ **HOTOVO Sez. 44** (`--landmarks`; id 108, Σ8 = LS 6 + HS 2). **`Povrchová_těžba__lom` → 201** (id 118, Σ1) — **ODLOŽENO**: plocha lomu ≠ hrana srázu (201 = linie s ticky dolů), Σ1 marginální.
 6. ~~`Rašeliniště (plocha)` → 308~~ **HOTOVO Sez. 44** (`--marsh`, spolu s bažinou).
-7. *(○ druhá vlna)* brod/podjezd → 519, lanovka+stožár → 510, vodopád → 313, kótovaný bod (SKIP, viz níže).
+7. ~~`Lanová dráha, lyžařský vlek` + `Stožár lanové dráhy` → 510~~ **HOTOVO Sez. 55** (`--powerlines`, id 72/61; NL 2 / LS 1 lanovka, mirror el. vedení).
+8. *(○ druhá vlna, ZMĚŘENO Sez. 55)* brod 519 (Σ6) / podjezd 519 (Σ12, LS 11; verify spec) / vodopád 313 (Σ2) / balvany-linie 208 (Σ14; nový area pattern) / kótovaný bod (SKIP, viz níže).
+
+> **Korekce Sez. 55 — „katalog vyčerpán" (Sez. 52) byl nepřesný.** Sez. 52 prohlásil katalog za
+> vyčerpaný, ALE ○ kandidáti lanovka/lom/brod/podjezd/hráz NEBYLI změřeni jako Sez. 43 (jen odhad
+> „hory / Σ1"). Probe Sez. 55 (`temp/probe_remaining_layers.py`, `returnCountOnly` 5 lokalit) ukázal
+> nenulový výskyt: lanovka NL 2/LS 1 (→ HOTOVO), balvany-linie Σ14, podjezd Σ12, hráz Σ13, brod Σ6.
+> Lekce: „vyčerpáno" tvrď až po měření, ne od oka (paměť `verify-data-not-assume`).
 
 **Kótovaný bod (id 9, Σ353) — SKIP s odůvodněním (Sez. 43):** vrstva nese JEN atribut `vyska`
 (nadm. výška), žádný typ ani fyzickou značku → je to **virtuální výškopisný bod**, ne fyzický objekt

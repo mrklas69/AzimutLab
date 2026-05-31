@@ -93,10 +93,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   taky 521). Render izomorfní s vodní plochou 301 (`_draw_area_symbol`), jen černá místo modré.
   **RAW půdorys (Sez. 27):** kresleno přesně jako voda (syrový ZABAGED ring), BEZ generalizace či
   displacementu — ty komolily tvar/polohu (viz [[kartografická-generalizace]]).
-- **El. vedení** — elektrické vedení na OB mapě. ISOM **510 Power line, cableway or skilift**
-  (tenká černá linie s kolmými příčkami na SLOUPECH — běžci se jimi řídí). Generátor `--powerlines
-  real` (Sez. 24): reálná půlka ze ZABAGED `Elektrické_vedení` (linie → osa) + `Stožár_elektrického_
-  vedení` (body → příčky). Mapování `map_powerline_to_isom` → vždy 510 (`NAPETI` v datech prázdné →
+- **El. vedení + lanovka/vlek** — el. vedení i lanovka/lyžařský vlek na OB mapě. ISOM **510 Power line,
+  cableway or skilift** = JEDEN symbol pro všechny tři (tenká černá linie s kolmými příčkami na SLOUPECH
+  — běžci se jimi řídí). Generátor `--powerlines real` (Sez. 24 + 55): reálná půlka ze ZABAGED
+  `Elektrické_vedení` + `Lanová dráha, lyžařský vlek` (linie → osa) + `Stožár_elektrického_vedení` /
+  `Stožár lanové dráhy` (body → příčky). Lanovka sloučena do `--powerlines` (Sez. 55, ISOM 510 nerozlišuje
+  zdroj). Mapování `map_powerline_to_isom` → vždy 510 (`NAPETI`/`typ_ldv_k` nerozlišují →
   bez rozlišení 511 Major power line). **Pozor: 510, NE 516** (516 = Fence/plot — oprava zděděného
   předpokladu, verify proti template, Sez. 24). Příčky = dvě fáze (viz [[pseudorealistic]]).
 - **Železnice** — železniční trať na OB mapě. ISOM **509 Railway** — v `template_classic.omap` **kombinovaný

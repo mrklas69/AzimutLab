@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 55 (2026-06-01) — lanovka/vlek → 510 (sloučeno do `--powerlines`) + probe „katalog vyčerpán" korekce
+- [x] **Lanovka/vlek/stožár → ISOM 510** (`--powerlines`, sloučeno s el. vedením). Verify-against-source
+      PŘED kódem: template id=121 → ISOM 510 = „Power line, cableway **or skilift**" = JEDEN symbol pro
+      vedení i lanovku; probe atributů (`Lanová dráha, lyžařský vlek` id=72 = `Polyline` s `typ_ldv_k`;
+      `Stožár lanové dráhy` id=61 = `Point` bez atributů) → dokonalý mirror `Elektrické_vedení` +
+      `Stožár_elektrického_vedení`. Volba uživatele **sloučit do `--powerlines`** (ISOM nerozlišuje, KISS,
+      precedent --rocks/--landmarks). Kód = čisté rozšíření (4 edity): `LAYER_IDS` += 72/61, `POWERLINE_LAYERS`
+      + `POWERLINE_MAST_LAYERS` += lanovka/stožár, `map_powerline_to_isom` docstring, `POWERLINE_NAME` →
+      oficiální ISOM „Power line, cableway or skilift". `map_powerline_to_isom` už vracelo `return 510` → 0 změn logiky.
+- [x] **Verify lanovky:** proc baseline **byte-identický** (md5 `a76af84…` git-stash diff → noise větev
+      nedotčena, edity izolované do real powerline). Lanovka integrována PŘESNĚ dle probe: NL 2 / LS 1,
+      ostatní 0 (delta omap objektů na SV/HS = nezávislý drift reálných dat). GT maska NL nese 2 vleky
+      s příčkami na stožárech (fáze 1); rgb render = symbol 510. **Žádný nový ISOM symbol** → OOM verify
+      netřeba (510 už ověřeno u vedení). 5 lokalit regen + STATISTICS.
+- [x] **Korekce „ZABAGED katalog vyčerpán" (Sez. 52) + probe zbylých kandidátů.** Sez. 52 prohlásil katalog
+      za vyčerpaný, ALE ○ kandidáti nebyli změřeni jako Sez. 43. Probe `temp/probe_remaining_layers.py`
+      (`returnCountOnly` 5 lokalit): lanovka NL 2/LS 1 (→ HOTOVO), **balvany-linie 208 Σ14**, **podjezd 519
+      Σ12** (LS 11), **hráz 528 Σ13**, **brod 519 Σ6**, vodopád 313 Σ2, lom 201 Σ1, suť 210 Σ1. Katalog
+      doplněn o tvrdá čísla (ať se mýtus „0" nevrací). **Oprava driftu: strom `Významný_nebo_osamělý_strom`
+      ◐→✓** (implementace `LANDMARK_POINT_LAYERS_417` existuje od Sez. 43, katalog ji vedl jako kandidát).
+- [x] **Propagace:** katalog (lanovka/stožár ✓ + čísla + korekce vyčerpání), architecture, spec §4.9c,
+      GLOSSARY, README root+generator, TODO (`[x]`→`[~]`, katalog není vyčerpán). batch beze změny (lanovka
+      pod existujícím `--powerlines`, který je v batch off obě větve — B1 OK).
+
 ## Sezení 54 (2026-05-31) — podpora děr (holes) + `Ostatní plocha v sídlech` → 501.1 + color-table průlom
 - [x] **Podpora děr (holes) v plošných vrstvách (ENABLER).** ZABAGED/GeoJSON nese vnitřní prsteny (díry)
       u velkých polygonů; dosud parser zahazoval. Tři vrstvy: **(1) parser** `arcgis.geom_to_polygons`

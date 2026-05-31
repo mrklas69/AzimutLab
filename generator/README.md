@@ -28,8 +28,9 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
   (Sez. 27 — generalizace L1 i displacement L2 zavrženy, komolily tvar/polohu; *generalizuj jen s důkazem*),
 - **pomocné vrstevnice** — form lines ISOM **103** (Sez. 29; derivace z DMR, ne ZABAGED — jen `--terrain real`),
   kde mírný svah AND zakřivený terén; min. délka 3 mm,
-- **el. vedení** — `--powerlines real` (Sez. 24): `Elektrické_vedení` → ISOM **510** (příčky na reálných
-  sloupech `Stožár_elektrického_vedení`),
+- **el. vedení + lanovka/vlek** — `--powerlines real` (Sez. 24 + 55): `Elektrické_vedení` +
+  `Lanová dráha, lyžařský vlek` → ISOM **510** „Power line, cableway or skilift" (příčky na reálných
+  sloupech `Stožár_elektrického_vedení` / `Stožár lanové dráhy`; ISOM 510 = týž symbol pro vedení i lanovku),
 - **železnice** — `--railways real` (Sez. 28+31): `Železniční_trať`+`_vlečka`+`Tramvajová dráha` → ISOM
   **509** (kombinovaný symbol, bílý knockout),
 - **kolejiště / zpevněné plochy** — `--paved real` (Sez. 28): `Kolejiště` → ISOM **501 Paved area** (plocha

@@ -57,7 +57,7 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 - Od průzkumu k běžícím konektorům (Sez. 16–42): **`connectors/`** = první sdílená kódová
   složka mimo sandbox (drobný krok B→A; vedle ní dnes `generator/`, Sez. 39). `dmr.py` (DMR 5G
   výškopis, ArcGIS ImageServer),
-  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení +
+  `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení/lanovka +
   železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41 +
   areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42 +
   **Sez. 43 systematický audit katalogu: zámek/hrad → 521, zřícenina → 523, věž/vodojem/silo/… → 524, mohyla → 526,

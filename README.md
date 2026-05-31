@@ -16,8 +16,9 @@ water from the same `zabaged.py` connector (`--water real`, watercourses ISOM 30
 incl. swimming pools from `Pozemní_nádrž` since session 27), and — since session 18 — real buildings
 (`--buildings real`, ISOM 521), drawn as **RAW footprints exactly like water** (session 27 dropped the earlier
 level-1 generalization + level-2 displacement — they distorted the true shape; faithful raw data serves the feeder
-better — *generalize only with evidence*), and — since session 24 — real power lines (`--powerlines real`,
-ISOM 510, cross-ticks on real pylons), real pillboxes (`--ropiky real`, Czechoslovak
+better — *generalize only with evidence*), and — since session 24 — real power lines & cableways/ski-lifts
+(`--powerlines real`, ISOM 510 "Power line, cableway or skilift", cross-ticks on real pylons; cableways
+merged session 55), real pillboxes (`--ropiky real`, Czechoslovak
 fortification `Bunkr` LO37 as an asset, oriented toward the nearest state border, since session 27), and
 — since session 28 — real railways (`--railways real`, `Železniční_trať`+`_vlečka` → ISOM 509 combined
 symbol) and railway yards (`--paved real`, `Kolejiště` → ISOM 501 paved area; the "ten parallel tracks"
