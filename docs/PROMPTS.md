@@ -26,6 +26,9 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 = globální %DOCS + commit pravidla. Projektová specifika:
 - Diář: docs/diary/YYYY-MM-DD.md, index DIARY.md. Více sezení/den =
   sekce `## Sezení N` v témže souboru (nikdy ne suffix b/c/d).
+- **Indexový řádek `DIARY.md` = stručný hook (1–2 věty + klíčové ISOM kódy), NE kopie
+  záznamu.** Plný detail patří do `diary/`. Index se čte celý každý `%BEGIN` → dlouhé
+  odstavce = zbytečná tokenová zátěž (nález %CALIBRATE Sez. 51). Staré řádky nepřepisovat.
 - **Propagace do VŠECH vrstev (Sez. 34, root-cause %CALIBRATE):** zápis do `DIARY.md`+diáře
   nestačí. Projdi checklist a propiš dnešní změnu, kam patří (conceptual integrity, SLAP):
   - **Přidal/změnil reálnou vrstvu?** → `DONE.md` (záznam) + `architecture.md` UC2 (výčet `--…real`)

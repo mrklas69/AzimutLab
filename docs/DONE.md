@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 51 (2026-05-31) — dokončení neuzavřeného %END Sez. 50 + %CALIBRATE (zralý +16)
+- [x] **Dokončen neuzavřený `%END` Sez. 50** — `%BEGIN` fetch-first odhalil hotovou-necommitnutou práci
+      (`HEAD==origin/main`, ale working tree plný refaktorů + diár Sez. 50). Dva commity (kód `refactor` +
+      `docs(session) [50]`) + push. Drobná vada propagace: `DIARY.md` index pořadí `…48,50,49` → srovnáno `…48,49,50`.
+- [x] **%CALIBRATE** (zralý +16 od Sez. 35, reset Sez. 51) — meta-audit spolupráce. **0 kritických.**
+      Role discipline čistá (projektový `CLAUDE.md` +8 % slov od Sez. 35, hluboko pod 50 % sub-prahem; čistý
+      AI overlay). Cadence vyhodnocena na datech (%AUDIT:CODE/DOCS 0 kritických → checklist Sez. 34 drží stav).
+      Collaboration: historické Censure clustery vyřešené pamětmi, trend zlepšení.
+- [x] **D1 — `settings.local.json` allow-list 50 → 22 patternů.** Smazány mrtvé `sandbox/` reference (zrušeno
+      Sez. 39), jednorázovky (`2+2`/`ping test`/`recovered`/`exit 1`/echo `$?`), překlep `DONE.md4`, konkrétní
+      awk/grep s čísly řádků, mrtvé `temp/probe` skripty, redundantní konkrétní python příkazy (pokryté wildcardy).
+      JSON validní. **Gitignored (stroj-specifický)** → zůstává lokální na ntbhej21, na `mrkla` se nepropíše.
+- [x] **D2 — `PROMPTS.md` `%END`** — pravidlo „indexový řádek `DIARY.md` = stručný hook (1–2 věty + ISOM kódy),
+      ne kopie záznamu" (index se čte celý každý `%BEGIN` → tokenová efektivita). Aplikováno hned na řádek Sez. 51.
+
 ## Sezení 50 (2026-05-31) — %AUDIT:CODE + 2 refaktory (zabaged DRY, A1 meta) + Stale + pruning
 - [x] **%AUDIT:CODE** (práh ≥8 dosažen od Sez. 41; +1175 net LOC). Přečten celý `generator.py` (3511 ř.) sám
       + 2 paralelní agenti na konektory/export (nálezy kriticky ověřeny proti zdroji — lekce Sez. 46). **0 kritických.**
