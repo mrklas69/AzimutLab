@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 50 (2026-05-31) — %AUDIT:CODE + 2 refaktory (zabaged DRY, A1 meta) + Stale + pruning
+- [x] **%AUDIT:CODE** (práh ≥8 dosažen od Sez. 41; +1175 net LOC). Přečten celý `generator.py` (3511 ř.) sám
+      + 2 paralelní agenti na konektory/export (nálezy kriticky ověřeny proti zdroji — lekce Sez. 46). **0 kritických.**
+      Ověřeno, že historický bug B1 (batch noise větev) **neregreduje** (obě větve vypínají všech 14 dev-map vrstev).
+      Kód zdravý: izomorfismus důsledný (wrappery nad `_draw_line_symbol`/`_draw_area_symbol`), DRY transport `arcgis.py` čistý.
+- [x] **Bezpečný balík oprav** (behavior-preserving): dead code (`_draw_landmark` jednoprvková smyčka `for col,mc`;
+      nepoužitá `ISOM_TUNNEL`; mrtvá větev `_normalize_code` 3011→301.1) + drift komentářů (z-order docstring chyběly
+      landmarks/linefeatures; `zabaged.py` modul docstring zaostalý ~9 sez; `batch.py` neúplný výčet off vrstev;
+      `stats.py` „10 sekcí"→14 + docstring) + katalog (`zabaged-isom-catalog.md`: 312 Spring „ústí dolů"→nahoru ∪;
+      Most/Tunel/Lávka stav ◐→✓ DOKONČENO Sez. 33).
+- [x] **Stale 501/513 vyřešen** (DO/DROP, visel Sez. 44→49 = 6×). **501 obrys hnědý→ČERNÝ** (verify template:
+      „Paved area, **with bounding line**" = thin **black** line; nebyl px-tuning, byla chybná barva). **513 Wall
+      DROP/doloženo:** rastr plná černá = legitimní px-tuning (tečka á 3 mm zaniká), `.omap` nese věrný 513 (OOM
+      vykreslí tečky) — konzistentní s render-px-tuned-vs-omap-věrný (505/508).
+- [x] **Refaktor `zabaged.py` (DRY, −157 ř / 1194→1037):** 14 `fetch_*` funkcí mělo identické tělo lišící se jen
+      vrstvami/parserem/klíčem → 2 helpery `_collect_features` (lines/rings) + `_collect_points` (volitelný predikát).
+      Speciální (`fetch_water`/`fetch_footbridges` kombinované, `fetch_state_border`/`fetch_landmarks` filtr/centroid)
+      ponechány vlastní. **Behavior-preserving:** SV meta deep-diff identické (všech 14 sekcí + 6031 omap objektů).
+- [x] **A1 jádro — meta-konstrukce sjednocena (`generator.py` −123 ř / 3511→3388):** `_layer_meta_section` helper
+      (jediná pravda struktury sekce, dřív zkopírováno 14×) + tabulkový `real_sections` registr → `_build_meta`
+      **26→18 parametrů**, zrušena asymetrie „část vrstev v `_build_meta` / část injektovaná vně". **Behavior-preserving:**
+      SV meta deep-diff identické (29 klíčů vč. symbols/classes/items), proc baseline 65 drží, stats.py OK.
+      **Fyzický split souboru na moduly vědomě NEproveden** — kreslicí helpery závisí na module-level globálech
+      `GW/GH/W/H` (mutované `_apply_extent`); split = přepsat globály na předávaný stav = velký refaktor proti fázi B
+      (sys.path skripty, ne balík). Spouštěč splitu = přechod na balík (fáze A). TODO A1 → `[~]`.
+- [x] **IDEAS/TODO pruning** (práh +14/12): IDEAS zkrácen verzní gap blok (ISOM 2000↔2017, zavřen Sez. 40) + jméno
+      (vyřazené alternativy); TODO zkrácen obří katalog-changelog řádek (hotové dávky Sez. 24–49 → DONE/katalog,
+      ponechán akční „zbývá zábrana 519/komín 524"). Verify: 5 lokalit přegenerováno s ortofotem (počty drží), STATISTICS.
+
 ## Sezení 49 (2026-05-30) — kultura 412 dotažena + sad/zahrada → 520 (oprava 413)
 - [x] **Render-verify kultury 412 dotažen** (carry-over `[!]` Sez. 48). **Root cause „render nedoběhne" nalezen:**
       `_draw_dotted_surface_area` (nový kód Sez. 48) měl **nekonečnou smyčku** — vnější `while y <= y1` nikdy

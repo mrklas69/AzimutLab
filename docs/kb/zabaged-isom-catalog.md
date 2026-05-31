@@ -63,10 +63,10 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Most` | linie | 512 Bridge/tunnel | ◐ | **linie, ne bod** (oprava zděděného předpokladu); Sez. 31 implementace rollbacknuta Sez. 32 (3 iterace bez spec-driven), znovu spec-driven |
-| `Lávka (linie)` | linie | 512.2 Footbridge | ◐ | lávka pro pěší (REST jméno **s mezerou a závorkou**, ne podtržítka); spec-driven po Sez. 32 mostu |
-| `Lávka (bod)` | bod | 512.2 Footbridge | ◐ | bodová varianta lávky (REST jméno s mezerou); single dash 1,25 mm × 0,25 mm template id=127 |
-| `Tunel` | linie | 512 Bridge/tunnel | ◐ | žel./silniční tunel; ISOM 512 = stejný symbol pro most i tunel (spec str. 32: „Bridges and tunnels are represented using the same basic symbols") |
+| `Most` | linie | 512 Bridge/tunnel | ✓ | **linie, ne bod** (oprava zděděného předpokladu); Sez. 31 implementace rollbacknuta Sez. 32 (3 iterace bez spec-driven), DOKONČENO Sez. 33 (2 paralely + nožičky 512, OOM verify) |
+| `Lávka (linie)` | linie | 512.2 Footbridge | ✓ | lávka pro pěší (REST jméno **s mezerou a závorkou**, ne podtržítka); DOKONČENO Sez. 33 |
+| `Lávka (bod)` | bod | 512.2 Footbridge | ✓ | bodová varianta lávky (REST jméno s mezerou); single dash 1,25 mm × 0,25 mm template id=127; DOKONČENO Sez. 33 |
+| `Tunel` | linie | 512 Bridge/tunnel | ✓ | žel./silniční tunel; ISOM 512 = stejný symbol pro most i tunel (spec str. 32: „Bridges and tunnels are represented using the same basic symbols"); DOKONČENO Sez. 33 (portály 90° na vjezdech) |
 | `Brod` | linie | (519 Crossing point) | ○ | brod přes tok; ISOM nemá vlastní symbol, nejblíž žádný |
 | `Propustek__linie_` | linie | — | ○ | propustek pod cestou; drobnost, většinou nekreslit |
 | `Propustek__bod_` | bod | — | ○ | bodová varianta |
@@ -114,7 +114,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 |---|---|---|---|---|
 | `Vodní_tok` | linie | 304 / 305 / 306 | ✓ | dle pojmenovanosti/stálosti; podzemní (`typtoku_k`=004) nekreslit |
 | `Vodní_plocha` | plocha | 301 Uncrossable body of water | ✓ | výplň + břehová linie |
-| `Zdroj podzemních vod` | bod | 312 Spring | ✓ | **Sez. 44** (`--landmarks`, modré „U" ústím dolů); pramen Σ65 napříč 5 lokalitami (REST jméno s mezerami) |
+| `Zdroj podzemních vod` | bod | 312 Spring | ✓ | **Sez. 44** (`--landmarks`, modré „U" ústím nahoru ∪); pramen Σ65 napříč 5 lokalitami (REST jméno s mezerami) |
 | `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád |
 | `Vodopád__bod_` | bod | 313 Prominent water feature | ○ | bodová varianta |
 | `Pozemní_nádrž` | plocha | 301 | ✓ | **použito Sez. 27** — koupaliště/bazény (`podtypob_k='BA'`) i ostatní → 301 (Lesní koupaliště LS) |
