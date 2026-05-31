@@ -294,8 +294,15 @@ HS 16 / NV 44.
 ### 4.9j Plošný pokryv / land-cover (real-půlka, Sez. 41-49)
 **✅ Reálný pokryv:** `--surfaces real` vezme plošné pokryvové vrstvy a mapuje na ISOM symboly (`zabaged.fetch_open_land`
 / `fetch_cemeteries` / `fetch_utility_areas` + `ruian.fetch_private_land`, mappery `map_*_to_isom`):
-- **Open land → ISOM 401** (plná ŽLUTÁ, bez obrysu): `Trvalý travní porost` (louka) + `Udržovaná zeleň` (park).
-  Louka/park nejsou kultura → bez patternu. Odstín 401 vs 403 Rough open (průchodnost) = vegetace-gate nuance → KISS 401.
+- **Open land → ISOM 401** (plná ŽLUTÁ, bez obrysu): `Trvalý travní porost` (louka). Louka není kultura → bez
+  patternu. Odstín 401 vs 403 Rough open (průchodnost) = vegetace-gate nuance → KISS 401.
+- **Udržovaná zeleň → ISOM 402 / 402.1** ✅ (Sez. 53): `Udržovaná zeleň` se ŠTĚPÍ podle atributu `typ_pudy_k`:
+  `PO` „park, okrasná zahrada" → **402 Open land with scattered trees** (žlutá + BÍLÉ tečky = rozptýlené stromy,
+  template color 30); `UZ` „ostatní udržovaná zeleň" → **402.1 …with scattered bushes** (žlutá + ZELENÉ tečky =
+  rozptýlené keře, template color 27 „Green 60%" ≈ C_GREEN2). Tečky r 0,3 mm, grid 1,05 mm (větší/hustší než 412).
+  Pod ISOM min. plochou 9 mm² → degraduje na 401 (izomorf 412). Render `_draw_dotted_surface_area`; .omap věrný
+  samostatný combined area symbol (402/402.1 v template, NErozbaluje se jako 412). **402.1 = první „scattered
+  bushes" zeleň z dat — vegetace gate neporušuje** (tvrdý ZABAGED objekt nesoucí kategorii, mirror stromořadí 406).
 - **Pole → ISOM 412 Cultivated land** ✅ (Sez. 47-48): `Orná půda a ostatní dále nespecifikované plochy` → žlutá
   výplň + **černý tečkový pattern** (template 412.1, tečka r 0,15 mm, grid 1,2 mm, kotvený globálně k severu).
   Pod ISOM min. plochou 3×3 mm = 9 mm² → degraduje na 401 (izomorf se stromořadím Sez. 45). Render `_draw_dotted_surface_area`,
@@ -319,9 +326,9 @@ HS 16 / NV 44.
 - **Drobné stavby → ISOM 521** (přes budovy): `Kůlna, skleník, fóliovník, přístřešek` (105) → 521 (Sez. 42).
 
 Plošné, izomorfní s vodní plochou/budovou/kolejištěm: render `_draw_area_symbol` s `outline=None`, barva dle
-`SURFACE_FILL` (`C_YELLOW` / `C_OLIVE` — **barvy normované ISOM, z palety, neladí se okem**); pole 412 navíc černý
-tečkový pattern (`_draw_dotted_surface_area`). Jedna multi-class GT `mask_surfaces.png` (1=open land, 2=olivová,
-3=pole). **Z-order: ÚPLNĚ VESPOD** (podklad pod vrstevnicemi; olivová NAD žlutou/polem — privátní zahrada RÚIAN
+`SURFACE_FILL` (`C_YELLOW` / `C_OLIVE` — **barvy normované ISOM, z palety, neladí se okem**); 412 pole / 402 park /
+402.1 zeleň navíc tečkový pattern (`_draw_dotted_surface_area`, barva+poloměr+rozestup per-symbol ze `SURFACE_DOT`).
+Jedna multi-class GT `mask_surfaces.png` (1=open land, 2=olivová, 3=pole, 4=402 park, 5=402.1 zeleň). **Z-order: ÚPLNĚ VESPOD** (podklad pod vrstevnicemi; olivová NAD žlutou/polem — privátní zahrada RÚIAN
 přemaže pokryv pod ní; les zůstává bílá = vegetace gate). Vyžaduje `--terrain real`. Hustota pokryvu (Sez. 49,
 po přesunu sad→520): SV 2040 olivová / 16 pole / NL 145 / 7 / LS 19761 / 21 / HS 2066 / 57 / NV 552 / 11.
 **Verify Sez. 41** (`compare_real_vs_gen` SV):

@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 53 (2026-05-31) — udržovaná zeleň → 402 / 402.1 (štěpení podle atributu)
+- [x] **`Udržovaná zeleň` (134) → ISOM 402 / 402.1** (`--surfaces`, štěpení podle atributu `typ_pudy_k`).
+      Verify-against-source probe: vrstva nese `typ_pudy_k` ∈ {`PO` „park, okrasná zahrada", `UZ` „ostatní
+      udržovaná zeleň"} (LS 3 PO / 14 UZ) → čistá projekce přes atribut. Dnes celá → 401 (Sez. 41); rozštěpeno.
+- [x] **402 Open land with scattered trees** (park/okrasná zahrada, `PO`) = žlutá + **bílé** tečky (template
+      color 30); **402.1 …with scattered bushes** (ostatní zeleň, `UZ`) = žlutá + **zelené** tečky (color 27
+      „Green 60%" ≈ C_GREEN2). Geometrie z template: tečka r 0,3 mm, grid 1,05 mm (větší/hustší než 412).
+      **402.1 = první „scattered bushes" zeleň z dat — vegetace gate neporušuje** (tvrdý objekt, mirror 406).
+- [x] **Render:** `_draw_dotted_surface_area` zobecněn — `SURFACE_DOT[code]` = (barva, poloměr, **rozestup**)
+      per-symbol (412 zachovává chování). Min. plocha < 9 mm² → fallback 401 (izomorf 412, volba uživatele).
+      `.omap`: 402/402.1 = samostatný combined area symbol z template (NErozbaluje se jako 412 = 401+412.1).
+- [x] **Verify:** proc baseline **65 drží**; LS render 402:13 / 402.1:203 ringů; masky tříd 4/5; `.omap` 13+203
+      objektů (id 75/76); vizuál potvrzen (bílé tečky park, zelené tečky zeleň). py_compile + mappery OK.
+- [x] **Propagace:** katalog (Udržovaná_zeleň 401→402/402.1), spec §4.8, GLOSSARY, README root + generator,
+      stats +402/402.1 (41→43 sledovaných), 5 lokalit regen + STATISTICS. batch off obě větve (surfaces kanál, B1 OK).
+- [~] **`Ostatní plocha v sídlech` (115) → 501.1 — ZKOUŠENO, ODLOŽENO** (carry-over Sez. 51/52). Probe odhalil:
+      vrstva = administrativní výplň zastavěného území (obří polygony 2371/1734/494 ha se **stovkami děr**
+      571/692/578 pro budovy/zeleň/cesty). Parser bere jen vnější obrys → zalila 41 % výseku lososovou
+      (verify plným renderem LS + vizuál). **Vyžaduje podporu děr (holes)** → samostatný úkol (viz TODO). Kód vrácen.
+
 ## Sezení 52 (2026-05-31) — komín → 524 + zábrana → 519 na zdi (poslední kandidáti ZABAGED)
 - [x] **Komín → ISOM 524 High tower** (`--landmarks`, mirror věží/sila). `Tovární komín` (id 31) přidán do
       `LANDMARK_POINT_LAYERS_524` + LAYER_IDS; atribut `vyska_obj` nevyužit (524 nemá výškové varianty → KISS).

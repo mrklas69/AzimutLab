@@ -28,7 +28,9 @@ not as intermediate contours, per the ISOM rule); — since session 30 — real 
 (`--bridges real`, ISOM 512/512.2, raster unified with the `.omap` two-parallels layout in session 35);
 and — session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
 dashed line, no runnability background as vegetation is a UC5 prediction, not data); and — since session 41 —
-real land cover (`--surfaces real`: open land meadow/park → ISOM 401 yellow, KISS "open land as one yellow";
+real land cover (`--surfaces real`: open land meadow → ISOM 401 yellow; managed greenery (`Udržovaná zeleň`)
+split by attribute `typ_pudy_k` since session 53 → park/ornamental garden → ISOM 402 Open land with scattered
+trees (yellow + white dots), other managed greenery → ISOM 402.1 with scattered bushes (yellow + green dots);
 arable field → ISOM 412 Cultivated land (yellow + black dot pattern, since session 47-48); orchards/gardens
 (`Ovocný sad, zahrada`) → ISOM 520 olive out-of-bounds since session 49 (correcting the session-48 413 Orchard —
 in the Czech landscape these are fenced gardens around houses/cottages, off-limits to runners, not runnable orchards);

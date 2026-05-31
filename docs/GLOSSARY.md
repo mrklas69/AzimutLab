@@ -113,9 +113,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NEJSOU linie — ZABAGED je generalizuje do jedné plochy `Kolejiště`** (Liberec hl. n. ~19 ha). V `.omap`
   jako **kombinovaný 501 (s obrysem)**, ne 501.1 bez obrysu — **do kolejiště se nevstupuje**, bounding line
   je významová (rozhodnutí uživatele, Sez. 28; viz [[crossability]]). Sym id 105 (501.1 = id 106, čistá plocha).
-- **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41-49):
+- **Plošný pokryv / land-cover** — plošné využití území na OB mapě. Generátor `--surfaces real` (Sez. 41-53):
   reálná plošná půlka ze ZABAGED + RÚIAN → ISOM symboly. **Open land → 401** (plná ŽLUTÁ, bez obrysu): louka
-  (`Trvalý travní porost`) + park (`Udržovaná zeleň`) — louka/park nejsou kultura, bez patternu. **Pole → 412
+  (`Trvalý travní porost`) — není kultura, bez patternu. **Udržovaná zeleň → 402 / 402.1** (Sez. 53): štěpení podle
+  `typ_pudy_k` — park/okrasná zahrada (`PO`) → **402 …scattered trees** (žlutá + BÍLÉ tečky), ostatní udržovaná
+  zeleň (`UZ`) → **402.1 …scattered bushes** (žlutá + ZELENÉ tečky C_GREEN2); min. 9 mm² → 401; 402.1 = první
+  „scattered bushes" zeleň z dat, [[vegetace-gate]] neporušuje (tvrdý objekt, mirror 406). **Pole → 412
   Cultivated land** (Sez. 47-48): `Orná půda…` → žlutá + **černý tečkový pattern** (template 412.1; min. 9 mm² → 401).
   **Olivová → 520 Area which shall not be entered** (plná OLIVOVÁ, zákaz vstupu — „zelená" v hantýrce orienťáků),
   **čtyři zdroje (Sez. 42 + 49):** hřbitov (`Hřbitov` ZABAGED, ISOM nemá vlastní) ∪ **sad/zahrada** (`Ovocný sad,
@@ -125,7 +128,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **Asfaltové dopravní areály** (autobusové nádraží/čerpací stanice, `typzast_k` 408/409) + parkoviště + kolejiště
   → **501** přes `--paved` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Kůlny/přístřešky (`Kůlna…`
   105) → 521 přes budovy. Render `_draw_surface_area`/`_draw_dotted_surface_area` (`outline=None`), barvy
-  `C_YELLOW`/`C_OLIVE`, maska `mask_surfaces.png` (multi-class 1=open/2=olivová/3=pole). **Z-order: ÚPLNĚ VESPOD**
+  `C_YELLOW`/`C_OLIVE`, maska `mask_surfaces.png` (multi-class 1=open/2=olivová/3=pole/4=402 park/5=402.1 zeleň). **Z-order: ÚPLNĚ VESPOD**
   (olivová NAD žlutou/polem — privátní zahrada RÚIAN přemaže pokryv pod ní), les = bílá default = [[vegetace-gate]] (UC5).
 - **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
   301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
