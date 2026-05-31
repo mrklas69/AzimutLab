@@ -53,7 +53,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN3
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -299,29 +299,49 @@ PAVED_CLASS = {ISOM_PAVED: 1}
 #                    vlastní hřbitov) ∪ privátní pozemek u domu (RÚIAN: zahrada + zastavěná plocha
 #                    a nádvoří, Sez. 42) ∪ sad/zahrada (ZABAGED `Ovocný sad, zahrada` — zahrady
 #                    u domů/chalup, oplocené, Sez. 49). Vše = out-of-bounds, do téže třídy.
+#   402 Open land with scattered trees / 402.1 …with scattered bushes — žlutá výplň + pravidelný
+#                    pattern velkých teček (Sez. 53): park/okrasná zahrada → 402 (BÍLÉ tečky =
+#                    rozptýlené stromy, template color 30 „White over yellow"); ostatní udržovaná
+#                    zeleň → 402.1 (ZELENÉ tečky = rozptýlené keře, template color 27 „Green 60%“
+#                    ≈ C_GREEN2). Štěpení nese atribut `typ_pudy_k` (viz map_open_land_to_isom).
+#                    402.1 = první „scattered bushes" zeleň z dat, gate neporušuje (tvrdý objekt
+#                    nesoucí kategorii, mirror stromořadí 406, Sez. 45).
 # Z-order: ÚPLNĚ VESPOD (podklad pod vrstevnicemi) — viz generate_map. Les NENÍ open land (bílá =
 # default pozadí, vegetace gate). Mapování viz zabaged.map_open_land_to_isom / map_cemetery_to_isom
 # + ruian.map_private_land_to_isom.
-ISOM_OPEN_LAND = 401               # otevřená plocha (louka/park) → plná žlutá (bez obrysu)
+ISOM_OPEN_LAND = 401               # otevřená plocha (louka) → plná žlutá (bez obrysu)
 ISOM_OUT_OF_BOUNDS = 520           # zákaz vstupu (hřbitov + privátní pozemek + sad/zahrada) → plná olivová
 ISOM_CULTIVATED = 412              # pole (orná půda) → žlutá výplň + ČERNÝ tečkový pattern (Sez. 47)
+ISOM_SCATTERED_TREES = 402         # park/okrasná zahrada → žlutá + BÍLÉ tečky (scattered trees, Sez. 53)
+ISOM_SCATTERED_BUSHES = 402.1      # ostatní udržovaná zeleň → žlutá + ZELENÉ tečky (scattered bushes, Sez. 53)
 SURFACE_NAME = {ISOM_OPEN_LAND: "Open land", ISOM_OUT_OF_BOUNDS: "Area that shall not be entered",
-                ISOM_CULTIVATED: "Cultivated land"}
-# ISOM kód → třída v mask_surfaces.png (0 = pozadí). Multi-class: open land 1, olivová 2, pole 3.
-SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_OUT_OF_BOUNDS: 2, ISOM_CULTIVATED: 3}
-# ISOM kód → výplň plochy. 401 žlutá / 520 olivová (plné, bez obrysu); 412 má žluté pozadí
-# (jako 401) + navíc černý tečkový pattern (kreslí _draw_dotted_surface_area, ne plná výplň).
+                ISOM_CULTIVATED: "Cultivated land",
+                ISOM_SCATTERED_TREES: "Open land with scattered trees",
+                ISOM_SCATTERED_BUSHES: "Open land with scattered bushes (green dots)"}
+# ISOM kód → třída v mask_surfaces.png (0 = pozadí). Multi-class: open land 1, olivová 2, pole 3,
+# park 402 (scattered trees) 4, ostatní zeleň 402.1 (scattered bushes) 5.
+SURFACE_CLASS = {ISOM_OPEN_LAND: 1, ISOM_OUT_OF_BOUNDS: 2, ISOM_CULTIVATED: 3,
+                 ISOM_SCATTERED_TREES: 4, ISOM_SCATTERED_BUSHES: 5}
+# ISOM kód → výplň plochy. 401 žlutá / 520 olivová (plné, bez obrysu); 412/402/402.1 mají žluté
+# pozadí (jako 401) + navíc tečkový pattern (kreslí _draw_dotted_surface_area, ne plná výplň).
 SURFACE_FILL = {ISOM_OPEN_LAND: C_YELLOW, ISOM_OUT_OF_BOUNDS: C_OLIVE,
-                ISOM_CULTIVATED: C_YELLOW}
-# Pole 412: tečkový pattern (template 412.1). (barva tečky, poloměr px). Grid kotvený globálně (lícuje
-# napříč plochami), rozestup SURFACE_DOT_SPACING_PX. Template: grid 1,2 mm; 412.1 tečka r 0,15 mm
-# černá (color 31 „open land black").
-SURFACE_DOT = {ISOM_CULTIVATED: (C_BLACK, max(1, round(0.15 * PX_PER_MM)))}
-SURFACE_DOT_SPACING_PX = 1.2 * PX_PER_MM                 # rozestup teček (template grid 1,2 mm)
-# ISOM min. mapovatelná plocha kultury (template MINIMUM DIMENSIONS): 412 = 3×3 mm = 9 mm².
-# Menší plocha → spadne na 401 (open land, volba uživatele Sez. 47, izomorf se stromořadím Sez. 45).
-# V px²: mm² × PX_PER_MM².
-SURFACE_MIN_AREA_PX2 = {ISOM_CULTIVATED: round(9.0 * PX_PER_MM ** 2)}
+                ISOM_CULTIVATED: C_YELLOW,
+                ISOM_SCATTERED_TREES: C_YELLOW, ISOM_SCATTERED_BUSHES: C_YELLOW}
+# ISOM kód → tečkový pattern: (barva tečky, poloměr px, rozestup px). Grid kotvený globálně (lícuje
+# napříč plochami). Template: 412 černé tečky r 0,15 mm / grid 1,2 mm (color 31 „open land black");
+# 402/402.1 velké tečky r 0,3 mm / grid 1,05 mm (větší a hustší než 412) — 402 bílé (color 30),
+# 402.1 zelené (color 27 „Green 60%" ≈ C_GREEN2). Render = aproximace (malé px), .omap nese věrný symbol.
+SURFACE_DOT = {
+    ISOM_CULTIVATED:       (C_BLACK,  max(1, round(0.15 * PX_PER_MM)), 1.20 * PX_PER_MM),
+    ISOM_SCATTERED_TREES:  (C_WHITE,  max(1, round(0.30 * PX_PER_MM)), 1.05 * PX_PER_MM),
+    ISOM_SCATTERED_BUSHES: (C_GREEN2, max(1, round(0.30 * PX_PER_MM)), 1.05 * PX_PER_MM),
+}
+# ISOM min. mapovatelná plocha s patternem (template MINIMUM DIMENSIONS): 412 = 3×3 mm; 402/402.1
+# = 2×2 mm s min_area 9 mm² (sjednoceno na 9 mm², izomorf s 412 — volba uživatele Sez. 47/53).
+# Menší plocha → spadne na 401 (open land, izomorf se stromořadím Sez. 45). V px²: mm² × PX_PER_MM².
+SURFACE_MIN_AREA_PX2 = {ISOM_CULTIVATED: round(9.0 * PX_PER_MM ** 2),
+                        ISOM_SCATTERED_TREES: round(9.0 * PX_PER_MM ** 2),
+                        ISOM_SCATTERED_BUSHES: round(9.0 * PX_PER_MM ** 2)}
 
 
 # ---------- Mokřady (Sez. 44, katalog dávka 4, real-půlka, plošná) ----------
@@ -1049,10 +1069,11 @@ def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
 
 def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
                               ring_px: list[tuple[float, float]], code: int) -> None:
-    """Kultura (ISOM 412 pole): ŽLUTÁ výplň + černý tečkový pattern ořezaný na polygon + plná
-    třída do GT masky (Sez. 47). Pole 412 = černé tečky (r 0,15 mm); rozestup SURFACE_DOT_SPACING_PX
-    (template grid 1,2 mm). .omap dostane věrný symbol (412 = 401 + 412.1 combined). Funkce je obecná
-    (řízená SURFACE_DOT), ale dnes ji krmí jediná kultura — pole 412 (sad/zahrada → 520 olivová, Sez. 49).
+    """Plocha s tečkovým patternem (ISOM 412 pole / 402 park / 402.1 ostatní zeleň): ŽLUTÁ výplň +
+    tečkový pattern ořezaný na polygon + plná třída do GT masky (Sez. 47/53). Barva/poloměr/rozestup
+    teček řídí SURFACE_DOT[code]: 412 černé (r 0,15 mm, grid 1,2 mm); 402 bílé / 402.1 zelené (r 0,3 mm,
+    grid 1,05 mm). .omap dostane věrný symbol (412 = 401 + 412.1 combined; 402/402.1 = samostatný
+    combined area symbol z template).
 
     Tečky leží na PRAVIDELNÉ mřížce kotvené GLOBÁLNĚ (násobky rozestupu od počátku rastru) → pattern
     lícuje napříč sousedními plochami (vypadá jako jeden rastr, ISOM „orientated to north"). Scanline
@@ -1061,8 +1082,7 @@ def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageD
         return
     draw.polygon(ring_px, fill=SURFACE_FILL[code])       # žluté pozadí (jako 401)
     sdraw.polygon(ring_px, fill=SURFACE_CLASS[code])     # GT maska: plná plocha
-    dot_color, dot_r = SURFACE_DOT[code]
-    sp = SURFACE_DOT_SPACING_PX
+    dot_color, dot_r, sp = SURFACE_DOT[code]              # barva, poloměr, rozestup teček (per-symbol)
     ys = [p[1] for p in ring_px]
     y0, y1 = min(ys), max(ys)
     n = len(ring_px)

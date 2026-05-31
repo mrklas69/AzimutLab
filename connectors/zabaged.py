@@ -165,11 +165,13 @@ PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: par
 
 # Plošný pokryv / land-cover (Sez. 41, real-půlka, plošná — izomorfní s vodní plochou/budovou).
 # Dvě skupiny podle ISOM:
-#  OPEN_LAND = otevřené plochy. Druh nese VRSTVA (Sez. 47, druhá vlna): louka/park → 401 Open land
-#    (plná žlutá); pole `Orná půda…` → 412 Cultivated land (žlutá + černý tečkový pattern); sad/zahrada
-#    `Ovocný sad, zahrada` → 520 olivová (Sez. 49: zahrady u domů/chalup, oplocené = out-of-bounds, ne
-#    běhatelný sad — oprava Sez. 48 = 413 Orchard). Sez. 41 bylo KISS vše→401; Sez. 47/49 rozliší kulturu
-#    (mapping nese vrstva, viz map_open_land_to_isom). Les NENÍ open land — zůstává bílá (vegetace gate).
+#  OPEN_LAND = otevřené plochy. Druh nese VRSTVA, u zeleně i ATRIBUT (Sez. 47/53): louka `Trvalý
+#    travní porost` → 401 Open land (plná žlutá); `Udržovaná zeleň` se ŠTĚPÍ podle `typ_pudy_k` na park/
+#    okrasnou zahradu → 402 (žlutá + bílé tečky) a ostatní zeleň → 402.1 (žlutá + zelené tečky); pole
+#    `Orná půda…` → 412 Cultivated land (žlutá + černý tečkový pattern); sad/zahrada `Ovocný sad, zahrada`
+#    → 520 olivová (Sez. 49: zahrady u domů/chalup, oplocené = out-of-bounds, ne běhatelný sad — oprava
+#    Sez. 48 = 413 Orchard). Sez. 41 bylo KISS vše→401; Sez. 47/49/53 rozliší kulturu/zeleň (mapping nese
+#    vrstva+atribut, viz map_open_land_to_isom). Les NENÍ open land — zůstává bílá (vegetace gate).
 #  CEMETERY = hřbitov → 520 Area that shall not be entered (plná olivová, out-of-bounds). ISOM nemá
 #    vlastní hřbitovní symbol → 520 (verify template Sez. 41). Umělá plocha, čistá projekce bez gate.
 # Render: 401/520 plná výplň; 412 žlutá výplň + černý tečkový pattern (Sez. 47). Mapování viz map_*_to_isom.
@@ -624,8 +626,9 @@ def fetch_open_land(lat: float, lon: float, gw: int, gh: int,
 
     Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy ploch v S-JTSK
     metrech (MultiPolygon rozbalen). Mapování na ISOM (map_open_land_to_isom) výš (Sez. 41/47/49).
-    Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA (louka 139 / park 134 → 401,
-    pole 138 → 412, sad/zahrada 135 → 520 olivová). Les NENÍ open land (vegetace gate)."""
+    Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA + atribut (louka 139 → 401,
+    udržovaná zeleň 134 → 402/402.1 dle typ_pudy_k, pole 138 → 412, sad/zahrada 135 → 520 olivová).
+    Les NENÍ open land (vegetace gate)."""
     return _collect_features(OPEN_LAND_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
                              _geom_to_polygons, "rings")
 
@@ -728,27 +731,40 @@ def map_paved_to_isom(layer: str, props: dict) -> int:
     kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 = rozhodnutí uživatele
     (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu, ne na jednotlivé
     koleje. Parkoviště (Sez. 41) → taky 501 (zpevněná plocha, DRY). Konektor vrací holý ISOM kód
-    (int) — render zná generator.py (žádný cyklický import)."""
+    (int) — render zná generator.py (žádný cyklický import).
+
+    Pozn.: `Ostatní plocha v sídlech` (115) → 501.1 (bez obrysu) ZKOUŠENO Sez. 53, ale ODLOŽENO —
+    vrstva je administrativní výplň sídla (obří polygon se stovkami děr pro budovy/zeleň/cesty);
+    náš parser díry ignoruje → zalila 41 % výseku. Čeká na podporu děr (holes), viz TODO."""
     return 501
 
 
-def map_open_land_to_isom(layer: str, props: dict) -> int:
+def map_open_land_to_isom(layer: str, props: dict) -> float:
     """Mapuje ZABAGED otevřenou plochu na ISOM 2017-2 plošný symbol (kód).
 
-    Druh plochy nese VRSTVA (Sez. 47, druhá vlna land-cover):
+    Druh plochy nese VRSTVA, u udržované zeleně navíc ATRIBUT (Sez. 47/53, land-cover):
       - `Orná půda a ostatní dále nespecifikované plochy` (138) → **412 Cultivated land**
         (žlutá + černý tečkový pattern, orientace k severu);
       - `Ovocný sad, zahrada` (135) → **520 Area that shall not be entered** (olivová). V ČR krajině
         jde převážně o zahrady u rodinných domů a chalup — oplocené, nepřístupné běžci → out-of-bounds,
         ne běhatelný ovocný sad (rozhodnutí uživatele Sez. 49, oprava Sez. 48 = chybné 413 Orchard).
-      - `Trvalý travní porost` (louka, 139) + `Udržovaná zeleň` (park, 134) → **401 Open land**
-        (plná žlutá; louka/park nejsou kultura → bez patternu).
-    Pod ISOM min. plochou (412: 3×3 mm) pole spadne na 401 (řeší render, ne mapper).
-    Konektor vrací holý ISOM kód (int)."""
+      - `Udržovaná zeleň` (134) se ŠTĚPÍ podle atributu `typ_pudy_k` (Sez. 53, verify-against-source
+        probe): `PO` „park, okrasná zahrada" → **402 Open land with scattered trees** (žlutá + BÍLÉ
+        tečky = rozptýlené stromy); `UZ` „ostatní udržovaná zeleň" → **402.1 Open land with scattered
+        bushes** (žlutá + ZELENÉ tečky = rozptýlené keře/záhony). Dnes celá vrstva → 401 (Sez. 41);
+        uživatel rozlišil park/zeleň přes atribut. 402.1 je první „scattered bushes" zeleň z dat —
+        gate neporušuje (tvrdý ZABAGED objekt nesoucí kategorii, mirror stromořadí 406, Sez. 45).
+      - `Trvalý travní porost` (louka, 139) → **401 Open land** (plná žlutá; louka není kultura
+        ani park → bez patternu).
+    Pod ISOM min. plochou (412: 3×3 mm; 402/402.1: 9 mm²) plocha spadne na 401 (řeší render, ne mapper).
+    Konektor vrací holý ISOM kód (int|float; 402.1 je necelý kód → float, render přes str(code))."""
     if layer == "Orná půda a ostatní dále nespecifikované plochy":
         return 412
     if layer == "Ovocný sad, zahrada":
         return 520
+    if layer == "Udržovaná zeleň":
+        # park/okrasná zahrada (PO) → 402 (bílé tečky); ostatní udržovaná zeleň (UZ) → 402.1 (zelené tečky)
+        return 402 if props.get("typ_pudy_k") == "PO" else 402.1
     return 401
 
 

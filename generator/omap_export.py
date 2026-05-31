@@ -43,6 +43,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
               "401", "520",              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
+              "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
               "524", "526", "530", "417",  # bodové orient. prvky Sez. 43 (věž/mohyla/kříž/strom)
               "104", "513",              # liniové orient. prvky Sez. 43 (sráz/zeď)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
@@ -63,7 +64,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301.1", "521", "501", "206", "401", "520", "308", "406", "412.1"})  # 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47 (sad/zahrada → 520 Sez. 49)
+AREA_CODES = frozenset({"301.1", "521", "501", "206", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -223,10 +224,11 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(ring, str(code))
         if o:
             objs.append(o); n_paved += 1
-    # plošný pokryv (401 open land / 520 zákaz vstupu / 412 pole) = plošný objekt (uzavřený
-    # path s close flagem). 401/520 = JEDEN area objekt (OOM vyplní ze symbolu). Pole 412 je
-    # v template type 16 combined (= 401 žlutá + 412.1 černý pattern), nepřiřaditelné objektu jako
-    # voda 301 → rozbal na DVA objekty 401 + 412.1 (precedent most 1→2). Z-order řeší priorita barev. Sez. 41/47.
+    # plošný pokryv (401 open land / 520 zákaz vstupu / 412 pole / 402 park / 402.1 ostatní zeleň) =
+    # plošný objekt (uzavřený path s close flagem). 401/520/402/402.1 = JEDEN area objekt (OOM vyplní
+    # ze symbolu — 402/402.1 jsou v template samostatné combined area symboly žlutá+tečky). Pole 412 je
+    # v template type 16 combined (= 401 žlutá + 412.1 černý pattern), nepřiřaditelné objektu jako voda
+    # 301 → rozbal na DVA objekty 401 + 412.1 (precedent most 1→2). Z-order řeší priorita barev. Sez. 41/47/53.
     for ring, code in (surface_features or []):
         code = str(code)
         emit = ("401", "412.1") if code == "412" else (code,)
