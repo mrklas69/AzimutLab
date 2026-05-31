@@ -61,6 +61,9 @@ LAYER_IDS = {
     "Vodní_tok": 93, "Vodní_plocha": 132, "Pozemní_nádrž": 107,
     "Budova_jednotlivá_nebo_blok_budov__plocha_": 99,
     "Elektrické_vedení": 88, "Stožár_elektrického_vedení": 87,
+    # Lanovka/vlek (Sez. 55) → 510 (mirror vedení; ISOM 510 = „Power line, cableway or skilift").
+    # REST jména s MEZEROU/ČÁRKOU (jako tramvaj/lávka), ID z MapServer ?f=json (linie 72 / sloup 61).
+    "Lanová dráha, lyžařský vlek": 72, "Stožár lanové dráhy": 61,
     "Bunkr": 37, "Hranice_správní_jednotky": 1,
     # Skály a balvany (Sez. 30, ID ověřená přes MapServer ?f=json + temp/probe_rocks.py).
     # Osamělý_balvan… 10 = bodové „turisticky významné" balvany (na Hruboskalsku 6 prvků).
@@ -292,12 +295,15 @@ UTILITY_AREA_LAYERS = ("Areál účelové zástavby",)
 # zpevněné dopravní areály (Sez. 42, volba uživatele „asfaltové → 501"); jemnější rozlišení = druhá vlna.
 PAVED_AREAL_TYPZAST = {"408", "409"}   # 408 autobusové nádraží, 409 čerpací stanice pohonných hmot
 
-# El. vedení (Sez. 24, real-půlka). Liniová vrstva (ověřeno DescribeFeatureType: MultiLineString),
-# izomorfní s komunikacemi. Stožáry (`Stožár_elektrického_vedení`) jsou bodová vrstva — nesou
-# polohu SLOUPŮ, na něž ISOM symbol 510 kreslí kolmé příčky (běžci se jimi řídí, doménový fakt
-# uživatele) → reálná data pro příčky (fáze 1, ne vymyšlené). Katalog: docs/kb/zabaged-isom-catalog.md.
-POWERLINE_LAYERS = ("Elektrické_vedení",)
-POWERLINE_MAST_LAYERS = ("Stožár_elektrického_vedení",)
+# El. vedení + lanovka/vlek (Sez. 24 + 55, real-půlka). Liniové vrstvy (ověřeno: el. vedení
+# MultiLineString; lanovka `esriGeometryPolyline`), izomorfní s komunikacemi. Stožáry
+# (`Stožár_elektrického_vedení` / `Stožár lanové dráhy`) jsou bodové vrstvy — nesou polohu
+# SLOUPŮ, na něž ISOM symbol 510 kreslí kolmé příčky (běžci se jimi řídí, doménový fakt
+# uživatele) → reálná data pro příčky (fáze 1, ne vymyšlené). ISOM 510 = „Power line, cableway
+# or skilift" = JEDEN symbol pro vedení i lanovku/vlek (verify template id=121, Sez. 55) → sloučeno
+# do jedné vrstvy (KISS, jako --rocks/--landmarks slučují více zdrojů). Katalog: zabaged-isom-catalog.md.
+POWERLINE_LAYERS = ("Elektrické_vedení", "Lanová dráha, lyžařský vlek")
+POWERLINE_MAST_LAYERS = ("Stožár_elektrického_vedení", "Stožár lanové dráhy")
 
 # Řopíky / lehké opevnění (Sez. 27, fáze 1 = projekce reálných dat, NE dekorace). ZABAGED
 # `Bunkr`, filtr typbunkr_k='LO37' (lehký objekt vz.37 čs. pohraničního opevnění); bodová vrstva.
@@ -865,16 +871,20 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
 
 
 def map_powerline_to_isom(layer: str, props: dict) -> int:
-    """Mapuje ZABAGED el. vedení na ISOM 2017-2 liniový symbol (kód).
+    """Mapuje ZABAGED el. vedení i lanovku/vlek na ISOM 2017-2 liniový symbol (kód).
 
     Ověřeno proti reálným datům (verify-against-source, Sez. 24) na výřezech Soví vrch (7
     linií) a Český ráj (2): atribut `NAPETI` (napětí) i `NAZEV` jsou v datech **prázdné**
     (None) → podle napětí NELZE rozlišit VN/VVN, takže žádné dělení 510 vs 511 Major power
     line. Vše → **510 Power line, cableway or skilift** (KISS, jako budovy → vždy 521).
 
+    Lanovka/vlek (`Lanová dráha, lyžařský vlek`, Sez. 55) → **týž 510**: ISOM 510 je jeden
+    symbol „Power line, cableway *or skilift*" (template id=121). Atribut `typ_ldv_k`
+    (vlek/lanovka/kabinová) ISOM nerozlišuje → vždy 510.
+
     Pozor (oprava zděděného předpokladu): el. vedení je ISOM **510**, NE 516 (516 = Fence/plot;
     verify proti template_classic.omap, Sez. 24). Vrací holý ISOM kód (int)."""
-    return 510   # NAPETI prázdné → bez rozlišení; render konstanty zná generator.py
+    return 510   # NAPETI/typ_ldv_k nerozlišují → vše 510; render konstanty zná generator.py
 
 
 def map_boulder_to_isom(layer: str, props: dict) -> int:

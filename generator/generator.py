@@ -233,12 +233,14 @@ BUILDING_NAME = {ISOM_BUILDING: "Building", ISOM_RUIN: "Ruin"}
 # ISOM kód → třída v mask_buildings.png (0 = pozadí). Multi-class: budova 1, zřícenina 2 (Sez. 43).
 BUILDING_CLASS = {ISOM_BUILDING: 1, ISOM_RUIN: 2}
 
-# El. vedení (Sez. 24, real-půlka, izomorfní s cestami): ZABAGED Elektrické_vedení → ISOM 510
-# Power line. Render = tenká černá linie s krátkými kolmými příčkami („fousky") v intervalu —
-# tak ji kreslí OB mapa (odlišení od cesty). Mapování viz zabaged.map_powerline_to_isom (vždy
-# 510; NAPETI v datech prázdné → bez rozlišení 510/511). Pozor: 510, NE 516 (=Fence). Černá.
-ISOM_POWERLINE = 510               # el. vedení → tenká linie + kolmé příčky
-POWERLINE_NAME = {ISOM_POWERLINE: "Power line"}
+# El. vedení + lanovka/vlek (Sez. 24 + 55, real-půlka, izomorfní s cestami): ZABAGED
+# Elektrické_vedení + Lanová dráha/lyžařský vlek → ISOM 510 „Power line, cableway or skilift".
+# Render = tenká černá linie s krátkými kolmými příčkami („fousky") v intervalu — tak ji kreslí
+# OB mapa (odlišení od cesty). Mapování viz zabaged.map_powerline_to_isom (vždy 510; NAPETI/typ
+# v datech prázdné → bez rozlišení 510/511). Sloučeno do jedné vrstvy (ISOM 510 = jeden symbol
+# pro vedení i lanovku, KISS). Pozor: 510, NE 516 (=Fence). Černá.
+ISOM_POWERLINE = 510               # vedení/lanovka/vlek → tenká linie + kolmé příčky
+POWERLINE_NAME = {ISOM_POWERLINE: "Power line, cableway or skilift"}
 # ISOM kód → třída v mask_powerlines.png (0 = pozadí). Jediná třída (1).
 POWERLINE_CLASS = {ISOM_POWERLINE: 1}
 # Render styl (mode, width [px], dash). mode "powerline" = plná linie + příčky (viz _draw_line_symbol).
