@@ -50,7 +50,7 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`
   → **523 Ruin** (čárkovaný obrys bez výplně). ČÚZK je vede zvlášť, ne v `Budova_99` (domov mládeže = bývalý zámek),
 - **bodové orient. prvky** — `--landmarks real` (Sez. 43, audit katalogu): kříž→**530**, mohyla→**526**,
-  věž/vodojem/silo/těžní/mlýn/motor/věžovitá stavba→**524**, významný strom→**417** (zelený kroužek);
+  věž/vodojem/silo/těžní/mlýn/motor/věžovitá stavba/**tovární komín** (Sez. 52)→**524**, významný strom→**417** (zelený kroužek);
   **Sez. 44**: pramen→**312** (modré „U" ústím nahoru), jeskyně+šachta→**203.2 Cave** (černá „Λ" stříška hrotem
   nahoru), nádrž→**311** (modrý čtverec, z centroidu),
 - **mokřady** — `--marsh real` (Sez. 44): bažina/močál + rašeliniště→**308 Marsh** (modrá vodorovná šrafa;
@@ -59,6 +59,9 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
   zeď/hradba→**513 Wall**,
 - **stromořadí** — `--treerows real` (Sez. 45): `Liniová vegetace`→**406 Vegetation: slow running** („lineární les":
   osa→buffer→úzký světle zelený pás; oprava 416 = hranice porostů byla sémanticky špatně pro řadu stromů),
+- **prostupy** — `--barriers real` (Sez. 52): `Zábrana` na nosné zdi 513→**519 Crossing point** („branka",
+  orientace = tangenta zdi, zeď se pod brankou přeruší; jen bod na zdi = průchod plotem, závory na cestách zahozeny —
+  2/66 na LS = řídké), **poslední kandidát ZABAGED katalogu**,
 - **ground-truth masky** — každá vrstva i jako segmentační maska (§8.1),
 - **reálný terén** — `--terrain real` dosadí ČÚZK DMR 5G místo šumu (§8.5, Option 2;
   výškopis z `dmr.py`).

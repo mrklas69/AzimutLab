@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 52 (2026-05-31) — komín → 524 + zábrana → 519 na zdi (poslední kandidáti ZABAGED)
+- [x] **Komín → ISOM 524 High tower** (`--landmarks`, mirror věží/sila). `Tovární komín` (id 31) přidán do
+      `LANDMARK_POINT_LAYERS_524` + LAYER_IDS; atribut `vyska_obj` nevyužit (524 nemá výškové varianty → KISS).
+      Žádné render změny. Verify: SV 524 6→7 (+1 komín), LS +12.
+- [x] **Zábrana → ISOM 519 Crossing point** (nová orientovaná vrstva `--barriers`). Verify-against-source PŘED
+      kódem: `Zábrana` (id 54) nese jediný typ `typ_k=Z` „Závora, brána" → nelze rozlišit závoru od brány.
+      ISOM 519 = průchod plotem (NE závora na cestě) → **mapuje se jen bod ležící na nosné zdi 513 (≤ 5 m)**,
+      ostatní (závory na cestách) se zahodí. **Změřeno (krok 0): 2/66 na LS** leží na zdi (medián 183 m) →
+      vrstva řídká, ale spravedlivě naplní skutečné průchody (volba uživatele „úplnost i za nízký výtěžek").
+- [x] **`fetch_barriers`** (zabaged) = resolve bodů na zdi 513 + tangenta; **`_draw_crossing_point`** = 2 čárky
+      kolmé na zeď (orientace = tangenta, S-JTSK→px transformací 2 bodů); **omap** = rotatable bodový objekt
+      (mirror lávky 512.2). Brány spočteny 1× v pre-fetch (sdíleno s break).
+- [x] **Přerušení zdi 513 pod brankou** (ISOM „line shall be broken at the crossing point" — verify uživatel
+      v OOM). Zeď se v místě branky přeruší mezerou 1,2 mm (`_split_by_zones_interp`, mechanismus passage cropu
+      tunelů); sráz 104 se neřeže; count zdí v meta beze změny (mezera ≠ nový prvek).
+- [x] **Propagace + verify:** batch off obě větve (B1), stats +519 (41/41 aktivních), katalog komín+zábrana ◐→✓,
+      `--barriers` v argparse + validační smyčce. Proc baseline **65 drží**, 5 lokalit regen, **OOM Test OK**
+      (orientace branky + přerušení zdi). **ZABAGED katalog vyčerpán** (zábrana+komín byli poslední kandidáti).
+
 ## Sezení 51 (2026-05-31) — dokončení neuzavřeného %END Sez. 50 + %CALIBRATE (zralý +16)
 - [x] **Dokončen neuzavřený `%END` Sez. 50** — `%BEGIN` fetch-first odhalil hotovou-necommitnutou práci
       (`HEAD==origin/main`, ale working tree plný refaktorů + diár Sez. 50). Dva commity (kód `refactor` +

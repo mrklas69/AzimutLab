@@ -331,8 +331,8 @@ olivové s žlutými parky = test uživatele „střed Liberce olivový s výjim
 ### 4.9k Bodové orientační prvky (real-půlka, Sez. 43)
 **✅ `--landmarks real`** vezme bodové ZABAGED vrstvy → ISOM 52x-53x + 417 (KISS vrstva → jeden symbol,
 `zabaged.map_landmark_to_isom`): kříž/sloup kult. významu → **530** (ring), mohyla/pomník/náhrobek → **526 Cairn**,
-věž/věžovitá nástavba + vodojem věžový + silo + těžní věž + větrný mlýn/motor + (plošná) věžovitá stavba (centroid)
-→ **524 High tower**, významný/osamělý strom → **417 Prominent large tree** (zelený kroužek, mimo vegetace gate —
+věž/věžovitá nástavba + vodojem věžový + silo + těžní věž + větrný mlýn/motor + tovární komín (Sez. 52) + (plošná)
+věžovitá stavba (centroid) → **524 High tower**, významný/osamělý strom → **417 Prominent large tree** (zelený kroužek, mimo vegetace gate —
 liniový/bodový orient. prvek, ne plošná průchodnost). Render `_draw_landmark` (524 kříž+tečka / 526 kroužek+tečka /
 530 kroužek / 417 zelený kroužek); multi-class `mask_landmarks.png`. Bodové objekty type 0 v .omap. Vyžaduje
 `--terrain real`. Výskyt: SV 81 / LS ~99 (kříž 33/strom 38/věž 6/cairn 4 na SV). Nulové vrstvy (vodojem/silo/…)
@@ -374,6 +374,20 @@ nejmenší zelený dot-screen je 1,0 mm² @ 1:15000) → menší úseky se zahod
 vegetační plocha generátoru** — vegetace gate NEporušuje (tvrdý objekt z dat, ne hádaná hustota; izomorf s 308 Marsh:
 KISS jedna úroveň). Z-order nad plošným pokryvem (401), pod vrstevnicemi/liniemi. Výskyt: SV 83 / HS 121 / LS 47 /
 NV 18 / NL 4.
+
+### 4.9o Prostupy v plotě — Crossing point (real-půlka, Sez. 52)
+**✅ `--barriers real`** vezme `Zábrana` (id 54, jediný typ `typ_k=Z` „Závora, brána") → **519 Crossing point**.
+ISOM 519 = průchod PŘES plot/zeď (branka, schůdky), **NE závora na cestě** → mapuje se jen bod ležící na nosné
+**zdi 513 (≤ 5 m)**; závory na cestách (v OB irelevantní — běžec je obejde) se zahodí. **Verify-against-source
+(krok 0, Sez. 52):** z 66 zábran na LS leží na 513 jen **2** (medián vzdálenosti od zdi 183 m) → vrstva řídká,
+ale spravedlivě naplní skutečné průchody (volba uživatele „úplnost i za nízký výtěžek"). `zabaged.fetch_barriers`
+spáruje bod s nejbližší zdí + vrátí tangentu; render `_draw_crossing_point` = **2 čárky kolmé na zeď** posunuté
+±0,45 mm podél ní (plot prochází mezerou; symbol id 134, rotatable). Orientace = tangenta zdi přepočtená S-JTSK→px
+transformací dvou bodů. **Zeď 513 se pod brankou PŘERUŠÍ** mezerou 1,2 mm (`_split_by_zones_interp`, mechanismus
+passage cropu tunelů — ISOM „line shall be broken at the crossing point" pro nepřekonatelný plot); sráz 104 se neřeže;
+počet zdí v meta beze změny. Jediná orientovaná bodová vrstva vedle řopíků/lávek. `mask_barriers.png` (single-class);
+bodový objekt 519 s rotací v .omap (mirror lávky 512.2, OOM Test OK Sez. 52). Vyžaduje `--terrain real`. Výskyt: LS 2,
+ostatní 0 (řídké). **ZABAGED katalog tím vyčerpán.**
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

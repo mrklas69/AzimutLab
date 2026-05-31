@@ -79,6 +79,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **NE 416 Distinct vegetation boundary** — to je HRANICE mezi porosty (kraj lesa / předěl uvnitř lesa), ne řada stromů
   (oprava sémantiky Sez. 45, verify spec). První zelená vegetační plocha generátoru; [[vegetace-gate]] neporušuje
   (tvrdý objekt z dat, ne hádaná hustota — izomorf s 308 Marsh).
+- **Prostup / branka — Crossing point** (Sez. 52) — místo, kudy se PROJDE přes plot/zeď (branka, schůdky). ISOM
+  **519 Crossing point** = dvě rovnoběžné čárky („brána"), bodový rotatable symbol. Generátor `--barriers real`:
+  ZABAGED `Zábrana` (id 54, „Závora, brána") → 519, ale **jen bod ležící na nosné zdi 513 (≤ 5 m)** — 519 je
+  průchod plotem, NE závora na cestě (ta se v OB nemapuje, běžec ji obejde). Závory na cestách se zahodí (verify
+  Sez. 52: jen 2/66 na LS na zdi). Orientace symbolu = tangenta zdi; **nepřekonatelná zeď 513 se pod brankou
+  PŘERUŠÍ** (ISOM „line broken at the crossing point"). Jediná orientovaná bodová vrstva vedle řopíků/lávek.
+- **Komín — High tower** (Sez. 52) — `Tovární komín` (id 31) → **524 High tower** (jako věž/silo, `--landmarks`);
+  vysoká štíhlá stavba = orientační bod. Atribut `vyska_obj` (výška) nevyužit (524 nemá výškové varianty → KISS).
 - **Budova / stavba** — umělý objekt na OB mapě. ISOM **521 Building** (plošný černý symbol,
   výplň + obrys). Generátor `--buildings real` (Sez. 18): reálná půlka ze ZABAGED
   `Budova_jednotlivá_nebo_blok_budov__plocha_` (mapování `map_building_to_isom` → 521; vodojem

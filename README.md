@@ -45,8 +45,11 @@ towers/water-towers/silos/… → 524, cairns/memorials → 526, crosses/wayside
 since session 44 (catalogue batch 4: water/wetland) marshes+peat bogs → 308 Marsh (`--marsh`, blue horizontal hatch),
 springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--landmarks`); since session 45 tree rows
 (`Liniová vegetace`) → 406 Vegetation: slow running (`--treerows`, "linear forest": axis→buffer→strip; corrects the
-earlier 416 = vegetation *boundary*, which was semantically wrong for a row of trees).
-`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines) + paths + rides + water + paved + buildings + powerlines + railways + rocks + bridges + surfaces + landmarks + linefeatures + marsh + treerows + points
+earlier 416 = vegetation *boundary*, which was semantically wrong for a row of trees);
+since session 52 factory chimneys → 524 (`--landmarks`) and barriers (`Zábrana`) → 519 Crossing point (`--barriers`,
+only points lying on a 513 wall = actual gate through a fence; the wall is broken under the gate) — last catalogue
+candidates, **ZABAGED catalogue now exhausted**.
+`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines) + paths + rides + water + paved + buildings + powerlines + railways + rocks + bridges + surfaces + landmarks + linefeatures + marsh + treerows + barriers + points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
@@ -137,7 +140,7 @@ docs/
     zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks/tree rows/chimneys/barriers (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real
   ruian.py             #   ČÚZK RÚIAN cadastre parcels by land-use → private land → olive 520 (session 42)
   arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian, session 42)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)

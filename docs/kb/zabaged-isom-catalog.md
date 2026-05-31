@@ -206,7 +206,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Větrný_motor` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 33 → 524; **0 v 5** kromě LS 1, pro úplnost) |
 | `Silo` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 28 → 524; **0 v 5 výsecích**, pro úplnost) |
 | `Těžní_věž` | bod | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 30 → 524; **0 v 5 výsecích**, pro úplnost) |
-| `Tovární_komín` | bod | (524 / 526) | ○ | průmysl (probe Sez. 43: LS 12, SV 1; zvážit → 524 druhá vlna) |
+| `Tovární_komín` | bod | 524 High tower | ✓ | **Sez. 52** (`--landmarks`, id 31 → 524; vysoká štíhlá stavba jako věž/silo; atribut `vyska_obj` nevyužit — KISS). LS 12 / SV 1 |
 | `Lyžařský_můstek` | linie | — | ✗ | speciál (probe Sez. 43: LS 1, jinde 0) |
 
 ## 11. Bariéry a ohrazení (ISOM 105, 513–518)
@@ -215,7 +215,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 |---|---|---|---|---|
 | `Zeď` | linie | 513 Wall | ✓ | **Sez. 43** (`--linefeatures`, id 39 → 513 plná linie; `typzed` null → KISS). SV 16 / LS 136 (Σ172) |
 | `Hradba__val__bašta__opevnění` | linie | 513 Wall | ✓ | **Sez. 43** (`--linefeatures`, id 38 → 513; kamenné historické opevnění). HS 15 (zřícenina hradu) |
-| `Zábrana` | bod | (519 Crossing point) | ○ | závora / zábrana (probe Sez. 43: Σ104, LS 66 — zvážit → 519 druhá vlna) |
+| `Zábrana` | bod | 519 Crossing point | ✓ | **Sez. 52** (`--barriers`, id 54 → 519; jediný typ `typ_k=Z` „Závora, brána"). Mapuje se JEN bod ležící na zdi 513 (≤ 5 m) = skutečný průchod plotem; závory na cestách se zahodí. Verify Sez. 52: 2/66 na LS (medián 183 m od zdi). Zeď 513 se pod brankou přeruší (ISOM „line broken at crossing point") |
 
 ## 12. Hranice, chráněná území a POI (administrativa — vše ✗)
 

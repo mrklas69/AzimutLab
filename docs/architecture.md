@@ -65,13 +65,15 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 44 dávka 4 vodní/mokřady: bažina+rašeliniště → 308 Marsh (`--marsh`), pramen → 312, jeskyně+šachta → 203.2,
   nádrž → 311 (`--landmarks`); hráz 528/lom 201 odloženy**;
   **Sez. 45 stromořadí `Liniová vegetace` → 406 Vegetation: slow running (`--treerows`, lineární les: osa→buffer→pás;
-  oprava 416 = hranice porostů byla sémanticky špatně)**),
+  oprava 416 = hranice porostů byla sémanticky špatně)**;
+  **Sez. 52 komín → 524 (`--landmarks`) + zábrana → 519 Crossing point (`--barriers`, jen bod na zdi 513 = průchod
+  plotem; zeď se pod brankou přeruší) — poslední kandidáti, ZABAGED katalog vyčerpán**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
   zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
   paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
-  --surfaces/--landmarks/--linefeatures/--marsh real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
+  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace
