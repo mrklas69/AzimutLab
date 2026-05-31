@@ -117,10 +117,11 @@ def main() -> None:
             # (variace = lokalita). Vedení (powerlines) batch zatím nedělá — viz docstring.
             # ortho=False: ortofoto je vizuální verify-podklad pro člověka, ne data pro UC5
             # feeder (ten se učí číst generovanou mapu) → dataset jím nezatěžujeme (Sez. 27).
-            # Vedení, železnice, řopíky, skály, mosty/tunely i plošný pokryv batch zatím nedělá (dev-map
-            # vrstvy; jako u powerlines — v lesních CZ_LOCATIONS vzácné/0 prvků). Vše explicitně "off":
-            # rocks/bridges/surfaces/treerows mají default "real" → bez vypnutí by noise větev padla na validaci
-            # (terrain="noise") a real větev by je zbytečně stahovala (lekce B1 Sez. 35).
+            # Všechny dev-map vrstvy KROMĚ paths/water/buildings batch zatím nedělá (rides/paved/
+            # powerlines/railways/ropiky/rocks/bridges/surfaces/landmarks/linefeatures/marsh/treerows —
+            # v lesních CZ_LOCATIONS vzácné/0 prvků). Vše explicitně "off": mají default "real" → bez
+            # vypnutí by noise větev padla na validaci (terrain="noise") a real větev by je zbytečně
+            # stahovala (lekce B1 Sez. 35; výčet MUSÍ pokrýt validační smyčku v generator.generate_map).
             generate_map(
                 lat, lon, DEF_WIDTH_KM, DEF_HEIGHT_KM, out_dir=str(inst_dir),
                 seed=seed, rug=0.0, det=0.0, terrain="real",

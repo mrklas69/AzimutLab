@@ -4,7 +4,11 @@ zabaged.py — reálné vektorové prvky z ČÚZK ZABAGED® Polohopis (ArcGIS RE
 Sourozenec dmr.py (NE kopie): dmr.py táhne reálný VÝŠKOPIS (DMR 5G, rastr/ImageServer),
 zabaged.py táhne reálné POLOHOPISNÉ VEKTORY (ArcGIS REST query). Od cest (§4.9, Sez. 16) postupně
 přibyly: voda (toky+plochy, 17), budovy (18), el. vedení + stožáry (24), železnice/tramvaj +
-kolejiště (28+31), řopíky + státní hranice (27), skály/balvany (30), mosty/tunely/lávky (32-33).
+kolejiště (28+31), řopíky + státní hranice (27), skály/balvany (30), mosty/tunely/lávky (32-33),
+lesní průseky (36), plošný pokryv / land-cover + areály účelové zástavby (41-42), bodové orient.
+prvky (věž/kříž/strom/pramen/jeskyně/nádrž, 43-44), liniové orient. prvky (sráz/zeď, 43), mokřady
+(44), stromořadí = lineární les (45), kultura pole + sad/zahrada (48-49). Plný výčet = `*_LAYERS`
+konstanty níže + `docs/kb/zabaged-isom-catalog.md`.
 Vše bere tentýž výsek přes sdílený dmr.build_bbox() → reálné prvky padnou bezešvě na tentýž terén
 jako vrstevnice z DMR. Mapování ZABAGED→ISOM dělají `map_*_to_isom` funkce (po verify atributů).
 
@@ -328,6 +332,42 @@ def _fetch_layer(layer: str, bbox: tuple[float, float, float, float],
                                page_size=_PAGE, cache_key=f"zbg_rest_{layer}")
 
 
+# --- sdílené tělo prostých fetch_* funkcí (DRY, Sez. 50) -------------------------------
+# 14 fetch_* funkcí mělo IDENTICKÉ tělo lišící se jen vrstvami, parserem geometrie a klíčem
+# výstupu — izomorfismus dotažený do copy-paste (audit Sez. 50). Dva helpery to sjednocují:
+# liniové/plošné features (`_collect_features`) a body (`_collect_points`). Speciální fetch
+# (landmarks centroid, state_border filtr+coords) zůstávají vlastní.
+def _collect_features(layers, lat: float, lon: float, gw: int, gh: int, tile_m: float,
+                      cache_dir: str | Path | None, parser, key: str) -> list[dict]:
+    """Stáhne `layers` → [{"layer", "props", key: geometrie}]. `parser` = `_geom_to_lines`
+    (klíč "lines") nebo `_geom_to_polygons` (klíč "rings"); prázdná geometrie se přeskočí."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[dict] = []
+    for layer in layers:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            geom = parser(feat.get("geometry") or {})
+            if geom:
+                out.append({"layer": layer, "props": feat.get("properties", {}), key: geom})
+    return out
+
+
+def _collect_points(layers, lat: float, lon: float, gw: int, gh: int, tile_m: float,
+                    cache_dir: str | Path | None, predicate=None) -> list[tuple[float, float]]:
+    """Stáhne bodové `layers` → [(x, y)] v S-JTSK. Volitelný `predicate(props)` filtr (řopíky
+    typbunkr_k, …). Sdílené tělo fetch_powerline_masts/fetch_boulders/fetch_bunkers (Sez. 50)."""
+    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
+    bbox = build_bbox(lat, lon, gw, gh, tile_m)
+    out: list[tuple[float, float]] = []
+    for layer in layers:
+        fc = _fetch_layer(layer, bbox, cache_dir)
+        for feat in fc.get("features", []):
+            if predicate is None or predicate(feat.get("properties", {})):
+                out.extend(_geom_to_points(feat.get("geometry") or {}))
+    return out
+
+
 def fetch_paths(lat: float, lon: float, gw: int, gh: int,
                 tile_m: float = 1000.0,
                 cache_dir: str | Path | None = None) -> list[dict]:
@@ -340,18 +380,7 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
     Výsek je TENTÝŽ jako u dmr.fetch_elevation_grid (sdílený build_bbox) → cesty sednou
     na terén bez dalšího georef počítání.
     """
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in PATH_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            geom = feat.get("geometry") or {}
-            lines = _geom_to_lines(geom)
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(PATH_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_forest_rides(lat: float, lon: float, gw: int, gh: int,
@@ -363,17 +392,7 @@ def fetch_forest_rides(lat: float, lon: float, gw: int, gh: int,
     (MultiLineString rozbalen). Mapování na ISOM (map_ride_to_isom → 508) se dělá výš (Sez. 36).
     Izomorfní s fetch_paths/fetch_railways (linie). Tentýž výsek (sdílený build_bbox) → průsek
     sedne na terén i k cestám. V bezlesém výseku = 0 prvků (žádný šum)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in RIDE_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(RIDE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_railways(lat: float, lon: float, gw: int, gh: int,
@@ -388,17 +407,7 @@ def fetch_railways(lat: float, lon: float, gw: int, gh: int,
     Izomorfní s fetch_paths/fetch_powerlines (linie). Tentýž výsek (sdílený build_bbox) →
     trať sedne na terén i k cestám/vodě. V lesních výsecích bez trati = 0 prvků (žádný šum).
     """
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in RAILWAY_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(RAILWAY_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_paved_areas(lat: float, lon: float, gw: int, gh: int,
@@ -410,17 +419,8 @@ def fetch_paved_areas(lat: float, lon: float, gw: int, gh: int,
     metrech (MultiPolygon rozbalen). Mapování na ISOM (map_paved_to_isom → 501) se dělá výš
     (Sez. 28). Izomorfní s fetch_buildings/area-půlkou fetch_water (plochy mají rings).
     V lesních výsecích bez nádraží = 0 prvků (žádný šum). Tentýž výsek (sdílený build_bbox)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in PAVED_AREA_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(PAVED_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def fetch_water(lat: float, lon: float, gw: int, gh: int,
@@ -436,24 +436,10 @@ def fetch_water(lat: float, lon: float, gw: int, gh: int,
     Tentýž výsek jako dmr/cesty (sdílený build_bbox) → voda sedne na terén i k cestám.
     Izomorfní s fetch_paths; oddělené linie/plochy, protože render i ISOM symbol se liší.
     """
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    line_feats: list[dict] = []
-    area_feats: list[dict] = []
-    for layer in WATER_LINE_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                line_feats.append({"layer": layer, "props": feat.get("properties", {}),
-                                   "lines": lines})
-    for layer in WATER_AREA_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                area_feats.append({"layer": layer, "props": feat.get("properties", {}),
-                                   "rings": rings})
+    line_feats = _collect_features(WATER_LINE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                                   _geom_to_lines, "lines")
+    area_feats = _collect_features(WATER_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                                   _geom_to_polygons, "rings")
     return line_feats, area_feats
 
 
@@ -470,19 +456,10 @@ def fetch_buildings(lat: float, lon: float, gw: int, gh: int,
     Izomorfní s area-půlkou fetch_water (plochy mají rings, ne lines). Tentýž výsek
     (sdílený build_bbox) → budovy sednou na terén i k cestám/vodě.
     """
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
     # Budovová kategorie = běžné budovy/kůlny/zámek/hrad (→ 521) + zříceniny (→ 523, Sez. 43).
     # map_building_to_isom rozliší ISOM kód podle vrstvy (mirror skály: víc vrstev → víc kódů, 1 fetch).
-    for layer in (*BUILDING_AREA_LAYERS, *RUIN_AREA_LAYERS):
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features((*BUILDING_AREA_LAYERS, *RUIN_AREA_LAYERS),
+                             lat, lon, gw, gh, tile_m, cache_dir, _geom_to_polygons, "rings")
 
 
 def fetch_powerlines(lat: float, lon: float, gw: int, gh: int,
@@ -497,17 +474,7 @@ def fetch_powerlines(lat: float, lon: float, gw: int, gh: int,
     Izomorfní s fetch_paths (linie). Tentýž výsek (sdílený build_bbox) → vedení sedne na
     terén i k cestám/vodě. Vzor pro budoucí doplňování dalších liniových vrstev z katalogu.
     """
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in POWERLINE_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(POWERLINE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_powerline_masts(lat: float, lon: float, gw: int, gh: int,
@@ -519,14 +486,7 @@ def fetch_powerline_masts(lat: float, lon: float, gw: int, gh: int,
     pro kolmé příčky symbolu ISOM 510 (fáze 1, Sez. 24; ověřeno: stožár leží na vrcholu
     linie vedení). Atributy (výška) jsou v datech prázdné → vracíme jen souřadnice.
     Tentýž výsek (sdílený build_bbox) jako linie vedení → příčky sednou na vedení."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[tuple[float, float]] = []
-    for layer in POWERLINE_MAST_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            out.extend(_geom_to_points(feat.get("geometry") or {}))
-    return out
+    return _collect_points(POWERLINE_MAST_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
 
 
 def fetch_bunkers(lat: float, lon: float, gw: int, gh: int,
@@ -538,15 +498,8 @@ def fetch_bunkers(lat: float, lon: float, gw: int, gh: int,
     pohraničního opevnění (= řopík). Ostatní typy bunkru (těžké, atypické) se zatím vynechávají.
     Na OB mapě se nekreslí jako prostý symbol, ale jako asset (řopík ≠ budova) — orientace
     + placement řeší generátor. Izomorfní s fetch_powerline_masts (body). Sez. 27."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[tuple[float, float]] = []
-    for layer in BUNKER_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            if feat.get("properties", {}).get("typbunkr_k") == BUNKER_TYPE_LO37:
-                out.extend(_geom_to_points(feat.get("geometry") or {}))
-    return out
+    return _collect_points(BUNKER_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                           predicate=lambda p: p.get("typbunkr_k") == BUNKER_TYPE_LO37)
 
 
 def fetch_state_border(lat: float, lon: float, gw: int, gh: int,
@@ -579,14 +532,7 @@ def fetch_boulders(lat: float, lon: float, gw: int, gh: int,
     na 204 (KISS, jako řopíky/stožáry). Mapování na ISOM kód (map_boulder_to_isom → 204) se
     dělá výš. Izomorfní s fetch_powerline_masts/fetch_bunkers (body). Vzácné objekty
     (Hruboskalsko, klasická skalní oblast: 6/24 km² ≈ 0,25/km²) — atributy navíc nejsou."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[tuple[float, float]] = []
-    for layer in BOULDER_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            out.extend(_geom_to_points(feat.get("geometry") or {}))
-    return out
+    return _collect_points(BOULDER_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
 
 
 def fetch_boulder_clusters(lat: float, lon: float, gw: int, gh: int,
@@ -599,14 +545,7 @@ def fetch_boulder_clusters(lat: float, lon: float, gw: int, gh: int,
     (= 7/km², hojné), jen `jmeno` jako atribut → vše → 207 Boulder cluster (KISS). Liniová
     varianta `Skupina_balvanů__linie_` (id 13) odložena (3 prvky v probe, drobnost).
     Izomorfní s fetch_boulders."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[tuple[float, float]] = []
-    for layer in BOULDER_CLUSTER_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            out.extend(_geom_to_points(feat.get("geometry") or {}))
-    return out
+    return _collect_points(BOULDER_CLUSTER_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
 
 
 def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
@@ -619,17 +558,8 @@ def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
     (KISS); hybridní 202/206 podle plochy bylo zavrženo (Sez. 30) — žádný ZABAGED atribut
     velikost nenese. Verify Sez. 30 (Hrubá Skála): 411 polygonů, medián 1132 m², 304× > 500 m²,
     max 30 444 m² (Mariánská vyhlídka). Izomorfní s fetch_buildings/fetch_paved_areas."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in ROCK_AREA_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(ROCK_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
@@ -642,17 +572,7 @@ def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
     (`map_bridge_to_isom` → 512) řeší generator.py. Izomorfní s fetch_railways.
     Sez. 32: most a tunel jsou ODDĚLENÉ funkce (`fetch_bridges` vs `fetch_tunnels`), na
     rozdíl od Sez. 31 sloučení — render se liší (most = osa plná, tunel = osa vynechaná)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in BRIDGE_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(BRIDGE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_tunnels(lat: float, lon: float, gw: int, gh: int,
@@ -662,17 +582,7 @@ def fetch_tunnels(lat: float, lon: float, gw: int, gh: int,
 
     Izomorfní s fetch_bridges. Tunel a most sdílí ISOM 512, ale render se liší (most osa
     plná, tunel vynechaná) → konektor je dělí, aby generator.py znal který je který."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in TUNNEL_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(TUNNEL_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
@@ -686,21 +596,9 @@ def fetch_footbridges(lat: float, lon: float, gw: int, gh: int,
       - points = bodové lávky: [(x, y), ...] v S-JTSK metrech
     Obě → ISOM 512.2 Footbridge (single dash, template id=127). Bodová lávka NEnese
     orientaci v atributech → render rotuje kolmo k nejbližšímu vodnímu toku."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    line_feats: list[dict] = []
-    points: list[tuple[float, float]] = []
-    for layer in FOOTBRIDGE_LINE_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                line_feats.append({"layer": layer, "props": feat.get("properties", {}),
-                                   "lines": lines})
-    for layer in FOOTBRIDGE_POINT_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            points.extend(_geom_to_points(feat.get("geometry") or {}))
+    line_feats = _collect_features(FOOTBRIDGE_LINE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                                   _geom_to_lines, "lines")
+    points = _collect_points(FOOTBRIDGE_POINT_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
     return line_feats, points
 
 
@@ -713,17 +611,8 @@ def fetch_open_land(lat: float, lon: float, gw: int, gh: int,
     metrech (MultiPolygon rozbalen). Mapování na ISOM (map_open_land_to_isom) výš (Sez. 41/47/49).
     Izomorfní s fetch_paved_areas/fetch_buildings. Druh plochy nese VRSTVA (louka 139 / park 134 → 401,
     pole 138 → 412, sad/zahrada 135 → 520 olivová). Les NENÍ open land (vegetace gate)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in OPEN_LAND_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(OPEN_LAND_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
@@ -734,17 +623,8 @@ def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
     Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech.
     Mapování na ISOM (map_cemetery_to_isom → 520 Area that shall not be entered) výš (Sez. 41).
     Izomorfní s fetch_paved_areas. Umělá plocha, čistá projekce (žádný vegetace gate)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in CEMETERY_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(CEMETERY_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def fetch_marsh(lat: float, lon: float, gw: int, gh: int,
@@ -755,17 +635,8 @@ def fetch_marsh(lat: float, lon: float, gw: int, gh: int,
     Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech
     (MultiPolygon rozbalen). Mapování na ISOM (map_marsh_to_isom → 308 Marsh) výš. Izomorfní
     s fetch_open_land/fetch_cemeteries. Klasický OB prvek (crossable marsh), čistá projekce."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in MARSH_AREA_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(MARSH_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def fetch_utility_areas(lat: float, lon: float, gw: int, gh: int,
@@ -777,17 +648,8 @@ def fetch_utility_areas(lat: float, lon: float, gw: int, gh: int,
     `props` nese `typzast_k`/`typzast_p` (typ areálu) → map_utility_area_to_isom rozliší 520
     (areály) vs 501 (asfaltové dopravní plochy). Izomorfní s fetch_cemeteries. Render rozdělí
     generator podle ISOM kódu mezi surfaces (520) a paved (501) kanál (Sez. 42)."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in UTILITY_AREA_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            rings = _geom_to_polygons(feat.get("geometry") or {})
-            if rings:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "rings": rings})
-    return out
+    return _collect_features(UTILITY_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
 
 
 def map_path_to_isom(layer: str, props: dict) -> int:
@@ -1084,17 +946,8 @@ def fetch_line_features(lat: float, lon: float, gw: int, gh: int,
 
     Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen).
     Mapování na ISOM (map_line_feature_to_isom) výš. Izomorfní s fetch_powerlines/fetch_railways."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in (*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513):
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features((*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513),
+                             lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def map_tree_row_to_isom(layer: str) -> int:
@@ -1111,17 +964,7 @@ def fetch_tree_rows(lat: float, lon: float, gw: int, gh: int,
     """Vrátí osy stromořadí (`Liniová vegetace`) pro výsek (Sez. 45). Každý prvek:
     {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen) = ČISTÁ DATA
     (osa), bez bufferu — plošný pás (406) staví generátor. Mirror fetch_line_features."""
-    cache_dir = Path(cache_dir) if cache_dir else Path(__file__).parent / ".zabaged_cache"
-    bbox = build_bbox(lat, lon, gw, gh, tile_m)
-    out: list[dict] = []
-    for layer in TREE_ROW_LAYERS:
-        fc = _fetch_layer(layer, bbox, cache_dir)
-        for feat in fc.get("features", []):
-            lines = _geom_to_lines(feat.get("geometry") or {})
-            if lines:
-                out.append({"layer": layer, "props": feat.get("properties", {}),
-                            "lines": lines})
-    return out
+    return _collect_features(TREE_ROW_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 
 def map_bridge_to_isom(layer: str, props: dict) -> int:

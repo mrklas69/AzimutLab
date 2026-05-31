@@ -32,9 +32,10 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **311** | Well, fountain or water tank | · | · | 6 | 2 | · |
 | **312** | Spring | 10 | 6 | 16 | 23 | 10 |
 | **203.2** | Cave or rocky pit | 5 | 1 | · | · | 3 |
-| **401** | Open land | 267 | 33 | 1101 | 361 | 103 |
+| **401** | Open land | 84 | 22 | 377 | 145 | 40 |
 | **406** | Vegetation: slow running | 83 | 4 | 47 | 121 | 18 |
-| **520** | Area that shall not be entered | 1873 | 141 | 19058 | 1907 | 500 |
+| **412** | Cultivated land | 16 | 7 | 21 | 57 | 11 |
+| **520** | Area that shall not be entered | 2040 | 145 | 19761 | 2066 | 552 |
 | **501** | Paved area | 1 | 1 | 59 | 3 | 1 |
 | **502** | Wide road | 212 | 15 | 3192 | 170 | 29 |
 | **503** | Road | 195 | 181 | 301 | 325 | 180 |
@@ -56,15 +57,15 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
 | **Σ** | Celkem objektů | 5858 | 1810 | 35535 | 7481 | 2268 |
 
-Z 39 sledovaných ISOM symbolů reálně používáme **39** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 40 sledovaných ISOM symbolů reálně používáme **40** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-05-30 13:04:34
-- **NL** (`Nová Louka/`): 2026-05-30 13:17:35
-- **LS** (`Lidové sady/`): 2026-05-30 13:17:59
-- **HS** (`Hrubá Skála/`): 2026-05-30 13:18:12
-- **NV** (`Novina/`): 2026-05-30 13:18:22
+- **SV** (`Soví vrch/`): 2026-05-31 01:26:16
+- **NL** (`Nová Louka/`): 2026-05-31 01:26:37
+- **LS** (`Lidové sady/`): 2026-05-31 01:27:35
+- **HS** (`Hrubá Skála/`): 2026-05-31 01:28:01
+- **NV** (`Novina/`): 2026-05-31 01:28:21
 
 ---
-*Tabulka regenerována `stats.py` v 2026-05-30 13:18:22.*
+*Tabulka regenerována `stats.py` v 2026-05-31 01:28:21.*

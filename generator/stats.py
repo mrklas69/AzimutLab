@@ -1,9 +1,10 @@
 """stats.py — agreguje meta.json všech DEV_LOCATIONS do tabulky STATISTICS.md.
 
 Pro každou lokalitu (maps/<dirname>/) přečte:
-- meta.json: počty symbolů ze sekcí (paths/rides/water/buildings/powerlines/railways/paved/rocks/
-  bridges/surfaces/point_symbols) — každá items má `symbol: int` (např. 503, 304, 5122=512.2),
-- contours.geojson: vrstevnice 101/102/103 (každý feature má properties.code),
+- meta.json: počty symbolů ze sekcí (paths/rides/water/paved/buildings/powerlines/railways/rocks/
+  bridges/surfaces/landmarks/linefeatures/marsh/treerows + point_symbols) — každá items má
+  `symbol: int` (např. 503, 304, 5122=512.2),
+- contours.geojson: vrstevnice 101/102/103 (každý feature má properties.symbol),
 - mtime meta.json: čas poslední regenerace.
 
 Vypíše Markdown tabulku ISOM symbol × lokalita s počtem objektů + sekci „Poslední
@@ -89,8 +90,6 @@ def _normalize_code(sym) -> str:
         return ""
     if sym == 5122:               # ISOM_FOOTBRIDGE alias (= ISOM 512.2)
         return "512.2"
-    if sym == 3011:               # případný 301.1 alias (rezerva, dnes se neukládá)
-        return "301.1"
     return str(sym)
 
 
@@ -115,7 +114,7 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts: Counter = Counter()
     # 1) vrstevnice 101/102/103 z contours.geojson (meta agreguje jen total)
     counts.update(_count_contours(folder / "contours.geojson"))
-    # 2) items z 10 sekcí (každá má seznam s {"symbol": <int>})
+    # 2) items z 14 sekcí (každá má seznam s {"symbol": <int>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
                     "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures",
                     "marsh", "treerows"):

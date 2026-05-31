@@ -459,8 +459,8 @@ TREEROW_WAVE_LAMBDA_PX = 3.0 * PX_PER_MM                 # vlnová délka pertur
 # ne polovina jako v Sez. 31 template). Délka šikmé čárky 0,4 mm, vzdálenost paty od osy
 # = 0,25 mm (= 0,5 mm rozestup spec / 2). Tloušťka čárky = 0,18 mm (= line_width 512 template).
 # Lávka = single dash (template 512.2 id=127): kolmá čárka 1,25 mm × 0,25 mm, rotace k vodě.
-ISOM_BRIDGE = 512                          # most (osa plná, závorky na koncích)
-ISOM_TUNNEL = 512                          # tunel (osa vynechaná, závorky na koncích) — SHODNÝ kód
+ISOM_BRIDGE = 512                          # most (osa plná, závorky na koncích); tunel sdílí 512
+                                           #   (osa vynechaná) — týž ISOM kód, viz map_tunnel_to_isom
 ISOM_FOOTBRIDGE = 5122                     # lávka (= ISOM 512.2, single dash kolmo k vodě)
 BRIDGE_NAME = {ISOM_BRIDGE: "Bridge", ISOM_FOOTBRIDGE: "Footbridge"}   # Tunnel = totéž jako Bridge
 # Maska tříd v mask_bridges.png (multi-class): 1 = most, 2 = tunel, 3 = lávka. 0 = pozadí.
@@ -1015,9 +1015,11 @@ def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
 
 def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                      ring_px: list[tuple[float, float]], code: int) -> None:
-    """Zpevněná plocha / kolejiště / parkoviště (ISOM 501): hnědá výplň + hnědý obrys — wrapper nad
-    _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area)."""
-    _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BROWN, PAVED_CLASS[code])
+    """Zpevněná plocha / kolejiště / parkoviště (ISOM 501): hnědá výplň + ČERNÝ obrys — wrapper nad
+    _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area). Obrys = černý (verify
+    Sez. 50: template 501 „Paved area, with bounding line" = thin BLACK line, jako budova 521/206 —
+    dřív hnědý C_BROWN, oprava Stale nálezu Sez. 44)."""
+    _draw_area_symbol(draw, adraw, ring_px, C_ROAD, C_BLACK, PAVED_CLASS[code])
 
 
 def _draw_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
@@ -1208,9 +1210,8 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     cls = LANDMARK_CLASS[code]
     if code == ISOM_HIGH_TOWER:                         # kříž „+" + tečka
         a = LANDMARK_TOWER_ARM_PX
-        for col, mc in ((C_BLACK, cls),):
-            draw.line([(cx - a, cy), (cx + a, cy)], fill=col, width=1)
-            draw.line([(cx, cy - a), (cx, cy + a)], fill=col, width=1)
+        draw.line([(cx - a, cy), (cx + a, cy)], fill=C_BLACK, width=1)
+        draw.line([(cx, cy - a), (cx, cy + a)], fill=C_BLACK, width=1)
         mdraw.line([(cx - a, cy), (cx + a, cy)], fill=cls, width=1)
         mdraw.line([(cx, cy - a), (cx, cy + a)], fill=cls, width=1)
         d = LANDMARK_DOT_R_PX
@@ -1561,33 +1562,43 @@ def _draw_point_symbol(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         mdraw.arc(box, 0, 180, fill=cls, width=2)
 
 
+def _layer_meta_section(mask: str, info: list[dict], name_map: dict, class_map: dict) -> dict:
+    """Jedna vrstvová sekce meta.json: count/mask/source/symbols/classes/items/licence.
+
+    DRY + izomorfismus (A1, Sez. 50): tentýž ~10řádkový blok byl zkopírovaný 14× (část v
+    `_build_meta`, část injektovaná zvlášť za ním → asymetrie). Helper je jediná pravda struktury
+    sekce; `info` = seznam {"symbol": kód, …}, symboly/třídy se staví ze SKUTEČNĚ použitých kódů
+    (jeden zdroj NAME/CLASS map). `key=str` u sortu: landmarks míchají int (524/312) i str ("203.2")."""
+    used = sorted({it["symbol"] for it in info}, key=str)
+    return {
+        "count": len(info),
+        "mask": mask,
+        "source": "cuzk_zabaged",
+        "symbols": {str(c): name_map[c] for c in used},
+        "classes": {"0": "pozadí",
+                    **{str(class_map[c]): f"{c} {name_map[c]}" for c in used}},
+        "items": info,
+        "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
+    }
+
+
 def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str,
-                rides_mode: str, water_mode: str, paved_mode: str, buildings_mode: str,
-                powerlines_mode: str, railways_mode: str, rocks_mode: str, bridges_mode: str,
                 pseudorealistic: bool, lat: float, lon: float,
                 elev: np.ndarray, crs_epsg: int | None,
                 n_contours: int, n_formlines: int, n_paths: int, paths_info: list[dict],
-                rides_info: list[dict], point_symbols: list[dict], water_info: list[dict],
-                paved_info: list[dict], building_info: list[dict], powerlines_info: list[dict],
-                railways_info: list[dict], rocks_info: list[dict],
-                bridges_info: list[dict], omap_info: dict,
+                point_symbols: list[dict], omap_info: dict, real_sections: dict,
                 layer_errors: dict[str, str] | None = None) -> dict:
     """Sestaví obsah meta.json: parametry, původ terénu, legendu GT tříd, info o exportech.
 
-    Vyčleněno z generate_map() (SLAP, Sez. 15):
-    orchestrace kreslení vrstev a deklarativní sestavení metadat jsou dvě úrovně abstrakce.
-    Vysoký počet parametrů je daň za to, že meta agreguje výstupy všech vrstev.
+    Vyčleněno z generate_map() (SLAP, Sez. 15): orchestrace kreslení vrstev a deklarativní
+    sestavení metadat jsou dvě úrovně abstrakce. Reálné vrstvy (rides/water/…/treerows) přicházejí
+    jako hotový `real_sections` dict (sestavený v generate_map přes _layer_meta_section, A1 Sez. 50)
+    → meta je jen rozbalí; tady zůstávají jen univerzální části (terén/grid/vrstevnice/cesty/body).
     """
     # cesty: legendu symbolů/tříd stavíme dynamicky ze SKUTEČNĚ použitých ISOM kódů
     # (proc dělá 503/505; real 502-506 dle ZABAGED→ISOM) — jeden zdroj pravdy PATH_NAME/PATH_CLASS.
+    # (Cesty zůstávají vlastní, ne přes _layer_meta_section: source je proc|real a licence podmíněná.)
     used_path_codes = sorted({p["symbol"] for p in paths_info})
-    used_ride_codes = sorted({r["symbol"] for r in rides_info})
-    used_water_codes = sorted({w["symbol"] for w in water_info})
-    used_building_codes = sorted({b["symbol"] for b in building_info})
-    used_powerline_codes = sorted({p["symbol"] for p in powerlines_info})
-    used_railway_codes = sorted({r["symbol"] for r in railways_info})
-    used_paved_codes = sorted({p["symbol"] for p in paved_info})
-    used_rock_codes = sorted({r["symbol"] for r in rocks_info})
     return {
         "seed": seed,
         # pseudorealistic = fáze 2 (dekorace symbolů nad rámec tvrdých dat) zapnuta; False =
@@ -1634,105 +1645,11 @@ def _build_meta(seed: int, rug: float, det: float, terrain: str, paths_mode: str
             # reálné cesty = ČÚZK open data → atribuce povinná (CC BY 4.0)
             **({"licence": "CC BY 4.0 (ČÚZK ZABAGED)"} if paths_mode == "real" else {}),
         },
-        # lesní průseky (real-půlka, Sez. 36): linie ze ZABAGED REST → ISOM 508. Sekce jen když
-        # rides_mode == real; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"rides": {
-            "count": len(rides_info),
-            "mask": "mask_rides.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): RIDE_NAME[c] for c in used_ride_codes},
-            "classes": {"0": "pozadí",
-                        **{str(RIDE_CLASS[c]): f"{c} {RIDE_NAME[c]}" for c in used_ride_codes}},
-            "items": rides_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if rides_mode == "real" else {}),
-        # voda (hydrografie): toky + plochy ze ZABAGED REST (real-půlka, Sez. 17). Sekce
-        # jen když water_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"water": {
-            "count": len(water_info),
-            "mask": "mask_water.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): WATER_NAME[c] for c in used_water_codes},
-            "classes": {"0": "pozadí",
-                        **{str(WATER_CLASS[c]): f"{c} {WATER_NAME[c]}" for c in used_water_codes}},
-            "items": water_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if water_mode == "real" else {}),
-        # zpevněné plochy / kolejiště (real-půlka, Sez. 28): plochy ze ZABAGED REST → ISOM 501.
-        # Sekce jen když paved_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"paved": {
-            "count": len(paved_info),
-            "mask": "mask_paved.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): PAVED_NAME[c] for c in used_paved_codes},
-            "classes": {"0": "pozadí",
-                        **{str(PAVED_CLASS[c]): f"{c} {PAVED_NAME[c]}" for c in used_paved_codes}},
-            "items": paved_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if paved_mode == "real" else {}),
-        # budovy/stavby (real-půlka, Sez. 18): plochy ze ZABAGED REST → ISOM 521. Sekce
-        # jen když buildings_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"buildings": {
-            "count": len(building_info),
-            "mask": "mask_buildings.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): BUILDING_NAME[c] for c in used_building_codes},
-            "classes": {"0": "pozadí",
-                        **{str(BUILDING_CLASS[c]): f"{c} {BUILDING_NAME[c]}" for c in used_building_codes}},
-            "items": building_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if buildings_mode == "real" else {}),
-        # el. vedení (real-půlka, Sez. 24): linie ze ZABAGED REST → ISOM 510. Sekce jen když
-        # powerlines_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"powerlines": {
-            "count": len(powerlines_info),
-            "mask": "mask_powerlines.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): POWERLINE_NAME[c] for c in used_powerline_codes},
-            "classes": {"0": "pozadí",
-                        **{str(POWERLINE_CLASS[c]): f"{c} {POWERLINE_NAME[c]}" for c in used_powerline_codes}},
-            "items": powerlines_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if powerlines_mode == "real" else {}),
-        # železnice (real-půlka, Sez. 28): tratě ze ZABAGED REST → ISOM 509. Sekce jen když
-        # railways_mode != off; symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"railways": {
-            "count": len(railways_info),
-            "mask": "mask_railways.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): RAILWAY_NAME[c] for c in used_railway_codes},
-            "classes": {"0": "pozadí",
-                        **{str(RAILWAY_CLASS[c]): f"{c} {RAILWAY_NAME[c]}" for c in used_railway_codes}},
-            "items": railways_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if railways_mode == "real" else {}),
-        # skály/balvany (real-půlka, Sez. 30): 3 ISOM symboly ze 3 ZABAGED vrstev. KISS,
-        # vrstva → jeden symbol (jako budovy → 521). Sekce jen když rocks_mode != off;
-        # symboly/třídy dynamicky ze SKUTEČNĚ použitých kódů.
-        **({"rocks": {
-            "count": len(rocks_info),
-            "mask": "mask_rocks.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): ROCK_NAME[c] for c in used_rock_codes},
-            "classes": {"0": "pozadí",
-                        **{str(ROCK_CLASS[c]): f"{c} {ROCK_NAME[c]}" for c in used_rock_codes}},
-            "items": rocks_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if rocks_mode == "real" else {}),
-        # mosty / tunely / lávky (real-půlka, Sez. 32 spec-driven): Most+Tunel→512, Lávka→512.2.
-        # Most a tunel sdílí symbol 512, liší se „kind" v items. Maska 1=most, 2=tunel, 3=lávka.
-        **({"bridges": {
-            "count": len(bridges_info),
-            "mask": "mask_bridges.png",
-            "source": "cuzk_zabaged",
-            "symbols": {"512": "Bridge/tunnel", "512.2": "Footbridge"},
-            "classes": {"0": "pozadí",
-                        str(BRIDGE_CLASS_BRIDGE): "512 Bridge",
-                        str(BRIDGE_CLASS_TUNNEL): "512 Tunnel",
-                        str(BRIDGE_CLASS_FOOTBRIDGE): "512.2 Footbridge"},
-            "items": bridges_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }} if bridges_mode == "real" else {}),
+        # reálné ZABAGED/RÚIAN vrstvy (rides/water/paved/buildings/powerlines/railways/rocks/bridges/
+        # surfaces/landmarks/linefeatures/marsh/treerows) — sestavené v generate_map přes
+        # _layer_meta_section (A1 Sez. 50): jediná cesta i struktura sekce, žádná asymetrie
+        # uvnitř/vně _build_meta. Sekce přítomna jen pro vrstvy s mode == real (jinak v dictu není).
+        **real_sections,
         # bodové symboly lokálních extrémů (§4.10) z malých uzavřených vrstevnic —
         # detekční anotace (COCO/YOLO styl): symbol, název, pozice (mřížka i pixely).
         # GT maska = mask_symbols.png (třídy viz symbol_classes).
@@ -2721,8 +2638,9 @@ def generate_map(
     Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 zákaz vstupu, ÚPLNĚ
     VESPOD = podklad) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
-    (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) → mosty/tunely/
-    lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
+    (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) →
+    bodové orient. prvky (524/526/530/417/312/311/203.2) → liniové orient. prvky (104 sráz / 513 zeď) →
+    mosty/tunely/lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
     naopak POD hnědou vrstevnicí), patří do OOM Colors okna = uživatelova doména, ne rastr.
@@ -3304,87 +3222,46 @@ def generate_map(
                              marsh_features=marsh_omap_features,
                              treerow_features=treerow_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
-    meta = _build_meta(seed, rug, det, terrain, paths, rides, water, paved, buildings, powerlines,
-                       railways, rocks, bridges,
-                       pseudorealistic, lat, lon, elev,
-                       crs_epsg, n_contours, len(formline_features), n_paths, paths_info, rides_info,
-                       point_symbols, water_info,
-                       paved_info, building_info, powerlines_info, railways_info, rocks_info, bridges_info,
-                       omap_info, layer_errors)
-    # ISOM verze + georef výseku. Injektováno zde (ne přes _build_meta) — ten už má 26
-    # parametrů (A1 monolit), nezhoršovat smell. `isom` = deklarace verze (Sez. 38, ochrana
-    # proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever (Sez. 37).
-    # plošný pokryv (Sez. 41): injektováno zde (ne přes _build_meta) — ten už má 26 parametrů
-    # (A1 monolit, audit Sez. 41), nezhoršovat smell; precedent isom/georef (Sez. 37/38). Sekce jen
-    # když --surfaces real; struktura izomorfní s ostatními vrstvami (stats.py ji čte stejně).
-    if surfaces == "real":
-        used_surface_codes = sorted({s["symbol"] for s in surfaces_info})
-        meta["surfaces"] = {
-            "count": len(surfaces_info),
-            "mask": "mask_surfaces.png",
+    # reálné ZABAGED/RÚIAN vrstvy → meta sekce přes _layer_meta_section (A1 Sez. 50, DRY: jediná
+    # struktura sekce + jediná cesta uvnitř i vně _build_meta, zrušena dřívější asymetrie). Tabulka
+    # (mode, klíč, maska, info, NAME, CLASS) je jediný seznam vrstev — přidat další = jeden řádek.
+    # Pořadí = z-order historie (paths zůstává vlastní v _build_meta: source proc|real, páteř).
+    real_sections: dict = {}
+    for mode, key, mask_name, info, name_map, class_map in (
+            (rides, "rides", "mask_rides.png", rides_info, RIDE_NAME, RIDE_CLASS),
+            (water, "water", "mask_water.png", water_info, WATER_NAME, WATER_CLASS),
+            (paved, "paved", "mask_paved.png", paved_info, PAVED_NAME, PAVED_CLASS),
+            (buildings, "buildings", "mask_buildings.png", building_info, BUILDING_NAME, BUILDING_CLASS),
+            (powerlines, "powerlines", "mask_powerlines.png", powerlines_info, POWERLINE_NAME, POWERLINE_CLASS),
+            (railways, "railways", "mask_railways.png", railways_info, RAILWAY_NAME, RAILWAY_CLASS),
+            (rocks, "rocks", "mask_rocks.png", rocks_info, ROCK_NAME, ROCK_CLASS),
+            (surfaces, "surfaces", "mask_surfaces.png", surfaces_info, SURFACE_NAME, SURFACE_CLASS),
+            (landmarks, "landmarks", "mask_landmarks.png", landmarks_info, LANDMARK_NAME, LANDMARK_CLASS),
+            (linefeatures, "linefeatures", "mask_linefeatures.png", linefeatures_info, LINEFEAT_NAME, LINEFEAT_CLASS),
+            (marsh, "marsh", "mask_marsh.png", marsh_info, MARSH_NAME, MARSH_CLASS),
+            (treerows, "treerows", "mask_treerows.png", treerows_info, TREEROW_NAME, TREEROW_CLASS)):
+        if mode == "real":
+            real_sections[key] = _layer_meta_section(mask_name, info, name_map, class_map)
+    # mosty/tunely/lávky: vlastní sekce (most+tunel sdílí ISOM 512, hardcoded symbols + maskové
+    # třídy 1=most/2=tunel/3=lávka — _layer_meta_section to neumí, odvozuje symbols z 1 kódu→name).
+    if bridges == "real":
+        real_sections["bridges"] = {
+            "count": len(bridges_info),
+            "mask": "mask_bridges.png",
             "source": "cuzk_zabaged",
-            "symbols": {str(c): SURFACE_NAME[c] for c in used_surface_codes},
+            "symbols": {"512": "Bridge/tunnel", "512.2": "Footbridge"},
             "classes": {"0": "pozadí",
-                        **{str(SURFACE_CLASS[c]): f"{c} {SURFACE_NAME[c]}" for c in used_surface_codes}},
-            "items": surfaces_info,
+                        str(BRIDGE_CLASS_BRIDGE): "512 Bridge",
+                        str(BRIDGE_CLASS_TUNNEL): "512 Tunnel",
+                        str(BRIDGE_CLASS_FOOTBRIDGE): "512.2 Footbridge"},
+            "items": bridges_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }
-    # bodové orientační prvky (Sez. 43): injektováno zde (ne přes _build_meta, A1 smell; precedent
-    # surfaces/isom/georef). Sekce jen když --landmarks real; struktura izomorfní (stats.py ji čte stejně).
-    if landmarks == "real":
-        # key=str: kódy landmarků míchají int (524/312/311) i str ("203.2") → sorted bez klíče
-        # by spadl na TypeError (Py3 neporovná int<str). Sez. 44.
-        used_landmark_codes = sorted({lm["symbol"] for lm in landmarks_info}, key=str)
-        meta["landmarks"] = {
-            "count": len(landmarks_info),
-            "mask": "mask_landmarks.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): LANDMARK_NAME[c] for c in used_landmark_codes},
-            "classes": {"0": "pozadí",
-                        **{str(LANDMARK_CLASS[c]): f"{c} {LANDMARK_NAME[c]}" for c in used_landmark_codes}},
-            "items": landmarks_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }
-    # liniové orientační prvky (Sez. 43): injektováno zde (precedent landmarks/surfaces, A1 smell).
-    if linefeatures == "real":
-        used_linefeat_codes = sorted({lf["symbol"] for lf in linefeatures_info})
-        meta["linefeatures"] = {
-            "count": len(linefeatures_info),
-            "mask": "mask_linefeatures.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): LINEFEAT_NAME[c] for c in used_linefeat_codes},
-            "classes": {"0": "pozadí",
-                        **{str(LINEFEAT_CLASS[c]): f"{c} {LINEFEAT_NAME[c]}" for c in used_linefeat_codes}},
-            "items": linefeatures_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }
-    # mokřady (Sez. 44): injektováno zde (precedent surfaces/landmarks, A1 smell). Sekce jen
-    # když --marsh real; struktura izomorfní s ostatními vrstvami (stats.py ji čte stejně).
-    if marsh == "real":
-        used_marsh_codes = sorted({m["symbol"] for m in marsh_info})
-        meta["marsh"] = {
-            "count": len(marsh_info),
-            "mask": "mask_marsh.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): MARSH_NAME[c] for c in used_marsh_codes},
-            "classes": {"0": "pozadí",
-                        **{str(MARSH_CLASS[c]): f"{c} {MARSH_NAME[c]}" for c in used_marsh_codes}},
-            "items": marsh_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }
-    # stromořadí / lineární les (Sez. 45): injektováno zde (precedent marsh/surfaces, A1 smell).
-    if treerows == "real":
-        used_treerow_codes = sorted({t["symbol"] for t in treerows_info})
-        meta["treerows"] = {
-            "count": len(treerows_info),
-            "mask": "mask_treerows.png",
-            "source": "cuzk_zabaged",
-            "symbols": {str(c): TREEROW_NAME[c] for c in used_treerow_codes},
-            "classes": {"0": "pozadí",
-                        **{str(TREEROW_CLASS[c]): f"{c} {TREEROW_NAME[c]}" for c in used_treerow_codes}},
-            "items": treerows_info,
-            "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
-        }
+    meta = _build_meta(seed, rug, det, terrain, paths, pseudorealistic, lat, lon, elev,
+                       crs_epsg, n_contours, len(formline_features), n_paths, paths_info,
+                       point_symbols, omap_info, real_sections, layer_errors)
+    # ISOM verze + georef výseku — injektováno zde (nejsou to vrstvy, precedent Sez. 37/38).
+    # `isom` = deklarace verze (ochrana proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever.
     meta["isom"] = _isom_meta()
     meta["georef"] = _georef_meta(geo_bbox, crs_epsg)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
