@@ -26,7 +26,10 @@ viz `generator-procedural.md §9`). AutoTrace je pro opačný směr (pixely → 
 
 **lasertool** jde naopak *point cloud → rastr* (rodina Karttapullautin), **ne** vektorizace.
 Vegetation height (CHM) ale potřebuje **multi-echo klasifikované mračno** — naráží na stejnou
-vegetace gate jako Karttapullautin (viz `data-sources.md`).
+vegetace gate jako Karttapullautin (viz `data-sources.md`). **Sez. 59 ověřeno prakticky:**
+(a) `lasertool` (Win32 Qt4 2011) **segfaultuje na Win11** (exit 139); (b) i kdyby běžel, open
+ČÚZK DMP 1G je **100 % single-return** (změřeno laspy) → dá jen výšku korun (CHM), ne hustotu
+podrostu = runnability. CHM lze spočítat i přímo z laspy (bez lasertool). → vegetace gate DOLOŽENA.
 
 ## Modely / metody (z Pic2Omap)
 

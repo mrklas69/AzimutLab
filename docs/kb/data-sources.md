@@ -51,28 +51,46 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 - **ZABAGED Polohopis** — vektorová pravda o vodstvu/komunikacích/vegetaci → potenciální
   ground-truth a reference pro UC5 klasifikaci.
 
-### Vegetace gate — ZAVŘENA pro open-data cestu (ověřeno Sez. 3, 2026-05-23)
+### Vegetace gate — ZAVŘENA pro open-data cestu (ověřeno Sez. 3; DOLOŽENO MĚŘENÍM Sez. 59)
 ISOM zelená/žlutá kóduje **hustotu/průchodnost porostu** → potřebuje vertikální strukturu
 z **penetrujících (multi-echo) LiDAR odrazů**. Tu žádný open produkt ČÚZK neposkytuje:
-- **DMP OK** (nový, hustý) je z **obrazové korelace, ne LiDARu** → zachytí jen viditelný
+- **DMP OK** (nový 2024-25, hustý) je z **obrazové korelace, ne LiDARu** → zachytí jen viditelný
   povrch (korunu), fyzicky neprochází vegetací, žádné echoes (ověřeno: technická zpráva
-  DMP OK, 1/2026). Klasifikace zatím jen voda (třída 9).
+  DMP OK, 1/2026). **Sez. 59 oprava KB:** klasifikuje i „vysoká vegetace" (vedle vody/budov/mostů)
+  + nese RGB+NIR — ale pořád jen povrch (koruna), žádný podrost.
 - **Surové LLS mračno** (2009–13, multi-echo) **není standardní open-data sada** — dostupnost
-  jen přes zeměměřický odbor ZÚ Pardubice (publikované jsou jen odvozené DMR/DMP).
+  jen přes ZÚ Praha/Pardubice na vyžádání (publikované jsou jen odvozené DMR/DMP). Ověřeno Sez. 59
+  na geoportálu: výškopis nabízí DMR 4G/5G, DMP 1G, DMP OK, vrstevnice — **žádné surové mračno**.
 - **DMR 5G** = ground-only (vrstevnice ano, vegetace ne).
 
-**Náhradní cesta (slabší, ne plnohodnotná Karttapullautin vegetace):**
-- **CHM = DMP − DMR** → *výška* vegetace (ne hustota). Slabý proxy pro zelenou.
-- **NIR/RGB z DMP OK + Ortofoto** → maska lesa (les vs. otevřeno), ne průchodnost.
+**🔴 DŮKAZ Sez. 59 (verify-against-source, ne KB odhad):** stažen DMP 1G list **NBOR52** (Soví vrch,
+2,7 MB) přes ATOM → laspy analýza: **100 % single-return** (0 % multi-echo), klasifikace jen
+**GROUND 27,8 % / HIGH VEG 68,4 % / building 3,8 %** — žádná low/med veg třída, **nulová penetrace
+pod koruny**. → z DMP 1G lze spočítat jen **CHM (výška korun)**, ne hustotu podrostu = runnability.
+A CHM je **zavádějící proxy**: vysoký zralý les (vysoký CHM) je často PRŮCHODNÝ (na mapě bílá) →
+mapovat CHM na ISOM zelenou by bylo fyzikálně špatně. **lasertool** (`tools-models.md`) segfaultuje
+na Win11; i kdyby běžel, ze single-return mračna dá jen tutéž CHM výšku korun.
+
+**Dvojitá vazba (strukturální strop, ne administrativní):** multi-echo (podrost) = jen archiv
+**LLS 2009-13 = 13+ let stará vegetace** (nejdynamičtější prvek mapy); **aktuální DMP OK 2024-25 =
+single-surface** (bez podrostu). Co je multi-echo je staré, co je aktuální nemá podrost.
+
+**Stažení DMP 1G mračna — cesta OVĚŘENA Sez. 59 (pro budoucí konzument):** nomenklatura listu
+REST query na `KladyMapovychListu/MapServer/24` (klad SM5, bodem v S-JTSK) → ATOM
+`atom.cuzk.gov.cz/get.ashx?theme=DMP1G-SJTSK` → URL vzor `openzu.cuzk.cz/opendata/DMP1G/epsg-5514/<MAPNOM>.zip`.
+LAZ čte `laspy[lazrs]` (ve venv). Mirror `zabaged.py` REST. (Užitečné, i kdyby jen pro CHM/vrstevnice.)
+
+**Kandidáti na PLOCHU hustníku (jiná osa než LiDAR, NEPROZKOUMÁNO — Sez. 59):** ne plná runnability
+škála, jen „kde je obecný hustník". Probnout, teprve při selhání všech zavřít vegetaci v real části:
+1. **ÚHÚL lesnická data** (věk + zakmenění porostu — mladý/řídký = hustník; jen hospodářský les + licence verify).
+2. **Copernicus HRL** (Tree Cover Density / Forest Type — EU open, hrubé rozlišení).
+3. **Multi-temporal ortofoto** (ČÚZK archiv 2-letý cyklus — paseka→zapojený porost = mladý hustník; CV na časové řadě).
 
 Důsledek pro **UC4-II**: realistická vegetace z čistě ČÚZK open dat **nejde** Karttapullautin
-způsobem. Buď slabší proxy (CHM + NIR), nebo sehnat jiný zdroj multi-echo LiDARu.
-
-**Cesta otevření gate (odloženo, Sez. 8):** plné multi-echo klasifikované mračno **lze
-vyžádat / koupit** (ZÚ Pardubice, příp. krajská/zakázková data) — pak by Karttapullautin
-i lokální `lasertool` (viz `tools-models.md`) vegetaci zvládly. Vědomě **odloženo do fáze
-tvorby map z reálných podkladů**; teď je cíl generovat realisticky vyhlížející mapy (vektor
-vrstevnic z DMR 5G, gate netřeba). Až přijde konzument, prověřit zdroj + licenci znovu.
+způsobem (doloženo). Buď jiný podklad plochy hustníku (kandidáti výše), nebo sehnat multi-echo LiDAR
+(staré 2009-13 / ZÚ zakázka), nebo UC5 model z reálných map. Vědomě **odloženo do fáze tvorby map
+z reálných podkladů** — teď je cíl generovat tvrdou geometrii (gate netřeba). Až přijde konzument,
+prověřit zdroj + licenci znovu.
 
 ### ZABAGED komunikace — REST konektor (POUŽITO, Sez. 16)
 První reálný UC2 konektor (`connectors/zabaged.py`) — reálné cesty do generátoru

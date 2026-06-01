@@ -47,9 +47,12 @@ metody vegetation density (viz Zdroje).
 ### Důsledek pro AzimutLab (váže na `docs/kb/data-sources.md`)
 - **ČÚZK DMR 5G je ground-only** výškopis → stačí na **vrstevnice**, ale **ne na vegetaci**.
 - Vegetace (zelená/žlutá) vyžaduje **plné klasifikované mračno bodů** se všemi echo třídami.
-  **Ověřeno (Sez. 3): ČÚZK ho jako open data neposkytuje** — nový hustý DMP OK je z obrazové
-  korelace (fotogrammetrie, jen povrch, žádné echoes), surové LLS mračno není open. Detail
-  + náhradní cesta (CHM, NIR maska) v `docs/kb/data-sources.md` → „Vegetace gate".
+  **Ověřeno (Sez. 3) + DOLOŽENO MĚŘENÍM (Sez. 59): ČÚZK ho jako open data neposkytuje.**
+  Sez. 59 stáhl DMP 1G list NBOR52 (Soví vrch) přes ATOM + laspy → **100 % single-return, jen
+  GROUND/HIGH VEG/building, 0 % multi-echo** = jen koruny, žádný podrost. Surové LLS mračno není
+  open (jen ZÚ na vyžádání), a je staré (2009-13). **`lasertool` segfaultuje na Win11**; i kdyby
+  běžel, ze single-return dá jen CHM výšku korun (zavádějící proxy, vysoký les ≠ neprůchodno).
+  Detail + cesta stažení mračna + kandidáti plochy hustníku v `docs/kb/data-sources.md` → „Vegetace gate".
 - Tohle je přímý vstup pro **UC4-II** (generování inspirované souřadnicemi/terénem).
 
 ## Datové cesty pro UC5/UC4 (A / B / C) + sim-to-real
@@ -81,9 +84,11 @@ vektorizací rastru.
 
 ## Otevřené otázky průzkumu
 
-- ~~Poskytuje ČÚZK plné klasifikované mračno bodů jako open data?~~ **Vyřešeno (Sez. 3): NE**
-  — viz „Vegetace gate" v `docs/kb/data-sources.md`. Pro vegetaci přes Karttapullautin chybí
-  multi-echo mračno; náhrada jen slabší (CHM + NIR maska).
+- ~~Poskytuje ČÚZK plné klasifikované mračno bodů jako open data?~~ **Vyřešeno (Sez. 3): NE,
+  DOLOŽENO MĚŘENÍM (Sez. 59)** — DMP 1G je 100 % single-return (jen koruny). Viz „Vegetace gate".
+- **Existuje JINÝ reálný podklad pro alespoň PLOCHU obecného hustníku (ne plnou runnability škálu)?**
+  Neprozkoumáno (Sez. 59): ÚHÚL věk/zakmenění porostu / Copernicus HRL Tree Cover Density /
+  multi-temporal ortofoto (paseka→porost). Probnout — při selhání všech zaprotokolovat vegetaci mimo real část.
 - Jaké generativní přístupy dávají „realisticky vyhlížející" orienťácké mapy (UC4-I)?
 - Jaký je state-of-the-art v de-creasing / dewarping fotografií dokumentů (UC3)?
 
