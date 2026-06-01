@@ -80,11 +80,20 @@ REST query na `KladyMapovychListu/MapServer/24` (klad SM5, bodem v S-JTSK) → A
 `atom.cuzk.gov.cz/get.ashx?theme=DMP1G-SJTSK` → URL vzor `openzu.cuzk.cz/opendata/DMP1G/epsg-5514/<MAPNOM>.zip`.
 LAZ čte `laspy[lazrs]` (ve venv). Mirror `zabaged.py` REST. (Užitečné, i kdyby jen pro CHM/vrstevnice.)
 
-**Kandidáti na PLOCHU hustníku (jiná osa než LiDAR, NEPROZKOUMÁNO — Sez. 59):** ne plná runnability
-škála, jen „kde je obecný hustník". Probnout, teprve při selhání všech zavřít vegetaci v real části:
-1. **ÚHÚL lesnická data** (věk + zakmenění porostu — mladý/řídký = hustník; jen hospodářský les + licence verify).
-2. **Copernicus HRL** (Tree Cover Density / Forest Type — EU open, hrubé rozlišení).
-3. **Multi-temporal ortofoto** (ČÚZK archiv 2-letý cyklus — paseka→zapojený porost = mladý hustník; CV na časové řadě).
+**Kandidáti na PLOCHU hustníku (jiná osa než LiDAR) — PROBNUTO Sez. 61 (measure-first):** ne plná
+runnability škála, jen „kde je obecný hustník".
+1. **K1 ÚHÚL věk porostu = ZVOLEN k implementaci (Sez. 62), jako hrubý proxy.** Zdroj: **AOPK
+   `gis.nature.cz/arcgis/rest/services/Aplikace/Les_Mapy_20nn/MapServer`** vrstva **19 „Porostní skupiny 2022"**
+   (esriPolygon, **371 236 polygonů celostátně**, z LHP+LHO Lesy ČR+ÚHÚL; S-JTSK 5514; licence z. 106/1999 open).
+   Atribut **`BARVA` = věková třída** (20-letý interval — DOLOŽENO dokumentací porostní mapy; `ZNAČKA`/šrafa =
+   zakmenění; `DBID` = cizí klíč do neveřejné LHP DB). Číselník `BARVA`→věk NENÍ ve službě (renderer simple) →
+   z **Informačního standardu LH** (NLI). **Slabiny (měřeno):** věk = hrubý proxy (ne runnability); pokrytí
+   DĚRAVÉ **3/5 DEV** (NL 2381 / LS 990 / NV 2243 ✓; **SV 0, HS 0** — sešito z LHP různých roků); data 2022.
+   Plán: mlazina→410 / tyčkovina→406, **označit jako PROXY** (ne věrná runnability). Probe: `temp/uhul_probe/`.
+2. **K2 Copernicus HRL TCD = SLABÝ** (korunový zápoj 10 m shora = tatáž zeď jako CHM Sez. 59; nerozliší hustník
+   od zapojeného lesa; neproměřováno — strukturálně doloženo Sez. 59).
+3. **K3 Multi-temporal ortofoto = NEJSILNĚJŠÍ koncepčně, ODLOŽEN** (jediný bez pasti zápoje — časová změna
+   paseka→zápoj = mladý hustník, ČÚZK archiv open; ale velký CV projekt na časové řadě = vlastní UC).
 
 Důsledek pro **UC4-II**: realistická vegetace z čistě ČÚZK open dat **nejde** Karttapullautin
 způsobem (doloženo). Buď jiný podklad plochy hustníku (kandidáti výše), nebo sehnat multi-echo LiDAR

@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 61 (2026-06-01) — probe 3 kandidátů plochy hustníku → K1 ÚHÚL věk porostu zvolen
+- [x] **Probe 3 kandidátů PLOCHY hustníku (measure-first, carry podmínka Sez. 59)** — fokus z Příště Sez. 60.
+      Desk verify (co každý zdroj REÁLNĚ měří) + technický probe REST. Žádný produkční kód (`temp/uhul_probe/`).
+- [x] **K1 ÚHÚL věk porostu = ZVOLEN k implementaci (Sez. 62), jako hrubý proxy** (volba uživatele: odstupňovaně).
+      Strojově dostupný: **AOPK `gis.nature.cz/.../Les_Mapy_20nn/MapServer` vrstva 19 „Porostní skupiny 2022"**
+      (esriPolygon, **371 236** polygonů celostátně, z LHP+LHO Lesy ČR+ÚHÚL; S-JTSK 5514; licence z. 106/1999 open).
+      Atribut **`BARVA` = věková třída** (20-letý interval — DOLOŽENO dokumentací porostní mapy, ne hádáno;
+      `ZNAČKA`/šrafa = zakmenění; `DBID` = cizí klíč do neveřejné LHP DB; číselník `BARVA`→věk ze service NEjde
+      [renderer simple] → z Informačního standardu LH).
+- [x] **Slabiny K1 (změřeno):** (a) věk = hrubý proxy, ne runnability; (b) pokrytí DĚRAVÉ **3/5 DEV**
+      (NL 2381 / LS 990 / NV 2243 ✓; **SV 0, HS 0** — sešito z LHP různých roků platnosti); (c) data 2022 statická.
+- [x] **K2 Copernicus HRL TCD = SLABÝ** (korunový zápoj 10 m shora = tatáž zeď jako CHM Sez. 59; neproměřováno —
+      strukturálně doloženo). **K3 multi-temporal ortofoto = nejsilnější koncepčně, ODLOŽEN** (jediný bez pasti
+      zápoje, ale velký CV projekt = vlastní UC).
+- [x] **Plán Sez. 62:** konektor na AOPK (znovupoužít `connectors/arcgis.py`), číselník `BARVA`→věk z IS LH,
+      **mlazina (1. stupeň ~1-20 let) → 410 Veg: walk / tyčkovina (~21-40) → 406 slow**, starší → bílá; omap/maska/stats
+      kanál; **označit jako PROXY** (GLOSSARY/spec — zelená z věku ≠ terénní runnability). Censure 0 (verify-against-source
+      dodržen: BARVA=věk doloženo dokumentací; pokrytí změřeno na všech 5 DEV; K2 = už změřená zeď Sez. 59).
+
 ## Sezení 60 (2026-06-01) — %AUDIT:CODE (úklid driftu po vlně Sez. 50→59)
 - [x] **%AUDIT:CODE** (LOC práh ≥500 překročen: net +616 LOC od Sez. 50, +9 sez). `generator.py` (3716 ř.)
       přečten celý sám + 2 agenti na okraj (zabaged / omap_export+compare+stats+batch), nálezy ověřeny proti
