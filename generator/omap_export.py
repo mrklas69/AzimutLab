@@ -65,7 +65,8 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "104", "107", "513",       # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
-              "308", "406")              # mokřady Sez. 44 (308 Marsh) + stromořadí Sez. 45 (406 lineární les)
+              "308", "406",              # mokřady Sez. 44 (308 Marsh) + stromořadí Sez. 45 (406 lineární les)
+              "408", "410")              # věk porostu Sez. 62 (406/408/410 zeleň z AOPK porostních skupin, PROXY)
 # 523 Ruin (Sez. 43): zřícenina jde v building_features jako uzavřený area_object se symbolem 523
 # (line_symbol dashed v template) → OOM nakreslí čárkovaný obrys po obvodu (bez výplně; 523 nemá
 # area component, proto NENÍ v AREA_CODES — close flag jen uzavře geometrii).
@@ -81,7 +82,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder + 208 Boulder field = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57
+AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "402", "402.1", "520", "308", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY)
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -122,6 +123,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                linefeature_features: list[tuple] | None = None,
                marsh_features: list[tuple] | None = None,
                treerow_features: list[tuple] | None = None,
+               forest_age_features: list[tuple] | None = None,
                barrier_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
@@ -209,7 +211,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
     n_formlines = n_rocks = n_bridges = n_rides = n_surfaces = n_landmarks = n_linefeatures = n_marsh = n_treerows = 0
-    n_barriers = 0
+    n_barriers = n_forest_age = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -283,6 +285,13 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(ring, str(code))
         if o:
             objs.append(o); n_treerows += 1
+    # věk porostu → zeleň (Sez. 62, PROXY z AOPK porostních skupin): 406 slow / 408 walk / 410 fight
+    # = plošný objekt (uzavřený path s close flagem; OOM vyplní zelenou z definice symbolu). Tři
+    # odstíny dle věku — interpretace, ne věrná runnability (značeno PROXY v meta/spec/GLOSSARY).
+    for ring, code in (forest_age_features or []):
+        o = area_object(ring, str(code))
+        if o:
+            objs.append(o); n_forest_age += 1
     # řopíky (Sez. 27): asset = budova 521 (plocha) + vrstevnice náspu 101 (linie). Geometrie už
     # natočená/umístěná generátorem; emise jako ostatní (521 area s close flagem, 101 line).
     for geom, code in (ropik_features or []):
@@ -478,5 +487,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             "railways": n_railways, "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
             "bridges": n_bridges, "surfaces": n_surfaces, "landmarks": n_landmarks,
             "linefeatures": n_linefeatures, "marsh": n_marsh, "treerows": n_treerows,
-            "barriers": n_barriers,
+            "forest_age": n_forest_age, "barriers": n_barriers,
             "points": n_points, "objects": len(objs)}

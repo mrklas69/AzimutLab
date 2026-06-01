@@ -35,6 +35,7 @@ resources/
 .zabaged_cache/
 .ortofoto_cache/
 .ruian_cache/
+.forest_cache/
 
 # Claude / IDE lokální
 .claude/settings.local.json
