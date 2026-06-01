@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 58 (2026-06-01) — ZABAGED fáze I vytěžena (doloženo) → compare prohloubení na sbírce 6 map
+- [x] **Strategie: ZABAGED fáze I VYTĚŽENA, doloženo měřením.** Otázka uživatele „100% vytěžený?" → 3 roviny:
+      extenzivní ~98 % (5 marg. vrstev), intenzivní (crossability), strop = vegetace gate. **Crossability vody
+      probnuta a vyvrácena** (`temp/probe_water_crossability.py`): `Vodní_tok` nemá pole šířky, jediný signál
+      `typtoku_k` (splavný 099), a **099 = 0 na všech 5 DEV lokalitách** (splavné řeky = nížiny, ne OB lesy) →
+      i můj protiargument (rovina 2) měřením padl. Plocha→301 už dnes správně. Fokus posunut UC2→compare.
+- [x] **Sbírka 6 reálných map** (TrainsLab/resources, `probe_map_collection.py`): **SampleMap = UTM zone 10 =
+      Severní Amerika** vyřazena (ZABAGED nepokrývá). 5 ČR Liberecko zkopírováno do `resources/` (gitignored):
+      Soví vrch/Bedřichovka/Blatná (Křovák), Slovanka (UTM33), Velbloud (Křovák). Grivace 3,75–17° = magnetic-north
+      (`.pgw` rotace = −grivace, ověřeno 5/5 → PNG export použil grivaci z `.omap`).
+- [x] **Compare parametrizován** (`generator/compare_real_vs_gen.py`): `_map_paths(name)`, `main(name=…)`,
+      `_stat1_crosswalk` vyčleněn (podmíněn na kalibrovaný „Soví vrch"), STAT 2 univerzální, argv. **Matched výsek**
+      (`probe_matched_extent.py`): gen na S-JTSK obal rotované mapy z `.pgw` rohů → WGS84 (pyproj) → footprint = celá mapa.
+- [x] **Tracer Bedřichovka E2E** → vizuál odhalil **layout kontaminaci** (rám/north-lines/legenda v rozích gen mřížky) →
+      re-export čistého pole z Mapperu (volba uživatele, autoritativní georef). Po očištění: blue 2,5→1,3 %, green 39,6→30,4 %,
+      brown prec 53→67 % (kontaminace doložena).
+- [x] **Měření gate na 3 plně domapovaných cizích mapách** (Bedř/Blatná/Velbl): gen projektuje **tvrdou geometrii**
+      věrně (les IoU 50–66, vrstevnice prec 67/rec 75, cesty prec 60–75), **vegetace ~30 % real vs ~0 % gen = gate**
+      konzistentně; žlutá gen PODkresluje (gate z druhé strany). **Soví vrch OUTLIER** (white 94 %) = domapováno jen
+      **~1/4** (NE export bug — korekce hypotézy), vyřazen z agregátu.
+- [x] **Hodnocení fáze I ~60 % pokrytí** (otázka uživatele): vážená precision vrstevnice+cesty ~65 %, +žlutá ~52 %,
+      +les ~76 %. Verdikt: tvrdá geometrie ~65 % věrná, nevymýšlí si (vysoká precision); ~třetinu mapy (vegetace/
+      běhatelnost) vědomě nekreslí (strop ZABAGED → skok = UC5). Číslo = míra pokrytí tvrdé geometrie, ne známka kvality.
+
 ## Sezení 57 (2026-06-01) — %AUDIT:DOCS + balvany-linie → 208 + parkoviště → 501.1
 - [x] **%AUDIT:DOCS (zralý +11/10), 4 nálezy ověřené proti zdroji** (3 fan-out agenti, kriticky profiltrováno):
       **N1** broken links — 53 řádků `DIARY.md` mělo `](docs/diary/…)` po přesunu root→`docs/` (Sez. 48) → z `docs/DIARY.md`
