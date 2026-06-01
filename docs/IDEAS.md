@@ -199,3 +199,28 @@ klony (*White over green*, *Black below brown*…) jsou jeho součást — nelad
   bohatší kategorizaci pro les, tatáž `ags.cuzk.gov.cz` doména + GeoJSON; INSPIRE = harmonizovaná EU verze
   téhož = zbytečná abstrakce. **Trvalá lekce (oponováno):** navržené INSPIRE URL byly **WMS** (rastr) — pro
   vektor → ISOM je třeba **WFS/REST** (jinak ztrátová segmentace), izomorfní s lekcí ZM5-rastr/ZABAGED-vektor.
+
+## Časosběr ortofota → věk porostu / vegetace (Sez. 63 %THINK + measure-first)
+
+**Příležitost:** ČÚZK má **archiv ortofota 1998–2023** (barevné od 2002, vrstvy po ročnících přes WMS
+`WMS_ORTOFOTO_ARCHIV` `LAYERS=<rok>`) + **CIR (NIR) archiv 2010–2023** (`WMS_ORTOFOTO_CIR`) → NDVI časová
+řada. Vše ortorektifikované v S-JTSK (kořegistrace zadarmo, mirror `ortofoto.py`). Koncepčně nejsilnější
+cesta k VĚKU/zmlazení (Sez. 61 K3): detekce holina→zmlazení dá **pozorovaný věk porostu** = co forest-age
+(Sez. 62) jen vypůjčil z AOPK, ale **národní bezešvé** (vyřeší díru SV/HS), **aktuální** (vč. kůrovce 2018-24),
+a krmí budoucí **UC5 model**.
+
+**ALE měřeno (probe `temp/orto_probe/probe_ndvi.py`, NL Jizerky) — NENÍ čistý quick-win:**
+- Open CIR je **display PNG, ne reflektance** (8-bit stretchnutý per-snímek) → absolutní NDVI nesmyslné,
+  cross-epoch diff confounded.
+- **Radiometrický drift** mezi epochami (mean NDVI 2021=0,145 vs 2023=0,115) → naivní 2-epoch práh dal
+  **12,8 % „holiny" = z velké části ŠUM** (změnová mapa sůl-a-pepř, ne koherentní paseky).
+- **Pokrytí lokálně řídké** — NL měl z 2010-23 jen 2021+2023 (žádná bohatá řada).
+
+**Závěr:** deterministická change-detekce z open ČÚZK CIR = **skutečný CV projekt** (relativní normalizace +
+robustní multi-epoch ne 2-epoch + kořegistrace + pokrytí), NE samostatná věrná vrstva přes ruční práh.
+Invariance vůči driftu = přesně to, co **model** zvládne líp → časosběr je svou povahou vstup pro **PREDIKCI
+(UC5)**, deterministicky leda hrubý feature / generátor trénovacích labelů. **AOPK věk (Sez. 62) je teď
+čistší zdroj** než naivní ortofoto-change. Single-epoch CIR segmentuje les/otevřeno čistě (ale to máme ze ZABAGED).
+
+**Fáze (až někdy):** A měření hotovo (negativní pro naivní diff) · B robustní temporal (normalizace, >2 epochy) ·
+C UC5 model (ortofoto+DMR+věk → runnability, GT reálné mapy) = skutečný gate-breaker. Probe artefakty `temp/orto_probe/`.
