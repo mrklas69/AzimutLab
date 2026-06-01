@@ -121,6 +121,7 @@ LAYER_IDS = {
     "Tovární komín": 31,                         # → 524 High tower (Sez. 52; LS 12/SV 1, atribut vyska_obj nevyužit — KISS)
     # Liniové orientační prvky (Sez. 43, audit katalogu): terénní sráz / zeď.
     "Stupeň, sráz": 95,                          # → 104 Earth bank (Σ981 = nejčastější netáhnutá!)
+    "Rokle, výmol": 94,                          # → 107 Erosion gully (Sez. 58, Σ0 na DEV — naslepo)
     "Zábrana": 54,                               # → 519 Crossing point (Sez. 52; jen na nosné zdi 513, viz fetch_barriers)
     "Zeď": 39,                                   # → 513 Wall
     "Hradba, val, bašta, opevnění": 38,          # → 513 Wall (kamenné historické opevnění)
@@ -271,8 +272,12 @@ LANDMARK_AREA_LAYERS_311 = ("Nadzemní zásobní nádrž",)  # plocha → centro
 #   104 Earth bank — terénní stupeň/sráz (zemní, NE skalní 201; bez atributu výšky → KISS 104).
 #                    Σ981 napříč 5 DEV_LOCATIONS = NEJČASTĚJŠÍ dosud netáhnutá vrstva (silný OB prvek).
 #   513 Wall       — zeď + hradba/val/bašta/opevnění (kamenné; `typzed` null → KISS 513).
+#   107 Erosion gully — `Rokle, výmol` (id 94, Sez. 58): erozní rýha, polyline, jen `fid_zbg` →
+#                    KISS 107 (NE drobné 108). Σ0 na 5 DEV (erozní terény = měkké půdy, ne lesy
+#                    Liberecka) → implementováno NASLEPO (linie→linie, spec ověřen; vizuál neověřen).
 LINE_FEATURE_LAYERS_104 = ("Stupeň, sráz",)
 LINE_FEATURE_LAYERS_513 = ("Zeď", "Hradba, val, bašta, opevnění")
+LINE_FEATURE_LAYERS_107 = ("Rokle, výmol",)
 
 # Zábrana → ISOM 519 Crossing point (Sez. 52, real-půlka, bodová ORIENTOVANÁ — vedle řopíků/lávek
 # jediná taková). ZABAGED `Zábrana` (id 54) nese jediný typ (`typ_k=Z` = „Závora, brána"). ISOM 519
@@ -1056,17 +1061,19 @@ def map_line_feature_to_isom(layer: str) -> int | None:
         return 104
     if layer in LINE_FEATURE_LAYERS_513:
         return 513
+    if layer in LINE_FEATURE_LAYERS_107:
+        return 107
     return None
 
 
 def fetch_line_features(lat: float, lon: float, gw: int, gh: int,
                         tile_m: float = 1000.0,
                         cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí liniové orientační prvky pro výsek (Sez. 43): sráz 104 / zeď 513.
+    """Vrátí liniové orientační prvky pro výsek (Sez. 43): sráz 104 / zeď 513 / rokle 107 (Sez. 58).
 
     Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen).
     Mapování na ISOM (map_line_feature_to_isom) výš. Izomorfní s fetch_powerlines/fetch_railways."""
-    return _collect_features((*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513),
+    return _collect_features((*LINE_FEATURE_LAYERS_104, *LINE_FEATURE_LAYERS_513, *LINE_FEATURE_LAYERS_107),
                              lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
 
 

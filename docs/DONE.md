@@ -25,6 +25,15 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 - [x] **Hodnocení fáze I ~60 % pokrytí** (otázka uživatele): vážená precision vrstevnice+cesty ~65 %, +žlutá ~52 %,
       +les ~76 %. Verdikt: tvrdá geometrie ~65 % věrná, nevymýšlí si (vysoká precision); ~třetinu mapy (vegetace/
       běhatelnost) vědomě nekreslí (strop ZABAGED → skok = UC5). Číslo = míra pokrytí tvrdé geometrie, ne známka kvality.
+- [x] **(dodatek po %END) Vodní plocha 301.1 → 301** (combined s černou břehovou linií). Mapaři kreslí vodní plochy
+      s okrajem = neprůchodné; omap exportoval 301.1 (bez okraje), rastr okraj měl od Sez. 18 → nesoulad. Oponentura:
+      uživatel navrhl 301.2, ale ověření barev (301.2 = Blue 70% dominant) → zvolil 301 (Blue 100% + bank line, zachová
+      odstín). Mylný komentář Sez. 18 „combined nepřiřaditelný objektu" vyvrácen kolejištěm 501. Verify: omap 301×23 /
+      301.1×0; OOM Test OK.
+- [x] **(dodatek po %END) Rokle/výmol → ISOM 107 Erosion gully** (`--linefeatures`, id 94). Probe: silnice ve výstavbě
+      + rokle Σ0 na 5 DEV; silnice ve výstavbě nechána ✗ (staveniště ≠ 503), rokle → 107 (linie→linie, KISS ne 108).
+      Mirror sráz 104 (hnědá solid, bez ticků). Verify > naslepo: v ČR 1388 (řídká), nejhustší shluk Moravská Třebová →
+      omap 107×32, OOM Test OK. Katalog ○→✓. Připraveno pro úplnost (Σ0 na DEV).
 
 ## Sezení 57 (2026-06-01) — %AUDIT:DOCS + balvany-linie → 208 + parkoviště → 501.1
 - [x] **%AUDIT:DOCS (zralý +11/10), 4 nálezy ověřené proti zdroji** (3 fan-out agenti, kriticky profiltrováno):

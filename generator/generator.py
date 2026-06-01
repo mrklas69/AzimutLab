@@ -464,23 +464,29 @@ BARRIER_BREAK_NEAR_M = 6.0                               # práh „brána lež�
 
 
 # ---------- Liniové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
-# 2 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
+# 3 ISOM symboly z liniových ZABAGED vrstev — KISS vrstva → jeden symbol (map_line_feature_to_isom):
 #   104 Earth bank — terénní sráz: plná HNĚDÁ linie + krátké JEDNOSTRANNÉ kolmé čárky (ticks).
 #       Orientace ticků (na nižší stranu svahu) by chtěla DMR sklon → zatím konzistentní pravá
 #       normála (vizuálně = earth bank; přesná orientace = TODO, potřebuje výškopis).
 #   513 Wall — zeď/hradba: plná černá linie (template id 128 line_width 240 µm).
+#   107 Erosion gully — erozní rokle/výmol: plná HNĚDÁ linie (template width 375 µm, bez ticků;
+#       `Rokle, výmol` id 94, Sez. 58). Bez atributu velikosti → KISS 107 (NE drobné 108). POZN.:
+#       implementováno NASLEPO — 0 výskytů na 5 DEV lokalitách (erozní rýhy = měkké půdy, ne lesy
+#       Liberecka); vizuál neověřen na reálném výseku, jen geometrie linie→linie + spec (volba uživatele).
 # (Stromořadí už NENÍ zde — `Liniová vegetace` jde plošně jako 406 lineární les, viz TREE_ROW_* níže;
 #  416 = hranice porostů bylo sémanticky špatně pro řadu stromů, Sez. 45.)
 ISOM_EARTH_BANK = 104
 ISOM_WALL = 513
-LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall"}
+ISOM_EROSION_GULLY = 107
+LINEFEAT_NAME = {ISOM_EARTH_BANK: "Earth bank", ISOM_WALL: "Wall", ISOM_EROSION_GULLY: "Erosion gully"}
 # ISOM kód → třída v mask_linefeatures.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
-LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2}
-LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BROWN, ISOM_WALL: C_BLACK}  # 104 sráz = HNĚDÁ (template color 6 Brown), NE černá (oprava audit Sez. 44)
-# Render styl (mode, width px, dash). 513/104 obě plná (104 + ticks zvlášť).
+LINEFEAT_CLASS = {ISOM_EARTH_BANK: 1, ISOM_WALL: 2, ISOM_EROSION_GULLY: 3}
+LINEFEAT_COLOR = {ISOM_EARTH_BANK: C_BROWN, ISOM_WALL: C_BLACK, ISOM_EROSION_GULLY: C_BROWN}  # 104/107 sráz/rokle = HNĚDÁ (template color 6 Brown), NE černá (oprava audit Sez. 44)
+# Render styl (mode, width px, dash). 513/104 obě plná (104 + ticks zvlášť); 107 plná hnědá tlustší.
 LINEFEAT_STYLE = {
     ISOM_EARTH_BANK: ("solid", 1, None),
     ISOM_WALL: ("solid", 1, None),
+    ISOM_EROSION_GULLY: ("solid", 2, None),   # 107 = plná hnědá ~2 px (template 375 µm), bez ticků
 }
 EARTHBANK_TICK_SPACING_PX = max(3, round(0.8 * PX_PER_MM))   # rozestup ticků sráz 104 (~0,8 mm)
 EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jednostranná, ~0,35 mm)
