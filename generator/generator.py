@@ -23,6 +23,7 @@ import heapq  # binární halda pro Dijkstra least-cost trasování cest (§9)
 import json
 import logging  # průběžný + souhrnný výstup synthesize (úroveň INFO; CLI zapíná, batch tichý)
 import math  # math.hypot: délka segmentu při čárkování cest + vzdálenost sousedů v Dijkstra
+import random  # deterministické (seedované) rozmístění trojúhelníků 208 Boulder field (Sez. 57)
 import sys
 from pathlib import Path
 
@@ -285,9 +286,9 @@ RIDE_STYLE = {ISOM_NARROW_RIDE: ("dashed", 1, (3.0 * PX_PER_MM, 0.375 * PX_PER_M
 # (hnědá 50% výplň + obrysová linie). Raster: výplň = C_PAVED (Lower brown 50%, ISOM color 13 — odlišná
 # od silnice 502 = C_ROAD Upper brown 50%; v ISOM mají identické CMYK, rastr je odliší jasem, aby silnice
 # na zpevněné ploše 501.1 vynikly — Sez. 54), obrys = C_BROWN (= template bounding line Brown 100%).
-# Mapování viz zabaged.map_paved_to_isom (501 kolejiště / 501.1 ostatní plocha v sídlech).
-ISOM_PAVED = 501                   # zpevněná plocha s obrysem (kolejiště/parkoviště) → hnědá výplň + obrysová linie
-ISOM_PAVED_NB = 501.1              # zpevněná plocha BEZ obrysu (ostatní plocha v sídlech, 115; Sez. 54)
+# Mapování viz zabaged.map_paved_to_isom (501 kolejiště / 501.1 parkoviště + ostatní plocha v sídlech).
+ISOM_PAVED = 501                   # zpevněná plocha s obrysem (kolejiště = vymezený prostor) → hnědá výplň + obrysová linie
+ISOM_PAVED_NB = 501.1              # zpevněná plocha BEZ obrysu (ostatní plocha v sídlech 115 Sez. 54; parkoviště Sez. 57 = průchozí)
 PAVED_NAME = {ISOM_PAVED: "Paved area", ISOM_PAVED_NB: "Paved area (no bounding line)"}
 # ISOM kód → třída v mask_paved.png (0 = pozadí). 501 = třída 1, 501.1 = třída 2 (rozliš pro UC5).
 PAVED_CLASS = {ISOM_PAVED: 1, ISOM_PAVED_NB: 2}
@@ -361,11 +362,12 @@ MARSH_CLASS = {ISOM_MARSH: 1}                          # mask_marsh.png (0 = poz
 MARSH_HATCH_SPACING_PX = max(2, round(0.45 * PX_PER_MM))  # rozestup vodorovných čar (template 0,45 mm)
 
 
-# ---------- Skály a balvany (Sez. 30, real-půlka §8.5) ----------
-# 3 ISOM symboly z 3 ZABAGED vrstev — KISS, vrstva = jeden symbol (jako budovy→521 / vedení→510):
+# ---------- Skály a balvany (Sez. 30 + 57, real-půlka §8.5) ----------
+# 4 ISOM symboly ze 4 ZABAGED vrstev — KISS, vrstva = jeden symbol (jako budovy→521 / vedení→510):
 #   204 Boulder           — bod (Osamělý_balvan)
 #   207 Boulder cluster   — bod (Skupina_balvanů__bod_)
 #   206 Gigantic boulder  — plocha (Skalní_útvary, plná černá plocha)
+#   208 Boulder field     — linie → pás (Skupina_balvanů__linie_, náhodné trojúhelníky; Sez. 57)
 # Hybridní 202/206 podle plochy (zvažováno Sez. 30, Q2) ZAVRŽENO uživatelem v průběhu sezení:
 # „rozhodování bez datového podkladu" — ZABAGED nemá atribut typu/výšky, práh by byl hádaný.
 # Drift po stěně argumentů („proč jsou některé plné a jiné jen obrys?") → návrat ke KISS:
@@ -375,10 +377,12 @@ MARSH_HATCH_SPACING_PX = max(2, round(0.45 * PX_PER_MM))  # rozestup vodorovnýc
 ISOM_BOULDER = 204                 # 204 Boulder — bodový balvan, plný černý kruh
 ISOM_GIGANTIC_BOULDER = 206        # 206 Gigantic boulder — skalní útvar v půdorysu, černá výplň
 ISOM_BOULDER_CLUSTER = 207         # 207 Boulder cluster — bodová skupina balvanů, černý trojúhelník
+ISOM_BOULDER_FIELD = 208           # 208 Boulder field — plocha s náhodnými trojúhelníky (Sez. 57)
 ROCK_NAME = {ISOM_BOULDER: "Boulder", ISOM_GIGANTIC_BOULDER: "Gigantic boulder",
-             ISOM_BOULDER_CLUSTER: "Boulder cluster"}
-# ISOM kód → třída v mask_rocks.png (0 = pozadí). 3 třídy (jedna maska pro celou kategorii).
-ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3}
+             ISOM_BOULDER_CLUSTER: "Boulder cluster", ISOM_BOULDER_FIELD: "Boulder field"}
+# ISOM kód → třída v mask_rocks.png (0 = pozadí). 4 třídy (jedna maska pro celou kategorii).
+ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3,
+              ISOM_BOULDER_FIELD: 4}
 
 # Render parametry (template_classic.omap autoritativní, rastr ladíme pro viditelnost — princip
 # Sez. 28/29 „render px-tuned vs .omap věrný"). Vše v µm × PX_PER_MM/1000:
@@ -389,6 +393,15 @@ ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3
 BOULDER_RADIUS_PX = max(2, round(0.4 * PX_PER_MM))           # 204 — kruh
 BOULDER_CLUSTER_HALF_BASE_PX = max(2, round(0.4 * PX_PER_MM))  # 207 — polovina base trojúhelníku
 BOULDER_CLUSTER_HEIGHT_PX = max(2, round(0.7 * PX_PER_MM))     # 207 — výška trojúhelníku (vrchol dolů)
+
+# 208 Boulder field (Sez. 57): zdroj LINIE → buffer na úzký pás (½ šířky = 0,75 mm → pás 1,5 mm,
+# volba uživatele) → vyplnit NÁHODNÝMI trojúhelníky. .omap je area_symbol 208 (OOM vyplní pattern
+# autoritativně z definice id 38) → rastr jen px-tuned aproximace (princip render-px vs .omap, Sez. 28/29).
+# ISOM 208: density 0,8-1 trojúhelník/mm² (→ rozestup ~1 mm), footprint trojúhelníku 12×6 m = 1,2×0,6 mm.
+BOULDER_FIELD_HALF_WIDTH_PX = 0.75 * PX_PER_MM               # ½ šířky pásu (0,75 mm → pás 1,5 mm)
+BOULDER_FIELD_MIN_AREA_PX2 = round(1.0 * PX_PER_MM ** 2)     # zahodit pásy pod ISOM min. plochou (1,0 mm²)
+BOULDER_FIELD_TRI_SPACING_PX = 1.0 * PX_PER_MM               # rozestup trojúhelníků (~1/mm², ISOM 0,8-1)
+BOULDER_FIELD_TRI_HALF_PX = max(2, round(0.3 * PX_PER_MM))   # polovina base trojúhelníku (~0,6 mm base)
 
 
 # ---------- Bodové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
@@ -1106,10 +1119,10 @@ def _draw_building_area(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
 
 def _draw_paved_area(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                      rings_px: list[list[tuple[float, float]]], code: float) -> None:
-    """Zpevněná plocha (ISOM 501 kolejiště/parkoviště / 501.1 ostatní plocha v sídlech): hnědá výplň +
+    """Zpevněná plocha (ISOM 501 kolejiště / 501.1 parkoviště + ostatní plocha v sídlech): hnědá výplň +
     obrys dle symbolu — wrapper nad _draw_area_symbol (izomorfní s _draw_building_area / _draw_water_area).
     501 má ČERNÝ obrys (template „Paved area, with bounding line" = thin BLACK line; verify Sez. 50);
-    501.1 je BEZ obrysu (PAVED_OUTLINE, Sez. 54 — administrativní výplň, ne ohraničená plocha)."""
+    501.1 je BEZ obrysu (PAVED_OUTLINE, Sez. 54/57 — průchozí/administrativní výplň, ne ohraničená plocha)."""
     _draw_area_symbol(draw, adraw, rings_px, C_PAVED, PAVED_OUTLINE[code], PAVED_CLASS[code])
 
 
@@ -1213,6 +1226,25 @@ def _polygon_area_px(ring: list[tuple[float, float]]) -> float:
     return abs(s) / 2.0
 
 
+def _point_in_ring(x: float, y: float, ring: list[tuple[float, float]]) -> bool:
+    """Leží bod (x, y) uvnitř uzavřeného polygonu `ring`? Ray-casting (even-odd): od bodu
+    vystřelíme polopřímku doprava a počítáme průsečíky s hranami — lichý počet = uvnitř.
+    Pro rozmístění trojúhelníků 208 do buffrovaného pásu (Sez. 57)."""
+    n = len(ring)
+    inside = False
+    j = n - 1                              # index předchozího vrcholu (hrana j→i)
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        # hrana protíná vodorovnou polopřímku v úrovni y, a průsečík je vpravo od x?
+        if (yi > y) != (yj > y):
+            x_cross = xj + (xi - xj) * (y - yj) / (yi - yj)
+            if x < x_cross:
+                inside = not inside
+        j = i
+    return inside
+
+
 def _buffer_polyline_irregular(axis_px: list[tuple[float, float]],
                                half_w: float) -> list[tuple[float, float]]:
     """Osa (polyline) → uzavřený NEPRAVIDELNÝ pás („špageta", Sez. 45) jako prstenec px.
@@ -1297,6 +1329,40 @@ def _draw_gigantic_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw
     = jen plná černá výplň (žádný pattern, žádný obrys jiné barvy). Mirror _draw_building_area,
     jen třída masky jiná (ROCK_CLASS[206])."""
     _draw_area_symbol(draw, mdraw, rings_px, C_BLACK, C_BLACK, ROCK_CLASS[ISOM_GIGANTIC_BOULDER])
+
+
+def _draw_boulder_field_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                             ring_px: list[tuple[float, float]]) -> None:
+    """Pole balvanů (ISOM 208 Boulder field): pás vyplněný NÁHODNÝMI plnými trojúhelníky + GT maska.
+
+    GT maska = CELÝ pás (třída ROCK_CLASS[208]) — symbol je „kde leží pole 208", ne kde je každý
+    trojúhelník. Rastr = px-tuned aproximace patternu (`.omap` nese area_symbol 208, OOM vyplní
+    trojúhelníky věrně z definice id 38 — princip render-px vs .omap, Sez. 28/29).
+
+    Rozmístění deterministické (regen → identický výstup): seed z rohu bbox pásu → `random.Random`.
+    Pravidelná mřížka (rozestup ~1 mm = ISOM density 0,8-1/mm²) + jitter v buňce rozbije pravidelnost
+    („randomly placed and orientated"); každý trojúhelník náhodně otočený. Jen body uvnitř pásu."""
+    mdraw.polygon(ring_px, fill=ROCK_CLASS[ISOM_BOULDER_FIELD])     # maska = celý pás
+    xs = [p[0] for p in ring_px]
+    ys = [p[1] for p in ring_px]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    sp = BOULDER_FIELD_TRI_SPACING_PX
+    h = BOULDER_FIELD_TRI_HALF_PX
+    # seed z rohu bbox (zaokrouhlený px) → různé pásy mají různý vzor, ale tentýž pás vždy stejný
+    rng = random.Random((round(x0) * 73856093) ^ (round(y0) * 19349663))
+    gx = x0
+    while gx <= x1:
+        gy = y0
+        while gy <= y1:
+            jx = gx + rng.uniform(-0.35, 0.35) * sp     # jitter → nepravidelnost
+            jy = gy + rng.uniform(-0.35, 0.35) * sp
+            if _point_in_ring(jx, jy, ring_px):
+                ang = rng.uniform(0.0, 2.0 * math.pi)   # náhodná orientace trojúhelníku
+                pts = [(jx + h * math.cos(ang + k * 2.0 * math.pi / 3),
+                        jy + h * math.sin(ang + k * 2.0 * math.pi / 3)) for k in range(3)]
+                draw.polygon(pts, fill=C_BLACK)
+            gy += sp
+        gx += sp
 
 
 def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -2109,18 +2175,18 @@ def _generate_real_rides(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
 def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
                          lat: float, lon: float, geo_bbox: tuple,
                          *, urban_base: bool = False) -> tuple[list, list]:
-    """Reálné zpevněné plochy (real-půlka, Sez. 28+42+54): plochy ze ZABAGED → ISOM 501 / 501.1.
+    """Reálné zpevněné plochy (real-půlka, Sez. 28+42+54+57): plochy ze ZABAGED → ISOM 501 / 501.1.
 
     Mirror _generate_real_buildings (RAW S-JTSK → grid → px → polygon, bez generalizace).
-    Zdroje 501 (s obrysem): kolejiště + parkoviště (fetch_paved_areas) + asfaltové dopravní plochy
+    Zdroj 501 (s obrysem): kolejiště (fetch_paved_areas, vymezený prostor) + asfaltové dopravní plochy
     z areálů účelové zástavby (114: autobusové nádraží / čerpací stanice — Sez. 42). Zdroj 501.1
-    (BEZ obrysu): ostatní plocha v sídlech (115, Sez. 54 — díry vykrojí budovy/zeleň/cesty).
-    Areály 114 mapují i na 520 (oplocené areály) → ty sem NEpatří (surfaces kanál), proto filtr
-    `code in PAVED_CLASS` (vezme 501/501.1, přeskočí 520).
+    (BEZ obrysu): parkoviště (Sez. 57 — průchozí) + ostatní plocha v sídlech (115, Sez. 54 — díry
+    vykrojí budovy/zeleň/cesty). Areály 114 mapují i na 520 (oplocené areály) → ty sem NEpatří
+    (surfaces kanál), proto filtr `code in PAVED_CLASS` (vezme 501/501.1, přeskočí 520).
 
-    **Dva z-order průchody (Sez. 54):** `urban_base=True` kreslí JEN 501.1 (administrativní výplň
-    sídla = ÚPLNĚ VESPOD, před surfaces → olivová 520 privátních parcel ji překryje, je věrnější);
-    `urban_base=False` (default) kreslí JEN 501 (kolejiště/parkoviště NAD pokryvem, původní pozice).
+    **Dva z-order průchody (Sez. 54):** `urban_base=True` kreslí JEN 501.1 (base výplň sídla + parkoviště
+    = ÚPLNĚ VESPOD, před surfaces → olivová 520 privátních parcel ji překryje, je věrnější);
+    `urban_base=False` (default) kreslí JEN 501 (kolejiště NAD pokryvem, původní pozice).
     Sdílí jednu paved masku (volá se 2× s týmž adraw). Vrací (area_features [(grid_rings, code)],
     paved_info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
     from zabaged import (fetch_paved_areas, map_paved_to_isom,
@@ -2269,7 +2335,9 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     Body a plochy oddělené (paralela s vodou: line_features / area_features) — .omap export
     je řeší různými objekty (point_object vs area)."""
     from zabaged import (fetch_boulders, fetch_boulder_clusters, fetch_rock_areas,
-                         map_boulder_to_isom, map_boulder_cluster_to_isom, map_rock_area_to_isom)
+                         fetch_boulder_field_lines, map_boulder_to_isom,
+                         map_boulder_cluster_to_isom, map_rock_area_to_isom,
+                         map_boulder_field_to_isom)
 
     rock_point_features: list[tuple] = []      # (gx, gy, code) — body 204/207
     rock_area_features: list[tuple] = []       # (grid_ring, code) — plochy 206
@@ -2304,6 +2372,24 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                 continue
             _draw_gigantic_boulder(draw, rdraw, px_rings)
             rock_area_features.append((grid_rings, code))
+            rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
+                               "layer": f["layer"]})
+
+    # 4) Pole balvanů (linie) → 208 Boulder field. Osa → buffer na úzký pás (mirror stromořadí 406,
+    #    Sez. 45) → vyplnit náhodnými trojúhelníky. Velmi krátké pásy (pod ISOM min. plochou) zahodit.
+    for f in fetch_boulder_field_lines(lat, lon, GW, GH, TILE_M):
+        code = map_boulder_field_to_isom(f["layer"], f["props"])
+        for line in f["lines"]:
+            axis_px = [_grid_to_px(*_sjtsk_to_grid(x, y, geo_bbox)) for x, y in line]
+            if len(axis_px) < 2:
+                continue
+            ring_px = _buffer_polyline_irregular(axis_px, BOULDER_FIELD_HALF_WIDTH_PX)
+            if _polygon_area_px(ring_px) < BOULDER_FIELD_MIN_AREA_PX2:    # pod ISOM min. plochou
+                continue
+            _draw_boulder_field_area(draw, rdraw, ring_px)
+            # px prstenec → mřížka (inverze _grid_to_px) pro .omap (týž tvar jako rastr; jako 406 Sez. 45)
+            grid = [(px / W * (GW - 1), py / H * (GH - 1)) for px, py in ring_px]
+            rock_area_features.append(([grid], code))
             rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
                                "layer": f["layer"]})
 
@@ -3065,7 +3151,7 @@ def generate_map(
             ([], []), tolerant, layer_errors)
         paved_area_features += top_feats
         paved_info += top_info
-        _log.info("  zpevněné plochy: %d (501 kolejiště/parkoviště + 501.1 ostatní plocha v sídlech)", len(paved_info))
+        _log.info("  zpevněné plochy: %d (501 kolejiště + 501.1 parkoviště/ostatní plocha v sídlech)", len(paved_info))
 
     # --- voda (hydrografie): reálná ze ZABAGED REST (real-půlka, Sez. 17) ---
     # Rastr z-order: PO vrstevnicích/bodech, PŘED cestami — modré toky/plochy leží na hnědém

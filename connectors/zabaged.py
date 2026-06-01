@@ -71,6 +71,7 @@ LAYER_IDS = {
     # 130 = polygony skal (411 na Hrubé Skále, medián 1132 m², max 30 444 m²).
     "Osamělý_balvan__skála__skalní_suk": 10,
     "Skupina_balvanů__bod_": 12,
+    "Skupina_balvanů__linie_": 13,    # liniová pole balvanů (Sez. 57, → 208 Boulder field; Σ14 SV/HS/NV)
     "Skalní_útvary": 130,
     # Mosty / tunely / lávky (Sez. 32 znovu, spec-driven po rollbacku Sez. 31).
     # REST jména: Most + Tunel s podtržítky/bez (Most = jedno slovo, OK), Lávka má MEZERU
@@ -169,7 +170,8 @@ RAILWAY_LAYERS = ("Železniční_trať", "Železniční_vlečka", "Tramvajová d
 # JEDEN polygon; jednotlivé koleje data nemodelují jako linie). → ISOM 501 Paved area (kombinovaný
 # symbol: hnědá 50% výplň + obrysová linie). Mapování viz map_paved_to_isom. Vzor pro budoucí
 # další zdroje 501 (parkoviště ap.). Jinde než u nádraží/zpevněných ploch = 0 prvků.
-PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41: parkoviště → 501 (DRY s kolejiště)
+PAVED_AREA_LAYERS = ("Kolejiště", "Parkoviště, odpočívka")  # Sez. 41 (DRY); kolejiště → 501 s obrysem,
+#                                                              parkoviště → 501.1 BEZ obrysu (Sez. 57, průchozí)
 # `Ostatní plocha v sídlech` (id 115) → 501.1 Paved area BEZ obrysu (Sez. 54). Administrativní výplň
 # zastavěného území: obří polygon se STOVKAMI DĚR (budovy/zeleň/cesty vykrojené ven) — díry teď parser
 # nese (geom_to_polygons, Sez. 54), takže 501.1 vyplní jen volné plochy mezi nimi (náměstí/dvory/
@@ -332,9 +334,12 @@ STATE_BORDER_CODE = "1"            # vyzn_zsh_k hodnota pro státní hranici
 # KISS, vrstva → jeden ISOM symbol (jako budovy→521, vedení→510, železnice→509). Skalní_útvary
 # → VŽDY 206 (map_rock_area_to_isom); hybridní 202/206 podle plochy polygonu bylo zvažováno a
 # ZAVRŽENO (Sez. 30, „rozhodování bez datového podkladu" — žádný ZABAGED atribut typu/výšky).
-# Skupina_balvanů__linie_ a Sesuv_půdy__suť odloženy (3 prvky / 0 prvků v probe).
+# Sesuv_půdy__suť (→ 210 Stony ground) zůstává odloženo (Σ1 v probe Sez. 55, marginální).
+# Skupina_balvanů__linie_ (→ 208 Boulder field) realizováno Sez. 57 (změřeno Σ14, ne „3" jak
+# tvrdil Sez. 30 odhad — probe Sez. 55: SV 7 / HS 3 / NV 4).
 BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové „turisticky významné"
-BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů
+BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů (bod)
+BOULDER_FIELD_LINE_LAYERS = ("Skupina_balvanů__linie_",)          # liniová pole balvanů → 208 (buffer pás)
 ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
 
 # Mosty / tunely / lávky (Sez. 32 znovu, spec-driven po rollbacku Sez. 31).
@@ -454,15 +459,15 @@ def fetch_railways(lat: float, lon: float, gw: int, gh: int,
 def fetch_paved_areas(lat: float, lon: float, gw: int, gh: int,
                       tile_m: float = 1000.0,
                       cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí reálné zpevněné plochy (kolejiště/parkoviště → 501; ostatní plocha v sídlech → 501.1)
+    """Vrátí reálné zpevněné plochy (kolejiště → 501; parkoviště + ostatní plocha v sídlech → 501.1)
     pro výsek (lat, lon) jako plošné features.
 
     Každý prvek: {"layer", "props", "rings": [[outer, díra…]..]} — polygony (s děrami, Sez. 54)
-    v S-JTSK metrech. Mapování na ISOM (map_paved_to_isom → 501/501.1) se dělá výš (Sez. 28/54).
+    v S-JTSK metrech. Mapování na ISOM (map_paved_to_isom → 501/501.1) se dělá výš (Sez. 28/54/57).
     Izomorfní s fetch_buildings/area-půlkou fetch_water. V lesních výsecích bez nádraží/sídla = 0
     prvků (žádný šum). Tentýž výsek (sdílený build_bbox)."""
-    # 501.1 (ostatní plocha v sídlech) PRVNÍ → kreslí se VESPOD paved kanálu (administrativní výplň
-    # pod kolejištěm/parkovištěm 501; z-order = pořadí features, Sez. 54).
+    # 501.1 (ostatní plocha v sídlech + parkoviště) PRVNÍ → kreslí se VESPOD paved kanálu (base výplň
+    # pod kolejištěm 501; z-order = pořadí features × urban_base průchod, Sez. 54/57).
     return _collect_features(OTHER_URBAN_AREA_LAYERS + PAVED_AREA_LAYERS,
                              lat, lon, gw, gh, tile_m, cache_dir, _geom_to_polygons, "rings")
 
@@ -604,6 +609,19 @@ def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
     max 30 444 m² (Mariánská vyhlídka). Izomorfní s fetch_buildings/fetch_paved_areas."""
     return _collect_features(ROCK_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
                              _geom_to_polygons, "rings")
+
+
+def fetch_boulder_field_lines(lat: float, lon: float, gw: int, gh: int,
+                              tile_m: float = 1000.0,
+                              cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí osy liniových polí balvanů (`Skupina_balvanů__linie_`) pro výsek (Sez. 57).
+
+    Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} (S-JTSK; MultiLineString rozbalen) =
+    ČISTÁ DATA (osa), bez bufferu — plošný pás (ISOM 208 Boulder field) staví generátor, stejně
+    jako u stromořadí 406 (`fetch_tree_rows`). ZABAGED modeluje pole balvanů jako linii (osu),
+    fyzicky je to protáhlá plocha → buffer na pás. Vrstva má jen `jmeno` → KISS vždy 208."""
+    return _collect_features(BOULDER_FIELD_LINE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_lines, "lines")
 
 
 def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
@@ -766,16 +784,21 @@ def map_railway_to_isom(layer: str, props: dict) -> int:
 def map_paved_to_isom(layer: str, props: dict) -> float:
     """Mapuje ZABAGED zpevněnou plochu na ISOM 2017-2 plošný symbol (kód).
 
-    `Kolejiště`/`Parkoviště` → **501 Paved area** (s obrysem; KISS, jako budovy→521). 501 je
-    v template_classic.omap kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba symbolu 501 =
-    rozhodnutí uživatele (Sez. 28): nádražní kolejiště se na OB mapě generalizuje na zpevněnou plochu.
+    `Kolejiště` → **501 Paved area** (S obrysem; KISS, jako budovy→521). 501 je v template_classic.omap
+    kombinovaný symbol (hnědá 50% výplň + obrysová linie). Volba 501 = rozhodnutí uživatele (Sez. 28):
+    kolejiště = vymezený prostor („do kolejiště se nevstupuje") → zřetelná hranice = obrys (ISOM 501
+    „where they have a distinct boundary").
+
+    `Parkoviště, odpočívka` → **501.1 Paved area BEZ obrysu** (Sez. 57, oprava z 501). Parkoviště je
+    PRŮCHOZÍ zpevněná plocha splývající s okolím (na rozdíl od vymezeného kolejiště) → bez obrysu (volba
+    uživatele, OB praxe). Důsledek: 501.1 jde do spodního z-order průchodu (base výplň, jako níže).
 
     `Ostatní plocha v sídlech` (115) → **501.1 Paved area BEZ obrysu** (Sez. 54). Administrativní výplň
     zastavěného území; díry (budovy/zeleň/cesty) parser nově nese (Sez. 54) → 501.1 vyplní jen volné
     plochy mezi nimi (náměstí/dvory/parkoviště), ne celé sídlo (kontrast Sez. 53 bez děr = 41 % zality).
     Necelý kód 501.1 → float (render přes str(code), precedent 402.1/412.1). Konektor vrací holý ISOM
     kód — render zná generator.py (žádný cyklický import)."""
-    if layer == "Ostatní plocha v sídlech":
+    if layer in ("Ostatní plocha v sídlech", "Parkoviště, odpočívka"):
         return 501.1
     return 501
 
@@ -949,6 +972,15 @@ def map_rock_area_to_isom(layer: str, props: dict) -> int:
     pro každý polygon (ne hybridní 202/206 podle plochy — drift v rozhodování bez datového
     podkladu). Pro malé výchozy 206 zhrubne, ale zachová izomorfismus s budovami/vodou."""
     return 206
+
+
+def map_boulder_field_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED liniové pole balvanů na ISOM 2017-2 symbol (kód).
+
+    `Skupina_balvanů__linie_` → **208 Boulder field** (vždy; KISS, vrstva má jen `jmeno`).
+    ISOM 208 = plocha s náhodně rozmístěnými plnými trojúhelníky (template area_symbol id 38).
+    Zdroj je LINIE (osa) → generátor ji buffruje na úzký pás a vyplní 208 (mirror 406 stromořadí)."""
+    return 208
 
 
 def map_landmark_to_isom(layer: str) -> int | str | None:

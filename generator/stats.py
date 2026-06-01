@@ -42,6 +42,7 @@ SYMBOLS = [
     ("204",   "Boulder"),
     ("206",   "Gigantic boulder"),
     ("207",   "Boulder cluster"),
+    ("208",   "Boulder field"),
     # Voda (§4.6)
     ("301",   "Uncrossable body of water"),
     ("304",   "Crossable watercourse"),
