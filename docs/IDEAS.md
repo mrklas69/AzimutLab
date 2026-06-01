@@ -224,3 +224,22 @@ Invariance vůči driftu = přesně to, co **model** zvládne líp → časosbě
 
 **Fáze (až někdy):** A měření hotovo (negativní pro naivní diff) · B robustní temporal (normalizace, >2 epochy) ·
 C UC5 model (ortofoto+DMR+věk → runnability, GT reálné mapy) = skutečný gate-breaker. Probe artefakty `temp/orto_probe/`.
+
+### Drátěný model vegetace (Sez. 64 měření) — greenness z ortofota NEODDĚLÍ ISOM zeleň
+
+Návrh uživatele: GT 3 zelené z `.omap` vs hranice z ortofota, test úspěšnosti. **Změřeno** (Velbloud,
+`temp/orto_probe/probe_veg_wireframe.py`: GT bílá/open/406/408/410 po barvě reuse `compare` refs, vs CIR
+NDVI + textura v S-JTSK gen-gridu): **separabilita ~50 % (náhoda) na L1/L2/L3.** Část = limit probu
+(display-PNG NDVI ne reflektance, 2,5 m, 1 epocha, temporal/registrační měkkost → podstřeluje snadné úrovně),
+ale STRUKTURÁLNÍ závěr platí:
+- **NDVI/zeleň odlišuje vegetaci od ne-vegetace; ISOM třídy jsou VŠECHNY vegetace** (open=tráva, les=koruna,
+  hustník=koruna → spektrálně totéž). Greenness = špatný nástroj na runnability.
+- **Marginální hodnota nízká:** L1 (open/les) už máme deterministicky ze ZABAGED (401); L2/L3 (podrost) =
+  jediné co by ortofoto přidalo, a to je gate (shora neviditelné, Sez. 59). Není vada měření, vlastnost úlohy.
+- **Co z ortofota dává smysl:** struktura v ČASE (holina/věk = paseka shora vidět) → age proxy, krmí MODEL
+  (strukturní rysy: CHM/výška, jemná textura, multi-temporal). Single-epoch greenness→třída ne.
+
+**Data-reality friction (změřeno):** CIR archiv velmi řídký (Velbloud má CIR DATA jen 2023, 2016-22 prázdné);
+coverage-check MUSÍ být po pixelech (prázdná bílá dlaždice je taky `image/png` — content-type nestačí); RGB
+archiv hustší (Velbloud 2015/17/19/21/23). GT extrakce 3 zelených z reálné mapy po barvě FUNGUJE
+(reuse `compare` ISOM_REF green_l/m/d) — to je použitelný kus pro budoucí trénovací korpus.
