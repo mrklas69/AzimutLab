@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 60 (2026-06-01) — %AUDIT:CODE (úklid driftu po vlně Sez. 50→59)
+- [x] **%AUDIT:CODE** (LOC práh ≥500 překročen: net +616 LOC od Sez. 50, +9 sez). `generator.py` (3716 ř.)
+      přečten celý sám + 2 agenti na okraj (zabaged / omap_export+compare+stats+batch), nálezy ověřeny proti
+      zdroji (precedent Sez. 46/50). **0 kritických, 0 mrtvého kódu** — refaktory Sez. 50 a izomorfismus drží;
+      `batch.py` B1 ověřena (16 real vrstev v obou větvích = validační smyčka).
+- [x] **N1 (funkční): `stats.py` SYMBOLS doplněn o 107 Erosion gully** — `main()` iteruje jen SYMBOLS →
+      STATISTICS.md rokli nesledoval (gen kreslí, `USED_CODES` má). Verify: 107 řádek v tabulce (· = Σ0 na DEV).
+- [x] **N2 (funkční): `compare` GEN_CAPABILITIES synchronizován** (208/501.1/523/412/402/402.1) + komentář
+      přepsán „kalibrovaný řez pro STAT 1, NE SSoT schopností (= `USED_CODES`)". Falešný klíč `line-feature`
+      (bez CROSSWALK protějšku) zachycen a stažen před dokončením.
+- [x] **9× drift komentářů/docstringů opraveno**: `_generate_real_rocks` (208/čtyři vrstvy), maska surfaces
+      (5 tříd), `_generate_real_surfaces` docstring (park→402), z-order výčty (+208/+107), `zabaged`
+      boulder-cluster docstring (208 realizováno) + „Each item"→„Každý prvek", `omap_export` docstring na
+      `USED_CODES`, `stats` 510 oficiální název, omap 530 popisek. Behavior-preserving (proc 65 drží).
+- [x] py_compile OK (5 souborů); STATISTICS.md regen (107/510/208 ověřeny). **%AUDIT:CODE reset Sez. 60.**
+
+## Sezení 59 (2026-06-01) — UC5 „stonecore" = zelená věrnost → vegetace gate DOLOŽENA měřením
+- [x] **UC5 první střípek = věrná zelená vegetace** (volba uživatele, „dokud nebude v lese spousta zelené,
+      nebude to OB mapy připomínat") = `green real 30 % → gen 0 %` mezera ze Sez. 58. Foundations: ISOM zelená =
+      runnability podrostu, NE land-use; z polygonu neodvoditelná (vegetace gate Sez. 3).
+- [x] **Stažení DMP 1G mračna PLNĚ automatizováno** (UC2 cesta, `temp/lidar_probe/`): klad SM5 REST
+      (`KladyMapovychListu/MapServer/24` → list NBOR52) + ATOM `openzu.cuzk.cz/opendata/DMP1G/…` + `laspy[lazrs]`.
+      lasertool SEGFAULT Win11 (13 let starý Qt4) → CHM přímo z laspy.
+- [x] **🔴 TVRDÝ NÁLEZ: DMP 1G = 100 % single-return** (0 % multi-echo, klasifikace jen GROUND/HIGH VEG/building) →
+      vegetation height = výška KORUN (CHM), ne hustota podrostu. **Věrná ISOM runnability z open ČÚZK dat NEJDE**
+      (doloženo měřením). Dvojitá vazba: multi-echo jen archiv 2009-13 (staré) / ZÚ zakázka (placené); aktuální DMP OK = single-surface.
+- [x] **Rozhodnutí uživatele:** zkusit jiný podklad PLOCHY hustníku (3 kandidáti: ÚHÚL / Copernicus HRL / multi-temporal
+      ortofoto), jinak zaprotokolovat vegetaci mimo real část. **Bez produkční změny** (probe v `temp/`, jen `laspy` do venv).
+
 ## Sezení 58 (2026-06-01) — ZABAGED fáze I vytěžena (doloženo) → compare prohloubení na sbírce 6 map
 - [x] **Strategie: ZABAGED fáze I VYTĚŽENA, doloženo měřením.** Otázka uživatele „100% vytěžený?" → 3 roviny:
       extenzivní ~98 % (5 marg. vrstev), intenzivní (crossability), strop = vegetace gate. **Crossability vody
