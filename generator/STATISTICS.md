@@ -22,7 +22,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **110** | Small elongated knoll | 6 | 5 | 21 | 46 | 2 |
 | **111** | Small depression | 21 | 39 | 106 | 158 | 10 |
 | **204** | Boulder | 28 | 16 | 10 | 9 | 9 |
-| **206** | Gigantic boulder | 79 | 6 | 20 | 459 | 13 |
+| **206** | Gigantic boulder | 79 | 6 | 20 | 744 | 26 |
 | **207** | Boulder cluster | 146 | 178 | 132 | 171 | 9 |
 | **208** | Boulder field | 7 | · | · | 3 | 4 |
 | **301** | Uncrossable body of water | 14 | 11 | 58 | 41 | 12 |
@@ -63,7 +63,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **107** | Erosion gully | · | · | · | · | · |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
 | **519** | Crossing point | · | · | 2 | · | · |
-| **Σ** | Celkem objektů | 5870 | 2154 | 36050 | 7490 | 2970 |
+| **Σ** | Celkem objektů | 5870 | 2154 | 36050 | 7775 | 2983 |
 
 Z 48 sledovaných ISOM symbolů reálně používáme **47** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
@@ -72,8 +72,8 @@ Z 48 sledovaných ISOM symbolů reálně používáme **47** (zbytek = · znamen
 - **SV** (`Soví vrch/`): 2026-06-01 22:37:55
 - **NL** (`Nová Louka/`): 2026-06-01 22:22:49
 - **LS** (`Lidové sady/`): 2026-06-01 22:24:31
-- **HS** (`Hrubá Skála/`): 2026-06-01 22:38:14
-- **NV** (`Novina/`): 2026-06-01 22:25:20
+- **HS** (`Hrubá Skála/`): 2026-06-01 23:19:32
+- **NV** (`Novina/`): 2026-06-01 23:28:05
 
 ---
-*Tabulka regenerována `stats.py` v 2026-06-01 22:43:16.*
+*Tabulka regenerována `stats.py` v 2026-06-01 23:30:52.*

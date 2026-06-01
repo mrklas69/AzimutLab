@@ -2384,13 +2384,13 @@ def _generate_real_forest_age(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageD
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
-    """Reálné skály a balvany (real-půlka, Sez. 30 + 57): 204/207/206/208 ze ZABAGED.
+    """Reálné skály a balvany (real-půlka, Sez. 30 + 57 + 63): 204/207/208 ze ZABAGED, 206 z DMR sklonu.
 
-    Čtyři vrstvy ZABAGED → čtyři ISOM symboly (KISS, vrstva → jeden symbol jako budovy→521):
-      Osamělý_balvan__skála__skalní_suk  → 204 Boulder            (bod, plný černý kruh)
-      Skupina_balvanů__bod_              → 207 Boulder cluster    (bod, plný černý trojúhelník)
-      Skalní_útvary                      → 206 Gigantic boulder   (plná černá plocha)
-      Skupina_balvanů__linie_            → 208 Boulder field      (linie → pás trojúhelníků, Sez. 57)
+      Osamělý_balvan__skála__skalní_suk  → 204 Boulder            (bod ZABAGED, plný černý kruh)
+      Skupina_balvanů__bod_              → 207 Boulder cluster    (bod ZABAGED, plný černý trojúhelník)
+      **plocha 206 Gigantic boulder = DMR 5G SKLON** (Sez. 63, `rock_relief.detect_rock_areas`) —
+        nahradilo generalizovaný ZABAGED `Skalní_útvary` (jeden blob → věrná členitost věží/průchodů)
+      Skupina_balvanů__linie_            → 208 Boulder field      (linie ZABAGED → pás trojúhelníků, Sez. 57)
 
     Smoothing polygonů (původní A2) i hybridní 202/206 podle plochy (zvažováno Q2) ZAVRŽENO
     uživatelem v průběhu sezení: ZABAGED polygony jsou už dost detailní (~120 vrcholů na 32×32 m
@@ -2400,10 +2400,10 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     Vrací (rock_point_features [(gx, gy, code)], rock_area_features [(grid_ring, code)], rocks_info).
     Body a plochy oddělené (paralela s vodou: line_features / area_features) — .omap export
     je řeší různými objekty (point_object vs area)."""
-    from zabaged import (fetch_boulders, fetch_boulder_clusters, fetch_rock_areas,
+    from zabaged import (fetch_boulders, fetch_boulder_clusters,
                          fetch_boulder_field_lines, map_boulder_to_isom,
-                         map_boulder_cluster_to_isom, map_rock_area_to_isom,
-                         map_boulder_field_to_isom)
+                         map_boulder_cluster_to_isom, map_boulder_field_to_isom)
+    from rock_relief import detect_rock_areas    # 206 plocha z DMR sklonu (Sez. 63, nahradila ZABAGED Skalní_útvary)
 
     rock_point_features: list[tuple] = []      # (gx, gy, code) — body 204/207
     rock_area_features: list[tuple] = []       # (grid_ring, code) — plochy 206
@@ -2429,17 +2429,19 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
         rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "point",
                            "layer": "Skupina_balvanů__bod_"})
 
-    # 3) Skalní útvary (polygon) → 206 Gigantic boulder (vždy, plná plocha)
-    for f in fetch_rock_areas(lat, lon, GW, GH, TILE_M):
-        code = map_rock_area_to_isom(f["layer"], f["props"])
-        for poly in f["rings"]:
-            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
-            if len(px_rings[0]) < 3:
-                continue
-            _draw_gigantic_boulder(draw, rdraw, px_rings)
-            rock_area_features.append((grid_rings, code))
-            rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
-                               "layer": f["layer"]})
+    # 3) Skalní útvary (plocha) → 206 Gigantic boulder. ZDROJ = DMR 5G SKLON (Sez. 63), ne ZABAGED:
+    #    ZABAGED `Skalní_útvary` je generalizovaný blok přes celý masiv; DMR sklon dá věrnou členitost
+    #    (jednotlivé věže + otevřené průchody). Deterministická projekce z výškopisu (jako vrstevnice/
+    #    form lines), NE proxy. Vrací polygony [outer, díra…] v S-JTSK → týž tok jako dřív (raw, díry).
+    code = ISOM_GIGANTIC_BOULDER
+    for poly in detect_rock_areas(lat, lon, geo_bbox, GW, GH, TILE_M):
+        grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+        if len(px_rings[0]) < 3:
+            continue
+        _draw_gigantic_boulder(draw, rdraw, px_rings)
+        rock_area_features.append((grid_rings, code))
+        rocks_info.append({"symbol": code, "symbol_name": ROCK_NAME[code], "kind": "area",
+                           "layer": "DMR rock relief (sklon)"})
 
     # 4) Pole balvanů (linie) → 208 Boulder field. Osa → buffer na úzký pás (mirror stromořadí 406,
     #    Sez. 45) → vyplnit náhodnými trojúhelníky. Velmi krátké pásy (pod ISOM min. plochou) zahodit.
