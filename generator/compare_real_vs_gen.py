@@ -26,12 +26,16 @@ Image.MAX_IMAGE_PIXELS = None
 sys.stdout.reconfigure(encoding="utf-8")   # Windows konzole je cp1250 → unicode (✓ ↔ m²) by padlo
 
 REPO = Path(__file__).resolve().parents[1]          # generator/ je 1 pod kořenem LAB (Sez. 39)
-# DEV_LOCATIONS["SV"] = "Soví vrch" = resources "Soví vrch.png" (sjednoceno Sez. 40 — vrch je
-# terénní útvar → druhé slovo malé; maps/<lokalita> i resources nesou identický název).
-GEN_DIR = REPO / "maps" / "Soví vrch"                # generovaný výstup lokality (maps/<lokalita>)
-REAL_PNG = REPO / "resources" / "Soví vrch.png"
-REAL_PGW = REPO / "resources" / "Soví vrch.pgw"
-REAL_OMAP = REPO / "resources" / "Soví vrch.omap"
+# Lokalita = identický název v maps/<lokalita>/ (gen výstup) i resources/<lokalita>.{png,pgw,omap}
+# (reálná mapa). Sjednoceno Sez. 40. Sbírka 6 reál. map (Sez. 58) → compare parametrizován názvem.
+# STAT 1 crosswalk je kalibrovaný na "Soví vrch" (ISOM 2000) → pro jiné mapy zatím jen STAT 2.
+CROSSWALK_CALIBRATED = "Soví vrch"
+
+
+def _map_paths(name: str):
+    """(gen_dir, real_png, real_pgw, real_omap) pro danou lokalitu."""
+    return (REPO / "maps" / name, REPO / "resources" / f"{name}.png",
+            REPO / "resources" / f"{name}.pgw", REPO / "resources" / f"{name}.omap")
 
 # --- generátorové schopnosti (ISOM 2017-2): co dnes umíme vyrobit, seskupené po prvcích ---
 # (kód → krátký popis); slouží k vyhodnocení pokrytí proti reálné mapě
@@ -197,23 +201,12 @@ def dilate(mask, r):
     return out
 
 
-def main():
-    scale, real_stat = parse_real_omap(REAL_OMAP)
-    gen_rgb = np.asarray(Image.open(GEN_DIR / "rgb.png").convert("RGB"))
-    gen_pgw = _read_pgw(GEN_DIR / "rgb.pgw")
-    real_rgb = np.asarray(Image.open(REAL_PNG).convert("RGB"))
-    real_pgw = _read_pgw(REAL_PGW)
-    real_masks, coverage = forward_classify_real(real_rgb, real_pgw, gen_pgw, gen_rgb.shape[:2])
-    valid = coverage > 0
-    px_area = abs(gen_pgw[0] * gen_pgw[3])  # m²/px
-    foot_km2 = valid.sum() * px_area / 1e6
+def _stat1_crosswalk(real_stat) -> None:
+    """STAT 1 — symbolový crosswalk gen-2017 ↔ real-2000 + MEZERY (co real má a gen ne).
 
-    print("=" * 78)
-    print(f"POROVNÁNÍ: generátor (ISOM 2017-2) ↔ Soví vrch (živě mapováno, ISOM {scale and '2000'})")
-    print(f"překryv (footprint reálné mapy uvnitř gen výseku): {foot_km2:.2f} km²,"
-          f" {valid.sum()} px @ {math.sqrt(px_area):.2f} m/px")
-    print("=" * 78)
-
+    Kalibrováno na Soví vrch (ISOM 2000 kódy v CROSSWALK/GAP_NAMES). Pro jinou mapu by
+    crosswalk i mezery seděly jen pokud sdílí číslování — proto se volá jen pro kalibrovanou mapu.
+    """
     print("\nSTAT 1 — SYMBOLOVÝ CROSSWALK + POKRYTÍ (sémantika, ne číslo)")
     print(f"{'prvek':<15}{'gen 2017':<12}{'real 2000 (kódy)':<26}{'real ks':>8}{'real m/m²':>12}")
     print("-" * 78)
@@ -232,7 +225,6 @@ def main():
 
     # co živý mapař nakreslil, ale generátor NEUMÍ (mezery)
     print("\nMEZERY — symboly v reálné mapě, které generátor zatím neprodukuje:")
-    gap = defaultdict(lambda: {"count": 0, "mag": 0.0, "kind": ""})
     GAP_NAMES = {  # ISOM2000 kód → český název (z .omap), jen ty zajímavé skupiny
         "veg": ["401", "402", "403", "404", "405", "406", "407", "408", "409", "410", "410.1",
                 "412", "415", "416", "418", "419", "420"],
@@ -248,6 +240,32 @@ def main():
         ln = sum(real_stat[c]["len_m"] for c in codes)
         mag = f"{a:.0f} m²" if a > ln else f"{ln:.0f} m"
         print(f"  {grp:<16} {n:>4} objektů  ({mag})")
+
+
+def main(name=CROSSWALK_CALIBRATED):
+    gen_dir, real_png, real_pgw_path, real_omap = _map_paths(name)
+    scale, real_stat = parse_real_omap(real_omap)
+    gen_rgb = np.asarray(Image.open(gen_dir / "rgb.png").convert("RGB"))
+    gen_pgw = _read_pgw(gen_dir / "rgb.pgw")
+    real_rgb = np.asarray(Image.open(real_png).convert("RGB"))
+    real_pgw = _read_pgw(real_pgw_path)
+    real_masks, coverage = forward_classify_real(real_rgb, real_pgw, gen_pgw, gen_rgb.shape[:2])
+    valid = coverage > 0
+    px_area = abs(gen_pgw[0] * gen_pgw[3])  # m²/px
+    foot_km2 = valid.sum() * px_area / 1e6
+
+    print("=" * 78)
+    print(f"POROVNÁNÍ: generátor (ISOM 2017-2) ↔ {name} (živě mapováno, 1:{scale})")
+    print(f"překryv (footprint reálné mapy uvnitř gen výseku): {foot_km2:.2f} km²,"
+          f" {valid.sum()} px @ {math.sqrt(px_area):.2f} m/px")
+    print("=" * 78)
+
+    # STAT 1 crosswalk je kalibrovaný na jednu mapu (ISOM 2000 kódy) → jen pro ni; jinde jen STAT 2.
+    if name == CROSSWALK_CALIBRATED:
+        _stat1_crosswalk(real_stat)
+    else:
+        print(f"\nSTAT 1 (crosswalk) PŘESKOČENA — kalibrována jen na '{CROSSWALK_CALIBRATED}'; "
+              f"'{name}' má jinou/neznámou ISOM verzi. Níže jen STAT 2 (barvy, univerzální).")
 
     print("\nSTAT 2 — PROSTOROVÁ SHODA PO ISOM BARVÁCH (přes překryv, gen rozlišení, tol ~4 m)")
     gen_cls = classify(gen_rgb)
@@ -273,4 +291,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # arg 1 = název mapy (= maps/<name>/ i resources/<name>.*); default = kalibrovaný Soví vrch
+    main(sys.argv[1] if len(sys.argv) > 1 else CROSSWALK_CALIBRATED)
