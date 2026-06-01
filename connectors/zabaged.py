@@ -95,6 +95,10 @@ LAYER_IDS = {
     # typzast_k rozliší typ (62 hodnot). Kůlna/přístřešek = drobné stavby → 521 (mirror budov).
     "Areál účelové zástavby": 114,
     "Kůlna, skleník, fóliovník, přístřešek": 105,
+    # Povrchová těžba (Sez. 56): kamenolom = oplocený areál se zákazem vstupu → 520 olivová
+    # (stěna lomu 201 je LINIE s ticky → plochu lomu na ni nedotahujeme; KISS plocha→plocha).
+    # REST jméno s mezerou/čárkou (ověřeno ?f=json + probe id 118: LS Σ1, druhtez_p='kámen').
+    "Povrchová těžba, lom": 118,
     # Budovové stavby — historické + zříceniny (Sez. 43, audit katalogu „nic užitečného nevypadne").
     # ČÚZK vede zámek/hrad/zříceninu v SAMOSTATNÝCH plošných vrstvách (NE v Budova_..._plocha_ 99) →
     # bez nich vypadly z mapy (verify Sez. 43: domov mládeže Krompach = `Zámek` 102; Milštejn = `Rozvalina`).
@@ -188,6 +192,13 @@ OTHER_URBAN_AREA_LAYERS = ("Ostatní plocha v sídlech",)
 OPEN_LAND_LAYERS = ("Trvalý travní porost", "Udržovaná zeleň",
                     "Orná půda a ostatní dále nespecifikované plochy", "Ovocný sad, zahrada")
 CEMETERY_LAYERS = ("Hřbitov",)
+
+# Kamenolom (Sez. 56, povrchová těžba). `Povrchová těžba, lom` → 520 Area that shall not be
+# entered (olivová, out-of-bounds) — oplocený těžební areál se zákazem vstupu, izomorfní
+# s hřbitovem (plocha → vždy 520). NEmapujeme na 201 Impassable cliff: 201 je LINIE (hrana
+# stěny s ticky), ZABAGED dává PLOCHU → dotahování stěny z plochy = over-engineering pro Σ1
+# (LS kamenolom). Kamenné/zemní útvary (201/206/104) zůstávají v z-orderu NAD olivovou.
+QUARRY_LAYERS = ("Povrchová těžba, lom",)
 
 # Mokřady (Sez. 44, katalog dávka 4, real-půlka, plošná — izomorfní s open land/hřbitovem).
 # `Bažina, močál` + `Rašeliniště (plocha)` → ISOM 308 Marsh (crossable, modrý vodorovný pattern).
@@ -661,6 +672,18 @@ def fetch_cemeteries(lat: float, lon: float, gw: int, gh: int,
                              _geom_to_polygons, "rings")
 
 
+def fetch_quarries(lat: float, lon: float, gw: int, gh: int,
+                   tile_m: float = 1000.0,
+                   cache_dir: str | Path | None = None) -> list[dict]:
+    """Vrátí reálné kamenolomy (povrchová těžba) pro výsek jako plošné features (Sez. 56).
+
+    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy v S-JTSK metrech.
+    Mapování na ISOM (map_quarry_to_isom → 520 Area that shall not be entered) výš. Izomorfní
+    s fetch_cemeteries. Oplocený těžební areál = out-of-bounds, čistá projekce (žádný gate)."""
+    return _collect_features(QUARRY_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                             _geom_to_polygons, "rings")
+
+
 def fetch_marsh(lat: float, lon: float, gw: int, gh: int,
                 tile_m: float = 1000.0,
                 cache_dir: str | Path | None = None) -> list[dict]:
@@ -792,6 +815,17 @@ def map_cemetery_to_isom(layer: str, props: dict) -> int:
     `Hřbitov` → **520 Area that shall not be entered** (vždy; KISS). ISOM 2017-2 nemá vlastní
     hřbitovní symbol (verify template Sez. 41) → 520 = olivová out-of-bounds plocha, tak se hřbitov
     na OB mapě kreslí. Umělá plocha, čistá projekce bez gate. Konektor vrací holý ISOM kód (int)."""
+    return 520
+
+
+def map_quarry_to_isom(layer: str, props: dict) -> int:
+    """Mapuje ZABAGED kamenolom na ISOM 2017-2 plošný symbol (kód, Sez. 56).
+
+    `Povrchová těžba, lom` → **520 Area that shall not be entered** (vždy; KISS). Oplocený
+    těžební areál se zákazem vstupu = olivová out-of-bounds plocha (volba uživatele, izomorfní
+    s hřbitovem). NE 201 Impassable cliff: 201 je LINIE (hrana stěny), ZABAGED dává PLOCHU →
+    plocha→plocha je věrná projekce, stěnu z plochy nedotahujeme (Σ1 marginální). `druhtez_p`
+    nese druh těžby (kámen/…), ISOM ho nerozlišuje. Konektor vrací holý ISOM kód (int)."""
     return 520
 
 

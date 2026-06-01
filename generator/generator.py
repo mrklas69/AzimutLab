@@ -2158,20 +2158,23 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
     Z-ORDER (Sez. 42, téma 2): olivová se kreslí PO žluté/kultuře → privátní zahrada (RÚIAN 520)
     přemaže žluté/pole na témže místě. Vrací (area_features [(grid, code)], surfaces_info)
     v souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém/lesním výseku bez pokryvu = 0 prvků (žádný šum)."""
-    from zabaged import (fetch_open_land, fetch_cemeteries, fetch_utility_areas,
-                         map_open_land_to_isom, map_cemetery_to_isom, map_utility_area_to_isom)
+    from zabaged import (fetch_open_land, fetch_cemeteries, fetch_utility_areas, fetch_quarries,
+                         map_open_land_to_isom, map_cemetery_to_isom, map_utility_area_to_isom,
+                         map_quarry_to_isom)
     from ruian import fetch_private_land, map_private_land_to_isom
     area_features: list[tuple] = []
     surfaces_info: list[dict] = []
     # Skupiny jdou stejnou plošnou cestou (RAW ring → výplň), liší se mapperem/barvou/patternem.
     # Pořadí = pořadí kreslení: open land + kultura (401/412) VESPOD, pak olivová 520 (privátní
-    # pozemek RÚIAN + hřbitov ZABAGED + sad/zahrada + areály účelové zástavby) NAD ní (z-order téma 2, Sez. 42).
-    # Areály účelové zástavby (114) mapují i na 501 (asfaltové dopravní plochy) — ty sem NEpatří
-    # (jsou v paved kanálu), proto filtr `code in SURFACE_FILL` (vezme 401/412/520, přeskočí 501).
+    # pozemek RÚIAN + hřbitov ZABAGED + sad/zahrada + areály účelové zástavby + kamenolom) NAD ní
+    # (z-order téma 2, Sez. 42). Kamenné/zemní útvary (skály 206 atd.) jdou v celkovém z-orderu NAD
+    # surfaces → olivová lomu je nepřekryje (Sez. 56, A1). Areály účelové zástavby (114) mapují i na
+    # 501 (asfaltové dopravní plochy) — ty sem NEpatří (paved kanál), proto filtr `code in SURFACE_FILL`.
     for feats, mapper in ((fetch_open_land(lat, lon, GW, GH, TILE_M), map_open_land_to_isom),
                           (fetch_private_land(lat, lon, GW, GH, TILE_M), map_private_land_to_isom),
                           (fetch_cemeteries(lat, lon, GW, GH, TILE_M), map_cemetery_to_isom),
-                          (fetch_utility_areas(lat, lon, GW, GH, TILE_M), map_utility_area_to_isom)):
+                          (fetch_utility_areas(lat, lon, GW, GH, TILE_M), map_utility_area_to_isom),
+                          (fetch_quarries(lat, lon, GW, GH, TILE_M), map_quarry_to_isom)):
         for f in feats:
             code = mapper(f["layer"], f["props"])
             if code not in SURFACE_FILL:    # 501 (asfaltové areály 114) patří do paved kanálu, ne sem
