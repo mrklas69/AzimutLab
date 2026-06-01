@@ -28,7 +28,8 @@ everything, its hundreds of holes for buildings/greenery/roads cut out via the n
 and — since session 29 — auxiliary contours
 (form lines, ISOM 103) derived from the DMR where terrain is gently sloped yet curved (drawn sparingly,
 not as intermediate contours, per the ISOM rule); — since session 30 — real rocks/boulders
-(`--rocks real`, ISOM 204/207/206); — sessions 31–33 — real bridges/tunnels/footbridges
+(`--rocks real`, ISOM 204/207/206, plus 208 boulder field since session 57 — line of boulders
+buffered into a strip filled with random triangles); — sessions 31–33 — real bridges/tunnels/footbridges
 (`--bridges real`, ISOM 512/512.2, raster unified with the `.omap` two-parallels layout in session 35);
 and — session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
 dashed line, no runnability background as vegetation is a UC5 prediction, not data); and — since session 41 —
@@ -53,8 +54,8 @@ springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--lan
 (`Liniová vegetace`) → 406 Vegetation: slow running (`--treerows`, "linear forest": axis→buffer→strip; corrects the
 earlier 416 = vegetation *boundary*, which was semantically wrong for a row of trees);
 since session 52 factory chimneys → 524 (`--landmarks`) and barriers (`Zábrana`) → 519 Crossing point (`--barriers`,
-only points lying on a 513 wall = actual gate through a fence; the wall is broken under the gate) — last catalogue
-candidates, **ZABAGED catalogue now exhausted**.
+only points lying on a 513 wall = actual gate through a fence; the wall is broken under the gate) — among the last simple
+candidates, but the catalogue is **not** exhausted (session 55 re-probed: boulder field 208, underpass/ford 519, weir 528 still remain).
 `zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines) + paths + rides + water + paved + buildings + powerlines + railways + rocks + bridges + surfaces + landmarks + linefeatures + marsh + treerows + barriers + points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,

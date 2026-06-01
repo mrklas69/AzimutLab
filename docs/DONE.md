@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 57 (2026-06-01) — %AUDIT:DOCS + balvany-linie → 208 + parkoviště → 501.1
+- [x] **%AUDIT:DOCS (zralý +11/10), 4 nálezy ověřené proti zdroji** (3 fan-out agenti, kriticky profiltrováno):
+      **N1** broken links — 53 řádků `DIARY.md` mělo `](docs/diary/…)` po přesunu root→`docs/` (Sez. 48) → z `docs/DIARY.md`
+      mířily na neexistující `docs/docs/diary/…`; fix replace_all → `](diary/…)`. **N2** „katalog vyčerpán" drift ve 3
+      živých docs (README/architecture/spec) — SSoT katalog už koriguje (Sez. 55), architecture si navíc protiřečila
+      (ř. 70 „vyčerpán" × ř. 74 Sez. 56); opraveno (diáře/DONE/index Sez. 52 = historie, ponechány). **N3** pořadí
+      54/55/56 v indexu. **N4** generator/README `--paved` doplněno 501.1. Jazyk (agent 3) = 0 chyb.
+- [x] **Balvany-linie → ISOM 208 Boulder field** (`--rocks`, 4. rock vrstva). Foundations: template id=38 = `area_symbol`
+      pattern (náhodné trojúhelníky, OOM vyplní sám) + probe layer 13 polyline/jen `jmeno`→KISS. **Geometrie LINIE→PLOCHA
+      přes buffer** (osa→pás 1,5 mm, volba uživatele) = mirror stromořadí 406. Kód: zabaged `BOULDER_FIELD_LINE_LAYERS`/
+      `fetch_boulder_field_lines`/`map_…→208`; generator 4. blok `_generate_real_rocks` + `_draw_boulder_field_area`
+      (maska=pás, rastr=deterministicky seedované trojúhelníky, `_point_in_ring`); omap `USED_CODES`+`AREA_CODES`+=208.
+      batch beze změny (rocks off obě větve, B1 OK). **Verify:** SV 7/HS 3/NV 4=Σ14 (rastr=meta=omap); **proc byte-identický**
+      (git-stash md5); **OOM Test OK** (uživatel). STATISTICS +208 řádek (stats.py SYMBOLS).
+- [x] **Plot ISOM 516–518 → doložený SKIP.** Dotaz uživatele → probe MapServeru (149 vrstev): ZABAGED plot jako vrstvu
+      nevede (jen Zeď 39/Hradba 38→513, Zábrana 54→519). Mapovat 516 bez dat = vymýšlet. Zapsáno do katalogu sekce 11.
+- [x] **Parkoviště `Parkoviště, odpočívka` (123) → 501.1** (oprava z 501, nález uživatele v OOM). 501.1 = bez obrysu
+      (průchozí plocha splývající s okolím); kolejiště zůstává 501 (vymezený prostor). Rozděleno `map_paved_to_isom`
+      (Sez. 41 sloučilo na 501 DRY). Z-order: 501.1 → spodní `urban_base` průchod. LS 51× parkoviště → 501.1.
+- [x] **Stale „oplocené volné terény" → DROP** z Příště (viselo 5×; zůstává v TODO jako nález Sez. 42).
+
 ## Sezení 56 (2026-06-01) — přechod ntbhej→mrkla + kamenolom → 520
 - [x] **Přechod ntbhej→mrkla:** klon byl **15 commitů pozadu** (Sez. 49–55) → ff-sync PŘED prací (%BEGIN krok 0).
       Regen 5 lokalit s ortofotem (lokální rendery se přes git nepřenáší); **omap counts byte-shodné se Sez. 55**

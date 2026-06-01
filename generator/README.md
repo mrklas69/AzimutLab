@@ -34,9 +34,11 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **železnice** — `--railways real` (Sez. 28+31): `Železniční_trať`+`_vlečka`+`Tramvajová dráha` → ISOM
   **509** (kombinovaný symbol, bílý knockout),
 - **kolejiště / zpevněné plochy** — `--paved real` (Sez. 28): `Kolejiště` → ISOM **501 Paved area** (plocha
-  s obrysem; „10 kolejí" je v datech jedna plocha, ne linie),
-- **skály/balvany** — `--rocks real` (Sez. 30): `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**,
-  `Skalní_útvary` (plocha)→**206** (KISS vrstva = jeden symbol),
+  s obrysem; „10 kolejí" je v datech jedna plocha, ne linie); `Ostatní plocha v sídlech` → **501.1**
+  Paved area bez obrysu (Sez. 54, base výplň zastavěného území vespod, odemčeno hole support),
+- **skály/balvany** — `--rocks real` (Sez. 30 + 57): `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**,
+  `Skalní_útvary` (plocha)→**206**, `Skupina_balvanů__linie_` (Sez. 57)→**208 Boulder field** (osa→buffer pás
+  1,5 mm→náhodné trojúhelníky, mirror stromořadí 406) (KISS vrstva = jeden symbol),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
@@ -84,7 +86,7 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 **Přestavba (Sezení 11):** generátor stavíme „znovu a lépe", vrstvu po vrstvě, s
 důrazem na vizuální věrnost. **Procedurální (noise-půlka)** plošné vrstvy (vegetace, paseky, bažiny,
 balvany) byly vědomě **zahozeny** (vypadaly uměle → kazily by domain gap feederu); historie v gitu.
-Skály/balvany se od Sez. 30 kreslí **reálně** ze ZABAGED (204/207/206), tedy jen v real-půlce.
+Skály/balvany se od Sez. 30 kreslí **reálně** ze ZABAGED (204/207/206, + 208 pole balvanů Sez. 57), tedy jen v real-půlce.
 Záměrně zatím NEobsahuje: **procedurální** vegetaci/bažiny/rýhy, **procedurální** vodu (reálná ze
 ZABAGED je, Sez. 17), purpurovou závodní trať (§4.13), severník. (Pramen 312 se kreslí přes `--landmarks`, Sez. 44.)
 

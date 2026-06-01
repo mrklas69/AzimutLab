@@ -67,12 +67,14 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 45 stromořadí `Liniová vegetace` → 406 Vegetation: slow running (`--treerows`, lineární les: osa→buffer→pás;
   oprava 416 = hranice porostů byla sémanticky špatně)**;
   **Sez. 52 komín → 524 (`--landmarks`) + zábrana → 519 Crossing point (`--barriers`, jen bod na zdi 513 = průchod
-  plotem; zeď se pod brankou přeruší) — poslední kandidáti, ZABAGED katalog vyčerpán**;
+  plotem; zeď se pod brankou přeruší)**;
   **Sez. 54 `Ostatní plocha v sídlech` 115 → 501.1 Paved area bez obrysu (`--paved`, base výplň sídla vespod)
   — odemčeno novou podporou děr (holes): `geom_to_polygons` vrací vnitřní prsteny, plošné vrstvy je vyříznou
   (enabler napříč voda/budovy/pokryv); + color-table průlom „Dolní hnědá 50%" v template**;
   **Sez. 56 kamenolom `Povrchová těžba, lom` 118 → 520 olivová (`--surfaces`, oplocený těžební areál = zákaz
-  vstupu, mirror hřbitovu; místo odloženého 201 — plocha→plocha, 201 je linie)**),
+  vstupu, mirror hřbitovu; místo odloženého 201 — plocha→plocha, 201 je linie)**;
+  **Sez. 57 pole balvanů `Skupina_balvanů__linie_` 13 → 208 Boulder field (`--rocks`, osa→buffer pás 1,5 mm →
+  náhodné trojúhelníky, mirror stromořadí 406; plot 516–518 = doložený SKIP, ZABAGED plot nevede)**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
   zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:

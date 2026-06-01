@@ -280,15 +280,20 @@ Fix: do `template_classic.omap` přidána vlastní color **„Dolní hnědá 50%
 přepojen na ni. Lekce: base-layer plošný symbol potřebuje vlastní color slot uspořádaný pod vším překrývajícím
 (rastr ≠ omap: rastr kreslí pořadím, OOM prioritou). Paměť `omap-colortable-base-fill-priority`.
 
-### 4.9f Skály a balvany (real-půlka, Sez. 30)
-**✅ Reálné skály:** `--rocks real` vezme ze ZABAGED Polohopis (ArcGIS REST) tři vrstvy → tři ISOM symboly
+### 4.9f Skály a balvany (real-půlka, Sez. 30 + 57)
+**✅ Reálné skály:** `--rocks real` vezme ze ZABAGED Polohopis (ArcGIS REST) čtyři vrstvy → čtyři ISOM symboly
 (KISS „vrstva = jeden symbol", izomorfní s budovy→521): `Osamělý_balvan__skála__skalní_suk` (bod) →
 **204 Boulder** (kruh 0,4 mm); `Skupina_balvanů__bod_` (bod) → **207 Boulder cluster** (trojúhelník
 0,8×0,7 mm, vrchol nahoře); `Skalní_útvary` (plocha) → **206 Gigantic boulder** (`_draw_area_symbol`,
-černá výplň + obrys). GT `mask_rocks.png` (3-class). Z-order: úplně navrch (po budovách+řopících =
-OOM priorita skály > budovy). **Žádná vrstva nenese typ/velikost/výšku (jen `jmeno`)** → per-feature
-rozhodování (hybridní 202/206) i Chaikin smoothing ZAVRŽENY (bez datového podkladu; *generalizuj jen
-s důkazem*). Vyžaduje `--terrain real`. (Pozn.: procedurální balvany §4.11 = zahozená noise-půlka, Sez. 11.)
+černá výplň + obrys); `Skupina_balvanů__linie_` (linie, Sez. 57) → **208 Boulder field** (osa → buffer
+na úzký pás 1,5 mm, mirror stromořadí 406 §4.9n → ISOM 208 area pattern = NÁHODNĚ rozmístěné a otočené
+plné trojúhelníky; `.omap` je `area_symbol` 208, OOM vyplní pattern věrně z definice id 38, rastr =
+px-tuned aproximace `_draw_boulder_field_area`, deterministicky seedovaná; density ~1/mm² dle ISOM 0,8-1).
+GT `mask_rocks.png` (4-class). Z-order: úplně navrch (po budovách+řopících = OOM priorita skály > budovy).
+**Žádná vrstva nenese typ/velikost/výšku (jen `jmeno`)** → per-feature rozhodování (hybridní 202/206) i
+Chaikin smoothing ZAVRŽENY (bez datového podkladu; *generalizuj jen s důkazem*). Vyžaduje `--terrain real`.
+(Pozn.: procedurální balvany §4.11 = zahozená noise-půlka, Sez. 11. **Plot ISOM 516–518 = doložený SKIP,
+Sez. 57:** ZABAGED plot jako vrstvu nevede — jen Zeď/Hradba → 513 §4.9m, Zábrana → 519 §4.9o.)
 
 ### 4.9g Mosty / tunely / lávky (real-půlka, Sez. 31–33)
 **✅ Reálné mosty:** `--bridges real` vezme ze ZABAGED (ArcGIS REST) `Most` (id 73), `Tunel` (id 74) a
@@ -350,8 +355,10 @@ HS 16 / NV 44.
     plocha→plocha je věrná, stěnu nedotahujeme (KISS, Σ1 marginální). Kamenné útvary (206 ad.) zůstávají v z-orderu
     NAD olivovou (skály se kreslí po surfaces). `druhtez_p` (kámen/…) ISOM nerozlišuje.
 - **Asfaltové dopravní areály → ISOM 501** (přes paved kanál): `Areál účelové zástavby` typu `408 autobusové
-  nádraží` / `409 čerpací stanice` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Parkoviště
-  (`Parkoviště, odpočívka` 123) + kolejiště taktéž 501 přes `--paved`.
+  nádraží` / `409 čerpací stanice` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Kolejiště → 501
+  (s obrysem, vymezený prostor). **Parkoviště (`Parkoviště, odpočívka` 123) → 501.1 BEZ obrysu (Sez. 57)** —
+  průchozí zpevněná plocha splývající s okolím (ISOM 501 jen „where distinct boundary"; parkoviště jde do
+  spodního z-order průchodu jako base výplň, mirror ostatní plochy v sídlech).
 - **Drobné stavby → ISOM 521** (přes budovy): `Kůlna, skleník, fóliovník, přístřešek` (105) → 521 (Sez. 42).
 
 Plošné, izomorfní s vodní plochou/budovou/kolejištěm: render `_draw_area_symbol` s `outline=None`, barva dle
@@ -423,7 +430,7 @@ transformací dvou bodů. **Zeď 513 se pod brankou PŘERUŠÍ** mezerou 1,2 mm 
 passage cropu tunelů — ISOM „line shall be broken at the crossing point" pro nepřekonatelný plot); sráz 104 se neřeže;
 počet zdí v meta beze změny. Jediná orientovaná bodová vrstva vedle řopíků/lávek. `mask_barriers.png` (single-class);
 bodový objekt 519 s rotací v .omap (mirror lávky 512.2, OOM Test OK Sez. 52). Vyžaduje `--terrain real`. Výskyt: LS 2,
-ostatní 0 (řídké). **ZABAGED katalog tím vyčerpán.**
+ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 52 **korigováno Sez. 55** — viz `zabaged-isom-catalog.md`; po měření zbývají kandidáti 208/519/528.)
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

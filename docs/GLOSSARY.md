@@ -79,6 +79,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **NE 416 Distinct vegetation boundary** — to je HRANICE mezi porosty (kraj lesa / předěl uvnitř lesa), ne řada stromů
   (oprava sémantiky Sez. 45, verify spec). První zelená vegetační plocha generátoru; [[vegetace-gate]] neporušuje
   (tvrdý objekt z dat, ne hádaná hustota — izomorf s 308 Marsh).
+- **Pole balvanů — Boulder field** (Sez. 57) — plocha pokrytá tolika rozházenými kameny, že nejdou značit
+  jednotlivě. ISOM **208 Boulder field** = náhodně rozmístěné a otočené plné trojúhelníky (area pattern, density
+  0,8-1/mm²). ZABAGED `Skupina_balvanů__linie_` (id 13) vede pole jako LINII (osu) → generátor ji buffruje na
+  úzký pás 1,5 mm (TÝŽ mechanismus jako stromořadí výše: osa→pás) a vyplní 208. `.omap` je `area_symbol` 208
+  (OOM vyplní trojúhelníky věrně z definice), rastr = px-tuned aproximace. ISOM „generally will not impact
+  runnability" → tvrdý kamenný objekt, [[vegetace-gate]] neporušuje (jako skály 204/206/207). Doplňuje `--rocks`.
 - **Prostup / branka — Crossing point** (Sez. 52) — místo, kudy se PROJDE přes plot/zeď (branka, schůdky). ISOM
   **519 Crossing point** = dvě rovnoběžné čárky („brána"), bodový rotatable symbol. Generátor `--barriers real`:
   ZABAGED `Zábrana` (id 54, „Závora, brána") → 519, ale **jen bod ležící na nosné zdi 513 (≤ 5 m)** — 519 je
