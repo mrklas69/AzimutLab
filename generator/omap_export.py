@@ -10,11 +10,11 @@ Zisk oproti od-nuly:
     (line_symbol) — místo dřívějšího jednotného zjednodušeného kruhu;
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
-Skládáme tedy jen <objects> (vrstevnice 101/102 + pomocné 103, cesty 502-506 + lesní průseky 508, voda 304/305/306
-+ plocha 301 s břehem, zpevněné plochy 501, železnice 509, el. vedení 510, budovy 521, body 109/110/111,
-skály 204/207 + plochy 206, mosty/tunely 512 + lávky 512.2); barvy/symboly/georef/view přebíráme
-z template beze změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení
-template v OOM — id NEjsou pořadová: 503→110, 505→112).
+Skládáme tedy jen <objects> (vrstevnice + cesty + voda + plochy + body + skály + mosty + landmarks
++ liniové/plošné pokryvy …); ÚPLNÝ výčet produkovaných ISOM kódů je `USED_CODES` níž (jediný zdroj
+pravdy — nahradil dřívější taxativní seznam v docstringu, který zastarával po každé nové vrstvě).
+Barvy/symboly/georef/view přebíráme z template beze změny. Symbol id parsujeme z template podle ISOM
+kódu (robustní vůči re-uložení template v OOM — id NEjsou pořadová: 503→110, 505→112).
 
 Georef: template má Local CRS (paper-space); jeho původní scale (1:15000) přepisujeme na
 generátorové MAP_SCALE (1:10000, nález Sez. 26 — viz write_omap). Object coords jsou v µm na
@@ -61,7 +61,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "401", "520",              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
               "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
-              "524", "526", "530", "417",  # bodové orient. prvky Sez. 43 (věž/mohyla/kříž/strom)
+              "524", "526", "530", "417",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom)
               "104", "107", "513",       # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)

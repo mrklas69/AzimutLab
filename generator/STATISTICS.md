@@ -48,7 +48,7 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **506** | Small footpath | 39 | 61 | 182 | 145 | 36 |
 | **508** | Narrow ride | 46 | 119 | 20 | 16 | 44 |
 | **509** | Railway | · | · | 40 | 3 | 5 |
-| **510** | Power line | 32 | 5 | 20 | 41 | 10 |
+| **510** | Power line, cableway or skilift | 32 | 5 | 20 | 41 | 10 |
 | **521** | Building | 1171 | 133 | 9124 | 1449 | 331 |
 | **523** | Ruin | 8 | · | 7 | 5 | · |
 | **512** | Bridge/tunnel | 17 | 13 | 67 | 11 | 21 |
@@ -58,19 +58,20 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **530** | Prominent man-made feature | 33 | 8 | 53 | 50 | 5 |
 | **417** | Prominent large tree | 38 | 1 | 12 | 9 | 1 |
 | **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
+| **107** | Erosion gully | · | · | · | · | · |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
 | **519** | Crossing point | · | · | 2 | · | · |
 | **Σ** | Celkem objektů | 5870 | 1813 | 35560 | 7490 | 2274 |
 
-Z 45 sledovaných ISOM symbolů reálně používáme **45** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 46 sledovaných ISOM symbolů reálně používáme **45** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-06-01 13:05:23
-- **NL** (`Nová Louka/`): 2026-06-01 13:05:40
-- **LS** (`Lidové sady/`): 2026-06-01 13:08:30
-- **HS** (`Hrubá Skála/`): 2026-06-01 13:05:59
-- **NV** (`Novina/`): 2026-06-01 13:06:44
+- **SV** (`Soví vrch/`): 2026-06-01 18:45:25
+- **NL** (`Nová Louka/`): 2026-06-01 18:45:43
+- **LS** (`Lidové sady/`): 2026-06-01 18:47:18
+- **HS** (`Hrubá Skála/`): 2026-06-01 18:47:38
+- **NV** (`Novina/`): 2026-06-01 18:48:24
 
 ---
-*Tabulka regenerována `stats.py` v 2026-06-01 13:09:56.*
+*Tabulka regenerována `stats.py` v 2026-06-01 20:12:26.*

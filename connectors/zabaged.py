@@ -597,7 +597,8 @@ def fetch_boulder_clusters(lat: float, lon: float, gw: int, gh: int,
     ZABAGED `Skupina_balvanů__bod_` (bodová vrstva, id 12). Bodová varianta — skupina je
     natolik těsná, že se nevykresluje per-balvan. Verify Sez. 30 (Hrubá Skála): 168 prvků
     (= 7/km², hojné), jen `jmeno` jako atribut → vše → 207 Boulder cluster (KISS). Liniová
-    varianta `Skupina_balvanů__linie_` (id 13) odložena (3 prvky v probe, drobnost).
+    varianta `Skupina_balvanů__linie_` (id 13) jde zvlášť přes `fetch_boulder_field_lines`
+    → ISOM 208 Boulder field (realizováno Sez. 57; změřeno Σ14, ne „3" z odhadu Sez. 30).
     Izomorfní s fetch_boulders."""
     return _collect_points(BOULDER_CLUSTER_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
 
@@ -634,7 +635,7 @@ def fetch_bridges(lat: float, lon: float, gw: int, gh: int,
                   cache_dir: str | Path | None = None) -> list[dict]:
     """Vrátí reálné mosty (ZABAGED `Most` linie) pro výsek jako seznam liniových features.
 
-    Each item: {"layer", "props", "lines": [[(x,y)..]]} — `lines` jsou polylinie v S-JTSK
+    Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} — `lines` jsou polylinie v S-JTSK
     metrech (LineString → single-line list, MultiLineString rozbalen). Mapování na ISOM
     (`map_bridge_to_isom` → 512) řeší generator.py. Izomorfní s fetch_railways.
     Sez. 32: most a tunel jsou ODDĚLENÉ funkce (`fetch_bridges` vs `fetch_tunnels`), na

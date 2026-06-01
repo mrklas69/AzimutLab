@@ -70,7 +70,7 @@ SYMBOLS = [
     ("506",   "Small footpath"),
     ("508",   "Narrow ride"),
     ("509",   "Railway"),
-    ("510",   "Power line"),
+    ("510",   "Power line, cableway or skilift"),
     # Stavby (§4.12)
     ("521",   "Building"),
     ("523",   "Ruin"),
@@ -82,8 +82,9 @@ SYMBOLS = [
     ("526",   "Cairn"),
     ("530",   "Prominent man-made feature"),
     ("417",   "Prominent large tree"),
-    # Liniové orientační prvky (Sez. 43)
+    # Liniové orientační prvky (Sez. 43 + 58)
     ("104",   "Earth bank"),
+    ("107",   "Erosion gully"),
     ("513",   "Wall"),
     # Prostupy (Sez. 52): zábrana na zdi → Crossing point
     ("519",   "Crossing point"),

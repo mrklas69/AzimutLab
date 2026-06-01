@@ -2220,10 +2220,12 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
 
 def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
                             lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálný plošný pokryv (real-půlka, Sez. 41-49): open land louka/park → 401 žlutá; pole → 412
-    (žlutá + černý tečkový pattern); olivová 520 „zákaz vstupu" = hřbitov (ZABAGED) ∪ privátní pozemek
-    u domu (RÚIAN: zahrada + zastavěná plocha, Sez. 42) ∪ sad/zahrada (ZABAGED, oplocené zahrady
-    u domů/chalup, Sez. 49). Tři třídy v JEDNÉ multi-class masce (1=open land, 2=olivová, 3=pole).
+    """Reálný plošný pokryv (real-půlka, Sez. 41-53): open land louka → 401 žlutá; park/okrasná zahrada
+    → 402 (žlutá + bílé tečky scattered trees), ostatní udržovaná zeleň → 402.1 (žlutá + zelené tečky
+    scattered bushes, Sez. 53); pole → 412 (žlutá + černý tečkový pattern); olivová 520 „zákaz vstupu"
+    = hřbitov (ZABAGED) ∪ privátní pozemek u domu (RÚIAN: zahrada + zastavěná plocha, Sez. 42)
+    ∪ sad/zahrada (ZABAGED, oplocené zahrady u domů/chalup, Sez. 49). Pět tříd v JEDNÉ multi-class
+    masce (1=open land, 2=olivová, 3=pole, 4=park 402, 5=zeleň 402.1; štěpení nese `typ_pudy_k`).
 
     Mirror _generate_real_paved (RAW S-JTSK → grid → px → polygon, bez generalizace). Kultura 412
     pod ISOM min. plochou (SURFACE_MIN_AREA_PX2) → spadne na 401 (volba uživatele Sez. 47).
@@ -2325,12 +2327,13 @@ def _generate_real_tree_rows(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDr
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
-    """Reálné skály a balvany (real-půlka, Sez. 30): MVP rozsah 204/207/206 ze ZABAGED.
+    """Reálné skály a balvany (real-půlka, Sez. 30 + 57): 204/207/206/208 ze ZABAGED.
 
-    Tři vrstvy ZABAGED → tři ISOM symboly (KISS, vrstva → jeden symbol jako budovy→521):
+    Čtyři vrstvy ZABAGED → čtyři ISOM symboly (KISS, vrstva → jeden symbol jako budovy→521):
       Osamělý_balvan__skála__skalní_suk  → 204 Boulder            (bod, plný černý kruh)
       Skupina_balvanů__bod_              → 207 Boulder cluster    (bod, plný černý trojúhelník)
       Skalní_útvary                      → 206 Gigantic boulder   (plná černá plocha)
+      Skupina_balvanů__linie_            → 208 Boulder field      (linie → pás trojúhelníků, Sez. 57)
 
     Smoothing polygonů (původní A2) i hybridní 202/206 podle plochy (zvažováno Q2) ZAVRŽENO
     uživatelem v průběhu sezení: ZABAGED polygony jsou už dost detailní (~120 vrcholů na 32×32 m
@@ -2913,8 +2916,8 @@ def generate_map(
     Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 zákaz vstupu, ÚPLNĚ
     VESPOD = podklad) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
-    (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206) →
-    bodové orient. prvky (524/526/530/417/312/311/203.2) → liniové orient. prvky (104 sráz / 513 zeď) →
+    (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206/208) →
+    bodové orient. prvky (524/526/530/417/312/311/203.2) → liniové orient. prvky (104 sráz / 107 rokle / 513 zeď) →
     mosty/tunely/lávky (512/512.2 úplně navrch). Je to VĚDOMÁ generátorová volba pro
     čitelný feeder (hnědý terén vespod, černé komunikace/stavby dominují navrchu) — NE kopie
     OOM color draw orderu. Ten je jiná rovina: priorita BAREV (Sez. 18; černá 521 je tam
@@ -3275,7 +3278,7 @@ def generate_map(
             ([], []), tolerant, layer_errors)
         _log.info("  řopíky: %d", len(ropik_info))
 
-    # --- skály / balvany (ISOM 204/207/206): reálné ze ZABAGED REST (real-půlka, Sez. 30) ---
+    # --- skály / balvany (ISOM 204/207/206/208): reálné ze ZABAGED REST (real-půlka, Sez. 30 + 57) ---
     # Rastr z-order: ÚPLNĚ NAVRCH (po budovách+řopících) — replikuje OOM color order, kde
     # 204/206/207 mají vyšší prioritu (=draw nahoru) než 521 Building. Hruboskalsko: skály
     # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
@@ -3455,7 +3458,7 @@ def generate_map(
     if bridge_mask_img is not None:
         bridge_mask_img.save(out / "mask_bridges.png")                      # mosty/tunely/lávky (GT, multi-class)
     if surface_mask_img is not None:
-        surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land, 2=zákaz vstupu, 3=pole 412)
+        surface_mask_img.save(out / "mask_surfaces.png")                    # plošný pokryv (GT, multi-class: 1=open land 401, 2=zákaz vstupu 520, 3=pole 412, 4=park 402, 5=zeleň 402.1 — Sez. 53)
     if marsh_mask_img is not None:
         marsh_mask_img.save(out / "mask_marsh.png")                         # mokřady (GT, 1=marsh 308)
     if treerow_mask_img is not None:

@@ -37,22 +37,27 @@ def _map_paths(name: str):
     return (REPO / "maps" / name, REPO / "resources" / f"{name}.png",
             REPO / "resources" / f"{name}.pgw", REPO / "resources" / f"{name}.omap")
 
-# --- generátorové schopnosti (ISOM 2017-2): co dnes umíme vyrobit, seskupené po prvcích ---
-# (kód → krátký popis); slouží k vyhodnocení pokrytí proti reálné mapě
+# --- generátorové schopnosti (ISOM 2017-2) seskupené po prvcích, KALIBROVANÝ ŘEZ pro STAT 1 ---
+# (kód → krátký popis); NENÍ úplný výčet schopností generátoru (ten je omap_export.USED_CODES) —
+# jen skupiny, které STAT 1 páruje s ISOM 2000 reálné Soví vrch mapy přes CROSSWALK (klíče sdílené).
+# gen_codes se jen TISKNOU (sloupec „gen 2017"); párování/počty jedou přes klíč → realitu drží crosswalk.
+# Skupiny bez crosswalk protějšku v Soví vrch (marsh 308, stromořadí 406, landmarks 524/526/530/417,
+# vodní body 311/312/203.2, prostupy 519, liniové 104/107/513) zde NEJSOU — reálné protějšky jsou
+# sledovány v GAP_NAMES (mezery) níž; STAT 1 crosswalk je jen pro kalibrovanou mapu (Sez. 60).
 GEN_CAPABILITIES = {
     "contour": ["101", "102", "103"],
     "knoll/depr": ["109", "110", "111"],
-    "rock/boulder": ["204", "206", "207"],
+    "rock/boulder": ["204", "206", "207", "208"],   # +208 Boulder field (Sez. 57)
     "water": ["301", "304", "305", "306"],
-    "paved": ["501"],
+    "paved": ["501", "501.1"],                       # +501.1 bez obrysu (Sez. 54/57)
     "road/path": ["502", "503", "504", "505", "506"],
     "forest ride": ["508"],
     "railway": ["509"],
     "powerline": ["510"],
     "bridge/tunnel": ["512", "512.2"],
-    "building": ["521"],
-    "open land": ["401"],            # plošný pokryv žlutá (louka/park/pole/sad), Sez. 41
-    "out-of-bounds": ["520"],        # hřbitov olivová, Sez. 41
+    "building": ["521", "523"],                      # +523 Ruin (Sez. 43)
+    "open land": ["401", "412", "402", "402.1"],     # plošný pokryv žlutá + pole/park/zeleň (Sez. 41/47/53)
+    "out-of-bounds": ["520"],                        # hřbitov/privátní/sad olivová (Sez. 41/42/49)
 }
 
 # --- sémantický crosswalk: prvek → reálné ISOM2000 kódy v Soví vrch.omap ---
