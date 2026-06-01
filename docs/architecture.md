@@ -76,11 +76,15 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 57 pole balvanů `Skupina_balvanů__linie_` 13 → 208 Boulder field (`--rocks`, osa→buffer pás 1,5 mm →
   náhodné trojúhelníky, mirror stromořadí 406; plot 516–518 = doložený SKIP, ZABAGED plot nevede)**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
-  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), **`forest.py`** (AOPK „Les_Mapy" porostní skupiny,
+  **Sez. 62 — třetí datový zdroj, JINÝ server `gis.nature.cz`**: atribut `BARVA`=věk → zeleň 406/408/410, **PROXY/predikce**),
+  `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
-  paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
+  paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`+`forest`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
-  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
+  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--forest-age/--barriers real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
+  **Most UC2→UC5:** `--forest-age` je první **predikční** vrstva (věk porostu ≠ věrná runnability, značeno `proxy:true`) —
+  tvrdá data, měkká interpretace; první krok od projekce k UC5 vegetační predikci (vegetace gate pro open-LiDAR zavřená, Sez. 59).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

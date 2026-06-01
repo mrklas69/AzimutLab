@@ -82,14 +82,18 @@ LAZ čte `laspy[lazrs]` (ve venv). Mirror `zabaged.py` REST. (Užitečné, i kdy
 
 **Kandidáti na PLOCHU hustníku (jiná osa než LiDAR) — PROBNUTO Sez. 61 (measure-first):** ne plná
 runnability škála, jen „kde je obecný hustník".
-1. **K1 ÚHÚL věk porostu = ZVOLEN k implementaci (Sez. 62), jako hrubý proxy.** Zdroj: **AOPK
-   `gis.nature.cz/arcgis/rest/services/Aplikace/Les_Mapy_20nn/MapServer`** vrstva **19 „Porostní skupiny 2022"**
-   (esriPolygon, **371 236 polygonů celostátně**, z LHP+LHO Lesy ČR+ÚHÚL; S-JTSK 5514; licence z. 106/1999 open).
-   Atribut **`BARVA` = věková třída** (20-letý interval — DOLOŽENO dokumentací porostní mapy; `ZNAČKA`/šrafa =
-   zakmenění; `DBID` = cizí klíč do neveřejné LHP DB). Číselník `BARVA`→věk NENÍ ve službě (renderer simple) →
-   z **Informačního standardu LH** (NLI). **Slabiny (měřeno):** věk = hrubý proxy (ne runnability); pokrytí
-   DĚRAVÉ **3/5 DEV** (NL 2381 / LS 990 / NV 2243 ✓; **SV 0, HS 0** — sešito z LHP různých roků); data 2022.
-   Plán: mlazina→410 / tyčkovina→406, **označit jako PROXY** (ne věrná runnability). Probe: `temp/uhul_probe/`.
+1. **K1 ÚHÚL věk porostu = IMPLEMENTOVÁNO Sez. 62 (`connectors/forest.py`, `--forest-age`), jako hrubý PROXY.**
+   Zdroj: **AOPK `gis.nature.cz/arcgis/rest/services/Aplikace/Les_Mapy_20nn/MapServer`** vrstva **19 „Porostní
+   skupiny 2022"** (esriPolygon, **371 236 polygonů celostátně**, z LHP+LHO Lesy ČR+ÚHÚL; S-JTSK 5514; licence
+   z. 106/1999 open; `maxRecordCount=1000` → paging po 1000). Atribut **`BARVA` = ordinální kódování věku**
+   (směr nízká=mladá — DOLOŽENO standardem KSLH `KSLH021114.pdf`/NLI, Tab. 4 `Min((A+19),179) div 20`;
+   `ZNACKA` zakmenění je ve službě vždy 1 = nepoužitelné; **`BARVA 15` = bezlesí** dle KSLH Tab. 5 „Obraz BZL").
+   Číselník `BARVA`→přesný rok AOPK nezveřejňuje → řezy jsou **laditelné konstanty** v `forest.py` (kalibrace
+   proxy, ne věrnost; ověřeno vizuálně). **Mapování (3 odstíny + bílá):** mlazina → **410 fight** (nejtmavší) /
+   tyčkovina → **408 walk** / mladší kmenovina → **406 slow** / staré+bezlesí → bílá. Charakter = **PREDIKCE**
+   (2. půlka generátoru, věk≠runnability), značeno `proxy:true` v meta. **Slabiny:** věk = hrubý proxy; pokrytí
+   DĚRAVÉ **3/5 DEV** (NL/LS/NV ✓; **SV 0, HS 0**); data 2022. Vizuál Sez. 62: NL/LS realisticky (zeleň menšina),
+   NV plošně zelená (nejspíš věrná — mladý hospodářský les). Probe + KSLH PDF: `temp/uhul_probe/`.
 2. **K2 Copernicus HRL TCD = SLABÝ** (korunový zápoj 10 m shora = tatáž zeď jako CHM Sez. 59; nerozliší hustník
    od zapojeného lesa; neproměřováno — strukturálně doloženo Sez. 59).
 3. **K3 Multi-temporal ortofoto = NEJSILNĚJŠÍ koncepčně, ODLOŽEN** (jediný bez pasti zápoje — časová změna

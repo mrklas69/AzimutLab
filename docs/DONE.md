@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 62 (2026-06-01) — věk porostu → zeleň (`--forest-age`, první UC5 predikční střípek, PROXY)
+- [x] **%THINK nad celým návrhem** (volba uživatele před kódem) — odhalil: (a) **číselník `BARVA`→věk
+      DOLOŽEN** standardem KSLH `KSLH021114.pdf` (Sez. 61 měl jen 301-redirect uložený jako `kslh.pdf`;
+      skutečný PDF stažen do `temp/uhul_probe/kslh_real.pdf`): `BARVA` = ordinální věk (Tab. 4
+      `Min((A+19),179) div 20`), `ZNACKA`=zakmenění (ve službě vždy 1), **`BARVA 15`=bezlesí** (Tab. 5 BZL);
+      (b) **ISOM oprava**: diár Sez. 61 psal „410 Veg: walk" — 410 je *fight*, 408 je *walk*; (c) reframe
+      uživatele: vrstva = **predikce** (2. půlka generátoru, „realisticky vyhlížející, mimo real jistoty").
+- [x] **Kalibrační probe** (`temp/uhul_probe/calibrate.py`) — distribuce `BARVA` na NL/LS/NV;
+      **`maxRecordCount=1000` → paging po 1000** (verify-against-source: bez toho by default 2000 podtrhl LS >1000).
+- [x] **Konektor `connectors/forest.py`** (krok 1) — AOPK „Les_Mapy" vrstva 19, reuse `arcgis.fetch_geojson_layer`
+      (server `gis.nature.cz`, S-JTSK 5514, mirror ruian). `map_forest_age_to_isom`: laditelné řezy `BARVA_*_MAX`
+      → 410 fight / 408 walk / 406 slow / None (staré+bezlesí → bílá). Číselník/směr doložen, řezy = proxy kalibrace.
+- [x] **Zapojení do generátoru** (krok 2) — `--forest-age real` (default), `_generate_real_forest_age` +
+      `_draw_forest_age_area` (plná zeleň bez obrysu, díry; mirror surfaces/treerows), z-order nad pokryvem /
+      pod stromořadím; `mask_forest_age.png` (multi-class 1=410/2=408/3=406); barvy z palety C_GREEN3/2/1;
+      .omap area objekty 406/408/410 (USED_CODES + AREA_CODES + `forest_age_features` v `write_omap`);
+      meta **vlastní sekce s `proxy:true` + `note`** (ne `_layer_meta_section` — jiný zdroj/licence AOPK);
+      CLI flag, batch B1 off v obou větvích, stats.py SYMBOLS 408/410 + sekce `forest_age`.
+- [x] **Kalibrace = ABSOLUTNÍ řezy** (rozhodnutí uživatele po vizuálu) — per-mapová kvantilová normalizace
+      ZAVRŽENA: vynutila by 410 i na holé staré svahy (fabrikace) a rozbila absolutní význam + UC5 konzistenci.
+      Variace mezi mapami = věrná (NL/LS zeleň menšina, NV plošně zelená = mladý hospodářský les, holý svah bílý).
+- [x] **Verify:** proc baseline **65 objektů drží** (nová vrstva čistě za `--terrain real`); 5 DEV přegenerováno
+      (forest_age NL 341 / LS 490 / NV velký; **SV 0 / HS 0** = mimo AOPK pokrytí, graceful); meta `proxy:true`
+      + 341 omap objektů ověřeno; STATISTICS 406/408/410 (406 = stromořadí+slow). **OOM `.omap` verify = příště (ruční).**
+- [x] **Propagace docs:** data-sources K1→implementováno, GLOSSARY (`forest-age-proxy` termín + projekce/predikce),
+      spec §4.9p, architecture UC2/UC5 most, connectors/generator/root README, STATISTICS. Censure 0.
+
 ## Sezení 61 (2026-06-01) — probe 3 kandidátů plochy hustníku → K1 ÚHÚL věk porostu zvolen
 - [x] **Probe 3 kandidátů PLOCHY hustníku (measure-first, carry podmínka Sez. 59)** — fokus z Příště Sez. 60.
       Desk verify (co každý zdroj REÁLNĚ měří) + technický probe REST. Žádný produkční kód (`temp/uhul_probe/`).

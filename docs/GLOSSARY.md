@@ -258,15 +258,27 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
   v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +
   licencí). Nezaměňovat: dnešní `--terrain real` je **projekce**, ne predikce.
+  Sez. 62: **`--forest-age` = první realizovaný predikční střípek** — zeleň 406/408/410 odvozená z VĚKU
+  porostu (AOPK porostní skupiny, [[forest-age-proxy]]). Data tvrdá, ale věk→běhatelnost je proxy → značeno
+  `proxy:true`. Není to plná UC5 predikce (žádný naučený prior), ale stojí už za hranicí projekce.
 - **Pseudorealistic map** — výstup prediktoru: mapa, která *vypadá* realisticky, ale není skutečné
   terénní mapování (syntéza projekce + AI predikce). Pojmenování poctivě přiznává umělost (Sez. 23).
 - **pseudorealistic (parametr) / fáze 1-2** — přepínač real-větve generátoru (Sez. 24, default
   `True`; CLI `--only-real` = `False`). **Fáze 1 = projekce** (deterministický převod tvrdých dat,
   100% věrnost). **Fáze 2 = pseudorealistická dekorace** (doplní symboly, co v datech nejsou, ale
   dělají mapu „orienťácky vypadající"; poloha vymyšlená → musí jít vypnout). Dnes jediný konzument
-  fáze 2 = rovnoměrné příčky [[el-vedení]] mimo evidované sloupy; budoucí hlavní = vegetace (gate).
-  Generalizace L1/L2 budov NENÍ fáze 2 (věrná kartografie, kterou ISOM předepisuje). Spec §0b.
+  fáze 2 = rovnoměrné příčky [[el-vedení]] mimo evidované sloupy + od Sez. 62 zeleň z věku porostu
+  ([[forest-age-proxy]], první predikční krok k vegetaci). Generalizace L1/L2 budov NENÍ fáze 2 (věrná
+  kartografie, kterou ISOM předepisuje). Spec §0b.
   Vztah k [[projekce-vs-predikce]]: fáze 2 sahá od dekorace (příčky) po predikci (vegetace, UC5).
+- **forest-age-proxy** — vrstva `--forest-age` (Sez. 62, `connectors/forest.py`): zeleň ISOM 406/408/410
+  odvozená z VĚKU porostu (AOPK „Les_Mapy" porostní skupiny, atribut `BARVA` = ordinální věk doložený
+  standardem KSLH). Mladý porost = nejhustší → 410 fight; tyčkovina → 408 walk; mladší kmenovina → 406 slow;
+  starý les + bezlesí (`BARVA 15`) → bílá. **PROXY, ne věrná runnability**: věk je hrubý prediktor hustoty
+  (mladý=hustý drží těsně, starší nejisté) — vědomě přijato (vegetace gate [[vegetace-gate]] zavřená pro
+  open-LiDAR). Absolutní řezy `BARVA`→ISOM (stejné pro všechny mapy → konzistence pro UC5 feeder, ne
+  per-mapová normalizace — ta by fabrikovala rozsah). Pokrytí 3/5 DEV (SV/HS bez AOPK dat). Charakter =
+  [[projekce-vs-predikce|predikce]] (značeno `proxy:true` v meta).
 - **Deštník / fáze B→A** — AzimutLab je teď meta-vrstva (fáze B, deštník) nad sourozeneckým
   Pic2Omap; cíl je monorepo (fáze A), které Pic2Omap absorbuje, až vznikne sdílené jádro.
 - **Pic2Omap** — sourozenecký projekt (raster OB mapa → vektor `.omap`); UC4-III. Žije ve

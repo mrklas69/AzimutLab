@@ -10,11 +10,13 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | `dmr.py` | ČÚZK DMR 5G | výškopis (float32 grid) | ArcGIS ImageServer `exportImage` |
 | `zabaged.py` | ČÚZK ZABAGED Polohopis | komunikace + lesní průseky + voda + budovy + vedení/lanovka + železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv (open land/hřbitov/parkoviště) + areály účelové zástavby + kůlny + zámek/hrad/zřícenina + bodové orient. prvky (kříž/mohyla/věž/strom) + liniové (sráz/zeď), Sez. 43 + **mokřady 308 + pramen 312 + jeskyně/šachta 203.2 + nádrž 311, Sez. 44** + **stromořadí → 406 lineární les, Sez. 45** + **komín → 524 + zábrana → 519 Crossing point na zdi 513, Sez. 52** + **lanovka/vlek → 510 (sloučeno s vedením), Sez. 55** + **kamenolom `Povrchová těžba, lom` → 520 olivová, Sez. 56** + **pole balvanů `Skupina_balvanů__linie_` → 208 Boulder field, Sez. 57** (GeoJSON) | ArcGIS REST `MapServer/<id>/query` (přechod z WFS Sez. 26) |
 | `ruian.py` | ČÚZK RÚIAN (katastr) | katastrální parcely podle druhu pozemku → privátní pozemky (zahrada+zastavěná) → olivová 520 (GeoJSON) | ArcGIS REST `RUIAN/MapServer/5/query` (Sez. 42) |
+| `forest.py` | **AOPK** „Les_Mapy" (LHP/LHO Lesy ČR + ÚHÚL) | porostní skupiny (vrstva 19); atribut `BARVA` = ordinální věk → ISOM zeleň **406/408/410** (PROXY: věk≠runnability, predikce), Sez. 62 (GeoJSON) | ArcGIS REST `Les_Mapy_20nn/MapServer/19/query` na **`gis.nature.cz`** (ne ČÚZK; `maxRecordCount=1000`) |
 | `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
-| `arcgis.py` | — (sdílený základ) | nízkoúrovňový ArcGIS REST transport: paging+cache+GeoJSON parsery (DRY pro `zabaged`+`ruian`, Sez. 42) | — |
+| `arcgis.py` | — (sdílený základ) | nízkoúrovňový ArcGIS REST transport: paging+cache+GeoJSON parsery (DRY pro `zabaged`+`ruian`+`forest`, Sez. 42/62) | — |
 
 **Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor topografie (ZABAGED), `ruian` = vektor
-katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `ortofoto` = rastr/podklad. Sdílí `dmr.build_bbox` (tentýž S-JTSK
+katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `forest` = vektor věku porostu (AOPK „Les_Mapy" — třetí zdroj,
+JINÝ server `gis.nature.cz`; PROXY/predikce, Sez. 62), `ortofoto` = rastr/podklad. Sdílí `dmr.build_bbox` (tentýž S-JTSK
 výsek → data z různých zdrojů sednou na sebe bez dalšího georef) i `arcgis.fetch_geojson_layer` (společný REST
 transport pro `zabaged`+`ruian`). Vše na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`/`ruian`) viz `data-sources.md`.
 

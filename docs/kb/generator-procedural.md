@@ -432,6 +432,37 @@ počet zdí v meta beze změny. Jediná orientovaná bodová vrstva vedle řopí
 bodový objekt 519 s rotací v .omap (mirror lávky 512.2, OOM Test OK Sez. 52). Vyžaduje `--terrain real`. Výskyt: LS 2,
 ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 52 **korigováno Sez. 55** — viz `zabaged-isom-catalog.md`; po měření zbývají kandidáti 208/519/528.)
 
+### 4.9p Věk porostu → zeleň (real-data, PROXY/predikce, Sez. 62)
+**✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
+`connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server
+`gis.nature.cz`, `maxRecordCount=1000` → paging po 1000) → ISOM zeleň **406/408/410** dle věku.
+**Liší se od ostatních §4.9 vrstev charakterem:** je to **PREDIKCE, ne projekce** — data tvrdá (reálné
+porostní skupiny LHP/LHO), ale interpretace VĚK → běhatelnost je proxy (vegetace gate pro open-LiDAR
+zavřená, Sez. 59; tohle je náhradní osa = stáří). Patří do **2. půlky generátoru** („realisticky
+vyhlížející mapa, mimo real jistoty", rozhodnutí uživatele Sez. 62). Značeno `proxy:true` v meta +
+GLOSSARY [[forest-age-proxy]].
+
+**Atribut a mapování (verify-against-source):** `BARVA` (Integer) = ordinální kódování věku, směr
+nízká=mladá — DOLOŽENO standardem KSLH `KSLH021114.pdf` (NLI), Tab. 4 `Min((A+19),179) div 20`;
+`ZNACKA` (zakmenění) je ve službě vždy 1 = nepoužitelné; **`BARVA 15` = bezlesí** (KSLH Tab. 5 „Obraz BZL").
+Číselník `BARVA`→přesný rok AOPK nezveřejňuje → řezy jsou **laditelné konstanty** v `forest.py`
+(`BARVA_FIGHT_MAX/WALK_MAX/SLOW_MAX`; kalibrace proxy, ne věrnost — ověřeno vizuálně). `map_forest_age_to_isom`:
+mlazina (nejmladší, nejhustší) → **410 fight** (C_GREEN3 tmavá) / tyčkovina → **408 walk** (C_GREEN2 střední) /
+mladší kmenovina → **406 slow** (C_GREEN1 světlá) / staré + bezlesí → **None = bílá** (běhatelný les, default pozadí).
+
+**Řezy ABSOLUTNÍ, ne per-mapové** (rozhodnutí Sez. 62): stejné pro všechny mapy → 410 fight = stejná obtížnost
+všude (ISOM absolutní význam + konzistence pro UC5 feeder). Per-mapová kvantilová normalizace zvážena a
+ZAVRŽENA — vynutila by plný rozsah včetně 410 i na holé staré svahy (fabrikace kontrastu) a rozbila by
+cross-map význam. Variace mezi mapami je tím **věrná**: NL/LS zeleň menšina, NV plošně zelená (mladý
+hospodářský les Lužických hor — nejspíš reálné), holý starý svah správně bílý.
+
+**Render** `_draw_forest_age_area` = plná zelená výplň BEZ obrysu (vegetační plošný symbol, izomorf
+s 406 stromořadím §4.9n / 401 / 520; díry zachovány přes scanline). Z-order: NAD plošným pokryvem
+(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_forest_age.png` (multi-class:
+1=fight 410, 2=walk 408, 3=slow 406); plošné objekty 406/408/410 v .omap (AREA_CODES). Vyžaduje `--terrain real`.
+**Pokrytí 3/5 DEV** (NL 341 / LS 490 / NV velký počet; **SV/HS 0** — AOPK sada sešitá z LHP různých roků,
+mirror řídkých vrstev). Probe + KSLH PDF: `temp/uhul_probe/`.
+
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:
 
