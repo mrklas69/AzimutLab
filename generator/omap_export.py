@@ -11,7 +11,7 @@ Zisk oproti od-nuly:
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
 Skládáme tedy jen <objects> (vrstevnice 101/102 + pomocné 103, cesty 502-506 + lesní průseky 508, voda 304/305/306
-+ plocha 301.1, zpevněné plochy 501, železnice 509, el. vedení 510, budovy 521, body 109/110/111,
++ plocha 301 s břehem, zpevněné plochy 501, železnice 509, el. vedení 510, budovy 521, body 109/110/111,
 skály 204/207 + plochy 206, mosty/tunely 512 + lávky 512.2); barvy/symboly/georef/view přebíráme
 z template beze změny. Symbol id parsujeme z template podle ISOM kódu (robustní vůči re-uložení
 template v OOM — id NEjsou pořadová: 503→110, 505→112).
@@ -49,11 +49,13 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 
 # ISOM kódy, které generátor produkuje. Objekty se na symboly odkazují přes id z template.
 # Cesty: proc větev dělá 503/505; reálná (ZABAGED REST, Sez. 16) i 502/504/506. Voda (Sez. 17):
-# toky 304/305/306 (liniové) + plocha 301.1 (plošný symbol — kombinovaný 301 s břehem je
-# type 16, nepřiřaditelný objektu). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
+# toky 304/305/306 (liniové) + plocha 301 (KOMBINOVANÝ: Blue 100% výplň + ČERNÁ břehová linie =
+# neprůchodná hranice; Sez. 58 oprava z 301.1 bez okraje — mapaři kreslí vodní plochu s okrajem,
+# rastr ho má od Sez. 18). „Combined nepřiřaditelný objektu" byl MYLNÝ předpoklad Sez. 18 —
+# vyvrácen kolejištěm 501 (combined, Sez. 28). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
 USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
-              "304", "305", "306", "301.1", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
+              "304", "305", "306", "301", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
               "204", "206", "207", "208",  # skály/balvany Sez. 30+57 (204 bod, 207 bod, 206 plocha, 208 pole)
               "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
               "401", "520",              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
@@ -79,7 +81,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder + 208 Boulder field = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301.1", "521", "501", "501.1", "206", "208", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57
+AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "402", "402.1", "520", "308", "406", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -125,7 +127,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
     [(curve grid, code 502-506)] (proc dělá 503/505, reálná větev plnou hierarchii),
-    `water_features` = [(line/ring grid, code 304/305/306/301.1)],
+    `water_features` = [(line/ring grid, code 304/305/306/301)],
     `building_features` = [(ring grid, code 521)], `powerline_features` = [(line grid, code 510)]
     (liniový objekt, Sez. 24) — vše v souřadnicích MŘÍŽKY (gx∈0..gw-1, gy∈0..gh-1); voda i budovy
     jdou jako liniové objekty (type 1), OOM je vyplní podle typu symbolu (plošný 301/521).
@@ -133,7 +135,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     v template kombinovaný symbol (čárky + bílý knockout), OOM ho vykreslí z definice symbolu.
     `paved_features` (volitelné, Sez. 28) = [(ring grid, code 501)] — plošný objekt (kolejiště);
     501 = kombinovaný symbol (hnědá výplň + OBRYSOVÁ linie), OOM vyplní uzavřený prstenec a
-    nakreslí obrys (kolejiště = uzavřený prostor, bounding line významová — ne jako voda 301.1).
+    nakreslí obrys (kolejiště = uzavřený prostor, bounding line významová — jako voda 301 od Sez. 58).
     `formline_features` (volitelné, Sez. 29) = [(line grid, code 103)] — pomocná vrstevnice,
     liniový objekt jako 101/102; OOM vykreslí čárkování z definice symbolu 103.
     `rock_point_features` (volitelné, Sez. 30) = [(gx, gy, code)] — bodové skály (204 Boulder,
@@ -208,7 +210,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
     n_formlines = n_rocks = n_bridges = n_rides = n_surfaces = n_landmarks = n_linefeatures = n_marsh = n_treerows = 0
     n_barriers = 0
-    # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301.1 voda,
+    # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
         o = line_object(line, str(code))

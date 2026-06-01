@@ -3460,10 +3460,11 @@ def generate_map(
                                          out / "contours.geojson")
     # .omap export (§9): vrstevnice + cesty + voda + body do uživatelova čistého ISOM 2017-2
     # template (template_classic.omap, Sez. 14). Vodní toky 304/305/306 = liniové objekty;
-    # plochy → 301.1 (plošný symbol, jistě přiřaditelný objektu; kombinovaný 301 s břehem
-    # je rozšíření). Vše type-1 objekt (OOM rozlišuje linie/plochu podle typu symbolu).
+    # plochy → 301 KOMBINOVANÝ (Blue 100% výplň + ČERNÁ břehová linie = neprůchodná hranice;
+    # Sez. 58 oprava z 301.1 bez okraje — mapaři kreslí vodní plochu s okrajem, rastr ho má od
+    # Sez. 18; combined area objekt funguje jako kolejiště 501 Sez. 28). NE 301.2 (= Blue 70% dominant).
     water_omap_features = ([(g, c) for g, c in water_line_features]
-                           + [(g, "301.1") for g, _ in water_area_features])
+                           + [(g, "301") for g, _ in water_area_features])
     # budovy = plošný symbol 521 (area, type-4 v template) → uzavřený prstenec, OOM vyplní;
     # zříceniny 523 (Sez. 43) = týž area objekt, ale OOM nakreslí čárkovaný obrys (line symbol).
     # Code z featur (NE hardcode 521 — jinak by zřícenina vypadla jako budova).
