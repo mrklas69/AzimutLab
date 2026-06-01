@@ -36,9 +36,10 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **kolejiště / zpevněné plochy** — `--paved real` (Sez. 28): `Kolejiště` → ISOM **501 Paved area** (plocha
   s obrysem; „10 kolejí" je v datech jedna plocha, ne linie); `Ostatní plocha v sídlech` → **501.1**
   Paved area bez obrysu (Sez. 54, base výplň zastavěného území vespod, odemčeno hole support),
-- **skály/balvany** — `--rocks real` (Sez. 30 + 57): `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**,
-  `Skalní_útvary` (plocha)→**206**, `Skupina_balvanů__linie_` (Sez. 57)→**208 Boulder field** (osa→buffer pás
-  1,5 mm→náhodné trojúhelníky, mirror stromořadí 406) (KISS vrstva = jeden symbol),
+- **skály/balvany** — `--rocks real` (Sez. 30 + 57 + 63): body `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**
+  + `Skupina_balvanů__linie_`→**208 Boulder field** (Sez. 57) ze ZABAGED; **plocha 206 Gigantic boulder = z DMR 5G
+  SKLONU** (Sez. 63, `rock_relief.py`: práh sklonu 46° → morfologické scelení stěn do bloku → vektorizace) —
+  nahradila generalizovaný ZABAGED `Skalní_útvary` (jeden blob → věrná členitost věží/průchodů, ověřeno proti Mapy.com),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
@@ -152,7 +153,8 @@ gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shod
 
 ## Stack
 
-Python 3.12+ · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK).
+Python 3.12+ · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK) ·
+scipy (jen `--rocks real`: morfologie + connected-components pro rock-relief z DMR, Sez. 63). Viz `requirements.txt`.
 Venv v kořeni LAB (`.venv`) — sdílený pro `generator/` i `connectors/`. Konektory reálných dat žijí
 v **`connectors/`** v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení +
 železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv + areály 114/kůlny 105, `ruian.py` katastr

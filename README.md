@@ -29,7 +29,10 @@ and — since session 29 — auxiliary contours
 (form lines, ISOM 103) derived from the DMR where terrain is gently sloped yet curved (drawn sparingly,
 not as intermediate contours, per the ISOM rule); — since session 30 — real rocks/boulders
 (`--rocks real`, ISOM 204/207/206, plus 208 boulder field since session 57 — line of boulders
-buffered into a strip filled with random triangles); — sessions 31–33 — real bridges/tunnels/footbridges
+buffered into a strip filled with random triangles; **since session 63 the 206 rock areas come from
+DMR 5G slope** — `rock_relief.py` thresholds slope ≥46° and morphologically merges walls into blocks,
+replacing the generalized ZABAGED rock blob with faithful tower/passage structure, verified against Mapy.com);
+— sessions 31–33 — real bridges/tunnels/footbridges
 (`--bridges real`, ISOM 512/512.2, raster unified with the `.omap` two-parallels layout in session 35);
 and — session 36 — real forest rides (`--rides real`, `Lesní průsek` → ISOM 508 Narrow ride,
 dashed line, no runnability background as vegetation is a UC5 prediction, not data); and — since session 41 —
@@ -162,6 +165,7 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian+forest, session 42/62)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
+  rock_relief.py       #   ISOM 206 rock areas from DMR 5G slope (numpy+scipy+contourpy; --rocks real, session 63)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
 asset/                 # shared map assets (řopík pillbox .omap)

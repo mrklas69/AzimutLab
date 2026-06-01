@@ -140,7 +140,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
 | `Osamělý_balvan__skála__skalní_suk` | bod | 204 Boulder | ✓ | Sez. 30 (`--rocks`); ZABAGED bez atributu typu/výšky → 205 odpadlo, KISS |
-| `Skalní_útvary` | plocha | 206 Gigantic boulder | ✓ | Sez. 30 (`--rocks`, plná černá plocha); hybridní 202/206 podle plochy zavrženo „bez datového podkladu" |
+| `Skalní_útvary` | plocha | 206 Gigantic boulder | ⊘ NAHRAZENO | Sez. 30 (`--rocks`, plná černá plocha); **Sez. 63 plocha 206 NAHRAZENA derivací z DMR 5G sklonu** (`rock_relief.py`) — ZABAGED je generalizovaný blob přes celý masiv, DMR dá věrnou členitost věží/průchodů (verify Mapy.com). ZABAGED `Skalní_útvary` se už netáhne; body 204/207 + pole 208 ze ZABAGED zůstávají |
 | `Skupina_balvanů__bod_` | bod | 207 Boulder cluster | ✓ | Sez. 30 (`--rocks`) |
 | `Skupina_balvanů__linie_` | linie | 208 Boulder field | ✓ | **Sez. 57** (`--rocks`, id 13). Osa (polyline) → buffer na úzký pás 1,5 mm (mirror stromořadí 406, Sez. 45) → ISOM 208 area pattern (náhodné trojúhelníky, OOM vyplní z definice id 38). Vrstva jen `jmeno` → KISS vždy 208. Verify: SV 7 / HS 3 / NV 4 = **Σ14** (přesně dle probe Sez. 55) |
 | `Sesuv_půdy__suť` | plocha | 210 Stony ground | ◐ | suť — odloženo. **Změřeno Sez. 55:** SV 1 = Σ1 (marginální; verify v Jeseníkách / Krkonoších) |

@@ -82,7 +82,8 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
   paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`+`forest`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
-  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--forest-age/--barriers real`; form lines z DMR; olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
+  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--forest-age/--barriers real`; form lines **i skalní
+  plochy 206 z DMR** (rock-relief sklon, Sez. 63 — derivace z výškopisu, ne ZABAGED); olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
   **Most UC2→UC5:** `--forest-age` je první **predikční** vrstva (věk porostu ≠ věrná runnability, značeno `proxy:true`) —
   tvrdá data, měkká interpretace; první krok od projekce k UC5 vegetační predikci (vegetace gate pro open-LiDAR zavřená, Sez. 59).
 

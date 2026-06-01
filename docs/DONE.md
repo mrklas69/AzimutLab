@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 63 (2026-06-01) — skalní plochy 206 z DMR sklonu (rock-relief) + forest-age na 8 map
+- [x] **Forest-age na všech 8 testovacích mapách** (carry Sez. 62): NL 341 / LS 490 / NV 696 / Bedřichovka 289 /
+      Blatná 177 / Velbloud 373 (matched výseky reálných map z `.pgw`); **SV 0 / HS 0 = mimo AOPK pokrytí**
+      (ověřeno probem: HS 0, SV 4 slívky — Český ráj/Lužické hory v AOPK „Les_Mapy" datasetu nejsou; ne bug, doložená mezera).
+- [x] **%THINK rock-relief** (handoff `temp/rockcore/HANDOFF_FOR_AI.md` — detekce skal z DMR sklonu). Studie:
+      Mapy.com ≠ ZABAGED render (jiná geometrie), detail Mapy.com = z RELIÉFU; zadání = jednobarevné POLYGONY
+      bloků, ne reliéf; maska na SKLONU (směrově nezávislý), ne hillshade tmavost. Tři rozhodnutí (deps/rozlišení/vztah).
+- [x] **`generator/rock_relief.py`** — port rockcore bez Streamlit/rasterio/shapely: DMR fetch přes `dmr.py`
+      (S-JTSK), sklon `np.gradient`, práh 46°, scipy morfologie (opening/closing/fill_holes/label), vektorizace
+      přes **contourpy** (úroveň 0,5), Douglas-Peucker + Chaikin v numpy, vnoření děr (even-odd) → polygony
+      [outer,díra…] v S-JTSK. **Závislost scipy** (volba uživatele; shapely/rasterio obejity).
+- [x] **Integrace = NAHRAZENÍ ZABAGED 206** (volba uživatele): `_generate_real_rocks` sekce 3 už netáhne
+      ZABAGED `Skalní_útvary`, místo toho `rock_relief.detect_rock_areas` → 206 (body 204/207 + pole 208 ZABAGED zůstaly).
+      Týž kreslicí/omap tok (polygony [outer,díra…] = mirror geom_to_polygons).
+- [x] **Verify proti Mapy.com** (požadavek uživatele): render Šulcáku (týž výsek jako handoff `02`) — na 0,8 m
+      **49 polygonů = shoda s rockcore (48)** + struktura sedí na Mapy.com reliéf; jednobarevné polygony = správný typ výstupu.
+- [x] **Rozlišení = 1,5 m** (`TARGET_PX_M`, volba uživatele): jeden DMR fetch do ~6 km (6000/1,5=4000=MAX_PX),
+      bez tilingu; citelně jemnější než 2 m. Native ~1 m by chtěl dlaždicování (odloženo).
+- [x] **requirements.txt** založen (numpy/Pillow/contourpy/pyproj/scipy) — kvůli scipy + druhý stroj (git sync).
+- [x] **Verify:** proc baseline **65 drží** (rock_relief jen v `--rocks real`); 8 map regen (206 z DMR: HS 744 /
+      SV 79 / NV 26 / LS 20 / NL 6 / Bedř 2 / Blatná 0 / Velbloud 0 — dle terénu; DMR má národní bezešvé pokrytí,
+      i SV má skály ač forest-age ne). STATISTICS regen. Propagace: spec §4.9f, architecture, katalog (Skalní_útvary
+      ⊘ nahrazeno), READMEs×3. Censure 0.
+
 ## Sezení 62 (2026-06-01) — věk porostu → zeleň (`--forest-age`, první UC5 predikční střípek, PROXY)
 - [x] **%THINK nad celým návrhem** (volba uživatele před kódem) — odhalil: (a) **číselník `BARVA`→věk
       DOLOŽEN** standardem KSLH `KSLH021114.pdf` (Sez. 61 měl jen 301-redirect uložený jako `kslh.pdf`;

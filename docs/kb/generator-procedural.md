@@ -280,18 +280,31 @@ Fix: do `template_classic.omap` přidána vlastní color **„Dolní hnědá 50%
 přepojen na ni. Lekce: base-layer plošný symbol potřebuje vlastní color slot uspořádaný pod vším překrývajícím
 (rastr ≠ omap: rastr kreslí pořadím, OOM prioritou). Paměť `omap-colortable-base-fill-priority`.
 
-### 4.9f Skály a balvany (real-půlka, Sez. 30 + 57)
-**✅ Reálné skály:** `--rocks real` vezme ze ZABAGED Polohopis (ArcGIS REST) čtyři vrstvy → čtyři ISOM symboly
-(KISS „vrstva = jeden symbol", izomorfní s budovy→521): `Osamělý_balvan__skála__skalní_suk` (bod) →
-**204 Boulder** (kruh 0,4 mm); `Skupina_balvanů__bod_` (bod) → **207 Boulder cluster** (trojúhelník
-0,8×0,7 mm, vrchol nahoře); `Skalní_útvary` (plocha) → **206 Gigantic boulder** (`_draw_area_symbol`,
-černá výplň + obrys); `Skupina_balvanů__linie_` (linie, Sez. 57) → **208 Boulder field** (osa → buffer
-na úzký pás 1,5 mm, mirror stromořadí 406 §4.9n → ISOM 208 area pattern = NÁHODNĚ rozmístěné a otočené
-plné trojúhelníky; `.omap` je `area_symbol` 208, OOM vyplní pattern věrně z definice id 38, rastr =
-px-tuned aproximace `_draw_boulder_field_area`, deterministicky seedovaná; density ~1/mm² dle ISOM 0,8-1).
+### 4.9f Skály a balvany (real-půlka, Sez. 30 + 57 + 63)
+**✅ Reálné skály:** `--rocks real`. BODY + pole ze ZABAGED Polohopis (ArcGIS REST):
+`Osamělý_balvan__skála__skalní_suk` (bod) → **204 Boulder** (kruh 0,4 mm); `Skupina_balvanů__bod_` (bod) →
+**207 Boulder cluster** (trojúhelník 0,8×0,7 mm, vrchol nahoře); `Skupina_balvanů__linie_` (linie, Sez. 57) →
+**208 Boulder field** (osa → buffer na úzký pás 1,5 mm, mirror stromořadí 406 §4.9n → ISOM 208 area pattern =
+NÁHODNĚ rozmístěné a otočené plné trojúhelníky; `.omap` je `area_symbol` 208, OOM vyplní pattern věrně
+z definice id 38, rastr = px-tuned aproximace `_draw_boulder_field_area`, deterministicky seedovaná; density
+~1/mm² dle ISOM 0,8-1).
+
+**Plocha 206 Gigantic boulder = z DMR 5G SKLONU (Sez. 63, `rock_relief.py`)** — NAHRADILA generalizovanou
+ZABAGED `Skalní_útvary` (jeden blob přes celý masiv → věrná členitost věží a otevřených průchodů).
+DETERMINISTICKÁ PROJEKCE z výškopisu (jako vrstevnice/form lines §4.9 z DMR), NE proxy. Algoritmus (převzat
+z `temp/rockcore/`, laděno na pískovcovém Šulcáku; verify proti Mapy.com): SAMOSTATNÝ hi-res DMR fetch (~1,5 m;
+render grid generátoru je na ~8 m/buňka, na věže nestačí) → sklon `np.gradient` (směrově nezávislý, NE hillshade
+tmavost — ta je směrově závislá) → práh **46°** (jisté skalní stěny) → **morfologický uzávěr** (scelí stěny
++ vršek do bloku; samotný práh dá jen slivery, protože ploché vršky věží mají sklon ~0°) → vyplnit jen malé
+díry (vrcholové plošiny <250 m²), velké průchody nechat → vektorizace přes **contourpy** (úroveň 0,5; NE
+rasterio/shapely) → Douglas-Peucker + Chaikin (legitimní — de-pixeluje RASTER masku, NE čisté vektory jako
+ZABAGED Sez. 30). Závislost **scipy** (morfologie + connected-components; jen `--rocks real`). `_draw_area_symbol`
+černá výplň, polygony [outer, díra…] v S-JTSK = týž tok jako dřív. Rozlišení 1,5 m = jeden fetch do ~6 km
+(limit ArcGIS exportImage ~4000 px; >6 km zhrubne, tiling = budoucí).
 GT `mask_rocks.png` (4-class). Z-order: úplně navrch (po budovách+řopících = OOM priorita skály > budovy).
-**Žádná vrstva nenese typ/velikost/výšku (jen `jmeno`)** → per-feature rozhodování (hybridní 202/206) i
-Chaikin smoothing ZAVRŽENY (bez datového podkladu; *generalizuj jen s důkazem*). Vyžaduje `--terrain real`.
+**ZABAGED vrstvy nenesou typ/velikost/výšku (jen `jmeno`)** → per-feature rozhodování (hybridní 202/206) i
+Chaikin smoothing na NICH ZAVRŽENY (bez datového podkladu; *generalizuj jen s důkazem*, Sez. 30). Chaikin na
+DMR-206 (výš) je naopak legitimní — vyhlazuje raster masku, ne čistý vektor. Vyžaduje `--terrain real`.
 (Pozn.: procedurální balvany §4.11 = zahozená noise-půlka, Sez. 11. **Plot ISOM 516–518 = doložený SKIP,
 Sez. 57:** ZABAGED plot jako vrstvu nevede — jen Zeď/Hradba → 513 §4.9m, Zábrana → 519 §4.9o.)
 
