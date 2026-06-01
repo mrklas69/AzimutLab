@@ -43,10 +43,11 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **plošný pokryv** — `--surfaces real` (Sez. 41-53): open land louka → ISOM **401** (plná žlutá); **udržovaná
   zeleň → 402 / 402.1** (Sez. 53, štěpení `typ_pudy_k`: park/okrasná zahrada → 402 žlutá + bílé tečky, ostatní
   zeleň → 402.1 žlutá + zelené tečky); **pole → 412 Cultivated** (žlutá + černý tečkový pattern, Sez. 47-48) + **olivová
-  520 Area which shall not be entered** ze čtyř zdrojů (Sez. 42 + 49): hřbitov + **sad/zahrada** (`Ovocný sad,
+  520 Area which shall not be entered** z pěti zdrojů (Sez. 42 + 49 + 56): hřbitov + **sad/zahrada** (`Ovocný sad,
   zahrada` — zahrady u domů/chalup, oplocené; Sez. 49 oprava chybného 413 Orchard) + **RÚIAN privátní pozemky**
   (zahrada+zastavěná, `ruian.py`) + **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520,
-  asfalt 408/409 → 501). Kůlny (105)
+  asfalt 408/409 → 501) + **kamenolom** (ZABAGED `Povrchová těžba, lom` 118, Sez. 56: oplocený těžební areál → 520,
+  ne 201 — plocha→plocha, kamenné útvary v z-orderu nad olivovou). Kůlny (105)
   → 521. Parkoviště + asfalt → 501 přes `--paved`. **Z-order vespod** (podklad pod
   vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`

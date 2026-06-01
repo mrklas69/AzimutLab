@@ -63,14 +63,16 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 43 systematický audit katalogu: zámek/hrad → 521, zřícenina → 523, věž/vodojem/silo/… → 524, mohyla → 526,
   kříž → 530, strom → 417, sráz → 104, zeď/hradba → 513** — `--landmarks`/`--linefeatures`;
   **Sez. 44 dávka 4 vodní/mokřady: bažina+rašeliniště → 308 Marsh (`--marsh`), pramen → 312, jeskyně+šachta → 203.2,
-  nádrž → 311 (`--landmarks`); hráz 528/lom 201 odloženy**;
+  nádrž → 311 (`--landmarks`); hráz 528 odložena**;
   **Sez. 45 stromořadí `Liniová vegetace` → 406 Vegetation: slow running (`--treerows`, lineární les: osa→buffer→pás;
   oprava 416 = hranice porostů byla sémanticky špatně)**;
   **Sez. 52 komín → 524 (`--landmarks`) + zábrana → 519 Crossing point (`--barriers`, jen bod na zdi 513 = průchod
   plotem; zeď se pod brankou přeruší) — poslední kandidáti, ZABAGED katalog vyčerpán**;
   **Sez. 54 `Ostatní plocha v sídlech` 115 → 501.1 Paved area bez obrysu (`--paved`, base výplň sídla vespod)
   — odemčeno novou podporou děr (holes): `geom_to_polygons` vrací vnitřní prsteny, plošné vrstvy je vyříznou
-  (enabler napříč voda/budovy/pokryv); + color-table průlom „Dolní hnědá 50%" v template**),
+  (enabler napříč voda/budovy/pokryv); + color-table průlom „Dolní hnědá 50%" v template**;
+  **Sez. 56 kamenolom `Povrchová těžba, lom` 118 → 520 olivová (`--surfaces`, oplocený těžební areál = zákaz
+  vstupu, mirror hřbitovu; místo odloženého 201 — plocha→plocha, 201 je linie)**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
   zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:

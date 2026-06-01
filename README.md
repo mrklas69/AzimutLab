@@ -38,7 +38,7 @@ trees (yellow + white dots), other managed greenery → ISOM 402.1 with scattere
 arable field → ISOM 412 Cultivated land (yellow + black dot pattern, since session 47-48); orchards/gardens
 (`Ovocný sad, zahrada`) → ISOM 520 olive out-of-bounds since session 49 (correcting the session-48 413 Orchard —
 in the Czech landscape these are fenced gardens around houses/cottages, off-limits to runners, not runnable orchards);
-ISOM 520 olive out-of-bounds = cemetery ∪ orchards/gardens ∪ private land ∪ utility-zoning compounds; car parks/asphalt
+ISOM 520 olive out-of-bounds = cemetery ∪ orchards/gardens ∪ private land ∪ utility-zoning compounds ∪ quarry (`Povrchová těžba, lom`, session 56 — fenced extraction site; a polygon, so 520 not the line-symbol 201 cliff); car parks/asphalt
 → 501 via `--paved`; drawn at the very bottom of the z-order, forest stays white = vegetation gate); and — since
 session 42 — real **private land** as olive 520 from a second ČÚZK source, **RÚIAN cadastre** (`ruian.py`: parcels
 of land-use type garden + built-up area → off-limits to runners), plus utility-zoning compounds (ZABAGED layer 114:

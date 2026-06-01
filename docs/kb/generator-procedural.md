@@ -336,7 +336,7 @@ HS 16 / NV 44.
   jde převážně o **zahrady u rodinných domů a chalup — oplocené, nepřístupné běžci** → out-of-bounds olivová, ne
   běhatelný ovocný sad (rozhodnutí uživatele). Viz olivová níže (čtvrtý zdroj).
 - **Olivová → ISOM 520 Area which shall not be entered** (plná OLIVOVÁ, zákaz vstupu — „zelená" v hantýrce
-  orienťáků). **Čtyři zdroje (Sez. 42 + 49):**
+  orienťáků). **Pět zdrojů (Sez. 42 + 49 + 56):**
   - **Hřbitov** (`Hřbitov` ZABAGED): ISOM 2017-2 nemá vlastní hřbitovní symbol (verify template) → 520.
   - **Sad/zahrada** (`Ovocný sad, zahrada` ZABAGED, Sez. 49): zahrady u domů/chalup, oplocené → 520 (viz výše).
   - **Privátní pozemek u domu** (RÚIAN katastr, `ruian.fetch_private_land`): parcely `druhpozemkukod ∈ {5 zahrada,
@@ -345,6 +345,10 @@ HS 16 / NV 44.
     žluté — viz TODO „oplocené volné terény".
   - **Oplocené areály účelové zástavby** (ZABAGED `Areál účelové zástavby` 114, `map_utility_area_to_isom`):
     škola/hřiště/sport/stadión/kasárna/průmysl/garáže/nemocnice/zahrádkářská osada… → 520 (oplocený = zákaz vstupu).
+  - **Kamenolom** (ZABAGED `Povrchová těžba, lom` 118, `map_quarry_to_isom`, Sez. 56): oplocený těžební areál se
+    zákazem vstupu → 520. **NE 201 Impassable cliff:** 201 je LINIE (hrana stěny s ticky), ZABAGED dává PLOCHU →
+    plocha→plocha je věrná, stěnu nedotahujeme (KISS, Σ1 marginální). Kamenné útvary (206 ad.) zůstávají v z-orderu
+    NAD olivovou (skály se kreslí po surfaces). `druhtez_p` (kámen/…) ISOM nerozlišuje.
 - **Asfaltové dopravní areály → ISOM 501** (přes paved kanál): `Areál účelové zástavby` typu `408 autobusové
   nádraží` / `409 čerpací stanice` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Parkoviště
   (`Parkoviště, odpočívka` 123) + kolejiště taktéž 501 přes `--paved`.

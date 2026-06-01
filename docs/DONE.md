@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 56 (2026-06-01) — přechod ntbhej→mrkla + kamenolom → 520
+- [x] **Přechod ntbhej→mrkla:** klon byl **15 commitů pozadu** (Sez. 49–55) → ff-sync PŘED prací (%BEGIN krok 0).
+      Regen 5 lokalit s ortofotem (lokální rendery se přes git nepřenáší); **omap counts byte-shodné se Sez. 55**
+      (SV 6036/NL 1833/LS 35649/HS 7555/NV 2302) → reprodukovatelnost potvrzena datově.
+- [x] **Kamenolom `Povrchová těžba, lom` (id 118) → ISOM 520 olivová** (`--surfaces`, návrh uživatele: oplocený
+      těžební areál = zákaz vstupu). **Místo odloženého 201 Impassable cliff:** 201 je LINIE (hrana stěny s ticky),
+      ZABAGED dává PLOCHU → plocha→plocha věrná, stěnu nedotahujeme (KISS, Σ1). Izomorfní s hřbitovem. Foundations:
+      probe `temp/probe_quarry.py` (LS Σ1 `kámen`, 0 překryv s areály 114 — nejbližší 469 m). Kód 6 editů: `zabaged.py`
+      (`LAYER_IDS` += 118, `QUARRY_LAYERS`, `fetch_quarries`, `map_quarry_to_isom`→520), `generator.py` (5. zdroj 520
+      do surfaces kanálu). Pod existujícím `--surfaces` → batch beze změny (B1 OK).
+- [x] **Verify:** LS regen pokryv 20159→20160 / `.omap` 35649→35650 = přesně +1 (lom). Ring px bbox přesně na
+      vykreslené olivové ploše. **A1 z-order** ověřen vizuálně: kamenné/zemní útvary kreslené NAD olivovou (žádná nová
+      barva). Lom jen LS → ostatní 4 lokality bez regen.
+- [x] **Propagace:** katalog (lom ○→✓ + souhrn + akční seznam), architecture, spec §4.9 (pět zdrojů 520), GLOSSARY,
+      README root+generator+connectors.
+
 ## Sezení 55 (2026-06-01) — lanovka/vlek → 510 (sloučeno do `--powerlines`) + probe „katalog vyčerpán" korekce
 - [x] **Lanovka/vlek/stožár → ISOM 510** (`--powerlines`, sloučeno s el. vedením). Verify-against-source
       PŘED kódem: template id=121 → ISOM 510 = „Power line, cableway **or skilift**" = JEDEN symbol pro

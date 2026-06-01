@@ -136,10 +136,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   „scattered bushes" zeleň z dat, [[vegetace-gate]] neporušuje (tvrdý objekt, mirror 406). **Pole → 412
   Cultivated land** (Sez. 47-48): `Orná půda…` → žlutá + **černý tečkový pattern** (template 412.1; min. 9 mm² → 401).
   **Olivová → 520 Area which shall not be entered** (plná OLIVOVÁ, zákaz vstupu — „zelená" v hantýrce orienťáků),
-  **čtyři zdroje (Sez. 42 + 49):** hřbitov (`Hřbitov` ZABAGED, ISOM nemá vlastní) ∪ **sad/zahrada** (`Ovocný sad,
+  **pět zdrojů (Sez. 42 + 49 + 56):** hřbitov (`Hřbitov` ZABAGED, ISOM nemá vlastní) ∪ **sad/zahrada** (`Ovocný sad,
   zahrada` ZABAGED — zahrady u domů/chalup, oplocené; Sez. 49 oprava chybného 413 Orchard) ∪ **privátní pozemek
   u domu** (RÚIAN parcely druhu zahrada+zastavěná, viz [[druh-pozemku]]) ∪ **oplocené areály účelové zástavby**
-  (ZABAGED `Areál účelové zástavby` 114 mimo asfaltové typy — škola/hřiště/sport/stadión/kasárna/průmysl…).
+  (ZABAGED `Areál účelové zástavby` 114 mimo asfaltové typy — škola/hřiště/sport/stadión/kasárna/průmysl…) ∪
+  **kamenolom** (ZABAGED `Povrchová těžba, lom` 118, Sez. 56 — oplocený těžební areál; NE 201 Impassable cliff,
+  protože 201 je linie a lom je plocha → plocha→plocha, kamenné útvary zůstávají v z-orderu nad olivovou).
   **Asfaltové dopravní areály** (autobusové nádraží/čerpací stanice, `typzast_k` 408/409) + parkoviště + kolejiště
   → **501** přes `--paved` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Kůlny/přístřešky (`Kůlna…`
   105) → 521 přes budovy. Render `_draw_surface_area`/`_draw_dotted_surface_area` (`outline=None`), barvy
