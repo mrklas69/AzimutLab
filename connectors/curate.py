@@ -14,7 +14,8 @@ Taxonomie:
       base_layer (odstrojený podklad), basemap (ne-OB OSM/topo podklad), training (trénink/kontroly),
       foreign_crs (epsg mimo region).
     VIZUÁL (2. průchod, ruční): legend (legenda/popisky/control-description v ploše), logo (sponzor),
-      damage (foto vytištěné mapy / sken / poškození → špinavé GT). damage je disqualifying.
+      damage (foto vytištěné mapy / sken → špinavé GT), composite (layout list: víc map různého měřítka
+      + legenda na jednom obrázku → georef nesmyslný). damage i composite jsou disqualifying.
 
 keep = (keep_override když je) JINAK (discipline == classic AND žádný disqualify tag).
   disqualify = {variant_contour, variant_black, base_layer} — degenerovaná runnability GT.
@@ -54,13 +55,16 @@ _RE_BASEMAP = re.compile(r"\bosm\b|google|satelit|basemap|mapy\.cz|\bwms\b", re.
 VALID_EPSG = {5514, 5513, 32633, 3045, 4326}
 
 # tagy, které VYŘAZUJÍ z tréninku (degenerovaná/nepoužitelná runnability GT)
-DISQUALIFY_TAGS = {"variant_contour", "variant_black", "base_layer", "basemap", "damage"}
+DISQUALIFY_TAGS = {"variant_contour", "variant_black", "base_layer", "basemap", "damage", "composite"}
 # Disqualify tag = jméno-hint (vrstevnicovka/black/podklad) AND ~bez vegetace. Sám název nestačí:
 # „podkladovka" může být PLNÁ mapa (podklad pro stavbu tratí, 33 % zeleně — false-drop 1177415,
 # Sez. 71 vizuál). Skutečný důkaz degenerace = nízká zeleň; práh empirický (varianty 0–5 %, plné >10 %).
 VARIANT_GREEN_MAX = 8.0
-# tagy přidávané jen VIZUÁLNÍM průchodem (ruční) — merge je zachovává přes re-run auto-tagů
-VISUAL_TAGS = {"legend", "logo", "damage"}
+# tagy přidávané jen VIZUÁLNÍM průchodem (ruční) — merge je zachovává přes re-run auto-tagů.
+# composite = layout list s VÍCE mapami (různá měřítka) + legendou na jednom obrázku (PDF page export)
+# → georef quad pokrývá celý list = nesmyslný, mapScale je jen jedno z více. Name-hint nespolehlivý
+# („..._layout" může být i jedna mapa, 1045227) → confirm okem. Sez. 71: 1017132 Drábovna+Jeskyňky.
+VISUAL_TAGS = {"legend", "logo", "damage", "composite"}
 
 
 def _green_pct(map_dir: Path) -> float:

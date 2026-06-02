@@ -331,7 +331,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   nekvalitní/jiný typ mapy kazí). `connectors/curate.py` (merge-aware) → manifest `resources/livelox/_curation.json`.
   Každá mapa: **discipline** (1 hodnota: `classic` = foot-O les ISOM = tréninkové jádro / `sprint` ISSprOM / `mtbo`
   cyklo / `overview` >=20000) + **quality tagy** (auto z jména/GT/epsg: `variant_contour`/`variant_black`/`base_layer`/
-  `basemap` ne-OB OSM podklad/`training`/`foreign_crs`; vizuál ruční: `legend`/`logo`/`damage` foto vytištěné mapy).
+  `basemap` ne-OB OSM podklad/`training`/`foreign_crs`; vizuál ruční: `legend`/`logo`/`damage` foto vytištěné mapy/
+  `composite` layout list s víc mapami různého měřítka na jednom obrázku → georef nesmyslný, Sez. 71 Drábovna+Jeskyňky).
   **keep** = `keep_override` JINAK (classic AND bez disqualify tagu). Sez. 71: **268 → 216 keep classic**. Reader
   `kept_dirs('classic')` = kontrakt UC5 loaderu. Merge zachová ruční tagy přes re-run (idempotent).
 - **Karttapullautin** — generátor OB podkladů z klasifikovaného LiDAR mračna (vrstevnice +
