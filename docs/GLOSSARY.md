@@ -252,6 +252,23 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   `connectors/ortofoto.py`, dlaždicování nad 4096 px) připnutý do `.omap` jako podkladový template
   (paper-space) pro vizuální verify generátoru proti realitě. CLI `--ortho`/`--ortho-mpp`. Sez. 26.
 
+- **Pár (X,Y)** — tréninková dvojice UC5: **X = ortofoto** (vstup, RGB), **Y = `gt_grid.png`** (cíl,
+  runnability labely). Oba warpnuté do TÉHOŽ S-JTSK gridu → **pixel-na-pixel zarovnané** (`build_georef_pair`,
+  GATE 1 Sez. 75). Hromadná výroba `build_pairs` (livelox.py, resumovatelná/tolerantní) — 207 ČR map, Sez. 76.
+
+- **ČR/DE filtr** — vyřazení map mimo pokrytí ČÚZK ortofota (X by bylo prázdné). Kritérium = podíl
+  „prázdné bílé" v malém ortofoto náhledu (ČÚZK mimo ČR vrací jednolitou 253); práh 0,5. Korpus 216 keep
+  classic → **207 ČR / 9 cizí** (DE Žitavsko + PL). Durable `resources/livelox/_cz_filter.json`. Sez. 76.
+
+- **Geografický split** — rozdělení korpusu na **train/val/test** (70/15/15) tak, aby se překrývající mapy
+  (sdílí stejný les) nedostaly do různých kupek = prevence **data leakage** (jinak val falešně optimistická,
+  „student dostal u zkoušky příklady z domácího cvičení"). Implementace: souvislé komponenty grafu překryvu
+  S-JTSK bboxů = clustery; celý cluster do jednoho splitu. `connectors/split.py` → `_split.json`. Sez. 76.
+
+- **Class imbalance** — nerovnoměrné zastoupení tříd v GT (UC5: 410 fight jen 1,35 % labeled vs průchodný
+  69 %). Bez korekce model degeneruje na „vždy hádej většinovou třídu". Řeší **váhy v loss** (median-frequency
+  balancing: w = medián(frekvencí) / frekvence třídy → vzácná 410 dostává w≈8,4). Měřeno Sez. 76.
+
 ## Projekt — struktura a principy
 
 - **UC** (use case) — jeden z pěti záměrů projektu (UC1-UC5). Tvoří **DAG**, ne seznam.

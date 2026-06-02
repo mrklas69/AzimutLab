@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 76 (2026-06-02) — UC5 krok 2 (filtr+distribuce) + krok 3 (geosplit) + 207 párů
+- [x] **Krok 2 — měření datasetu (ČR/DE filtr).** ČÚZK ortofoto mimo ČR vrací jednolitou bílou 253
+      (doloženo probe: CZ Branžež near-white 0,000 vs DE Olbersdorf 1,000) → kritérium filtru = podíl
+      skoro-bílých px v malém ortofoto náhledu, práh **0,5**. **216 keep classic → 207 ČR / 9 cizí**
+      (DE Žitavsko: OlberSee/Leipaer/Oybin/Buchberg; PL: Jakuszyce, PZL). 3 hraniční mapy vizuálně
+      ověřeny (Čertovy mlýny 0,12 = roh quadu → ČR; Oybin 0,62 / Buchberg 0,77 = většina prázdná → cizí).
+      Durable `resources/livelox/_cz_filter.json` (near_white per mapa).
+- [x] **Krok 2 — rozložení tříd v GT (207 ČR map, 1,47 mld px).** % labeled: průchodný **69,2** /
+      406 slow **11,4** / 408 walk **5,9** / **410 fight 1,35** / open **12,2**; ignore 43 % z all
+      (nadhodnocené nativním layoutem, ve warpnutých párech klesne). **Váhy do loss (median-freq):**
+      0,16 / 1,0 / 1,93 / **8,40** / 0,93. → tvrdá class imbalance, 410 nutno vážit.
+- [x] **Krok 2 — validace 410 proti 5 mapařským `.omap`** (verify-against-source, vektor = pravda).
+      Shoelace plocha symbolu 410 (oprava: kódy se suffixem `.0` — Bedřichovka „410.0"): 410 = **0,2-1,4 %**
+      plochy (Bedř 0,88 / Blatná 1,38 / Slovanka 0,28 / Velbloud 0,21; Soví vrch 2,07 % = outlier, jen
+      1/4 domapováno). GT 1,35 % je v reálném rozpětí → **color-GT 410 nepoddetekovává**, imbalance je
+      skutečný terén. (Intuice uživatele „410 jednotky %" potvrzena.)
+- [x] **Krok 3 — geografický split (`connectors/split.py`).** Náhodný per-mapa split leakuje (překryv
+      map = stejný les v train+val). Řešení: souvislé komponenty grafu překryvu **S-JTSK bboxů** (union-find,
+      **29 clusterů** velikosti 39…1) → greedy bin-packing na **70/15/15 = train 145 / val 31 / test 31**.
+      Leak vyloučen konstrukcí (celý cluster do 1 splitu). Per-split class % reprezentativní, **410 všude
+      nenulová** (1,3 / 1,6 / 1,9 %). Výstup `_split.json` (regenerovatelný, deterministický); API
+      `split_of(cid)`/`dirs_for('train')` = kontrakt loaderu.
+- [x] **Hromadná výroba párů (`build_pairs` + CLI `pairs` v livelox.py).** Resumovatelná (skip hotových),
+      tolerantní (chyba 1 mapy nezastaví dávku), QC offset přes set. **207 párů, 0 fail** (185 vyrobeno,
+      22 skip z GATE 1 testů). **GATE 1 offset přes set: medián 2,97 m** (max 50,92 = artefaktový ocas
+      husté korelace, Sez. 75; medián robustní, ~2 px = zanedbatelné). Blendy vizuálně potvrzují zarovnání.
+
 ## Sezení 75 (2026-06-02) — GATE 1: zarovnané páry (X,Y) + měření georef offsetu (krok 1)
 - [x] **`build_georef_pair(out_dir)` (livelox.py) — výroba zarovnaného páru (X,Y) pro UC5 trénink.**
       Z adresáře mapy (map.png + gt_labels.png + meta.json) vyrobí: **`ortho.png` = X** (ČÚZK ortofoto

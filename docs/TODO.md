@@ -55,13 +55,19 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   CZ S-JTSK map: medián 1,33 m (1 px)** → georef Liveloxu zdravý, GATE 1 prošel. **Nález:** per-mapa
   offset >~5 m je nedůvěryhodný (artefakt husté/rušivé korelace — 1106623 sedí vizuálně dokonale, přesto
   „17 m") → měření = **agregátní QC, ne per-mapa korektor**; vizuál (blend) je arbitr. Detail v DONE.
-- [ ] **Krok 2 — měření datasetu**: ČR/DE filtr (DE mapy = prázdné ČÚZK ortofoto → odpadnou; kolik
-  keep ČR zbude) + rozložení tříd v GT (class imbalance pro váhy loss). Pozn.: hromadnou výrobu párů
-  (`build_georef_pair` pro celý train set) udělat AŽ po tomto filtru — nevyrábět `ortho.png` pro DE.
-- [ ] **Krok 3 — geografický split** train/val/test (clustery dle bbox overlapu; náhodný per-mapa
-  split LEAKUJE — stejný les v train i val). Souvisí s „dedup georef overlap" Sez. 70.
+- [x] **Krok 2 HOTOVO (Sez. 76) — měření datasetu.** ČR/DE filtr (near-white ortofoto probe, práh 0,5):
+  216 keep → **207 ČR / 9 cizí** (DE Žitavsko + PL, prázdné ČÚZK) → `_cz_filter.json`. Class distribution
+  (% labeled): průchodný 69 / 406 11,4 / 408 5,9 / **410 fight 1,35** / open 12,2 → **váhy median-freq**
+  (410 w≈8,4). 410 validováno proti 5 mapařským `.omap` (0,2-2,07 % → GT realistická, nepoddetekováno).
+- [x] **Krok 3 HOTOVO (Sez. 76) — geografický split.** `connectors/split.py`: clustery dle překryvu
+  S-JTSK bboxů (union-find, 29 clusterů) → greedy **70/15/15 = train 145 / val 31 / test 31** → `_split.json`.
+  Bez leaku (celý cluster do 1 splitu), všechny splity reprezentativní (410 nenulová 1,3-1,9 %). Pak hromadná
+  výroba **207 párů** (`build_pairs`, 0 fail, medián offset 2,97 m = artefakt ocas, vizuál OK).
 - [ ] **Krok 4+ — baseline**: overfit na 1-3 mapy (ověří pipeline+učení) → plný trénink U-Net/ResNet34
   (smp, ImageNet pretrained, BF16) → per-class IoU eval.
+- [ ] *(integrace, deferred Sez. 76)* **ČR/DE filtr do `kept_dirs`** — dnes `_cz_filter.json` je jen měřicí
+  artefakt (nemění `keep`). Tréninkový loader jede přes `split.dirs_for()` (už ČR-only), takže neakutní;
+  doladit, až loader vznikne (krok 4) — buď číst split, nebo přidat filtr do `curate.keep`.
 
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
