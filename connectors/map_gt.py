@@ -24,6 +24,14 @@ ne hádá co je pod ním. 31 % keep map ho nese (měření Sez. 72). Dvě purpur
 DOLOŽENÉ z reálných rastrů (magenta tratě 178/24/148 + fialovější 176/8/230). Maska se
 dilatuje (antialiasovaný okraj čar) a aplikuje AŽ po median filtru (255 by zkreslil okno).
 
+Layout mimo mapové území (legenda, control-description tabulka, titulek, tiráž, logo,
+bílý papír kolem mapy) NENÍ běhatelný terén → taky label IGNORE (255), od Sez. 73 (část B).
+Detekce z barevnosti (ne geometrie — ta byla křehká): mapa má sytou ISOM paletu
+(zeleň/modř/hněď/žluť), mimo-mapové bloky jsou černobílé (mřížka/text) nebo bílý papír.
+Dlaždicová mřížka → největší souvislá komponenta barevných dlaždic + fill holes = mapa
+(vnitřní bílý les se vyplní), zbytek ignore. Konzervativní: barevné titulky/loga (žluté
+pozadí) občas proklouznou jako mapa — radši drobná kontaminace label 0 než false-crop terénu.
+
 Spouštět z kořene přes .venv (sys.path skript, fáze B).
 """
 
@@ -54,8 +62,14 @@ ISOM_REF = {
 }
 
 # label pro pixely vyřazené z GT (trénink je přeskočí přes ignore_index v loss). 255 se vejde
-# do uint8 a nekoliduje s runnability labely 0-4. Zatím jediný zdroj = purpurový přetisk tratí.
+# do uint8 a nekoliduje s runnability labely 0-4. Dva zdroje: purpurový přetisk tratí (Sez. 72)
+# + layout mimo mapové území (legenda/tabulka/titulek/papír, Sez. 73).
 IGNORE = 255
+
+# klíče ISOM_REF, které tvoří MAPOVOU plochu (sytá paleta). white/black/purple = NE mapová
+# plocha → slouží k detekci mapového území vs okraj (legenda/tabulka/titulek/papír). Sez. 73.
+_MAP_COLOR_KEYS = {"yellow", "road", "brown", "blue",
+                   "green_l", "green_m", "green_d", "olive_a", "olive_b"}
 
 # runnability label: 0 = průchodný/podklad (bílá, voda, vrstevnice, symboly), 1-3 = zelená
 # škála (406 slow / 408 walk / 410 fight), 4 = open land (žlutá). Mapuje ISOM třídu → label.
@@ -73,11 +87,11 @@ _LABEL_VIS = {
     2: (120, 200, 140),       # 408 walk
     3: (40, 160, 90),         # 410 fight
     4: (252, 221, 118),       # open
-    IGNORE: (255, 0, 255),    # přetisk tratě (verify: výrazná magenta = co se vyřadilo)
+    IGNORE: (255, 0, 255),    # přetisk + layout okraj (verify: magenta = co se vyřadilo)
 }
 # popis labelů (pro report)
 LABEL_NAME = {0: "průchodný", 1: "406 slow", 2: "408 walk", 3: "410 fight", 4: "open",
-              IGNORE: "ignore (přetisk)"}
+              IGNORE: "ignore (přetisk+layout)"}
 
 # velikost okna majority filtru (px). Na ~1,33 m/px je 7 px ≈ 9 m — potlačí vrstevnici/cestu
 # uvnitř plochy, zachová plošný tvar. Laděno probe Sez. 68.
@@ -86,17 +100,53 @@ _MEDIAN_SIZE = 7
 # který nearest-color klasifikuje jako sousední barvu. 2 px ≈ 2,7 m na 1,33 m/px. Sez. 72.
 _OVERPRINT_DILATE = 2
 
+# layout detekce mapového území (Sez. 73): velikost dlaždice = 1/_TILE_DIV delší strany;
+# dlaždice je "mapová" když podíl mapově-barevných pixelů > _MAP_TILE_FRAC; dilatace
+# (v dlaždicích) scelí mapu přes řídké/bílé mezery před výběrem největší komponenty.
+# Hodnoty laděné probe Sez. 73 na 12 mapách (4 s tabulkou/titulkem + 8 organických).
+_TILE_DIV = 120
+_MAP_TILE_FRAC = 0.04
+_MAP_SCELE_DIL = 3
+
 
 def _classify(rgb: np.ndarray) -> np.ndarray:
-    """Každý pixel → label (0-4) přes nejbližší ISOM barvu. Vrací (H,W) uint8."""
-    keys = list(ISOM_REF)
-    refs = np.array([ISOM_REF[k] for k in keys], dtype=np.int32)
+    """Každý pixel → index nejbližší ISOM barvy (do list(ISOM_REF)). Vrací (H,W) int.
+
+    Vrací index barvy (ne rovnou label) — volající z něj odvodí jak runnability label
+    (přes _LABEL), tak mapovou plochu (přes _MAP_COLOR_KEYS) jediným argmin (Sez. 73).
+    """
+    refs = np.array([ISOM_REF[k] for k in ISOM_REF], dtype=np.int32)
     flat = rgb.reshape(-1, 3).astype(np.int32)   # int32: 255²·3 přeteče int16
     d = ((flat[:, None, :] - refs[None, :, :]) ** 2).sum(2)
-    color_idx = d.argmin(1)
-    # mapuj index barvy → runnability label
-    idx_to_label = np.array([_LABEL[k] for k in keys], dtype=np.uint8)
-    return idx_to_label[color_idx].reshape(rgb.shape[:2])
+    return d.argmin(1).reshape(rgb.shape[:2])
+
+
+def _detect_map_area(mappix: np.ndarray) -> np.ndarray:
+    """Z masky mapově-barevných pixelů → bool maska mapového území (Sez. 73).
+
+    True = mapa, False = okraj (legenda/tabulka/titulek/tiráž/logo/papír) → ignore.
+    Dlaždicová mřížka potlačí šum; dilatace scelí mapu přes řídké/bílé oblasti;
+    největší souvislá komponenta + fill_holes = mapa (vnitřní bílý les se vyplní).
+    """
+    H, W = mappix.shape
+    T = max(max(H, W) // _TILE_DIV, 8)           # velikost dlaždice v px
+    th, tw = H // T, W // T
+    if th == 0 or tw == 0:
+        return np.ones((H, W), bool)             # příliš malý obraz → neřeš
+    # podíl mapově-barevných pixelů v každé dlaždici (ořež na násobek T, reshape, průměr)
+    frac = mappix[:th * T, :tw * T].reshape(th, T, tw, T).mean((1, 3))
+    maptile = frac > _MAP_TILE_FRAC
+    # dilatace přimkne řídké okrajové oblasti mapy, pak největší komponenta + fill holes
+    dil = ndimage.binary_dilation(maptile, iterations=_MAP_SCELE_DIL)
+    lab, n = ndimage.label(dil)
+    if n == 0:
+        return np.ones((H, W), bool)             # žádná mapová barva → nech celé
+    sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+    biggest = int(np.argmax(sizes)) + 1
+    m = ndimage.binary_fill_holes(lab == biggest)
+    m = ndimage.binary_fill_holes(ndimage.binary_erosion(m, iterations=_MAP_SCELE_DIL))
+    # dlaždicová maska → pixely (nearest resize pokryje celý obraz vč. ořezaného okraje)
+    return np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((W, H), Image.NEAREST)) > 0
 
 
 def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
@@ -108,7 +158,10 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     out_dir = Path(out_dir) if out_dir else map_png.parent
     rgb = np.asarray(Image.open(map_png).convert("RGB"))
 
-    labels = _classify(rgb)
+    keys = list(ISOM_REF)
+    color_idx = _classify(rgb)                   # index nejbližší ISOM barvy per pixel
+    idx_to_label = np.array([_LABEL[k] for k in keys], dtype=np.uint8)
+    labels = idx_to_label[color_idx]             # index barvy → runnability label
 
     # přetisk tratě (purpurová) → IGNORE. Oddělit PŘED median: hodnota 255 v okně by zkreslila
     # medián sousedů. Ignore pixely dočasně na 0 (neutrální), medianuj runnability, pak vrať masku
@@ -120,6 +173,13 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     if ignore.any():
         ignore = ndimage.binary_dilation(ignore, iterations=_OVERPRINT_DILATE)
         labels[ignore] = IGNORE
+
+    # layout mimo mapové území → IGNORE (Sez. 73). Spočítá se z mapově-barevných pixelů
+    # (stejný color_idx) a aplikuje AŽ NAKONEC: vše mimo mapu (legenda/tabulka/titulek/papír)
+    # přepíše na 255 bez ohledu na runnability/přetisk uvnitř toho okraje.
+    is_map_color = np.array([k in _MAP_COLOR_KEYS for k in keys])
+    map_area = _detect_map_area(is_map_color[color_idx])
+    labels[~map_area] = IGNORE
 
     # ulož index mapu (trénink) + barevnou vizualizaci (verify)
     Image.fromarray(labels, mode="L").save(out_dir / "gt_labels.png")
