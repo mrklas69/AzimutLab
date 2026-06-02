@@ -268,3 +268,45 @@ selže). **Nestav fitter, dokud quad neselže** (princip „stav až s důkazem"
 **Mezery deep research (neověřeno):** World of O Map Archive / MapRun / Attackpoint / IOF Eventor /
 skandinávské archivy — možný zdroj VEKTORU (preferovaná GT); objem map ČR/globál; batch/rate-limit Livelox;
 nativní rozlišení.
+
+## UC5 runnability model — architektura (Sez. 74 %THINK)
+
+Korpus (216 keep) + čistá GT (`map_gt.py`, labely 0-4 + 255 ignore) hotové → stavba prvního
+**supervised modelu**. HW doložen: trénink jen na `mrkla` (RTX 5070, 12 GB, BF16) — viz
+`docs/kb/hardware.md`. Rozhodnutí uživatele (Q1-Q3): **vstup jen ortofoto RGB**, **predikce
+všech 5 tříd** (eval primárně zelená), **smoke test první**.
+
+**Hlavní teze (oponentura „skoč rovnou na model"):** největší riziko NENÍ architektura
+(segmentačních sítí je pět a všechny fungují), ale **kvalita párů (vstup, GT)**. Model je tak
+dobrý jako zarovnání vstupu s cílem. GT je hustá/čistá, ale **vstup (ortofoto) zatím vůbec
+neexistuje vyrobený** — jen georef v `meta.json`. Foundations: pár (X,Y) je základ, model
+záclona. Gaty PŘED model.
+
+**Osy rozhodnutí:**
+- **A. Úloha:** 5 tříd (0 podklad / 1-3 zelená 406/408/410 / 4 open) + 255 ignore. Eval
+  **per-class IoU** (průměr by maskoval, že fight(3) je vzácný a model ho ignoruje); hodnota = zelená.
+- **B. Vstup = jen ortofoto RGB** (volba uživatele). DMR/forest-age kanály až jako MĚŘENÁ ablace,
+  jen když RGB nestačí (lekce „raw default, generalizuj s důkazem"; navíc ISOM zeleň = vegetace,
+  ne sklon → DMR slabá vazba).
+- **C. GATE 1 — zarovnané páry (measure-first):** `build_georef_blend` z 80 % hotový (warpne mapu
+  do S-JTSK gridu + stáhne ortofoto výseku) → rozšířit, aby uložil čistý ortofoto rastr + GT
+  přewarpovaný do téhož gridu. **Změřit georef offset** (overlay cesty/vody mapy na ortofoto):
+  systematický posun >~3-5 m = model se učí šum. Sez. 68 „quad sedne bez fitu" byl vizuál na 4
+  mapách, ne změřená pixelová přesnost.
+- **D. ČR vs DE:** ČÚZK ortofoto jen ČR (S-JTSK). DE keep mapy (Žitavsko) nemají vstup →
+  **samy se odfiltrují** (ČÚZK export mimo ČR = prázdná dlaždice). Saské DOP = volitelný pozdější
+  konektor. Změřit, kolik keep map zbude (čistě ČR set).
+- **E. Split (leak past):** mapy se geograficky překrývají → **náhodný per-mapa split LEAKUJE**
+  (stejný les v train i val). Split MUSÍ být geografický (clustery dle bbox overlapu; souvisí
+  s odloženým „dedup georef overlap" Sez. 70).
+- **F. Dlaždice:** 93 Mpx/mapa se nevejde do 12 GB → dlaždice 512×512 s overlapem, společný grid
+  ~1,0-1,33 m/px (512 px ≈ 600-680 m = vegetační kontext).
+- **G. Architektura:** `segmentation-models-pytorch` U-Net + ImageNet-pretrained ResNet34 encoder
+  (precedent Pic2Omapu, sourozenec; vejde se do 12 GB; transfer pomáhá při 216 mapách). BF16
+  mixed precision (Blackwell Tensor Cores). Žádná exotika, dokud baseline nestojí.
+- **H. Class imbalance:** 0 dominuje, fight(3) vzácný → CrossEntropy(`ignore_index=255`) +
+  class weights / Dice / Focal. Změřit rozložení tříd nejdřív.
+
+**Produkt:** natrénované váhy (`.pt`, gitignored) + inference skript. NE knihovna (fáze B =
+sys.path skripty). Cíl: nová vrstva generátoru `--vegetation predicted`, která zacelí vegetace
+gate (druhá půlka generátoru = predikce, viz „Generátor jako prediktor").

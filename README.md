@@ -122,7 +122,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification; runnability prediction | ☐ corpus built & curated (session 68 connector + gates; session 70 scaled to **268 maps**; session 71 `map_gt` olive→out-of-bounds GT fix + `curate.py` taxonomy/manifest → **216 keep classic** foot-O training core; sessions 72–73 GT cleanup: purple course overprint + off-map layout → label 255 ignore) |
+| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification; runnability prediction | ☐ corpus built & curated (session 68 connector + gates; session 70 scaled to **268 maps**; session 71 `map_gt` olive→out-of-bounds GT fix + `curate.py` taxonomy/manifest → **216 keep classic** foot-O training core; sessions 72–73 GT cleanup: purple course overprint + off-map layout → label 255 ignore; session 74 model start: %THINK architecture (RGB-only input, 5 classes, U-Net/ResNet34) + step 0 smoke test — PyTorch cu128 verified on Blackwell RTX 5070) |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
 
@@ -158,6 +158,7 @@ docs/
     tools-models.md    #   CoVe, OCAD, Karttapullautin, U-Net, …
     generator-procedural.md   # UC4-I synthetic map generator spec (free-GT training data)
     zabaged-isom-catalog.md   # all 149 ZABAGED Polohopis layers → ISOM mapping or reason-not-used (session 24)
+    hardware.md          #   machines (mrkla=RTX 5070 training rig, ntbhej=laptop); UC5 train/inference (session 74)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
   zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks/tree rows/chimneys/barriers (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real

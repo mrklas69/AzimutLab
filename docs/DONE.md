@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 74 (2026-06-02) — HW dokumentace + %THINK UC5 model + smoke test (krok 0)
+- [x] **HW dokumentace (`docs/kb/hardware.md`, nový KB list):** UC5 trénink dělá z HW reálnou závislost.
+      `mrkla` = **RTX 5070 (12 GB GDDR7, Blackwell GB205, 192 Tensor Cores)** + Ryzen 7 7700 + 32 GB DDR5 =
+      trénovací stroj; `ntbhej` = HP EliteBook 855 G8 (parametry z webu: Ryzen 5000U + integ. Radeon Vega, BEZ
+      CUDA) = jen editace/git/CPU inference. **Trénink jen na `mrkla`.** Zvýrazněna Blackwell/cu128 past. Odkaz
+      v README layout; paměť `two-machines-git-sync` doplněna (stroje pro UC5 nerovnocenné).
+- [x] **%THINK UC5 runnability model (IDEAS „UC5 runnability model" + TODO kroky 0-4):** rozhodnutí uživatele
+      Q1-Q3 = vstup **jen ortofoto RGB**, predikce **všech 5 tříd** (eval primárně zelená per-class IoU),
+      **smoke test první**. Osy A-H (úloha/vstup/zarovnání/ČR-DE/split/dlaždice/architektura/imbalance). **Hlavní
+      teze (oponentura „skoč na model"):** riziko není architektura (U-Net/ResNet34 = sourozenec Pic2Omapu,
+      rozhodnuto), ale **kvalita párů (X,Y)** — nález z dat: GT i georef máme, ale **vstup ortofoto NENÍ vyrobený**
+      (jen `meta.json` quad; `build_georef_blend` dělá jen verify blend). Foundations: gaty (zarovnání + měření
+      offsetu) PŘED model.
+- [x] **Krok 0 — smoke test PyTorch+CUDA na Blackwell (`temp/smoke_test_gpu.py`):** dvojitá past zažehnána —
+      `torch 2.11.0+cu128` má **cp314 wheel** (Python 3.14) i **cu128** (Blackwell), obojí ověřeno dry-run před
+      stažením. Instalace torch+torchvision (cu128 index, NE PyPI = CPU build) + `smp 0.5.0`. **Smoke test ověřil
+      REÁLNÝ výpočet** (ne jen `is_available` — past „no kernel image" se projeví až při operaci): sm_120
+      v `arch_list`, matmul fp32+bf16 na GPU, **U-Net forward (1,3,512,512)→(1,5,512,512)** = přesně cílová úloha,
+      11,4 GB volné VRAM. `requirements.txt` doplněn (cu128 instrukce + smp).
+
 ## Sezení 73 (2026-06-02) — layout mimo mapové území → label 255 ignore (GT kvalita, část B)
 - [x] **Layout-ignore (`map_gt._detect_map_area`):** runnability GT kontaminoval obsah MIMO mapu (legenda,
       control-description tabulka, titulek, tiráž, logo, bílý papír kolem mapy — label 0 = falešná průchodná

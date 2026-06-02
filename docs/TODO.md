@@ -40,6 +40,24 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [x] *(HOTOVO Sez. 71)* **olivová 520 → label 0 (čistota GT) + kurace korpusu** (`connectors/curate.py` merge-aware +
   `_curation.json`, taxonomie discipline+tagy, **268 → 216 keep classic**). Detail v DONE. Tréninkové jádro = 216
   foot-O map s čistou olivovou GT.
+### UC5 runnability model — kroky (Sez. 74 %THINK; architektura v IDEAS „UC5 runnability model")
+Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke test první**. Trénink jen na
+`mrkla` (RTX 5070, BF16) — `docs/kb/hardware.md`. Gaty PŘED model (pár (X,Y) = foundation).
+- [x] **Krok 0 HOTOVO (Sez. 74) — smoke test PyTorch+CUDA na Blackwell.** `torch 2.11.0+cu128`
+  (cp314 wheel) + `torchvision` + `smp 0.5.0`; ověřeno empiricky `temp/smoke_test_gpu.py`: sm_120
+  v `arch_list`, matmul fp32+bf16 + U-Net forward (1,3,512,512)→(1,5,512,512) reálně na GPU, 11,4 GB
+  volné VRAM. Past „no kernel image" zažehnána. `requirements.txt` doplněn (cu128 index, ne PyPI).
+- [!] **Krok 1 — GATE 1 zarovnané páry + měření offsetu** — rozšířit `build_georef_blend` (livelox.py),
+  ať uloží čistý ortofoto rastr + GT přewarpovaný do téhož S-JTSK gridu (dnes jen `blend.png` verify).
+  **Změřit georef posun** ortofoto↔mapa (overlay cesty/vody) na hrstce map; >~3-5 m systematicky =
+  model se učí šum. Sez. 68 „quad sedne" byl vizuál na 4 mapách, ne změřená pixelová přesnost.
+- [ ] **Krok 2 — měření datasetu**: ČR/DE filtr (DE mapy = prázdné ČÚZK ortofoto → odpadnou; kolik
+  keep ČR zbude) + rozložení tříd v GT (class imbalance pro váhy loss).
+- [ ] **Krok 3 — geografický split** train/val/test (clustery dle bbox overlapu; náhodný per-mapa
+  split LEAKUJE — stejný les v train i val). Souvisí s „dedup georef overlap" Sez. 70.
+- [ ] **Krok 4+ — baseline**: overfit na 1-3 mapy (ověří pipeline+učení) → plný trénink U-Net/ResNet34
+  (smp, ImageNet pretrained, BF16) → per-class IoU eval.
+
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
   (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".

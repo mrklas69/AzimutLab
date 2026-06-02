@@ -105,6 +105,12 @@ bodových, liniových i plošných ISOM symbolů.
   **Kurace Sez. 71** (`connectors/curate.py` → `_curation.json`): GT = strop supervised modelu → mapy
   otagovány (discipline classic/sprint/mtbo/overview + quality tagy) a vybráno **216 keep classic** =
   tréninkové jádro (foot-O les; sprint/mtbo/varianty/foto/OSM-podklad mimo). Reader `kept_dirs('classic')`.
+- **Model — start Sez. 74 (%THINK + krok 0):** rozhodnuto vstup **jen ortofoto RGB**, **5 tříd**
+  (0 podklad / 1-3 zelená / 4 open + 255 ignore), architektura **U-Net + ResNet34** (smp, BF16). Hlavní
+  teze: riziko není architektura, ale kvalita párů (X,Y) — **vstup ortofoto zatím není vyrobený** (gaty
+  před modelem: zarovnané páry + měření georef offsetu). Trénink jen na `mrkla` (RTX 5070, `docs/kb/
+  hardware.md`). **Krok 0 hotový:** PyTorch `cu128` na Blackwell ověřen (smoke test, U-Net forward na GPU).
+  Architektura: IDEAS „UC5 runnability model"; kroky: TODO.
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních
