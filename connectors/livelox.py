@@ -211,6 +211,45 @@ def _build_meta(class_id: int, blob: dict, image: dict) -> dict:
     }
 
 
+def _georef_grid(meta: dict, mpp_target: float = 1.33) -> dict:
+    """Geometrie axis-aligned S-JTSK gridu pro daný výsek (sdílí blend i pár, DRY).
+
+    Reprojikuje 4-rohý quad z CRS mapy (`meta["epsg"]`) do S-JTSK 5514, spočte obalový
+    obdélník (+50 m okraj) a rozlišení gridu. mpp je cíl ~1,33 m/px, ale zvedne se, aby
+    se delší strana vešla do stropu ortofoto exportu (≤4000 px). Vrací vše, co warp i
+    export potřebují — bez čtení rastru (ten je per-soubor).
+    """
+    from pyproj import Transformer
+
+    epsg = meta["epsg"]
+    pq = meta["projectedBoundingQuadrilateral"]
+    to_sjtsk = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:5514", always_xy=True)
+    quad = [to_sjtsk.transform(v["x"], v["y"]) for v in pq]   # 4 rohy S-JTSK
+
+    xs = [q[0] for q in quad]; ys = [q[1] for q in quad]
+    mgn = 50.0
+    xmin, xmax = min(xs) - mgn, max(xs) + mgn
+    ymin, ymax = min(ys) - mgn, max(ys) + mgn
+    span = max(xmax - xmin, ymax - ymin)
+    mpp = max(mpp_target, span / 4000.0)
+    out_w = int((xmax - xmin) / mpp); out_h = int((ymax - ymin) / mpp)
+    return {"quad": quad, "xmin": xmin, "xmax": xmax, "ymin": ymin, "ymax": ymax,
+            "mpp": mpp, "out_w": out_w, "out_h": out_h}
+
+
+def _map_affine(quad: list, W: int, H: int):
+    """Afinní matice image-px (rastr mapy W×H) → S-JTSK, z 4 rohů quadu.
+
+    Páruje rohy obrázku (NW,NE,SE,SW) s quad vertices [3,2,1,0] (Livelox konvence
+    boundingQuadrilateral = SW,SE,NE,NW; ověřeno probe Sez. 68 na 4 mapách).
+    GT i RGB mapa mají TYTÉŽ rozměry (gt_labels vzniká z map.png) → stejná matice.
+    """
+    import numpy as np
+    src = np.array([[0, 0], [W, 0], [W, H], [0, H]], float)
+    dst = np.array([quad[3], quad[2], quad[1], quad[0]], float)
+    return _fit_affine(src, dst)
+
+
 def build_georef_blend(meta: dict, map_png: str | Path, out_dir: str | Path,
                        mpp_target: float = 1.33) -> Path:
     """Vykreslí blend.png = mapa warpnutá do S-JTSK přes ortofoto ČÚZK téhož výseku.
@@ -221,38 +260,19 @@ def build_georef_blend(meta: dict, map_png: str | Path, out_dir: str | Path,
     """
     import numpy as np
     from PIL import Image
-    from pyproj import Transformer
     _ensure_connectors_on_path()        # ortofoto je sourozenec v connectors/
     from ortofoto import _export_tile
 
     Image.MAX_IMAGE_PIXELS = None
     out_dir = Path(out_dir)
 
-    # quad z meta (v CRS mapy) → S-JTSK
-    epsg = meta["epsg"]
-    pq = meta["projectedBoundingQuadrilateral"]
-    to_sjtsk = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:5514", always_xy=True)
-    quad = [to_sjtsk.transform(v["x"], v["y"]) for v in pq]   # 4 rohy S-JTSK
-
-    xs = [q[0] for q in quad]; ys = [q[1] for q in quad]
-    mgn = 50.0
-    xmin, xmax = min(xs) - mgn, max(xs) + mgn
-    ymin, ymax = min(ys) - mgn, max(ys) + mgn
-    # rozlišení gridu: cíl ~1,33 m/px, ale vejít se do stropu ortofoto exportu (4096 px/strana)
-    span = max(xmax - xmin, ymax - ymin)
-    mpp = max(mpp_target, span / 4000.0)
-    out_w = int((xmax - xmin) / mpp); out_h = int((ymax - ymin) / mpp)
-
-    ortho = _export_tile(xmin, ymin, xmax, ymax, out_w, out_h)   # (h,w,3) uint8
-
-    # warp mapy: páruj image rohy (NW,NE,SE,SW) s quad vertices [3,2,1,0] (Livelox konvence
-    # boundingQuadrilateral = SW,SE,NE,NW; ověřeno probe Sez. 68 na 4 mapách)
+    g = _georef_grid(meta, mpp_target)
+    ortho = _export_tile(g["xmin"], g["ymin"], g["xmax"], g["ymax"],
+                         g["out_w"], g["out_h"])           # (h,w,3) uint8
     img = np.asarray(Image.open(map_png).convert("RGB"), dtype=np.uint8)
     H, W = img.shape[:2]
-    src = np.array([[0, 0], [W, 0], [W, H], [0, H]], float)
-    dst = np.array([quad[3], quad[2], quad[1], quad[0]], float)
-    A = _fit_affine(src, dst)
-    warped = _warp_to_grid(img, A, xmin, ymax, mpp, out_w, out_h)
+    A = _map_affine(g["quad"], W, H)
+    warped = _warp_to_grid(img, A, g["xmin"], g["ymax"], g["mpp"], g["out_w"], g["out_h"])
 
     blend = (0.5 * ortho.astype(np.float32) + 0.5 * warped.astype(np.float32)).astype(np.uint8)
     blend_path = out_dir / "blend.png"
@@ -269,8 +289,13 @@ def _fit_affine(src, dst):
     return np.vstack([cx, cy])
 
 
-def _warp_to_grid(img, A, x0, y_top, mpp, out_w, out_h):
-    """Inverzní vzorkování: pro každý S-JTSK px výstupního gridu najdi zdrojový px mapy."""
+def _warp_to_grid(img, A, x0, y_top, mpp, out_w, out_h, fill: int = 255):
+    """Inverzní vzorkování: pro každý S-JTSK px výstupního gridu najdi zdrojový px mapy.
+
+    Funguje pro RGB (H,W,3) i jednokanálovou masku/labely (H,W). `fill` = hodnota mimo
+    mapu (pro RGB 255 = bílá; pro GT labely 255 = IGNORE — shodná hodnota, jiný význam).
+    Vzorkování je nearest (`np.round`) → bezpečné i pro labely (žádná interpolace tříd).
+    """
     import numpy as np
     sh, sw = img.shape[:2]
     gx = x0 + (np.arange(out_w) + 0.5) * mpp
@@ -281,9 +306,128 @@ def _warp_to_grid(img, A, x0, y_top, mpp, out_w, out_h):
     sy = Ainv[1, 0] * GX + Ainv[1, 1] * GY + Ainv[1, 2]
     sxi = np.round(sx).astype(int); syi = np.round(sy).astype(int)
     valid = (sxi >= 0) & (sxi < sw) & (syi >= 0) & (syi < sh)
-    out = np.full((out_h, out_w, 3), 255, np.uint8)
+    # tvar výstupu dle počtu kanálů zdroje (2D labely vs 3D RGB)
+    out_shape = (out_h, out_w) if img.ndim == 2 else (out_h, out_w, img.shape[2])
+    out = np.full(out_shape, fill, img.dtype)
     out[valid] = img[syi[valid], sxi[valid]]
     return out
+
+
+def measure_georef_offset(ortho, warped, mpp: float, max_shift_m: float = 40.0) -> dict:
+    """Změří reziduální posun mapy vůči ortofotu (GATE 1) phase correlation hran.
+
+    Vstup: ortho (h,w,3) = ČÚZK pravda, warped (h,w,3) = mapa warpnutá do téhož gridu.
+    Společný signál obou = HRANY (cesty, kraj lesa, vodní toky) — barvy se liší, hrany
+    sedí. Phase correlation (FFT) najde globální translaci, kterou je třeba mapu posunout,
+    aby hrany sedly na ortofoto. Výsledek v px × mpp = metry.
+
+    Hledá peak JEN v okně ±max_shift_m (default 40 m). Reziduální georef offset je z
+    principu malý (jednotky px); velký peak = artefakt periodicity (pravidelné šrafy
+    žlutých ploch, mřížka polí) — nález Sez. 75: bez omezení dala mapa 1047807 falešných
+    549 m, ač vizuálně sedí dokonale. Velký reálný posun stejně líp pozná vizuál (blend).
+
+    Vrací {dx_m, dy_m, mag_m, dx_px, dy_px}. mag_m je velikost posunu; >~3-5 m systematicky
+    napříč mapami = georef kartografa je šum a model by se učil nezarovnaný pár.
+    Pozn.: měří jen GLOBÁLNÍ translaci (ne rotaci/lokální deformaci).
+    """
+    import numpy as np
+
+    def _edges(rgb):
+        # grayscale → gradientní magnituda (np.gradient = centrální diference, bez scipy).
+        # Hrany jsou společný signál ortofota i mapy; samotná barva/jas se mezi nimi liší.
+        g = rgb.astype(np.float32).mean(axis=2)
+        gy, gx = np.gradient(g)
+        return np.hypot(gx, gy)
+
+    e1 = _edges(ortho)      # ortofoto
+    e2 = _edges(warped)     # mapa
+
+    # mapa má mimo svůj quad bílý fill (žádné hrany) — to phase correlation neruší.
+    # 2D Hann okno potlačí umělé hrany na okraji obrazu (FFT předpokládá periodicitu).
+    h, w = e1.shape
+    win = np.outer(np.hanning(h), np.hanning(w))
+    e1 = e1 * win; e2 = e2 * win
+
+    # phase correlation: cross-power spektrum normované na jednotkovou magnitudu → ostrý peak
+    F1 = np.fft.fft2(e1); F2 = np.fft.fft2(e2)
+    R = F1 * np.conj(F2)
+    R /= np.abs(R) + 1e-12
+    r = np.fft.ifft2(R).real
+
+    # fftfreq*N = znaménkové posuny [0,1,..,-2,-1] pro každý index → rovnou v px i pro masku
+    sy = (np.fft.fftfreq(h) * h).astype(int)
+    sx = (np.fft.fftfreq(w) * w).astype(int)
+    SY, SX = np.meshgrid(sy, sx, indexing="ij")
+    R_px = max(1, int(round(max_shift_m / mpp)))
+    within = (np.abs(SY) <= R_px) & (np.abs(SX) <= R_px)   # jen malé posuny
+    r = np.where(within, r, -np.inf)
+
+    iy, ix = np.unravel_index(int(np.argmax(r)), r.shape)
+    dy, dx = int(sy[iy]), int(sx[ix])
+
+    dx_m = dx * mpp; dy_m = dy * mpp
+    return {"dx_m": round(dx_m, 2), "dy_m": round(dy_m, 2),
+            "mag_m": round((dx_m ** 2 + dy_m ** 2) ** 0.5, 2),
+            "dx_px": int(dx), "dy_px": int(dy)}
+
+
+def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
+                      measure: bool = True) -> dict:
+    """GATE 1 — z adresáře mapy vyrobí zarovnaný pár (X,Y) pro UC5 trénink.
+
+    Vstup (musí existovat v out_dir): map.png + gt_labels.png + meta.json.
+    Výstup do out_dir:
+      - ortho.png       = X (ČÚZK ortofoto v S-JTSK gridu)
+      - gt_grid.png     = Y (GT labely warpnuté do TÉHOŽ gridu, nearest, fill IGNORE)
+      - gt_grid_vis.png = barevná vizualizace Y (verify okem)
+      - blend.png       = ortofoto+mapa (vizuální důkaz georefu)
+    X i Y procházejí identickou transformací do stejného gridu → pixel-na-pixel zarovnané.
+
+    measure=True navíc změří georef offset (phase correlation) a vrátí ho v dict.
+    Vrací {paths..., offset: {...}} (offset None, když measure=False).
+    """
+    import numpy as np
+    from PIL import Image
+    _ensure_connectors_on_path()
+    from ortofoto import _export_tile
+    from map_gt import IGNORE, _LABEL_VIS
+
+    Image.MAX_IMAGE_PIXELS = None
+    out_dir = Path(out_dir)
+    meta = json.loads((out_dir / "meta.json").read_text(encoding="utf-8"))
+
+    g = _georef_grid(meta, mpp_target)
+    ortho = _export_tile(g["xmin"], g["ymin"], g["xmax"], g["ymax"],
+                         g["out_w"], g["out_h"])              # X (h,w,3) uint8
+
+    rgb = np.asarray(Image.open(out_dir / "map.png").convert("RGB"), dtype=np.uint8)
+    gt = np.asarray(Image.open(out_dir / "gt_labels.png"), dtype=np.uint8)
+    if gt.shape != rgb.shape[:2]:
+        raise RuntimeError(f"gt_labels {gt.shape} != map.png {rgb.shape[:2]} v {out_dir}")
+
+    H, W = rgb.shape[:2]
+    A = _map_affine(g["quad"], W, H)
+    warped_rgb = _warp_to_grid(rgb, A, g["xmin"], g["ymax"], g["mpp"],
+                               g["out_w"], g["out_h"])         # pro blend + měření
+    warped_gt = _warp_to_grid(gt, A, g["xmin"], g["ymax"], g["mpp"],
+                              g["out_w"], g["out_h"], fill=IGNORE)   # Y, mimo mapu = ignore
+
+    # ulož pár + verify artefakty
+    Image.fromarray(ortho).save(out_dir / "ortho.png")
+    Image.fromarray(warped_gt, mode="L").save(out_dir / "gt_grid.png")
+    vis = np.zeros((*warped_gt.shape, 3), np.uint8)
+    for lab, col in _LABEL_VIS.items():
+        vis[warped_gt == lab] = col
+    Image.fromarray(vis).save(out_dir / "gt_grid_vis.png")
+    blend = (0.5 * ortho.astype(np.float32) +
+             0.5 * warped_rgb.astype(np.float32)).astype(np.uint8)
+    Image.fromarray(blend).save(out_dir / "blend.png")
+
+    offset = measure_georef_offset(ortho, warped_rgb, g["mpp"]) if measure else None
+    return {"ortho": out_dir / "ortho.png", "gt_grid": out_dir / "gt_grid.png",
+            "gt_grid_vis": out_dir / "gt_grid_vis.png", "blend": out_dir / "blend.png",
+            "mpp": round(g["mpp"], 3), "out_w": g["out_w"], "out_h": g["out_h"],
+            "offset": offset}
 
 
 def download_map(class_id: int, out_dir: str | Path | None = None,
@@ -453,6 +597,11 @@ def download_corpus(events: list, limit: int | None = None, sleep_s: float = 1.0
 if __name__ == "__main__":
     # CLI: bez argumentů = ruční test 1 mapy; "list" = vypíše počty; "batch [limit]" = korpus
     import sys
+    # Windows konzole je cp1250 → padá na Unicode šipkách v printech (jako Sez. 74); UTF-8 výstup
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     arg = sys.argv[1] if len(sys.argv) > 1 else None
 
     def _collect_all() -> list:
@@ -468,12 +617,55 @@ if __name__ == "__main__":
         merged = {e["id"]: e for e in cz + de}
         return sorted(merged.values(), key=lambda e: e["timeInterval"]["start"], reverse=True)
 
+    def _sjtsk_dirs() -> list:
+        """Adresáře korpusu, které jsou v S-JTSK (epsg 5514) a mají GT — kandidáti GATE 1.
+
+        Jen S-JTSK: ČÚZK ortofoto pokrývá ČR; DE/UTM/WGS84 mapy by daly prázdný podklad.
+        """
+        out = []
+        for d in sorted(_CORPUS_DIR.iterdir()):
+            if not (d / "gt_labels.png").exists() or not (d / "meta.json").exists():
+                continue
+            m = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+            if m.get("epsg") == 5514:
+                out.append(d)
+        return out
+
     if arg == "list":
         # jen zmapuj oblast (počty eventů/tříd) bez stahování
         evs = _collect_all()
         ncls = sum(e.get("classCount", 0) for e in evs)
         print(f"CZ S.Čechy + DE příhraničí: {len(evs)} eventů, {ncls} tříd "
               f"(1 mapa/event = {len(evs)} map)")
+    elif arg == "pair":
+        # vyrob zarovnaný pár (X,Y) + změř offset pro JEDEN classId
+        cid = sys.argv[2]
+        res = build_georef_pair(_CORPUS_DIR / cid)
+        o = res["offset"]
+        print(f"{cid}: {res['out_w']}x{res['out_h']} @ {res['mpp']} m/px → "
+              f"ortho.png + gt_grid.png + blend.png")
+        print(f"  offset dx={o['dx_m']} dy={o['dy_m']} |posun|={o['mag_m']} m "
+              f"({o['dx_px']},{o['dy_px']} px)")
+    elif arg == "gate1":
+        # GATE 1 měření na hrstce CZ S-JTSK map: pár + offset, tabulka + medián
+        import statistics
+        n = int(sys.argv[2]) if len(sys.argv) > 2 else 8
+        dirs = _sjtsk_dirs()[:n]
+        print(f"GATE 1 — měření georef offsetu na {len(dirs)} CZ S-JTSK mapách:\n")
+        mags = []
+        for d in dirs:
+            try:
+                res = build_georef_pair(d)
+                o = res["offset"]
+                mags.append(o["mag_m"])
+                print(f"  {d.name:>10}  dx={o['dx_m']:+7.2f}  dy={o['dy_m']:+7.2f}  "
+                      f"|posun|={o['mag_m']:6.2f} m   ({res['mpp']} m/px)")
+            except Exception as e:
+                print(f"  {d.name:>10}  FAIL: {type(e).__name__}: {e}")
+        if mags:
+            print(f"\n  medián |posun| = {statistics.median(mags):.2f} m   "
+                  f"(max {max(mags):.2f}, min {min(mags):.2f}, n={len(mags)})")
+            print("  práh GATE 1: >~3-5 m systematicky = georef šum (model by se učil nezarovnání)")
     elif arg == "batch":
         limit = int(sys.argv[2]) if len(sys.argv) > 2 else None
         evs = _collect_all()
