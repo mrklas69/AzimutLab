@@ -288,11 +288,11 @@ záclona. Gaty PŘED model.
 - **B. Vstup = jen ortofoto RGB** (volba uživatele). DMR/forest-age kanály až jako MĚŘENÁ ablace,
   jen když RGB nestačí (lekce „raw default, generalizuj s důkazem"; navíc ISOM zeleň = vegetace,
   ne sklon → DMR slabá vazba).
-- **C. GATE 1 — zarovnané páry (measure-first):** `build_georef_blend` z 80 % hotový (warpne mapu
-  do S-JTSK gridu + stáhne ortofoto výseku) → rozšířit, aby uložil čistý ortofoto rastr + GT
-  přewarpovaný do téhož gridu. **Změřit georef offset** (overlay cesty/vody mapy na ortofoto):
-  systematický posun >~3-5 m = model se učí šum. Sez. 68 „quad sedne bez fitu" byl vizuál na 4
-  mapách, ne změřená pixelová přesnost.
+- **C. GATE 1 — zarovnané páry (measure-first): HOTOVO Sez. 75, PROŠEL.** `build_georef_pair`
+  (livelox.py) → `ortho.png` (X) + `gt_grid.png` (Y, warp GT do téhož S-JTSK gridu). Měření 25 CZ
+  S-JTSK map = **medián 1,33 m (1 px)** → georef zdravý. Nález: phase correlation per-mapa nad ~5 m =
+  artefakt (vizuál vyvrací) → měření jen jako agregátní QC, ne korektor. Pro trénink celý ČR korpus bez
+  korekce georefu. Detail DONE/diář Sez. 75.
 - **D. ČR vs DE:** ČÚZK ortofoto jen ČR (S-JTSK). DE keep mapy (Žitavsko) nemají vstup →
   **samy se odfiltrují** (ČÚZK export mimo ČR = prázdná dlaždice). Saské DOP = volitelný pozdější
   konektor. Změřit, kolik keep map zbude (čistě ČR set).

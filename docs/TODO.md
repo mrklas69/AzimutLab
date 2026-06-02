@@ -47,12 +47,17 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (cp314 wheel) + `torchvision` + `smp 0.5.0`; ověřeno empiricky `temp/smoke_test_gpu.py`: sm_120
   v `arch_list`, matmul fp32+bf16 + U-Net forward (1,3,512,512)→(1,5,512,512) reálně na GPU, 11,4 GB
   volné VRAM. Past „no kernel image" zažehnána. `requirements.txt` doplněn (cu128 index, ne PyPI).
-- [!] **Krok 1 — GATE 1 zarovnané páry + měření offsetu** — rozšířit `build_georef_blend` (livelox.py),
-  ať uloží čistý ortofoto rastr + GT přewarpovaný do téhož S-JTSK gridu (dnes jen `blend.png` verify).
-  **Změřit georef posun** ortofoto↔mapa (overlay cesty/vody) na hrstce map; >~3-5 m systematicky =
-  model se učí šum. Sez. 68 „quad sedne" byl vizuál na 4 mapách, ne změřená pixelová přesnost.
+- [x] **Krok 1 HOTOVO (Sez. 75) — GATE 1 zarovnané páry + měření offsetu PROŠEL.** `build_georef_pair`
+  (livelox.py) vyrobí `ortho.png` (X) + `gt_grid.png` (Y, GT warpnutá do téhož S-JTSK gridu, nearest,
+  fill IGNORE) + verify (`gt_grid_vis.png`, `blend.png`); X i Y přes identickou afinní transformaci =
+  pixel-na-pixel. `measure_georef_offset` = phase correlation hran, hledá peak JEN v okně ±40 m
+  (artefakt periodicity: bez omezení dala 1047807 falešných 549 m). CLI `pair`/`gate1`. **Měření 25
+  CZ S-JTSK map: medián 1,33 m (1 px)** → georef Liveloxu zdravý, GATE 1 prošel. **Nález:** per-mapa
+  offset >~5 m je nedůvěryhodný (artefakt husté/rušivé korelace — 1106623 sedí vizuálně dokonale, přesto
+  „17 m") → měření = **agregátní QC, ne per-mapa korektor**; vizuál (blend) je arbitr. Detail v DONE.
 - [ ] **Krok 2 — měření datasetu**: ČR/DE filtr (DE mapy = prázdné ČÚZK ortofoto → odpadnou; kolik
-  keep ČR zbude) + rozložení tříd v GT (class imbalance pro váhy loss).
+  keep ČR zbude) + rozložení tříd v GT (class imbalance pro váhy loss). Pozn.: hromadnou výrobu párů
+  (`build_georef_pair` pro celý train set) udělat AŽ po tomto filtru — nevyrábět `ortho.png` pro DE.
 - [ ] **Krok 3 — geografický split** train/val/test (clustery dle bbox overlapu; náhodný per-mapa
   split LEAKUJE — stejný les v train i val). Souvisí s „dedup georef overlap" Sez. 70.
 - [ ] **Krok 4+ — baseline**: overfit na 1-3 mapy (ověří pipeline+učení) → plný trénink U-Net/ResNet34

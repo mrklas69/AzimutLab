@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 75 (2026-06-02) — GATE 1: zarovnané páry (X,Y) + měření georef offsetu (krok 1)
+- [x] **`build_georef_pair(out_dir)` (livelox.py) — výroba zarovnaného páru (X,Y) pro UC5 trénink.**
+      Z adresáře mapy (map.png + gt_labels.png + meta.json) vyrobí: **`ortho.png` = X** (ČÚZK ortofoto
+      v S-JTSK gridu), **`gt_grid.png` = Y** (GT labely warpnuté do TÉHOŽ gridu, nearest, fill IGNORE 255
+      mimo mapový quad), **`gt_grid_vis.png`** (barevný verify Y) + **`blend.png`** (ortofoto+mapa).
+      X i Y procházejí **identickou afinní transformací** do stejného gridu → pixel-na-pixel zarovnané
+      zadarmo. Vstup modelu (X) tím poprvé **fyzicky existuje** (dřív jen quad v meta.json — nález Sez. 74).
+- [x] **`measure_georef_offset(ortho, warped, mpp)` — phase correlation hran (vlastní GATE 1).**
+      Společný signál ortofota a mapy = HRANY (cesty/kraj lesa/voda); FFT cross-power → globální translace,
+      o kterou mapu posunout, aby sedla na ČÚZK pravdu. **Peak hledán JEN v okně ±40 m** — nález Sez. 75:
+      bez omezení dala mapa s pravidelnými žlutými šrafy (1047807) falešných **549 m**, ač vizuálně sedí
+      dokonale (periodicita → falešný korelační peak daleko od nuly). Bez nové závislosti (ruční numpy FFT,
+      ne scikit-image). Volba uživatele Q2.
+- [x] **Měření GATE 1 na 25 CZ S-JTSK mapách → PROŠEL.** `python connectors/livelox.py gate1 25`:
+      **medián posunu 1,33 m = 1 px**, ~84 % map ≤ 5,3 m. Georef Liveloxu je zdravý → páry jsou pixelově
+      zarovnané dost pro trénink (plošná runnability GT toleruje ~1 px). **Klíčový nález:** per-mapa offset
+      `>~5 m` je **nedůvěryhodný** — vizuál (blend) ho vyvrací (1106623 sedí dokonale, přesto „17 m";
+      outliery jsou artefakt husté/rušivé korelace, ne reálný posun). → měření slouží jen jako **agregátní
+      QC** (korpus OK), **ne** jako per-mapa korektor/filtr. Pro trénink: celý CZ korpus bez korekce georefu.
+- [x] **DRY refaktor livelox.py + zobecnění (volba uživatele Q1=warp GT, Q3=afinní/measure-first).**
+      Geometrie gridu vytažena do `_georef_grid(meta)` + afinní matice do `_map_affine(quad,W,H)` — sdílí
+      `build_georef_blend` i `build_georef_pair`. `_warp_to_grid` zobecněn na N kanálů + `fill` parametr
+      (RGB i jednokanálové labely; nearest `np.round` bezpečný pro třídy). Drobnost: cp1250 konzole UTF-8
+      reconfigure (Unicode šipky v printech, jako Sez. 74).
+
 ## Sezení 74 (2026-06-02) — HW dokumentace + %THINK UC5 model + smoke test (krok 0)
 - [x] **HW dokumentace (`docs/kb/hardware.md`, nový KB list):** UC5 trénink dělá z HW reálnou závislost.
       `mrkla` = **RTX 5070 (12 GB GDDR7, Blackwell GB205, 192 Tensor Cores)** + Ryzen 7 7700 + 32 GB DDR5 =
