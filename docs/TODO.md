@@ -43,10 +43,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
   (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".
-- [ ] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — místo per-mapa tagování legend
-  (nespolehlivé v 240px náhledu) strukturální GT krok: detekce+mask okrajových legend/control-description tabulek +
-  fialového přetisku tratí (purpurová není ISOM runnability barva; tenké linie median(7) tlumí, tabulky/bloky ne).
-  Manifest `legend` tagy (Sez. 71) + `green_pct` to podpoří. Pak regen GT dotčených.
+- [~] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — strukturální GT krok místo
+  per-mapa tagování legend (nespolehlivé v 240px náhledu). **Část A HOTOVO Sez. 72: fialový přetisk tratě → label
+  255 ignore** (`map_gt.py`, 2 purpurové odstíny z dat, maska dilatovaná po median; 31 % keep map; OOB šrafa 709
+  taky ignore). **ZBÝVÁ část B: legenda/okraj/control-description tabulka** — detekce mapového území (největší
+  souvislá komponenta obsahu po morf. uzavření) → oddělené bloky (legenda/tabulka/tiráž) ignore. Rizikovější
+  (false-crop připojené legendy) → měřit + vizuál verify. Pozn. Sez. 72: bílé buňky tabulky teď zůstávají label 0
+  (falešná průchodná plocha). Manifest `legend` tagy (Sez. 71) + `green_pct` to podpoří. Pak regen GT dotčených.
 - [ ] *(rozšíření korpusu Sez. 70, volitelné — až bude UC5 model konzumovat)* víc map/event u etapových závodů (dnes
   1/event = ztráta vedlejších map), nebo dedup map podle georef overlap. Zatím 216 keep stačí.
 - [ ] *(DRY dluh, nález Sez. 68; ROZEŠLO SE Sez. 71)* **`ISOM_REF`** — `generator/compare_real_vs_gen.py` (SSoT, Sez. 64)

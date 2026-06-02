@@ -98,7 +98,8 @@ bodových, liniových i plošných ISOM symbolů.
   Vegetace gate (Sez. 59) brání věrné runnability z open dat → reálný GT je nutný (syntetika
   cirkulární). Zdroj = **Livelox** (`connectors/livelox.py`, Sez. 68): reálná OB mapa jako
   rastr + georef (gate 1+2 prošly — 1,33 m/px stačí na plošnou GT, quad sedne bez fitu);
-  GT segmentace `connectors/map_gt.py` (zelená/žlutá z barev; olivová 520 → label 0, Sez. 71).
+  GT segmentace `connectors/map_gt.py` (zelená/žlutá z barev; olivová 520 → label 0, Sez. 71;
+  fialový přetisk tratě → label 255 ignore, Sez. 72).
   Korpus `resources/livelox/` (gitignored, privátní/TDM). **Škálováno Sez. 70: 268 map** (allEvents batch).
   **Kurace Sez. 71** (`connectors/curate.py` → `_curation.json`): GT = strop supervised modelu → mapy
   otagovány (discipline classic/sprint/mtbo/overview + quality tagy) a vybráno **216 keep classic** =

@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 72 (2026-06-02) — fialový přetisk tratě → label 255 ignore (GT kvalita, část A)
+- [x] **Fialový přetisk tratě → label 255 ignore (`map_gt.py`):** runnability GT kontaminoval přetisk tratě
+      (kroužky kontrol/spojnice/čísla/titulek — ne ISOM runnability barva). Měření: **31 % keep map (68/216)** ho
+      nese → systematické, strukturální krok (ne per-mapa tag). 2 purpurové odstíny ODEČTENY z reálných rastrů
+      (verify, jako olivová Sez. 71): `purple_a` 178/24/148 (magenta) + `purple_b` 176/8/230 (fialová) → nový
+      label `IGNORE=255`. Verify izolovanosti: d=138/199 od nejbližší legitimní barvy (> olivová ~100), nekrade.
+      Maska oddělena PŘED median (255 by zkreslil okno), dilatace `_OVERPRINT_DILATE=2` px (antialiasovaný okraj).
+      Trénink přeskočí přes `ignore_index`. `gt_vis` ignore = magenta.
+- [x] **OOB šrafa (ISOM 709) → taky ignore, bez výjimky** (volba uživatele „lepší menší vzorek než zavádějící
+      výjimky"): velká purpurová OOB plocha (709, 2-3 mapy) padá do stejné barvy. „Generalizuj jen s důkazem" +
+      ignore konzervativně poctivé (šrafa zakrývá podklad) + KISS jedna barva/jeden mechanismus. Kdyby vadilo:
+      `keep_override=false`.
+- [x] **Verify:** 262617 (nejvíc přetisku) trať+titulek+tiráž → ignore 8,4 %, plochy netknuté (vizuál OK);
+      970619 (bez tratě) ignore 0,0 % (žádné false-ignore); 1027569 lesní 4,7 %. Korpus přesegmentován 268/268.
+
 ## Sezení 71 (2026-06-02) — olivová 520 GT fix + %AUDIT:CODE (vynucený) + kurace korpusu (taxonomie + manifest)
 - [x] **Olivová 520 → label 0 (`map_gt._classify`):** GT chyběla olivová reference → out-of-bounds (zahrady/
       zástavba) klasifikováno jako falešná zelená runnability. 2 odstíny ODEČTENY z reálných rastrů (verify-against-
