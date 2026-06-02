@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 77 (2026-06-02) — UC5 krok 4 (příprava): tréninkové dlaždice + median-freq váhy
+- [x] **Nový adresář `model/` (UC5 model kód, sourozenec `connectors/`/`generator/`, sys.path skripty fáze B).**
+      První obyvatel `model/tile.py`. Loader/trénink přijdou příště (krok 4 pokračování).
+- [x] **`model/tile.py` — pre-tiling párů (X,Y) na 512×512 dlaždice.** Páry jsou různě velké (~800-4000 px),
+      U-Net jede na fixní dlaždici. Sliding window **512 px, stride 256 (50% překryv)**, poslední dlaždice
+      v řadě/sloupci zarovnaná k okraji (nic se neztratí). **Rejection:** dlaždice s <30 % validních (≠IGNORE)
+      px se zahodí (rohy quadu, layout). Split (train/val/test) dědí z `split.dirs_for` — dlaždice mapy jdou
+      CELÉ do jejího splitu (žádný leak). Výstup `resources/tiles/<split>/<cid>/<r>_<c>_{x,y}.png` (gitignored,
+      per-cid podadresář). Volba pre-tiling vs random-crop (uživatel): deterministické + vizuálně kontrolovatelné
+      + rychlé IO; augmentace (flip/rot) až v loaderu za běhu (hustší překryv = jen kopie patchů → zavrženo).
+- [x] **Výsledek: ~8 125 dlaždic** (train 5 777 / val 1 224 / test 1 124). Class % **konzistentní napříč splity**
+      (410 fight 1,33 / 1,83 / 2,33 — vždy nenulová) → potvrzuje reprezentativnost geo-splitu Sez. 76.
+- [x] **Median-freq váhy z TRAIN dlaždic (po rejection)** `[0,16, 1,0, 1,65, 8,27, 0,89]` (pořadí 0..4;
+      410 fight ~8× = sedí na odhad 8,4 Sez. 76). Uloženo v `resources/tiles/_tiles.json` jako
+      `class_weights_list` pro přímé dosazení do `CrossEntropyLoss(weight=)`. + `_preview.png` (vizuál verify).
+- [x] **Vizuál verify (uživatel):** triptych ortho|blend|label potvrdil pixel-na-pixel zarovnání X↔Y; dotaz
+      „bílé čtverce přes les v `_y.png`" vyřešen — v syrovém grayscale labelu je **255 (IGNORE) = bílá**:
+      rohy natočeného mapového quadu warpnutého do osového S-JTSK gridu = mimo o-mapu → ignore (správně,
+      trénink přeskočí). Schodovitý okraj = pixelizace diagonální hranice quadu.
+
 ## Sezení 76 (2026-06-02) — UC5 krok 2 (filtr+distribuce) + krok 3 (geosplit) + 207 párů
 - [x] **Krok 2 — měření datasetu (ČR/DE filtr).** ČÚZK ortofoto mimo ČR vrací jednolitou bílou 253
       (doloženo probe: CZ Branžež near-white 0,000 vs DE Olbersdorf 1,000) → kritérium filtru = podíl

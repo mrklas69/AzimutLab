@@ -168,13 +168,16 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   livelox.py           #   UC5 corpus: real OB maps from Livelox → map.png + meta.json (georef, epsg from data) + blend.png (session 68)
   map_gt.py            #   UC5 corpus: runnability ground-truth (gt_labels/gt_vis) from real map via ISOM colour segmentation (session 68; olive 520 → label 0, session 71; purple course overprint → label 255 ignore, session 72; off-map layout — legend/table/title/paper — → label 255 ignore via colour detector, session 73 part B)
   curate.py            #   UC5 corpus: curation taxonomy + manifest (_curation.json) → keep set for training (session 71: 268 → 216 keep classic)
+  split.py             #   UC5 corpus: geographic train/val/test split by bbox-overlap clusters (no leak) → _split.json; dirs_for() = loader contract (session 76)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
   rock_relief.py       #   ISOM 206 rock areas from DMR 5G slope (numpy+scipy+contourpy; --rocks real, session 63)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
+model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77)
+  tile.py              #   pre-tiling of (X,Y) pairs into 512×512 tiles (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights (_tiles.json)
 asset/                 # shared map assets (řopík pillbox .omap)
-resources/             # real OB maps — input/reference (gitignored, 3rd-party copyright)
+resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)
 ```
 

@@ -265,9 +265,18 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   „student dostal u zkoušky příklady z domácího cvičení"). Implementace: souvislé komponenty grafu překryvu
   S-JTSK bboxů = clustery; celý cluster do jednoho splitu. `connectors/split.py` → `_split.json`. Sez. 76.
 
+- **Dlaždice / tiling** — páry (X,Y) jsou různě velké (~800-4000 px), ale U-Net jede na **fixní vstup
+  512×512**. `model/tile.py` (Sez. 77) je proto nakrájí: sliding window 512 px, **stride 256 (50% překryv)**,
+  poslední dlaždice zarovnaná k okraji. Dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu,
+  layout). **Pre-tiling na disk** (ne random-crop za běhu): deterministické + vizuálně kontrolovatelné +
+  rychlé IO; augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak).
+  Výstup `resources/tiles/<split>/<cid>/<r>_<c>_{x,y}.png` (gitignored) + `_tiles.json` (počty/class%/váhy).
+  ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
+
 - **Class imbalance** — nerovnoměrné zastoupení tříd v GT (UC5: 410 fight jen 1,35 % labeled vs průchodný
   69 %). Bez korekce model degeneruje na „vždy hádej většinovou třídu". Řeší **váhy v loss** (median-frequency
-  balancing: w = medián(frekvencí) / frekvence třídy → vzácná 410 dostává w≈8,4). Měřeno Sez. 76.
+  balancing: w = medián(frekvencí) / frekvence třídy → vzácná 410 dostává w≈8,4). Měřeno Sez. 76; spočteno
+  z train dlaždic (po rejection) Sez. 77 → `class_weights_list` `[0,16, 1,0, 1,65, 8,27, 0,89]` v `_tiles.json`.
 
 ## Projekt — struktura a principy
 

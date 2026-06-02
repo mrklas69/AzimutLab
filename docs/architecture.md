@@ -115,7 +115,11 @@ bodových, liniových i plošných ISOM symbolů.
   QC (GATE 1, medián ~1-3 px); ČR/DE filtr (`_cz_filter.json`: 216 keep → **207 ČR**, cizí mají prázdné
   ČÚZK ortofoto); class distribution (410 fight 1,35 % → váhy do loss, validováno proti 5 mapařským `.omap`);
   **geografický split** (`connectors/split.py` → `_split.json`: train/val/test 145/31/31, clustery dle
-  překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`). Zbývá krok 4: baseline + trénink.
+  překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`); **tréninkové dlaždice**
+  (`model/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
+  **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Nový adresář **`model/`** = UC5
+  model kód (sourozenec `connectors/`/`generator/`, sys.path fáze B). Zbývá krok 4 dokončení: loader
+  (`model/dataset.py`) + overfit + trénink U-Net/ResNet34 (`model/train.py`).
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních
