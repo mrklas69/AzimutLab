@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 66 (2026-06-02) — strategická diskuse (zelená/ortofoto) + příprava OOM verify (bez kódu)
+- [x] **Vyjasněno „zelenou děláme jen z forest-age?"** — plošná runnability zeleň lesa (406/408/410) = jediný
+      zdroj `--forest-age` (AOPK věk, PROXY, důsledek vegetace gate). Ale 406 jde i ze stromořadí (`--treerows`)
+      a 402/402.1 udržovaná zeleň ze `--surfaces` — z tvrdých dat, gate neporušují.
+- [x] **Vyjasněno „proč HS/SV bílý les"** — doložená AOPK mezera (mimo „Les_Mapy" dataset), ne bug; odlišeno od
+      bílého lesa NL/NV = záměrná predikce (`BARVA` nad `BARVA_SLOW_MAX` = starý/průchodný les).
+- [x] **Ortofoto predikce oponována vlastním měřením (Sez. 63/64):** (a) single-epoch greenness→ISOM třída NEJDE
+      (separabilita ~50 %, všechny ISOM zelené jsou vegetace, podrost shora neviditelný = gate); (b) multi-temporal
+      časosběr = UC5 model (CV projekt), ne deterministická vrstva. Závěr: „ortofoto predikce" = UC5, foundations
+      tlačí dokončit OOM verify forest-age+rock-relief dřív.
+- [x] **Příprava OOM verify** (lekce Sez. 65 — mtime past): ověřeno NL/NV/HS/SV `.omap` z 2026-06-02 09:13–09:20,
+      `.omap`=masky shodný mtime (konzistentní). Verify checklist předán (NL nejlepší forest-age, `BARVA 11` knoflík;
+      HS/SV rock-relief). OOM verify zůstává carry (uživatel zavolal %END před otevřením OOM).
+- [x] Bez kódu (proc baseline 65 nedotčen). Propagace: DIARY index, DONE, diář.
+
 ## Sezení 65 (2026-06-02) — fix rock-relief HTTP 500 (server práh ~7 Mpx) + regen 5 DEV
 - [x] **Nález: Sez. 63 rock-relief regen byl nekompletní** — NL/LS/SV `.omap` mtime (22:xx) o hodinu starší
       než rock-relief fáze (HS/NV 23:xx); zůstaly se starou ZABAGED 206. Uživatelův postřeh nad `.omap` datem.
