@@ -14,9 +14,9 @@ Metoda (ověřeno probe Sez. 68 na 4 mapách):
      plošná runnability chce DOMINANTNÍ barvu okolí, ne per-pixel šum
   3) tři zelené úrovně → tři runnability stupně, žlutá → open, zbytek → průchodné/bílá
 
-Omezení (doložené probe): olivová 520 (oplocené areály) NENÍ v refs → klasifikuje se jako
-brown/green; pro runnability GT nevadí (520 = out-of-bounds, ne běhatelnost). Voda/budovy/
-skály se z runnability masky vyřazují (label 0 = podklad).
+Olivová 520 (oplocené areály) MÁ vlastní referenci → label 0 (out-of-bounds, ne běhatelnost),
+od Sez. 71; bez ní padala na green → falešná zelená runnability na městských mapách (Turnov).
+Voda/budovy/skály/vrstevnice se z runnability masky vyřazují taky (label 0 = podklad).
 
 Spouštět z kořene přes .venv (sys.path skript, fáze B).
 """
@@ -32,19 +32,25 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _CORPUS_DIR = _REPO_ROOT / "resources" / "livelox"
 
 # ISOM referenční barvy (RGB) pro klasifikaci pixelů nejbližší barvou.
-# SSoT = generator/compare_real_vs_gen.py ISOM_REF (Sez. 64). KOPIE (ne import) — connectors
+# Základ = generator/compare_real_vs_gen.py ISOM_REF (Sez. 64), KOPIE (ne import) — connectors
 # nemají záviset na generator/. DRY dluh: až bude 3. konzument, vytáhnout do sdíleného modulu
 # (princip „generalizuj jen s důkazem"). TODO zaznamenán.
+# ROZDÍL od compare (Sez. 71): map_gt přidává OLIVOVOU 520 (out-of-bounds), compare ji nemá —
+# je runnability-specifická (compare Soví vrch žádnou olivovou neobsahuje). Dvě olivové reference
+# = dva odstíny DOLOŽENÉ na korpusu (sprint vs lesní OCAD profil: 152/184/24 vs 168/168/56);
+# bez nich padaly na green_m → falešná zelená runnability na městských mapách (Turnov, Sez. 70).
 ISOM_REF = {
     "white": (255, 255, 255), "yellow": (252, 221, 118), "road": (240, 170, 120),
     "brown": (191, 105, 37), "blue": (50, 162, 222), "black": (30, 30, 30),
     "green_l": (200, 232, 200), "green_m": (120, 200, 140), "green_d": (40, 160, 90),
+    "olive_a": (152, 184, 24), "olive_b": (168, 168, 56),   # 520 out-of-bounds (Sez. 71)
 }
 
 # runnability label: 0 = průchodný/podklad (bílá, voda, vrstevnice, symboly), 1-3 = zelená
 # škála (406 slow / 408 walk / 410 fight), 4 = open land (žlutá). Mapuje ISOM třídu → label.
 _LABEL = {
     "white": 0, "brown": 0, "black": 0, "blue": 0,
+    "olive_a": 0, "olive_b": 0,   # 520 zákaz vstupu = podklad, NE běhatelnost (Sez. 71)
     "green_l": 1, "green_m": 2, "green_d": 3,
     "yellow": 4, "road": 4,   # road (oranžová silnic) splývá s open žlutou (jako compare GROUP)
 }

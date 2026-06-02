@@ -3358,8 +3358,8 @@ def generate_map(
     # Rastr z-order: ÚPLNĚ NAVRCH (po budovách+řopících) — replikuje OOM color order, kde
     # 204/206/207 mají vyšší prioritu (=draw nahoru) než 521 Building. Hruboskalsko: skály
     # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
-    # Jen --rocks real. KISS vrstva → jeden symbol: Skalní_útvary vždy → 206 (map_rock_area_to_isom);
-    # hybridní 202/206 podle plochy bylo Sez. 30 zavrženo (rozhodování bez datového podkladu).
+    # Jen --rocks real. Body 204/207 + linie 208 ze ZABAGED (KISS vrstva → jeden symbol); plocha 206
+    # z DMR sklonu (rock_relief, Sez. 63) — nahradila generalizovaný ZABAGED Skalní_útvary.
     rock_point_features: list[tuple] = []
     rock_area_features: list[tuple] = []
     rocks_info: list[dict] = []

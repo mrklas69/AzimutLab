@@ -63,6 +63,17 @@ LUSATIA_BORDER_BOX = {"south": 50.7, "north": 51.05, "west": 14.4, "east": 15.05
 _PERMANENT_HTTP = {403, 404, 410}
 
 
+def _ensure_connectors_on_path() -> None:
+    """Přidá connectors/ na sys.path, ať jdou lazy-importovat sourozenci (ortofoto/map_gt).
+
+    Lazy import drží těžké/volitelné závislosti (numpy/scipy/ortofoto) mimo čisté stahování;
+    helper jen sjednocuje opakovaný sys.path boilerplate (DRY)."""
+    import sys
+    d = str(Path(__file__).parent)
+    if d not in sys.path:
+        sys.path.insert(0, d)
+
+
 def _open_with_retry(req: urllib.request.Request, timeout: float, tries: int = 4) -> bytes:
     """urlopen + .read() s exponenciálním backoffem na transient chyby. Vrací bajty.
 
@@ -211,10 +222,7 @@ def build_georef_blend(meta: dict, map_png: str | Path, out_dir: str | Path,
     import numpy as np
     from PIL import Image
     from pyproj import Transformer
-    # ortofoto je sourozenec v connectors/ — přidej na sys.path, pokud chybí
-    import sys
-    if str(Path(__file__).parent) not in sys.path:
-        sys.path.insert(0, str(Path(__file__).parent))
+    _ensure_connectors_on_path()        # ortofoto je sourozenec v connectors/
     from ortofoto import _export_tile
 
     Image.MAX_IMAGE_PIXELS = None
@@ -402,9 +410,7 @@ def download_corpus(events: list, limit: int | None = None, sleep_s: float = 1.0
     # segment_gt je sourozenec v connectors/ — lazy import, ať čisté stahování nezávisí na scipy
     seg = None
     if segment:
-        import sys
-        if str(Path(__file__).parent) not in sys.path:
-            sys.path.insert(0, str(Path(__file__).parent))
+        _ensure_connectors_on_path()
         from map_gt import segment_gt as seg
 
     todo = events[:limit] if limit else events
@@ -465,7 +471,7 @@ if __name__ == "__main__":
     if arg == "list":
         # jen zmapuj oblast (počty eventů/tříd) bez stahování
         evs = _collect_all()
-        ncls = sum(e["classCount"] for e in evs)
+        ncls = sum(e.get("classCount", 0) for e in evs)
         print(f"CZ S.Čechy + DE příhraničí: {len(evs)} eventů, {ncls} tříd "
               f"(1 mapa/event = {len(evs)} map)")
     elif arg == "batch":

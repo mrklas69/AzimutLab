@@ -53,7 +53,7 @@ ISOM_VEG_SLOW = 406    # mladší kmenovina (řidší)
 # zelená; >= SLOW_MAX (vč. bezlesí 15) → bílá (žádný symbol, běhatelný les / neporostní plocha).
 # Default kalibrován na NL/LS/NV tak, aby v lese byly všechny 3 odstíny a bílá zůstala převažující
 # (realisticky vyhlížející mapa, rozhodnutí Sez. 62); čísla ověř vizuálně a dolaď.
-BARVA_FIGHT_MAX = 5    # BARVA  2..4  → 410 fight   (nejmladší)
+BARVA_FIGHT_MAX = 5    # BARVA  <5    → 410 fight   (nejmladší; v datech 2..4)
 BARVA_WALK_MAX = 8     # BARVA  5..7  → 408 walk
 BARVA_SLOW_MAX = 11    # BARVA  8..10 → 406 slow
 #                        BARVA >=11   → bílá (staré / bezlesí 15)

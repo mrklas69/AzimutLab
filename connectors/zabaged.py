@@ -336,16 +336,16 @@ STATE_BORDER_CODE = "1"            # vyzn_zsh_k hodnota pro státní hranici
 
 # Skály a balvany (Sez. 30, real-půlka, MVP rozsah). Verify-against-source (probe_rocks.py
 # na Hrubé Skále): vrstvy mají JEN atribut `jmeno` (žádné rozlišení typ/velikost/výška) →
-# KISS, vrstva → jeden ISOM symbol (jako budovy→521, vedení→510, železnice→509). Skalní_útvary
-# → VŽDY 206 (map_rock_area_to_isom); hybridní 202/206 podle plochy polygonu bylo zvažováno a
-# ZAVRŽENO (Sez. 30, „rozhodování bez datového podkladu" — žádný ZABAGED atribut typu/výšky).
+# KISS, vrstva → jeden ISOM symbol (jako budovy→521, vedení→510, železnice→509).
+# ZABAGED táhne BODOVÉ 204/207 + LINIOVÉ 208; plochu 206 už NE — `Skalní_útvary` (generalizovaný
+# blok přes masiv) nahradil DMR rock-reliéf (`generator/rock_relief.py`, Sez. 63: věrná členitost
+# věží z výškopisu). Proto zde ROCK_AREA_LAYERS / fetch_rock_areas / map_rock_area_to_isom NEJSOU.
 # Sesuv_půdy__suť (→ 210 Stony ground) zůstává odloženo (Σ1 v probe Sez. 55, marginální).
 # Skupina_balvanů__linie_ (→ 208 Boulder field) realizováno Sez. 57 (změřeno Σ14, ne „3" jak
 # tvrdil Sez. 30 odhad — probe Sez. 55: SV 7 / HS 3 / NV 4).
 BOULDER_LAYERS = ("Osamělý_balvan__skála__skalní_suk",)            # bodové „turisticky významné"
 BOULDER_CLUSTER_LAYERS = ("Skupina_balvanů__bod_",)                # bodová pole drobných kamenů (bod)
 BOULDER_FIELD_LINE_LAYERS = ("Skupina_balvanů__linie_",)          # liniová pole balvanů → 208 (buffer pás)
-ROCK_AREA_LAYERS = ("Skalní_útvary",)                              # polygony skalních útvarů
 
 # Mosty / tunely / lávky (Sez. 32 znovu, spec-driven po rollbacku Sez. 31).
 # Verify-against-source: foto reálných OB map (uživatel) + ISOM 2017-2 PDF str. 32 + Q&A.
@@ -601,20 +601,6 @@ def fetch_boulder_clusters(lat: float, lon: float, gw: int, gh: int,
     → ISOM 208 Boulder field (realizováno Sez. 57; změřeno Σ14, ne „3" z odhadu Sez. 30).
     Izomorfní s fetch_boulders."""
     return _collect_points(BOULDER_CLUSTER_LAYERS, lat, lon, gw, gh, tile_m, cache_dir)
-
-
-def fetch_rock_areas(lat: float, lon: float, gw: int, gh: int,
-                     tile_m: float = 1000.0,
-                     cache_dir: str | Path | None = None) -> list[dict]:
-    """Vrátí reálné skalní útvary (plochy) pro výsek jako seznam plošných features.
-
-    Každý prvek: {"layer", "props", "rings": [[(x,y)..]]} — vnější obrysy polygonů v S-JTSK
-    metrech (MultiPolygon rozbalen). Mapování na ISOM (map_rock_area_to_isom) → VŽDY 206
-    (KISS); hybridní 202/206 podle plochy bylo zavrženo (Sez. 30) — žádný ZABAGED atribut
-    velikost nenese. Verify Sez. 30 (Hrubá Skála): 411 polygonů, medián 1132 m², 304× > 500 m²,
-    max 30 444 m² (Mariánská vyhlídka). Izomorfní s fetch_buildings/fetch_paved_areas."""
-    return _collect_features(ROCK_AREA_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
-                             _geom_to_polygons, "rings")
 
 
 def fetch_boulder_field_lines(lat: float, lon: float, gw: int, gh: int,
@@ -967,17 +953,6 @@ def map_boulder_cluster_to_isom(layer: str, props: dict) -> int:
     `Skupina_balvanů__bod_` → **207 Boulder cluster** (vždy; KISS). Vrstva má jen `jmeno`
     (Sez. 30). 207 = trojúhelník, plný černý, orientace na sever (ISOM template id 36)."""
     return 207
-
-
-def map_rock_area_to_isom(layer: str, props: dict) -> int:
-    """Mapuje ZABAGED skalní útvar (plocha) na ISOM 2017-2 symbol (kód).
-
-    `Skalní_útvary` → **206 Gigantic boulder** (vždy; KISS, jako budovy→521 / vedení→510).
-    Verify Sez. 30 (Hrubá Skála): vrstva má JEN `jmeno` (žádný typ/výška/velikost) → KISS,
-    vrstva = jeden symbol. Volba 206 = rozhodnutí uživatele (Sez. 30): plná černá plocha
-    pro každý polygon (ne hybridní 202/206 podle plochy — drift v rozhodování bez datového
-    podkladu). Pro malé výchozy 206 zhrubne, ale zachová izomorfismus s budovami/vodou."""
-    return 206
 
 
 def map_boulder_field_to_isom(layer: str, props: dict) -> int:
