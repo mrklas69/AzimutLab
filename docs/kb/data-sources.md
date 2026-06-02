@@ -288,9 +288,14 @@ nástroje: `yoav28/livelox-map-downloader-extension` (Chrome ext., MIT) a `route
 - **Přesnost quadu (gate 2 ZMĚŘENO Sez. 68):** reprojikovaný quad sedne na ortofoto **bez feature-fitu** na
   4 mapách (vizuál) → `oris.py` lookup ani georef fitter nejsou potřeba („stav až s důkazem").
 
-**Konektor hotov Sez. 68:** `connectors/livelox.py` (`download_map(classId)` → `resources/livelox/<id>/`:
-`map.png` + `meta.json` + `blend.png` georef důkaz) + `connectors/map_gt.py` (runnability GT segmentace).
-Korpus 4 mapy; cíl ~200 přes `allEvents` batch (příště — ORIS souřadnice netřeba, blob nese vlastní georef).
+**Konektor hotov Sez. 68, ŠKÁLOVÁN Sez. 70:** `connectors/livelox.py` (`download_map(classId)` →
+`resources/livelox/<id>/`: `map.png` + `meta.json` + `blend.png`) + `connectors/map_gt.py` (runnability GT).
+**Batch Sez. 70:** `allEvents` reverzováno na **`POST /Home/SearchEvents`** (GeoBox + `timePeriod`; classId v
+`classes[].id`) → `search_events`/`download_corpus` (1 class/event, idempotent, backoff retry). **Korpus 268 map**
+(severní Čechy CZ + Žitavsko-Šluknovsko DE / série SAXBO; ORIS souřadnice netřeba — blob nese georef).
+**Limit zdroje doložen:** jen ~31 % eventů (268/865) má stažitelnou mapu — Livelox staré (≤2022) bloby z velké
+části smazal (typ A: mapa fyzicky není; typ B = jen WGS84 quad → kód má fallback). Proto ORIS-párování zavrženo
+(96 % starých postrádá rastr, ne jen souřadnice).
 
 **Licence — gate (jako ČSOS):** Livelox docs verbatim „maps and routes are not accessible through the API
 for copyright reasons"; stažení přes interní endpointy ty podmínky **obchází**. Práva drží kartograf/pořadatel/

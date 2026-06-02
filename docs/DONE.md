@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 70 (2026-06-02) — UC5 korpus škálování: `allEvents` reverz → batch 268 reálných OB map
+- [x] **`allEvents` reverzováno proti zdroji (home.js):** `?tab=allEvents` = URL Knockout SPA; skutečný endpoint
+      **`POST /Home/SearchEvents`** (JSON). Tělo: `geoRectangle` GeoBox {south,north,west,east}, `timePeriod`
+      enum (`from`/`to` čteno jen při customTimePeriod), `orderBy`, `maxNumberOfResults` strop 500. Event nese
+      `classes[].id` = classId pro `download_map` → žádný ORIS/párování (gate 2 Sez. 68).
+- [x] **Klíč 8267 tříd ≠ 8267 map:** třídy 1 eventu sdílí JEDNU mapu (různé tratě) → 1 class/event (max
+      participantCount) = ~840 unik. map; historická řada vzniká mezi eventy (Slovanka 9×) → zachována.
+- [x] **Batch pipeline `livelox.py`:** `search_events`/`list_events_by_year` (roční okna obchází strop 500)/
+      `pick_class_id`/`download_corpus` (idempotent, error-souhrn, progress+ETA) + CLI `list`/`batch`. Konstanty
+      `NORTH_BOHEMIA_BOX` + `LUSATIA_BORDER_BOX`. Batch od nejnovějších (cenná data první). Geo: 840 CZ S.Čechy +
+      25 DE Žitavsko-Šluknovsko (série SAXBO) = 865 eventů.
+- [x] **Bug fix (nález uživatele):** `download_map` mkdir PŘED fetch → faily nechávaly prázdné adresáře. Mkdir
+      přesunut ZA získání dat (vše do paměti, pak adresář+zápis). 30 prázdných uklizeno.
+- [x] **ORIS návrh zavržen DATY (synergie):** měření 50 starých (2020–22) = typ A 56 % (`classBlobUrl:None`, mapa
+      fyzicky není) + 404 40 % + typ B 4 %. 96 % bez rastru → ORIS dá souřadnice ne kresbu → nepomůže. ALE odhalil
+      **typ B** (rastr+georef pod `boundingQuadrilateral` WGS84, `projectionEpsgCode:None`).
+- [x] **Krok 2:** (a) **WGS84 fallback** (`_resolve_georef`: epsg=4326, quad z WGS84 rohů, mpp metr. aproximací,
+      `georefFallbackWgs84` flag) — georef ověřen blendem (gate 2 sedí); (b) **`_open_with_retry`** backoff 2→4→8s
+      (404/403/410 trvalé neretryovat, timeout/5xx/conn transient) — řeší `WinError 10060` + ban prevence, DRY se
+      `_post_search_events`; (c) `sleep_s` 0,5→1,0.
+- [x] **Výsledek:** běh 1 = 205 map, re-run krok 2 = **268 map** (+63: 43 typ B + ~20 transient), všech 268 se
+      segmentací GT, 0 prázdných. Výtěžnost 31 % (zbytek doloženě mrtvý). **UC5 korpus z 4 → 268.** Censure 0.
+
 ## Sezení 69 (2026-06-02) — %CALIBRATE + %AUDIT:DOCS (úklidové sezení, oba audity zralé)
 - [x] **Fokus „2 pak 1"** (volba uživatele) — audity teď (foundations-before-curtains: `livelox.py`/`map_gt.py`
       ze Sez. 68 ještě neprošly úklidem), škálování korpusu příští sezení.

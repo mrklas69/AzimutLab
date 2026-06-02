@@ -31,13 +31,18 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
   mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
   (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".
-- [~] *(UC5 korpus, IDEAS „UC5 runnability korpus")* **Livelox korpus reálných OB map.** Probe gate 1+2 HOTOVO Sez. 68
-  (DONE): `connectors/livelox.py` (classId → map.png + meta.json + blend.png, epsg z dat) + `connectors/map_gt.py`
-  (runnability GT gt_labels/gt_vis). Gate 1 = 1,33 m/px strop (plošná GT stačí), gate 2 = quad bez fitu (oris/fitter
-  netřeba). Korpus 4 mapy v `resources/livelox/`. **ZBÝVÁ — škálování na ~200 map (`[!]` příští fokus):** reverzovat
-  Livelox `allEvents` endpoint (`?tab=allEvents&country=CZE` → seznam classId, jako ClassInfo ze zdroje) → batch
-  `download_map`+`segment_gt`; rate-limit ohled. **ORIS souřadnice NETŘEBA** (blob nese vlastní přesný georef, gate 2).
+- [x] *(UC5 korpus, IDEAS „UC5 runnability korpus")* **Livelox korpus reálných OB map — ŠKÁLOVÁNO Sez. 70 (268 map).**
+  Probe gate 1+2 Sez. 68 + batch Sez. 70: `allEvents` reverzováno → `POST /Home/SearchEvents` (GeoBox, `timePeriod`,
+  classId v `classes[].id`); `search_events`/`download_corpus` v `livelox.py` (1 class/event, idempotent, od nejnovějších);
+  geo S.Čechy CZ + Žitavsko DE (SAXBO). **268 map** (31 % z 865 eventů, zbytek doloženě mrtvý — Livelox staré mapy nemá).
+  **WGS84 fallback** (typ B +43) + **backoff retry**. **ORIS zavržen daty** (96 % starých bez rastru → nepomůže). DONE.
   **Legalizace (oslovit ČSOS) až pokud model funguje** — do té doby privátní repo + TDM výjimka.
+- [ ] *(nález Sez. 70, čistota GT)* **olivová 520 → `map_gt.ISOM_REF` jako label 0** — `_classify` nemá olivovou
+  referenci → městské mapy (Turnov) klasifikují zástavbu/zahrady (520 out-of-bounds) jako falešnou zelenou runnability.
+  Přidat olivovou (label 0 = podklad, ne běhatelnost). Levné, zvedne kvalitu GT u městských map. Vizuál verify Sez. 70.
+- [ ] *(rozšíření korpusu Sez. 70, volitelné — až bude UC5 model konzumovat)* víc map/event u etapových závodů (dnes
+  1/event = ztráta vedlejších map), nebo dedup map podle georef overlap; legenda-crop u layout map (legenda v ploše
+  mapy → šum v GT rohu, nález Sez. 70). Zatím 268 map stačí.
 - [ ] *(DRY dluh, nález Sez. 68)* **`ISOM_REF` triplikát** — referenční ISOM barvy pro klasifikaci reálných map žijí
   v `generator/compare_real_vs_gen.py` (SSoT, Sez. 64) i jako KOPIE v `connectors/map_gt.py`. Až bude 3. konzument,
   vytáhnout do sdíleného modulu (princip „generalizuj jen s důkazem" — 2 kopie zatím netlačí).
