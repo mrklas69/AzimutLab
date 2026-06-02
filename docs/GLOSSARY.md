@@ -6,6 +6,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 ## Doména — orientační běh a mapy
 
 - **OB** — orientační běh; sportovní disciplína navigace v terénu podle mapy.
+- **Runnability** (průchodnost / běhatelnost) — jak rychle se daným terénem dá běžet (hustota podrostu/
+  vegetace, podloží). ISOM ji kóduje barvou: bílá = volný les (plná rychlost), zelená 406/408/410 (slow/walk/
+  fight, čím tmavší tím pomaleji), žlutá = otevřený terén. **NENÍ land-use** — polygon „les" neřekne, zda je
+  běhatelný či hustník; to open geodata nemají ([[vegetace-gate]]). Cíl UC5: predikovat runnability z geo-
+  podkladů, GT = co kartograf nakreslil na reálné mapě (viz **Ground-truth** níže, IDEAS „UC5 runnability korpus").
 - **ISOM** (International Specification for Orienteering Maps) — norma pro klasické
   lesní OB mapy (**verze 2017-2, nejnovější — Rev 6 z 2024**, příští až ISOM2030). Symboly,
   barvy, priority. Cílová sémantika projektu. Detail: `docs/kb/isom-issprom.md`. Pozor: Rev 6
@@ -309,6 +314,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Mapuje přes **sémantiku** (význam), ne kód-na-kód — čísla se mezi verzemi recyklují (viz [[ISOM]]).
   Sez. 38.
 - **OCAD** — komerční SW pro tvorbu map; formát `.ocd`.
+- **Livelox** — platforma pro sdílení tras závodů s mapou na pozadí (livelox.com). **Cesta-B zdroj reálných
+  OB map** pro UC5 runnability korpus (deep research Sez. 67): stažitelný přes interní endpointy `/Data/ClassInfo`
+  + `/Data/ClassBlob` (2 open-source nástroje), ale **jen RASTR** (PNG, ne vektor) + georef = 4 WGS84 rohy
+  (→ reprojekce S-JTSK). Licenční gate (obchází podmínky; práva kartograf/pořadatel). Detail: `data-sources.md`,
+  IDEAS „UC5 runnability korpus".
 - **Karttapullautin** — generátor OB podkladů z klasifikovaného LiDAR mračna (vrstevnice +
   vegetace). Stojí za projekty MapAnt. Survey: `RESEARCH.md`.
 - **CoVe** — color line vectorization pro orienťácké čáry (v OOM).

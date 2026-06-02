@@ -2,6 +2,39 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 67 (2026-06-02) — OOM verify Test OK + IDEAS/TODO pruning + %THINK směr → UC5 runnability korpus (Livelox)
+- [x] **OOM `.omap` verify Test OK** (uzavřen hlavní carry Sez. 62→66) — forest-age 406/408/410 (NL/NV) +
+      rock-relief 206 (HS/SV) ověřeny uživatelem v OpenOrienteering Mapperu. Foundations forest-age + rock-relief
+      hotové → odblokováno uvažování o dalším UC5 kroku.
+- [x] **IDEAS/TODO pruning** (cadence zralá +15 od Sez. 50, reset Sez. 67). **TODO:** hotové `[x]` pryč (holes
+      support, 501.1, forest-age — carry OOM verify dnes uzavřen, balvany-linie 208 → zhuštěno na zbytek `Sesuv_půdy_suť`
+      210); DROP oplocené terény (Sez. 57) + crossability vody (vyvráceno Sez. 58) + `map.omap` area close-flag verify
+      (vyřešeno desítkami OOM verify). **IDEAS:** zhuštěno 5 dozrálých bloků → odkaz do DONE (prediktor mapy, reálné
+      vrstvy ZABAGED, synteticky renderované, ISOM 2000↔2017-2, INSPIRE). Vše dozrálé žije v DONE → bez ztráty informace.
+- [x] **%THINK směr projektu** (po vytěžení UC2 fáze I) — A (UC5 ortofoto model) / B (compare hloubka) / C (korpus
+      nejdřív) / D (UC3 de-purple). **Volba uživatele = C.** Foundations-first: UC5 runnability model je supervised →
+      potřebuje GT z reálných map; bez korpusu nestavitelný (záclona před základy).
+- [x] **Conceptual-integrity nález:** teze „trénink = syntetika, licence bezpředmětná" (reframe Sez. 4, KB
+      data-sources ř. 257-258) platí jen pro STRUKTURU — **runnability model reálný GT POTŘEBUJE** (vegetace gate
+      Sez. 59 = generátor runnability neumí → syntetika cirkulární). KB opravena.
+- [x] **Pragmatická cesta (volba uživatele):** ~99 % privátní experiment → korpus ~100 map bez licence; legalizace
+      (ČSOS) AŽ pokud model funguje. Právní krytí = **TDM výjimka** (AutZ ČR 2023 / EU DSM 2019/790; přesné znění k ověření).
+- [x] **Deep research „zdroje reálných OB map" (103 agentů, ~2,8M tok., 21 zdrojů, 21/25 claims confirmed):**
+      **Livelox** = nejlepší dostupný zdroj — stažitelný přes interní endpointy `/Data/ClassInfo`+`/Data/ClassBlob`
+      (2 open-source nástroje, yoav28 MIT + routechoiceslivegps live web), ale **jen RASTR** (PNG; vektor 3. strana
+      nestáhne) + georef = 4 WGS84 rohy (→ reprojekce S-JTSK). Routegadget slabší (JPG 150-200 dpi). **MapAnt FI/ES
+      vyloučit z GT** (strojové z LiDAR = cirkulární). **Petrovič 2018 (peer-reviewed) validuje směr:** derivace
+      zelené z LiDAR hlučná (~47 % overlap, zelené třídy ~30-31 %) → ML má smysl. Žádný hotový ML korpus OB map.
+- [x] **%THINK georef pipeline (gen jako reference = inverze compare):** ORIS lookup (metadata/fallback) → Livelox
+      download (rastr+quad) → gen projekce téže lokality (tvrdá geometrie S-JTSK) jako kotva → feature-fit (podobnostní
+      transformace vč. rotace=grivace) → georef rastr → segmentace = GT. **Dvě gates measure-first:** rozlišení (full-res
+      vs náhled) + přesnost quadu (sedne rovnou, nebo nutný fit?). Probe lokalita = závod uživatele, olivový areál
+      50.6906797N 14.8303997E. Nástroje: `livelox.py` + GT segmentace (jisté), `oris.py`/fitter (contingency, „stav až s důkazem").
+- [x] **Formát-rozhodnutí (uživatel):** stáhnout OBA — vektor = GT (preferovaný, z Livelox nejde → od kartografů),
+      rastr = picture (UC3/UC4-III + fallback); párovat přes georef.
+- [x] Bez produkčního kódu (proc baseline 65 triviálně drží). Propagace: IDEAS (nový blok + 5 zhuštěných), TODO
+      (pruning + probe), KB data-sources (Livelox sekce + oprava rozporu), GLOSSARY (Livelox + runnability), DIARY+diář.
+
 ## Sezení 66 (2026-06-02) — strategická diskuse (zelená/ortofoto) + příprava OOM verify (bez kódu)
 - [x] **Vyjasněno „zelenou děláme jen z forest-age?"** — plošná runnability zeleň lesa (406/408/410) = jediný
       zdroj `--forest-age` (AOPK věk, PROXY, důsledek vegetace gate). Ale 406 jde i ze stromořadí (`--treerows`)

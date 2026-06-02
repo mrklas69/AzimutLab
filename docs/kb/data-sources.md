@@ -254,13 +254,42 @@ pro kalibraci cest nejbližší Soví vrch / Bedřichovka).
   bez ohledu na původ (nešíří se, `resources/` je gitignored). Hned využitelné: kalibrace
   vedení cest vůči terénu (Dijkstra cena — IDEAS „dvoustupňová věrnost"), validace generalizace
   modelu (§8.4 spec); Soví vrch = autoritativní terénní ground-truth (mapováno uživatelem v terénu).
-- ℹ️ **Trénink UC5 se reálných map NETÝKÁ** — model se učí na našem **syntetickém** datasetu
-  z generátoru (free GT, reframe Sez. 4) → licence reálných map je pro trénink bezpředmětná.
-  (Šíření odvozeniny klubové mapy by svolení vyžadovalo — to ale neděláme.)
+- ⚠️ **KOREKCE Sez. 67 (conceptual integrity): „trénink = jen syntetika" platí pro STRUKTURU, NE pro
+  runnability.** Reframe Sez. 4 („model se učí na syntetickém datasetu, licence reálných map bezpředmětná")
+  vznikl PŘED doložením [vegetace gate](#vegetace-gate--zavřena-pro-open-data-cestu-ověřeno-sez-3-doloženo-měřením-sez-59)
+  (Sez. 59). Pro **tvrdou geometrii** syntetika stačí (generátor ji umí, GT zdarma). **Ale runnability model
+  (zelená 406/408/410, žlutá) supervised potřebuje GT = co kartograf nakreslil na reálné mapě** — generátor
+  runnability neumí věrně (gate) → syntetický trénink by byl cirkulární. **Runnability korpus tedy reálné mapy
+  + jejich licenci POTŘEBUJE.** Pragmatická cesta Sez. 67: privátní nekomerční experiment (TDM výjimka), legalizace
+  (ČSOS) až pokud model funguje. Detail: IDEAS „UC5 runnability korpus".
 
 **Pozn. (Sez. 20):** dřívější záměr dělit `resources/` na `own/`+`club/` kvůli „čistotě
-tréninkového setu" byl **zrušen** — trénink je syntetický, reálné mapy se neučí, takže dělení
-postrádá důvod. `resources/` zůstává plochý.
+tréninkového setu" byl **zrušen** — pro syntetický trénink STRUKTURY dělení postrádá důvod (viz korekce výše:
+runnability je jiný případ). `resources/` zůstává plochý.
+
+## Livelox — cesta B nástroj pro runnability korpus (deep research Sez. 67)
+
+Platforma pro sdílení tras závodů s mapou na pozadí (<https://www.livelox.com>). **Nejlepší technicky dostupný
+zdroj reálných OB map ve vysokém rozlišení** pro UC5 runnability korpus (volba směru Sez. 67).
+
+**Stažitelnost (ověřeno 3-0):** mapa + georef jdou ven přes interní nedokumentované endpointy
+`/Data/ClassInfo` + `/Data/ClassBlob` (POST `classId` → URL mapy z Azure blobu + 4 rohy quad). Dva nezávislé
+aktivní open-source nástroje: `yoav28/livelox-map-downloader-extension` (Chrome ext., MIT) a
+`routechoiceslivegps/map-downloader` (live `map-download.routechoices.com/livelox/`, udržováno do 11/2025).
+
+- **Formát: jen RASTR** (PNG/WebP). Vektor `.omap`/`.ocd` Livelox na uploadu přijímá, ale server-side
+  rasterizuje → 3. strana stáhne jen rastr. **GT runnability = barevná segmentace** (ne čistý symbol).
+- **Georef: 4 WGS84 rohy** bounding-quadrilateralu (žádný EPSG/world-file) → nutná reprojekce do S-JTSK 5514;
+  lokálně deformované mapy mají reziduální offset (affinní fit) → možná feature-fit na gen projekci.
+- **Rozlišení: NEZMĚŘENO** (gate č. 1 — `images[0]` může být full-res, nebo down-scaled náhled).
+
+**Licence — gate (jako ČSOS):** Livelox docs verbatim „maps and routes are not accessible through the API
+for copyright reasons"; stažení přes interní endpointy ty podmínky **obchází**. Práva drží kartograf/pořadatel/
+federace (ne Livelox). **Privátní nekomerční experiment OK (TDM výjimka); legalizace (oslovit ČSOS/Livelox)
+nutná před jakýmkoli sdílením modelu nebo korpusu.**
+
+**Vyloučit z GT: MapAnt FI / MapantES** — strojově generované z LiDAR (Karttapullautin) → runnability není
+kartografova, trénink by byl cirkulární. **Routegadget** = sekundární (jen JPG/GIF 150-200 dpi, strop 1700 px).
 
 ## Další zdroje (neprozkoumáno)
 
