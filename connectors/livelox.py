@@ -430,6 +430,41 @@ def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
             "offset": offset}
 
 
+def build_pairs(out_dirs, mpp_target: float = 1.33,
+                skip_existing: bool = True, measure: bool = True) -> dict:
+    """Hromadně vyrobí zarovnané páry (X,Y) pro seznam adresářů map (UC5 trénink, Sez. 76).
+
+    Volá build_georef_pair na každý adresář. Vlastnosti dávky:
+      - resumovatelné: skip_existing přeskočí mapy s hotovým ortho.png+gt_grid.png
+        (re-běh po přerušení nestahuje znovu — ortofoto fetch je drahý),
+      - tolerantní: chyba jedné mapy (síť/georef) dávku NEzastaví, jen se zaznamená,
+      - QC: measure agreguje georef offset (phase correlation) přes celý set = GATE 1
+        na 207 mapách (Sez. 75 měřil jen 25) → medián má zůstat ~1 px.
+
+    Vrací souhrn {ok:[cid], skipped:[cid], failed:[(cid,err)], mags:[mag_m,...]}.
+    """
+    import logging
+    log = logging.getLogger("livelox.pairs")
+    summary = {"ok": [], "skipped": [], "failed": [], "mags": []}
+    total = len(out_dirs)
+    for i, d in enumerate(out_dirs, 1):
+        d = Path(d)
+        if skip_existing and (d / "ortho.png").exists() and (d / "gt_grid.png").exists():
+            summary["skipped"].append(d.name)
+            continue
+        try:
+            res = build_georef_pair(d, mpp_target, measure=measure)
+            summary["ok"].append(d.name)
+            if res["offset"]:
+                summary["mags"].append(res["offset"]["mag_m"])
+            log.info("[%d/%d] %s OK %dx%d @ %.2f m/px", i, total, d.name,
+                     res["out_w"], res["out_h"], res["mpp"])
+        except Exception as e:
+            summary["failed"].append((d.name, f"{type(e).__name__}: {e}"))
+            log.warning("[%d/%d] %s FAIL: %s", i, total, d.name, e)
+    return summary
+
+
 def download_map(class_id: int, out_dir: str | Path | None = None,
                  overwrite: bool = False, make_blend: bool = True) -> Path:
     """Stáhne mapu třídy do resources/livelox/<classId>/ (map.png + meta.json).
@@ -671,6 +706,22 @@ if __name__ == "__main__":
         evs = _collect_all()
         print(f"nalezeno {len(evs)} eventů (od nejnovějších); stahuji {limit or len(evs)}…")
         download_corpus(evs, limit=limit)
+    elif arg == "pairs":
+        # hromadná výroba párů (X,Y) pro celý ČR train/val/test set (split.cz_dirs)
+        import logging
+        import statistics
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        sys.path.insert(0, str(Path(__file__).parent))
+        import split as _split
+        dirs = _split.cz_dirs()
+        print(f"hromadná výroba párů: {len(dirs)} ČR map…")
+        s = build_pairs(dirs)
+        print(f"\nhotovo: ok {len(s['ok'])}, skip {len(s['skipped'])}, fail {len(s['failed'])}")
+        if s["mags"]:
+            print(f"GATE 1 offset přes set: medián {statistics.median(s['mags']):.2f} m "
+                  f"(max {max(s['mags']):.2f}, min {min(s['mags']):.2f}, n={len(s['mags'])})")
+        for cid, err in s["failed"]:
+            print(f"  FAIL {cid}: {err}")
     else:
         cid = int(arg) if arg else 1116300
         d = download_map(cid, overwrite=True)
