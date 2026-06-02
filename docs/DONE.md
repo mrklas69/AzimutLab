@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 65 (2026-06-02) — fix rock-relief HTTP 500 (server práh ~7 Mpx) + regen 5 DEV
+- [x] **Nález: Sez. 63 rock-relief regen byl nekompletní** — NL/LS/SV `.omap` mtime (22:xx) o hodinu starší
+      než rock-relief fáze (HS/NV 23:xx); zůstaly se starou ZABAGED 206. Uživatelův postřeh nad `.omap` datem.
+- [x] **Diagnóza: ImageServer `exportImage` vrací HTTP 500 nad ~7 Mpx** (F32 tiff; empiricky 6,8 OK / 8,2 fail,
+      4× deterministicky). 6×4 km @ `TARGET_PX_M=1,5` = 4000×2667 = 10,7 Mpx; `MAX_PX=4000` clampoval STRANU,
+      ne PLOCHU → neochránil. Cache miss = důkaz, že NL/LS/SV hi-res fetch v Sez. 63 nikdy neuspěl. HS prošlo na
+      2501×2501 (TARGET_PX_M=2,0 cache, 6,3 Mpx), NV na portrait 6,67 Mpx — odtud falešný dojem „8 map regen".
+- [x] **Fix `generator/rock_relief.py`** (volba uživatele = KISS plošný cap): `MAX_AREA_PX=6_500_000` → clamp
+      `gw_hi·gh_hi` odmocninou (poměr drží), `MAX_PX` ponechán jako sekundární stranová pojistka. Oprava docstring
+      driftu („TARGET_PX_M ≈ 2 m" → 1,5 m). Velké landscape výseky zhrubnou na ~1,9 m/px; tiling pro 1,5 m = budoucí.
+- [x] **Regen všech 5 DEV** (konzistentní rozlišení jedním capem): NL→3122×2081 (1,92 m), HS→2549×2549 (1,96 m),
+      NV→1974×3291 (1,52 m). Skály 206 z DMR: **NL 197 / LS 219 / SV 239 / HS 936 / NV 49**. NL/LS/SV teď mají
+      skutečnou DMR rock-relief. Vše exit 0.
+- [x] **Forest-age SV bílý les = doložená mezera** (AOPK probe: SV 0 porostních skupin, Lužické hory mimo
+      „Les_Mapy"). Histogram `BARVA` připraven jako OOM reference (NL 213 skupin = nejlepší; LS 12 = slabý;
+      `BARVA 11` na hraně bílá/406, NL 55×). OOM verify zůstává carry (uživatel „nechme to tak").
+- [x] Propagace: spec §4.9f (plošný cap + nález), DIARY index, DONE, diář.
+
 ## Sezení 63 (2026-06-01) — skalní plochy 206 z DMR sklonu (rock-relief) + forest-age na 8 map
 - [x] **Forest-age na všech 8 testovacích mapách** (carry Sez. 62): NL 341 / LS 490 / NV 696 / Bedřichovka 289 /
       Blatná 177 / Velbloud 373 (matched výseky reálných map z `.pgw`); **SV 0 / HS 0 = mimo AOPK pokrytí**

@@ -299,8 +299,12 @@ tmavost — ta je směrově závislá) → práh **46°** (jisté skalní stěny
 díry (vrcholové plošiny <250 m²), velké průchody nechat → vektorizace přes **contourpy** (úroveň 0,5; NE
 rasterio/shapely) → Douglas-Peucker + Chaikin (legitimní — de-pixeluje RASTER masku, NE čisté vektory jako
 ZABAGED Sez. 30). Závislost **scipy** (morfologie + connected-components; jen `--rocks real`). `_draw_area_symbol`
-černá výplň, polygony [outer, díra…] v S-JTSK = týž tok jako dřív. Rozlišení 1,5 m = jeden fetch do ~6 km
-(limit ArcGIS exportImage ~4000 px; >6 km zhrubne, tiling = budoucí).
+černá výplň, polygony [outer, díra…] v S-JTSK = týž tok jako dřív. Cílové rozlišení 1,5 m (`TARGET_PX_M`),
+ale ImageServer `exportImage` vrací **HTTP 500 nad ~7 Mpx** (F32 tiff, empiricky práh 6,8 OK / 8,2 fail —
+Sez. 65) → **plošný cap `MAX_AREA_PX=6,5 Mpx`** (clamp PLOCHY gw·gh, ne strany; 6×4 km @ 1,5 m = 10,7 Mpx
+přesto stranou < 4000, proto stranový strop neochránil). Velké landscape výseky tak zhrubnou na ~1,9 m/px;
+plné 1,5 m všude = tiling (budoucí). **Pozor (Sez. 65 nález): Sez. 63 regen byl tímto prahem nekompletní** —
+NL/LS/SV zůstaly na rané fázi se starou ZABAGED 206; opraveno plošným capem + regenem všech 5 DEV.
 GT `mask_rocks.png` (4-class). Z-order: úplně navrch (po budovách+řopících = OOM priorita skály > budovy).
 **ZABAGED vrstvy nenesou typ/velikost/výšku (jen `jmeno`)** → per-feature rozhodování (hybridní 202/206) i
 Chaikin smoothing na NICH ZAVRŽENY (bez datového podkladu; *generalizuj jen s důkazem*, Sez. 30). Chaikin na
