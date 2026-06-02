@@ -93,6 +93,13 @@ bodových, liniových i plošných ISOM symbolů.
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
 - Přímá návaznost na Pic2Omap `color_separator.py` / detektory — kandidát na první
   reálně sdílený kód při přechodu na monorepo.
+- **Runnability korpus (Sez. 67–68):** UC5 model predikce běhatelnosti (zelená 406/408/410 +
+  žlutá open z ortofota/DMR/věku) je **supervised** → potřebuje GT = co kartograf nakreslil.
+  Vegetace gate (Sez. 59) brání věrné runnability z open dat → reálný GT je nutný (syntetika
+  cirkulární). Zdroj = **Livelox** (`connectors/livelox.py`, Sez. 68): reálná OB mapa jako
+  rastr + georef (gate 1+2 prošly — 1,33 m/px stačí na plošnou GT, quad sedne bez fitu);
+  GT segmentace `connectors/map_gt.py` (zelená/žlutá z barev). Korpus `resources/livelox/`
+  (gitignored, privátní/TDM). Cíl ~200 map (allEvents batch, příště).
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

@@ -121,7 +121,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification | ☐ |
+| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification; runnability prediction | ☐ corpus started (session 68: `livelox.py` real OB maps + `map_gt.py` runnability ground-truth; gates passed — 1.33 m/px, quad fits without fitter) |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
 
@@ -163,6 +163,8 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   ruian.py             #   ČÚZK RÚIAN cadastre parcels by land-use → private land → olive 520 (session 42)
   forest.py            #   AOPK "Les_Mapy" stand polygons; BARVA = age → ISOM 406/408/410 green PROXY/prediction; --forest-age (session 62)
   arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian+forest, session 42/62)
+  livelox.py           #   UC5 corpus: real OB maps from Livelox → map.png + meta.json (georef, epsg from data) + blend.png (session 68)
+  map_gt.py            #   UC5 corpus: runnability ground-truth (gt_labels/gt_vis) from real map via ISOM colour segmentation (session 68)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
   rock_relief.py       #   ISOM 206 rock areas from DMR 5G slope (numpy+scipy+contourpy; --rocks real, session 63)

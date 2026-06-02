@@ -30,13 +30,16 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
   mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
   (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".
-- [ ] *(UC5 korpus, %THINK + deep research Sez. 67; směr C zvolen — IDEAS „UC5 runnability korpus")* **Measure-first
-  probe Livelox** (dvě gates, DŘÍV než korpus 100 map): **gate 1 rozlišení** (full-res, nebo down-scaled náhled?) +
-  **gate 2 přesnost quadu** (reprojikovaný 4-rohy WGS84→S-JTSK sedne na ortofoto, nebo nutný feature-fit?). Probe
-  lokalita = závod uživatele, olivový areál **50.6906797N, 14.8303997E** (Český pohár štafet, `classId=1116300`).
-  Nástroj: web `map-download.routechoices.com/livelox/` ručně, nebo port endpointů `/Data/ClassInfo`+`/Data/ClassBlob`.
-  Dle výsledku → `connectors/livelox.py` + GT segmentace zelená/žlutá (jisté), `oris.py` / georef fitter (contingency).
+- [~] *(UC5 korpus, IDEAS „UC5 runnability korpus")* **Livelox korpus reálných OB map.** Probe gate 1+2 HOTOVO Sez. 68
+  (DONE): `connectors/livelox.py` (classId → map.png + meta.json + blend.png, epsg z dat) + `connectors/map_gt.py`
+  (runnability GT gt_labels/gt_vis). Gate 1 = 1,33 m/px strop (plošná GT stačí), gate 2 = quad bez fitu (oris/fitter
+  netřeba). Korpus 4 mapy v `resources/livelox/`. **ZBÝVÁ — škálování na ~200 map (`[!]` příští fokus):** reverzovat
+  Livelox `allEvents` endpoint (`?tab=allEvents&country=CZE` → seznam classId, jako ClassInfo ze zdroje) → batch
+  `download_map`+`segment_gt`; rate-limit ohled. **ORIS souřadnice NETŘEBA** (blob nese vlastní přesný georef, gate 2).
   **Legalizace (oslovit ČSOS) až pokud model funguje** — do té doby privátní repo + TDM výjimka.
+- [ ] *(DRY dluh, nález Sez. 68)* **`ISOM_REF` triplikát** — referenční ISOM barvy pro klasifikaci reálných map žijí
+  v `generator/compare_real_vs_gen.py` (SSoT, Sez. 64) i jako KOPIE v `connectors/map_gt.py`. Až bude 3. konzument,
+  vytáhnout do sdíleného modulu (princip „generalizuj jen s důkazem" — 2 kopie zatím netlačí).
 - [~] *(architektura, nález A1 %AUDIT:CODE Sez. 35; jádro vyřešeno Sez. 50)* **`generator.py` monolit
   (3388 ř.)** — `_build_meta` smell + duplikace meta-konstrukce vyřešena Sez. 50: `_layer_meta_section`
   helper + tabulkový `real_sections` registr → `_build_meta` 26→18 param, smazána asymetrie „část vrstev

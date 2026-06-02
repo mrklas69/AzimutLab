@@ -315,9 +315,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Sez. 38.
 - **OCAD** — komerční SW pro tvorbu map; formát `.ocd`.
 - **Livelox** — platforma pro sdílení tras závodů s mapou na pozadí (livelox.com). **Cesta-B zdroj reálných
-  OB map** pro UC5 runnability korpus (deep research Sez. 67): stažitelný přes interní endpointy `/Data/ClassInfo`
-  + `/Data/ClassBlob` (2 open-source nástroje), ale **jen RASTR** (PNG, ne vektor) + georef = 4 WGS84 rohy
-  (→ reprojekce S-JTSK). Licenční gate (obchází podmínky; práva kartograf/pořadatel). Detail: `data-sources.md`,
+  OB map** pro UC5 runnability korpus (deep research Sez. 67): stažitelný přes interní endpoint `/Data/ClassInfo`
+  → Azure blob (2 open-source nástroje), ale **jen RASTR** (PNG, ne vektor) + georef = quad
+  (`projectedBoundingQuadrilateral` v CRS mapy + WGS84). Licenční gate (obchází podmínky; práva kartograf/pořadatel).
+  **Konektor hotov Sez. 68** (`connectors/livelox.py`): gate 1 rozlišení = strop **1,33 m/px** (nativní 0,75
+  server-side nedostupné; stačí na plošnou GT), gate 2 quad sedne na ortofoto **bez fitu** (oris/fitter overkill),
+  **epsg ČÍST Z DAT** (5514 i 32633, nezávisí na poloze). GT segmentace `map_gt.py`. Detail: `data-sources.md`,
   IDEAS „UC5 runnability korpus".
 - **Karttapullautin** — generátor OB podkladů z klasifikovaného LiDAR mračna (vrstevnice +
   vegetace). Stojí za projekty MapAnt. Survey: `RESEARCH.md`.

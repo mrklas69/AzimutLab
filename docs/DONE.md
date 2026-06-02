@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 68 (2026-06-02) — Livelox probe gate 1+2 PROŠLY → `connectors/livelox.py` + `map_gt.py` GT + georef blend
+- [x] **Foundations: request tvar ze ZDROJE** (`yoav28/livelox-map-downloader-extension` MIT, `src/popup.js` přes `gh api`) — `POST /Data/ClassInfo {classIds:[id]}` → `general.classBlobUrl` → `GET blob` → `map.images` + `map.projectedBoundingQuadrilateral`. Nehádáno.
+- [x] **Probe na 4 mapách** (závod 1116300 + uživatel dodal Mimoň 1116255 / Peklicko 1144077 / Slezsko 1192962 — rozmanité).
+- [x] **GATE 1 (rozlišení) PROŠEL s výhradou** — stažitelné max = `images[0]` = **1,33 m/px** (`tiles` = rozřezaný tentýž obraz, NE vyšší; thumbnaily separátní). Nativní 0,75 m/px server-side nedostupné. Konstantní napříč velikostmi i měřítky (1:10000 i 1:15000). Pro PLOŠNOU runnability GT stačí, jemné symboly ne.
+- [x] **GATE 2 (přesnost quadu) PROŠEL, fit NETŘEBA** — `projectedBoundingQuadrilateral` reprojikovaný → S-JTSK, afinní warp přes ortofoto → quad sedne BEZ feature-fitu na 4 mapách (vizuál verify). → `oris.py`/fitter overkill (princip „stav až s důkazem" potvrzen).
+- [x] **🔴 CRS číst z dat, nikdy hardcode** — CRS se mezi mapami liší (S-JTSK 5514 i UTM33 32633) a NEZÁVISÍ na poloze (Slezsko 18,8°E = 5514, ne UTM34); = co kartograf nastavil v OCAD. `projectionEpsgCode` z blobu, pyproj univerzálně.
+- [x] **`connectors/livelox.py`** — `download_map(classId)` → `resources/livelox/<id>/`: `map.png` + `meta.json` (georef quad + epsg z dat + provenance/licence) + `blend.png` (`make_blend=True`, warp přes ortofoto = georef důkaz; `build_georef_blend` + `_fit_affine`/`_warp_to_grid`, lazy importy). Idempotentní. Sourozenec dmr/zabaged/ortofoto.
+- [x] **`connectors/map_gt.py`** — `segment_gt(map.png)` → `gt_labels.png` (index 0=průchodný/1=406/2=408/3=410/4=open, trénink) + `gt_vis.png` (verify). Nearest-color na ISOM refs + majority(7px) filtr. ISOM_REF = KOPIE z `compare_real_vs_gen` (Sez. 64); DRY dluh do TODO (extrakce až 3. konzument).
+- [x] **Umístění korpusu (AskUserQuestion):** `resources/livelox/<classId>/` — odděluje auto-korpus od ruční compare sbírky, per-mapa struktura, gitignored (kryje TDM/privátní režim).
+- [x] **GT probe** (verify before invest) — nearest-color + majority → použitelná plošná runnability GT (zelená 3 úrovně + žlutá). Omezení: olivová 520 → brown (není v refs, runnability nevadí). Rozpady 4 map: zelená 7–18 %, open 6–23 %.
+- [x] **Korpus 4 mapy** kompletní (map.png + meta.json + gt_labels/gt_vis + blend, gitignored). proc baseline 65 nedotčen (UC2/UC5 konektor mimo generátor). gitignore + idempotence + epsg-z-dat ověřeny.
+- [x] **Škálování na ~200 map (vstup uživatele) → příští fokus:** Livelox `allEvents` + ORIS souřadnice. **Oponentura: ORIS netřeba** (blob georef stačí, gate 2) → pipeline = allEvents → classId → batch. Zbývá reverzovat allEvents endpoint + rate-limit.
+
 ## Sezení 67 (2026-06-02) — OOM verify Test OK + IDEAS/TODO pruning + %THINK směr → UC5 runnability korpus (Livelox)
 - [x] **OOM `.omap` verify Test OK** (uzavřen hlavní carry Sez. 62→66) — forest-age 406/408/410 (NL/NV) +
       rock-relief 206 (HS/SV) ověřeny uživatelem v OpenOrienteering Mapperu. Foundations forest-age + rock-relief

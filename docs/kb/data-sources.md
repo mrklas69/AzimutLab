@@ -272,16 +272,25 @@ runnability je jiný případ). `resources/` zůstává plochý.
 Platforma pro sdílení tras závodů s mapou na pozadí (<https://www.livelox.com>). **Nejlepší technicky dostupný
 zdroj reálných OB map ve vysokém rozlišení** pro UC5 runnability korpus (volba směru Sez. 67).
 
-**Stažitelnost (ověřeno 3-0):** mapa + georef jdou ven přes interní nedokumentované endpointy
-`/Data/ClassInfo` + `/Data/ClassBlob` (POST `classId` → URL mapy z Azure blobu + 4 rohy quad). Dva nezávislé
-aktivní open-source nástroje: `yoav28/livelox-map-downloader-extension` (Chrome ext., MIT) a
-`routechoiceslivegps/map-downloader` (live `map-download.routechoices.com/livelox/`, udržováno do 11/2025).
+**Stažitelnost (ověřeno Sez. 68, request tvar ze zdroje `yoav28` extension):** `POST /Data/ClassInfo`
+(body `{classIds:[id], …}`) → `general.classBlobUrl` → `GET` Azure blob → `map.images[]` + georef quad.
+(Není separátní `/Data/ClassBlob` endpoint — blob URL přijde z ClassInfo.) Dva nezávislé aktivní open-source
+nástroje: `yoav28/livelox-map-downloader-extension` (Chrome ext., MIT) a `routechoiceslivegps/map-downloader`.
 
 - **Formát: jen RASTR** (PNG/WebP). Vektor `.omap`/`.ocd` Livelox na uploadu přijímá, ale server-side
   rasterizuje → 3. strana stáhne jen rastr. **GT runnability = barevná segmentace** (ne čistý symbol).
-- **Georef: 4 WGS84 rohy** bounding-quadrilateralu (žádný EPSG/world-file) → nutná reprojekce do S-JTSK 5514;
-  lokálně deformované mapy mají reziduální offset (affinní fit) → možná feature-fit na gen projekci.
-- **Rozlišení: NEZMĚŘENO** (gate č. 1 — `images[0]` může být full-res, nebo down-scaled náhled).
+- **Georef: quad** — `projectedBoundingQuadrilateral` (4 rohy v **CRS mapy**) + `boundingQuadrilateral` (WGS84).
+  **🔴 EPSG ČÍST Z DAT** (`projectionEpsgCode`): liší se mezi mapami (Sez. 68: S-JTSK 5514 i UTM33 32633) a
+  **NEZÁVISÍ na poloze** (Slezsko 18,8°E = 5514, ne UTM34) → CRS = co kartograf nastavil v OCAD, ne zóna.
+- **Rozlišení (gate 1 ZMĚŘENO Sez. 68):** stažitelné max = `images[0]` = **~1,33 m/px** (`map.tiles` = jen
+  rozřezaný tentýž obraz, NE vyšší; nativní `resolution`=0,75 m/px je server-side nedostupné). Konstantní
+  napříč velikostmi i měřítky. **Stačí na PLOŠNOU runnability GT**, jemné symboly ne.
+- **Přesnost quadu (gate 2 ZMĚŘENO Sez. 68):** reprojikovaný quad sedne na ortofoto **bez feature-fitu** na
+  4 mapách (vizuál) → `oris.py` lookup ani georef fitter nejsou potřeba („stav až s důkazem").
+
+**Konektor hotov Sez. 68:** `connectors/livelox.py` (`download_map(classId)` → `resources/livelox/<id>/`:
+`map.png` + `meta.json` + `blend.png` georef důkaz) + `connectors/map_gt.py` (runnability GT segmentace).
+Korpus 4 mapy; cíl ~200 přes `allEvents` batch (příště — ORIS souřadnice netřeba, blob nese vlastní georef).
 
 **Licence — gate (jako ČSOS):** Livelox docs verbatim „maps and routes are not accessible through the API
 for copyright reasons"; stažení přes interní endpointy ty podmínky **obchází**. Práva drží kartograf/pořadatel/
