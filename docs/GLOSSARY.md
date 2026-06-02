@@ -179,8 +179,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
   U reálné mapy (`map_gt.py`) labely 0–4 (průchodný/406/408/410/open), navíc **label 255 = ignore**
-  (trénink přeskočí přes `ignore_index`). Ignore nese **fialový přetisk tratě** (kroužky kontrol,
-  spojnice, čísla — ne ISOM runnability barva; Sez. 72), izomorf k olivové 520 → label 0.
+  (trénink přeskočí přes `ignore_index`). Ignore nese: (1) **fialový přetisk tratě** (kroužky kontrol,
+  spojnice, čísla — ne ISOM runnability barva; Sez. 72); (2) **layout mimo mapové území** (legenda,
+  control-description tabulka, titulek, tiráž, logo, papírový okraj — `_detect_map_area`, Sez. 73 část B):
+  detekce z barevnosti, ne geometrie — mapa má sytou ISOM paletu, mimo-mapové bloky jsou černobílé/papír.
+  Obojí izomorf k olivové 520 → label 0 (out-of-bounds = ne běhatelnost).
 
 - **Řopík** (lehké opevnění, ŘOP vz.37) — betonový pohraniční bunkr (čs. opevnění 30. let). V ZABAGED
   bodová vrstva `Bunkr` (`typbunkr_k='LO37'`). Na OB mapě = bodový orientační prvek (NE budova 521):

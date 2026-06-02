@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 73 (2026-06-02) — layout mimo mapové území → label 255 ignore (GT kvalita, část B)
+- [x] **Layout-ignore (`map_gt._detect_map_area`):** runnability GT kontaminoval obsah MIMO mapu (legenda,
+      control-description tabulka, titulek, tiráž, logo, bílý papír kolem mapy — label 0 = falešná průchodná
+      plocha). **Measure-first vyvrátil geometrii:** naivní největší-komponenta (po morf. uzavření) i XY-cut
+      (projekční profil) v probu SELHALY (tabulka se spojila s mapou / kernel uřízl mapu) → křehké napříč
+      variabilitou. **Zvolen hybridní BAREVNÝ detektor:** mapa má sytou ISOM paletu (`_MAP_COLOR_KEYS` = zeleň/
+      modř/hněď/žluť), mimo-mapové bloky černobílé (mřížka/text) nebo bílý papír. Dlaždicová mřížka (~1/120 strany)
+      → dlaždice „mapová" když >4 % mapově-barevných pixelů → dilatace scelí řídké okraje → největší souvislá
+      komponenta + `fill_holes` = mapové území (vnitřní bílý les se vyplní), zbytek → `IGNORE=255`.
+- [x] **`_classify` refaktor:** vrací index nejbližší ISOM barvy (ne rovnou label) → jeden argmin pro runnability
+      label (`_LABEL`) i mapovou plochu (`_MAP_COLOR_KEYS`). Layout-ignore aplikován AŽ NAKONEC v `segment_gt`
+      (vše mimo mapu → 255 bez ohledu na runnability/přetisk uvnitř okraje). Vedle přetisk-ignore ze Sez. 72.
+- [x] **Verify (17 map, vizuál):** titulky/tiráž/loga/papírový okraj zachyceny, **mapa BEZ false-cropu** (konzervativní
+      asymetrie — radši drobná kontaminace než ztráta terénu). Vysoké mimo-% (medián ~36 %) = legitimní papír kolem
+      organické mapy, ne vada. Korpus přesegmentován 268/268.
+- [x] **Known limitation (přijato, odloženo):** control-description tabulka s barevnými ISOM symboly blízko mapy
+      proklouzne (dilatace ji spojí s mapou, symboly = mapová barva) — byl to hlavní cíl B → uživatel zvolil
+      „přijmout částečné B" (titulky/papír vyřešeny). Nový TODO „detektor mřížky tabulek". Barevné titulky (žluté
+      pozadí) taky občas proklouznou (volba „nechat konzervativně").
+
 ## Sezení 72 (2026-06-02) — fialový přetisk tratě → label 255 ignore (GT kvalita, část A)
 - [x] **Fialový přetisk tratě → label 255 ignore (`map_gt.py`):** runnability GT kontaminoval přetisk tratě
       (kroužky kontrol/spojnice/čísla/titulek — ne ISOM runnability barva). Měření: **31 % keep map (68/216)** ho

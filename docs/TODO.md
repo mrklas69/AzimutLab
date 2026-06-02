@@ -43,13 +43,22 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
   (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".
-- [~] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — strukturální GT krok místo
+- [x] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — strukturální GT krok místo
   per-mapa tagování legend (nespolehlivé v 240px náhledu). **Část A HOTOVO Sez. 72: fialový přetisk tratě → label
   255 ignore** (`map_gt.py`, 2 purpurové odstíny z dat, maska dilatovaná po median; 31 % keep map; OOB šrafa 709
-  taky ignore). **ZBÝVÁ část B: legenda/okraj/control-description tabulka** — detekce mapového území (největší
-  souvislá komponenta obsahu po morf. uzavření) → oddělené bloky (legenda/tabulka/tiráž) ignore. Rizikovější
-  (false-crop připojené legendy) → měřit + vizuál verify. Pozn. Sez. 72: bílé buňky tabulky teď zůstávají label 0
-  (falešná průchodná plocha). Manifest `legend` tagy (Sez. 71) + `green_pct` to podpoří. Pak regen GT dotčených.
+  taky ignore). **Část B HOTOVO Sez. 73 (částečně): layout mimo mapové území → 255 ignore.** Hybridní detektor
+  (`_detect_map_area`): NE geometrie (křehká — naivní největší-komponenta i XY-cut selhaly v probu), ale
+  **barevnost** — mapa má sytou ISOM paletu, mimo-mapové bloky černobílé/papír. Dlaždice → barevné > 4 % →
+  dilatace scelí řídké oblasti → největší komponenta + fill holes = mapa, zbytek ignore. Verify 12 map: titulky/
+  tiráž/loga/papírový okraj zachyceny, mapa BEZ false-cropu (konzervativní asymetrie). **Known limitation:
+  control-description tabulka s barevnými ISOM symboly blízko mapy proklouzne** (dilatace ji spojí s mapou,
+  symboly = mapová barva) — viz nový TODO „detektor mřížky tabulek". Barevné titulky (žluté pozadí) taky občas
+  proklouznou (volba „nechat konzervativně", Sez. 73).
+- [ ] *(GT kvalita follow-up, known limitation Sez. 73)* **detektor mřížky control-description tabulek** —
+  layout-ignore Sez. 73 (barevnost) tabulku s barevnými ISOM symboly blízko mapy nezachytí. Cílený detektor na
+  PRAVIDELNOU MŘÍŽKU černých čar (projekční profil / periodicita černých pixelů v pravoúhlém bloku) by ji vyřízl
+  nezávisle na barevnosti symbolů uvnitř. Před implementací změřit rozsah (kolik keep map nese nezachycenou
+  tabulku, jakou plochu kontaminuje) — viz volba Sez. 73 (přijato částečné B, tabulka odložena).
 - [ ] *(rozšíření korpusu Sez. 70, volitelné — až bude UC5 model konzumovat)* víc map/event u etapových závodů (dnes
   1/event = ztráta vedlejších map), nebo dedup map podle georef overlap. Zatím 216 keep stačí.
 - [ ] *(DRY dluh, nález Sez. 68; ROZEŠLO SE Sez. 71)* **`ISOM_REF`** — `generator/compare_real_vs_gen.py` (SSoT, Sez. 64)
