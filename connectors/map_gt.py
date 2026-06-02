@@ -18,6 +18,12 @@ Olivová 520 (oplocené areály) MÁ vlastní referenci → label 0 (out-of-boun
 od Sez. 71; bez ní padala na green → falešná zelená runnability na městských mapách (Turnov).
 Voda/budovy/skály/vrstevnice se z runnability masky vyřazují taky (label 0 = podklad).
 
+Fialový přetisk tratí (purpurová: kroužky kontrol, spojnice, start, čísla) NENÍ ISOM
+runnability barva → label IGNORE (255), od Sez. 72. Trénink ho přeskočí (ignore_index v loss),
+ne hádá co je pod ním. 31 % keep map ho nese (měření Sez. 72). Dvě purpurové reference
+DOLOŽENÉ z reálných rastrů (magenta tratě 178/24/148 + fialovější 176/8/230). Maska se
+dilatuje (antialiasovaný okraj čar) a aplikuje AŽ po median filtru (255 by zkreslil okno).
+
 Spouštět z kořene přes .venv (sys.path skript, fáze B).
 """
 
@@ -44,7 +50,12 @@ ISOM_REF = {
     "brown": (191, 105, 37), "blue": (50, 162, 222), "black": (30, 30, 30),
     "green_l": (200, 232, 200), "green_m": (120, 200, 140), "green_d": (40, 160, 90),
     "olive_a": (152, 184, 24), "olive_b": (168, 168, 56),   # 520 out-of-bounds (Sez. 71)
+    "purple_a": (178, 24, 148), "purple_b": (176, 8, 230),  # přetisk tratě → ignore (Sez. 72)
 }
+
+# label pro pixely vyřazené z GT (trénink je přeskočí přes ignore_index v loss). 255 se vejde
+# do uint8 a nekoliduje s runnability labely 0-4. Zatím jediný zdroj = purpurový přetisk tratí.
+IGNORE = 255
 
 # runnability label: 0 = průchodný/podklad (bílá, voda, vrstevnice, symboly), 1-3 = zelená
 # škála (406 slow / 408 walk / 410 fight), 4 = open land (žlutá). Mapuje ISOM třídu → label.
@@ -53,6 +64,7 @@ _LABEL = {
     "olive_a": 0, "olive_b": 0,   # 520 zákaz vstupu = podklad, NE běhatelnost (Sez. 71)
     "green_l": 1, "green_m": 2, "green_d": 3,
     "yellow": 4, "road": 4,   # road (oranžová silnic) splývá s open žlutou (jako compare GROUP)
+    "purple_a": IGNORE, "purple_b": IGNORE,   # přetisk tratě = vyřadit z GT (Sez. 72)
 }
 # barva pro vizualizaci labelu (ISOM-like)
 _LABEL_VIS = {
@@ -61,13 +73,18 @@ _LABEL_VIS = {
     2: (120, 200, 140),       # 408 walk
     3: (40, 160, 90),         # 410 fight
     4: (252, 221, 118),       # open
+    IGNORE: (255, 0, 255),    # přetisk tratě (verify: výrazná magenta = co se vyřadilo)
 }
 # popis labelů (pro report)
-LABEL_NAME = {0: "průchodný", 1: "406 slow", 2: "408 walk", 3: "410 fight", 4: "open"}
+LABEL_NAME = {0: "průchodný", 1: "406 slow", 2: "408 walk", 3: "410 fight", 4: "open",
+              IGNORE: "ignore (přetisk)"}
 
 # velikost okna majority filtru (px). Na ~1,33 m/px je 7 px ≈ 9 m — potlačí vrstevnici/cestu
 # uvnitř plochy, zachová plošný tvar. Laděno probe Sez. 68.
 _MEDIAN_SIZE = 7
+# dilatace přetisk-masky (px iterací 3×3): pokryje antialiasovaný okraj purpurových čar/kroužků,
+# který nearest-color klasifikuje jako sousední barvu. 2 px ≈ 2,7 m na 1,33 m/px. Sez. 72.
+_OVERPRINT_DILATE = 2
 
 
 def _classify(rgb: np.ndarray) -> np.ndarray:
@@ -92,8 +109,17 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     rgb = np.asarray(Image.open(map_png).convert("RGB"))
 
     labels = _classify(rgb)
+
+    # přetisk tratě (purpurová) → IGNORE. Oddělit PŘED median: hodnota 255 v okně by zkreslila
+    # medián sousedů. Ignore pixely dočasně na 0 (neutrální), medianuj runnability, pak vrať masku
+    # dilatovanou (pokryje antialiasovaný okraj čar, který padl na sousední barvu).
+    ignore = labels == IGNORE
+    labels[ignore] = 0
     # majority filtr potlačí tenké ne-plošné linie uvnitř ploch
     labels = ndimage.median_filter(labels, size=_MEDIAN_SIZE)
+    if ignore.any():
+        ignore = ndimage.binary_dilation(ignore, iterations=_OVERPRINT_DILATE)
+        labels[ignore] = IGNORE
 
     # ulož index mapu (trénink) + barevnou vizualizaci (verify)
     Image.fromarray(labels, mode="L").save(out_dir / "gt_labels.png")
