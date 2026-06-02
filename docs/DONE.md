@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 69 (2026-06-02) — %CALIBRATE + %AUDIT:DOCS (úklidové sezení, oba audity zralé)
+- [x] **Fokus „2 pak 1"** (volba uživatele) — audity teď (foundations-before-curtains: `livelox.py`/`map_gt.py`
+      ze Sez. 68 ještě neprošly úklidem), škálování korpusu příští sezení.
+- [x] **Stale Příště:** compare/Slovanka viselo jako vedlejší carry **9×** (od Sez. 59) → **DROP** (zůstává v TODO
+      jako nález, přestane se navrhovat; mirror oplocené terény Sez. 57).
+- [x] **Metoda:** dva audity najednou (precedent Sez. 34/57); %CALIBRATE sám, %AUDIT:DOCS 3 paralelní agenti →
+      nálezy profiltrovány proti zdroji (5/15 tvrdých, zbytek zamítnut jako šum — lekce Sez. 46).
+- [x] **%AUDIT:DOCS — 5 tvrdých + 3 měkké, vše opraveno:** T1 `README:81` DEV_LOCATIONS 3→5 lokalit (HS 5×5,
+      NV 3×5, „Nová Louka"); T2 rokle → **107 Erosion gully** doplněna do `--linefeatures` ve 3 souborech
+      (README/architecture/generator-README, Sez. 58 nepropsána); T3 `generator-procedural.md` **301.1 → 301**
+      combined ×3 (kód Sez. 58); T4 `generator/README` parkoviště **501 → 501.1** (Sez. 57); T5 překlep
+      „zvlástě"→„zvláště". Měkké: Karttapullautin URL (z RESEARCH.md, DRY), GLOSSARY heslo **rock-relief 206**,
+      generator-procedural §4 stav-blok doplněn o real-půlku.
+- [x] **%CALIBRATE — 5 nálezů, vše opraveno:** C1 `settings.local.json` allow-list **~190 → 15** (mrtvé
+      `sandbox/generator-poc/` cesty od Sez. 39 + jednorázové scratch; opakující se nález Sez. 17/51); C2 PROMPTS
+      Stale check na **všechny** Příště body (ne jen fokus); C3 cadence formulace „práh dosažen = zralý kandidát /
+      o ≥2 = vynucený první bod"; C4 `CLAUDE.md` klíč. soubory `connectors/` (+ruian/forest/ortofoto/livelox/map_gt
+      + arcgis.py); C5 zkráceno 6 nejdelších DIARY hooků (index překračoval read cap).
+- [x] **Cleanup:** `temp/rockcore/` smazán (obsolete po handoffu Sez. 63).
+- [x] **Verify:** 0× `.py` mezi změnami (10 tracked docs/config), proc baseline 65 triviálně drží. settings
+      gitignored → neovlivní druhý stroj. Cadence reset: %AUDIT:DOCS + %CALIBRATE oba Sez. 69. Censure 0.
+
 ## Sezení 68 (2026-06-02) — Livelox probe gate 1+2 PROŠLY → `connectors/livelox.py` + `map_gt.py` GT + georef blend
 - [x] **Foundations: request tvar ze ZDROJE** (`yoav28/livelox-map-downloader-extension` MIT, `src/popup.js` přes `gh api`) — `POST /Data/ClassInfo {classIds:[id]}` → `general.classBlobUrl` → `GET blob` → `map.images` + `map.projectedBoundingQuadrilateral`. Nehádáno.
 - [x] **Probe na 4 mapách** (závod 1116300 + uživatel dodal Mimoň 1116255 / Peklicko 1144077 / Slezsko 1192962 — rozmanité).

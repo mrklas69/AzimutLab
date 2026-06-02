@@ -51,7 +51,7 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
   (zahrada+zastavěná, `ruian.py`) + **areály účelové zástavby** (ZABAGED 114: škola/hřiště/sport/kasárna… → 520,
   asfalt 408/409 → 501) + **kamenolom** (ZABAGED `Povrchová těžba, lom` 118, Sez. 56: oplocený těžební areál → 520,
   ne 201 — plocha→plocha, kamenné útvary v z-orderu nad olivovou). Kůlny (105)
-  → 521. Parkoviště + asfalt → 501 přes `--paved`. **Z-order vespod** (podklad pod
+  → 521. Parkoviště → **501.1** (bez obrysu, průchozí; Sez. 57 oprava z 501), asfalt areálů → 501 přes `--paved`. **Z-order vespod** (podklad pod
   vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`
   → **523 Ruin** (čárkovaný obrys bez výplně). ČÚZK je vede zvlášť, ne v `Budova_99` (domov mládeže = bývalý zámek),
@@ -62,7 +62,7 @@ reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
 - **mokřady** — `--marsh real` (Sez. 44): bažina/močál + rašeliniště→**308 Marsh** (modrá vodorovná šrafa;
   KISS vždy crossable, NE 307),
 - **liniové orient. prvky** — `--linefeatures real` (Sez. 43): sráz→**104 Earth bank** (HNĚDÁ plná + jednostranné ticky),
-  zeď/hradba→**513 Wall**,
+  zeď/hradba→**513 Wall**, rokle/výmol→**107 Erosion gully** (Sez. 58; HNĚDÁ plná bez ticků, mirror 104; v ČR řídká, Σ0 na DEV),
 - **stromořadí** — `--treerows real` (Sez. 45): `Liniová vegetace`→**406 Vegetation: slow running** („lineární les":
   osa→buffer→úzký světle zelený pás; oprava 416 = hranice porostů byla sémanticky špatně pro řadu stromů),
 - **věk porostu → zeleň** — `--forest-age real` (Sez. 62, `forest.py`): AOPK porostní skupiny (atribut `BARVA`=věk)

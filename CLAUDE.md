@@ -35,8 +35,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 ## Klíčové soubory (orientace; plný rozpis README „Repository layout")
 - `docs/architecture.md` — kanonický UC DAG, vrstvení, vztah k Pic2Omap (SSoT modelu).
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
-- `connectors/` — UC2 konektory reálných geodat (`dmr.py` výškopis, `zabaged.py` cesty+voda);
-  vytaženo ze sandboxu (Sez. 16), sourozenci sdílí `dmr.build_bbox`. Sys.path skripty, ne balík.
+- `connectors/` — UC2 konektory reálných geodat: `dmr.py` (výškopis), `zabaged.py` (cesty/voda/budovy/…),
+  `ruian.py` (katastr, Sez. 42), `forest.py` (AOPK věk porostu → zeleň, Sez. 62), `ortofoto.py` (podklad);
+  REST sourozenci sdílí `arcgis.py` transport (Sez. 42). UC5 korpus: `livelox.py` (stahování reálných OB map)
+  + `map_gt.py` (runnability GT segmentace), Sez. 68. Sys.path skripty, ne balík (pozn.: `rock_relief.py`
+  žije v `generator/`, ne zde).
 - `generator/` — UC4-I/UC5 generátor OB map (pilíř Laboratoře; povýšen ze `sandbox/generator-poc/`
   v Sez. 39 — `sandbox/` zrušen, byl jediný obyvatel). Konzumuje `connectors/`. `generate_map()` =
   hlavní vstup. Výstupy → `maps/<lokalita>/` (gitignored, kotveno v kořeni přes `MAPS_DIR`).

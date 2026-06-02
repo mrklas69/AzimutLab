@@ -61,7 +61,7 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41 +
   areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42 +
   **Sez. 43 systematický audit katalogu: zámek/hrad → 521, zřícenina → 523, věž/vodojem/silo/… → 524, mohyla → 526,
-  kříž → 530, strom → 417, sráz → 104, zeď/hradba → 513** — `--landmarks`/`--linefeatures`;
+  kříž → 530, strom → 417, sráz → 104, zeď/hradba → 513, rokle/výmol → 107 Erosion gully (Sez. 58)** — `--landmarks`/`--linefeatures`;
   **Sez. 44 dávka 4 vodní/mokřady: bažina+rašeliniště → 308 Marsh (`--marsh`), pramen → 312, jeskyně+šachta → 203.2,
   nádrž → 311 (`--landmarks`); hráz 528 odložena**;
   **Sez. 45 stromořadí `Liniová vegetace` → 406 Vegetation: slow running (`--treerows`, lineární les: osa→buffer→pás;

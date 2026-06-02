@@ -14,11 +14,14 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    v rootu zůstaly jen README.md a CLAUDE.md.)
 2. Audit cadence check (prahy z globálního CLAUDE.md) — spočítej od posledního
    výskytu auditu v diáři: %AUDIT:CODE ≥8 sez / ≥500 LOC, %AUDIT:DOCS ≥10,
-   IDEAS/TODO pruning ≥12, %CALIBRATE ≥15. Práh překročen o ≥2 → první bod sezení.
+   IDEAS/TODO pruning ≥12, %CALIBRATE ≥15. **Práh dosažen (≥)** = zralý kandidát (nabídni jako
+   bod fokusu). **Práh překročen o ≥2** = vynucený první bod sezení (úklid má přednost).
    (Pozn.: cadence počítej od posledního výskytu daného auditu v diáři — od založení,
    pokud žádný (%CALIBRATE/pruning poprvé Sez. 17). %AUDIT:CODE reálně spouští LOC
    práh ≥500, ne počet sezení — `generator/` + `connectors/` už mají kód.)
-3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP.
+3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP. **Počítej VŠECHNY body,
+   i vedlejší/carry** (ne jen fokus bod 1). Nález Sez. 69: „compare/Slovanka" visela jako vedlejší
+   bod 3 devětkrát, protože Stale check sledoval jen hlavní fokus → eskalace zpožděna.
 4. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
 

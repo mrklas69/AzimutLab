@@ -90,6 +90,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   úzký pás 1,5 mm (TÝŽ mechanismus jako stromořadí výše: osa→pás) a vyplní 208. `.omap` je `area_symbol` 208
   (OOM vyplní trojúhelníky věrně z definice), rastr = px-tuned aproximace. ISOM „generally will not impact
   runnability" → tvrdý kamenný objekt, [[vegetace-gate]] neporušuje (jako skály 204/206/207). Doplňuje `--rocks`.
+- **Skalní plochy 206 z DMR — rock-relief** (Sez. 63) — ISOM **206 Impassable cliff** plochy odvozené z DMR
+  sklonu (práh 46° + scipy morfologie scelí stěny do bloku → contourpy vektorizace na polygony), modul
+  `generator/rock_relief.py`. **NAHRADILO** ZABAGED `Skalní_útvary` jako zdroj 206 (generalizovaný blob → věrný
+  reliéf z výškopisu); bodové skály 204/207 a pole 208 zůstaly ze ZABAGED. Národní pokrytí (i kde forest-age díry
+  má). +dep `scipy` (`requirements.txt`). Hi-res fetch capnut `MAX_AREA_PX` (ImageServer 500 nad ~7 Mpx, Sez. 65).
 - **Prostup / branka — Crossing point** (Sez. 52) — místo, kudy se PROJDE přes plot/zeď (branka, schůdky). ISOM
   **519 Crossing point** = dvě rovnoběžné čárky („brána"), bodový rotatable symbol. Generátor `--barriers real`:
   ZABAGED `Zábrana` (id 54, „Závora, brána") → 519, ale **jen bod ležící na nosné zdi 513 (≤ 5 m)** — 519 je

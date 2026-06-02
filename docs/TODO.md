@@ -27,6 +27,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   (b) **Slovanka UTM33** — jiný georef transformer než Křovák; (c) **vektor-na-vektor rozpad** recall po sémantických
   skupinách (per-vrstva masky gen + rasterizace real `.omap`) — rozbít „black" na cesty/stavby/skály, „shoda symbolu" ne
   jen barvy; (d) STAT 2 je barevná, tol 4 m = placement, ne přesná poloha.
+  **(Stale DROP Sez. 69** — viselo 9× jako vedlejší carry; zůstává jako nález, přestane se navrhovat v Příště.)
 - [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
   mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
   (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".

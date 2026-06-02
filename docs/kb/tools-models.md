@@ -11,7 +11,7 @@ Katalog konkrétních nástrojů, knihoven a modelů použitelných v AzimutLab.
 |---------|------|------------------|
 | OpenOrienteering Mapper | tvorba/editace OMAP; import GDAL vektorů (GeoJSON→symboly) | github.com/OpenOrienteering/mapper |
 | CoVe | color line vectorization (orienťácké čáry) | github.com/lpechacek/cove (v OOM) |
-| Karttapullautin | LIDAR → mapa | — |
+| Karttapullautin | LIDAR → mapa | github.com/karttapullautin/karttapullautin (viz RESEARCH.md) |
 | lasertool | LIDAR point cloud (LAS/ASC) → rastr: terén + „vegetation height image" | lokálně `lasertool/` (Win32 Qt4, ~2011; liblas+Triangle); rodina tmsw.no basemap |
 | AutoTrace | bitmap → vektor (raster tracing): SVG/DXF/EMF… | autotrace.sourceforge.net (GPL) |
 | OCAD | komerční tvorba map | — |

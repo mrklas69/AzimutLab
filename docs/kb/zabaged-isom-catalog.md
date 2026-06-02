@@ -225,7 +225,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Hranice_správní_jednotky_a_KÚ` | linie | ✗ | administrativní hranice |
 | `Hranice_geomorfologické_jednotky` | linie | ✗ | administrativní / koncept |
 | `Rozvodnice` | linie | ✗ | vodní rozvodí (koncept, ne objekt) |
-| `Maloplošné_zvlástě_chráněné_území` | plocha | ✗ | administrativní (ochrana přírody) |
+| `Maloplošné_zvláště_chráněné_území` | plocha | ✗ | administrativní (ochrana přírody) |
 | `Velkoplošné_zvláště_chráněné_území` | plocha | ✗ | administrativní |
 | `Ptačí_oblast` | plocha | ✗ | administrativní (Natura 2000) |
 | `Evropsky_významná_lokalita` | plocha | ✗ | administrativní (Natura 2000) |

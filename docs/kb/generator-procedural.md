@@ -108,13 +108,15 @@ Použitá pole:
 
 Pořadí níže je zároveň pořadím vykreslování (z-order, odspodu nahoru).
 
-> **Stav implementace (Sezení 11):** `generator.py` po vědomém řezu dělá jen
-> **§4.5 vrstevnice + §4.9 cesty + §4.10 bodové symboly extrémů** (+ vektor §9).
-> Plošné vrstvy §4.2-4.4 (vegetace, paseky, bažiny) a §4.11 (balvany) byly
-> **zahozeny** — vypadaly uměle a kazily by domain gap feederu pro UC5. Metodika
-> níže zůstává platná pro přestavbu „znovu a lépe" (vrstvu po vrstvě, s důrazem
-> na vizuální věrnost); historie v gitu (commit Sez. 10). §4.6-4.8 a §4.12-4.13
-> nebyly nikdy implementovány.
+> **Stav implementace (Sezení 11, dnes výrazně rozšířeno):** `generator.py` po vědomém
+> řezu Sez. 11 dělal jen **§4.5 vrstevnice + §4.9 cesty + §4.10 bodové symboly extrémů**
+> (+ vektor §9). Od Sez. 16 přibyla celá **real-půlka §4.9a-p** (voda, budovy, vedení/lanovka,
+> železnice, kolejiště, skály, mosty/tunely, landmarks, plošný pokryv, lineární prvky, stromořadí,
+> věk porostu — viz podsekce §4.9*) a skalní plochy 206 z DMR (`rock_relief.py`, Sez. 63).
+> Plošné vrstvy §4.2-4.4 (vegetace, paseky, bažiny) a §4.11 (balvany) z noise-půlky byly Sez. 11
+> **zahozeny** — vypadaly uměle a kazily by domain gap feederu pro UC5. Metodika níže zůstává
+> platná pro přestavbu „znovu a lépe" (vrstvu po vrstvě, s důrazem na vizuální věrnost); historie
+> v gitu (commit Sez. 10). §4.6-4.8 a §4.12-4.13 (noise-půlka) nebyly nikdy implementovány.
 
 ### 4.1 Podklad
 Celé plátno bílé `#FFFFFF` (= běžně průběžný les).
@@ -217,7 +219,7 @@ generalizuj jen s důkazem, raw je default** (CLAUDE.md; voda byla dokonalá pr�
 
 **Pozn. — OOM draw order:** vykreslovací pořadí v OOM určuje **priorita barev** (ne pořadí
 objektů/symbolů v `.omap`); export jen referencuje symboly přes ISOM kód a zdědí color-table
-template. Plošné symboly (301.1, 521) potřebují v `.omap` UZAVŘENÝ path (close flag 18), jinak
+template. Plošné symboly (301 combined, 521) potřebují v `.omap` UZAVŘENÝ path (close flag 18), jinak
 je OOM nevyplní (`omap_export.area_object`, Sez. 18). Detail: GLOSSARY „Draw order / priorita barev".
 
 ### 4.9c El. vedení + lanovka/vlek (real-půlka, Sez. 24 + 55)
@@ -680,9 +682,9 @@ funkce generate(seed, params):
     jen `--terrain real`) — viz §4.5.
   - **✅ `.omap` export (Sez. 8, přepsán Sez. 13, template-based Sez. 14):** `omap_export.py`
     (volá se vždy) zapíše `map.omap` s **vrstevnicemi (101/102) + pomocnými vrstevnicemi (103, Sez. 29)
-    + cestami (502-506) + vodou (toky 304/305/306 + plocha 301.1) + budovami (521) + el. vedením (510,
+    + cestami (502-506) + vodou (toky 304/305/306 + plocha 301 combined s břehovou linií, Sez. 58) + budovami (521) + el. vedením (510,
     Sez. 24) + železnicí (509, Sez. 28) + kolejištěm (501, Sez. 28) + body (109/110/111)**, Local CRS,
-    paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). Plošné symboly (301.1, 521)
+    paper-space (1 m → `1e6/scale` µm, vycentrováno, bez Y-flip). Plošné symboly (301 combined, 521)
     se exportují jako UZAVŘENÝ path s close flagem 18, jinak je OOM nevyplní (Sez. 18).
     NEduplikuje Pic2Omap `db2omap` (ten jde z rastru; my z přesných polylinií).
     **Vývoj přístupu:** Sez. 8 template-based (cizí `.omap`) → Sez. 13 **od nuly** (kvůli

@@ -51,7 +51,7 @@ and — since session 43 (a **systematic catalogue audit** triggered by a missin
 recurring "it's missing / we don't map that" anti-pattern, fixed for good by data-driven counts of all 149 layers
 across the 5 dev locations) — castles/chateaux → 521, **ruins** → 523 (Milštejn et al., dashed outline),
 towers/water-towers/silos/… → 524, cairns/memorials → 526, crosses/wayside shrines → 530, prominent trees → 417
-(`--landmarks`), and earth banks → 104, walls/ramparts → 513 (`--linefeatures`);
+(`--landmarks`), and earth banks → 104, walls/ramparts → 513, erosion gullies → 107 (`--linefeatures`, session 58; rare on the dev locations);
 since session 44 (catalogue batch 4: water/wetland) marshes+peat bogs → 308 Marsh (`--marsh`, blue horizontal hatch),
 springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--landmarks`); since session 45 tree rows
 (`Liniová vegetace`) → 406 Vegetation: slow running (`--treerows`, "linear forest": axis→buffer→strip; corrects the
@@ -78,8 +78,9 @@ where no pylon is recorded; future: vegetation). Session 25 realised the long-pl
 (renamed back to `generate_map` in session 39 — "generator" won out in conversation, and it is the
 umbrella for future generators, not just this synthesis)
 (the noise/Option-1 branch + per-layer toggles kept as a keyword-only tail) and added `--location`
-dev shortcuts (`DEV_LOCATIONS`: Soví vrch / Nová louka / Lidové sady, all at 6×4 km; Lidové sady
-rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future task). Verify-against-source
+dev shortcuts (`DEV_LOCATIONS`: SV Soví vrch / NL Nová Louka / LS Lidové sady all at 6×4 km,
+HS Hrubá Skála 5×5 km (square), NV Novina 3×5 km (portrait) — varied extents test non-1.5:1 clipping;
+Lidové sady rendered as classic ISOM — an ISSprOM/sprint pipeline is a separate future task). Verify-against-source
 on 6×4 km extents exposed a hard ČÚZK ArcGIS WFS cap of 1000 objects/request — **fixed in session 26 by
 switching `zabaged.py` from WFS to ArcGIS REST `MapServer/<id>/query`** with reliable `resultOffset` paging
 (dense towns now complete: SV 1078, LS 8273 buildings). Session 27 added a `logging` progress/summary to
