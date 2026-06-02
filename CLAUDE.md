@@ -38,7 +38,8 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `connectors/` — UC2 konektory reálných geodat: `dmr.py` (výškopis), `zabaged.py` (cesty/voda/budovy/…),
   `ruian.py` (katastr, Sez. 42), `forest.py` (AOPK věk porostu → zeleň, Sez. 62), `ortofoto.py` (podklad);
   REST sourozenci sdílí `arcgis.py` transport (Sez. 42). UC5 korpus: `livelox.py` (stahování reálných OB map)
-  + `map_gt.py` (runnability GT segmentace), Sez. 68. Sys.path skripty, ne balík (pozn.: `rock_relief.py`
+  + `map_gt.py` (runnability GT segmentace) + `curate.py` (kurace korpusu → `_curation.json`, 216 keep classic,
+  Sez. 71), Sez. 68. Sys.path skripty, ne balík (pozn.: `rock_relief.py`
   žije v `generator/`, ne zde).
 - `generator/` — UC4-I/UC5 generátor OB map (pilíř Laboratoře; povýšen ze `sandbox/generator-poc/`
   v Sez. 39 — `sandbox/` zrušen, byl jediný obyvatel). Konzumuje `connectors/`. `generate_map()` =

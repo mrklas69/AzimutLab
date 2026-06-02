@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 71 (2026-06-02) — olivová 520 GT fix + %AUDIT:CODE (vynucený) + kurace korpusu (taxonomie + manifest)
+- [x] **Olivová 520 → label 0 (`map_gt._classify`):** GT chyběla olivová reference → out-of-bounds (zahrady/
+      zástavba) klasifikováno jako falešná zelená runnability. 2 odstíny ODEČTENY z reálných rastrů (verify-against-
+      source, ne aproximace `C_OLIVE`): `olive_a` 152/184/24 (sprint) + `olive_b` 168/168/56 (lesní OCAD) → label 0.
+      Verify: Máchovka olivová vesnice → bílá; korpus 268/268 přesegmentován. **Nález:** falešnou zeleň na SPRINT
+      mapách dominuje navíc růžová canopy (248/200/184) + šedé budovy (120/120/120); na lesních <1,5 % → sprint
+      artefakt → kurace (volba „jen olivová + kurace"), NEřešeno v segmentaci.
+- [x] **%AUDIT:CODE (vynucený, +1121 LOC od Sez. 60, 0 kritických):** čten celý nový kód (livelox/rock_relief/
+      forest/map_gt + generator integrace). **D1 mrtvý kód po Sez. 63** — `zabaged.fetch_rock_areas` +
+      `map_rock_area_to_isom` + `ROCK_AREA_LAYERS` smazány (206 plocha přešla ZABAGED→DMR, funkce nikdo nevolal) +
+      2 drifty komentářů. **K1** `livelox._ensure_connectors_on_path()` (DRY sys.path), **K2** CLI `classCount`
+      přes `.get`, **K3** forest komentář řezů. Behavior-preserving: proc 81=81 (git stash, seed 42). py_compile OK.
+- [x] **Kurace korpusu — `connectors/curate.py` (merge-aware) + `_curation.json`:** GT = strop supervised modelu →
+      268 map otagováno. Discipline {classic/sprint/mtbo/overview} + quality tagy (auto: variant_contour/variant_black/
+      base_layer/basemap/training/foreign_crs; vizuál: legend/logo/damage). `keep = keep_override JINAK (classic AND
+      bez disqualify tagu)`. Reader `load_curation`/`kept_dirs('classic')` (kontrakt UC5 loaderu). Merge zachová ruční
+      tagy přes re-run (idempotent). **268 → 216 keep classic.**
+- [x] **Vizuál průchod (kontaktní archy):** green-gate <8 na variant/base tagy → opravilo **false-drop `1177415`**
+      (podkladovka g33 = plná mapa). **False-keepy:** `1117080` OSM Bright (ne-OB podklad → auto-tag `basemap`),
+      `655492`/`656122`/`732266` fotky vytištěných map (papír/loga/control-table → `damage`, disqualifying). `970619`
+      legenda+logo ale mapa OK → keep. Gestalt keep set = genuine OB lesní mapy potvrzen.
+- [x] **Měření kurace:** green% sprint vs les NEodlišuje (olivová už label 0); hlavní osa = měřítko. **Recency
+      neměřitelná** — `meta.json` neukládá datum eventu (gap → follow-up).
+
 ## Sezení 70 (2026-06-02) — UC5 korpus škálování: `allEvents` reverz → batch 268 reálných OB map
 - [x] **`allEvents` reverzováno proti zdroji (home.js):** `?tab=allEvents` = URL Knockout SPA; skutečný endpoint
       **`POST /Home/SearchEvents`** (JSON). Tělo: `geoRectangle` GeoBox {south,north,west,east}, `timePeriod`

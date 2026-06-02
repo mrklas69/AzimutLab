@@ -37,15 +37,21 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   geo S.Čechy CZ + Žitavsko DE (SAXBO). **268 map** (31 % z 865 eventů, zbytek doloženě mrtvý — Livelox staré mapy nemá).
   **WGS84 fallback** (typ B +43) + **backoff retry**. **ORIS zavržen daty** (96 % starých bez rastru → nepomůže). DONE.
   **Legalizace (oslovit ČSOS) až pokud model funguje** — do té doby privátní repo + TDM výjimka.
-- [ ] *(nález Sez. 70, čistota GT)* **olivová 520 → `map_gt.ISOM_REF` jako label 0** — `_classify` nemá olivovou
-  referenci → městské mapy (Turnov) klasifikují zástavbu/zahrady (520 out-of-bounds) jako falešnou zelenou runnability.
-  Přidat olivovou (label 0 = podklad, ne běhatelnost). Levné, zvedne kvalitu GT u městských map. Vizuál verify Sez. 70.
+- [x] *(HOTOVO Sez. 71)* **olivová 520 → label 0 (čistota GT) + kurace korpusu** (`connectors/curate.py` merge-aware +
+  `_curation.json`, taxonomie discipline+tagy, **268 → 216 keep classic**). Detail v DONE. Tréninkové jádro = 216
+  foot-O map s čistou olivovou GT.
+- [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
+  nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
+  (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".
+- [ ] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — místo per-mapa tagování legend
+  (nespolehlivé v 240px náhledu) strukturální GT krok: detekce+mask okrajových legend/control-description tabulek +
+  fialového přetisku tratí (purpurová není ISOM runnability barva; tenké linie median(7) tlumí, tabulky/bloky ne).
+  Manifest `legend` tagy (Sez. 71) + `green_pct` to podpoří. Pak regen GT dotčených.
 - [ ] *(rozšíření korpusu Sez. 70, volitelné — až bude UC5 model konzumovat)* víc map/event u etapových závodů (dnes
-  1/event = ztráta vedlejších map), nebo dedup map podle georef overlap; legenda-crop u layout map (legenda v ploše
-  mapy → šum v GT rohu, nález Sez. 70). Zatím 268 map stačí.
-- [ ] *(DRY dluh, nález Sez. 68)* **`ISOM_REF` triplikát** — referenční ISOM barvy pro klasifikaci reálných map žijí
-  v `generator/compare_real_vs_gen.py` (SSoT, Sez. 64) i jako KOPIE v `connectors/map_gt.py`. Až bude 3. konzument,
-  vytáhnout do sdíleného modulu (princip „generalizuj jen s důkazem" — 2 kopie zatím netlačí).
+  1/event = ztráta vedlejších map), nebo dedup map podle georef overlap. Zatím 216 keep stačí.
+- [ ] *(DRY dluh, nález Sez. 68; ROZEŠLO SE Sez. 71)* **`ISOM_REF`** — `generator/compare_real_vs_gen.py` (SSoT, Sez. 64)
+  vs KOPIE v `connectors/map_gt.py`, která teď navíc nese OLIVOVOU (runnability-specifická, compare ji nemá). Už ne
+  čistý duplikát → extrakce do sdíleného modulu až 3. konzument (princip „generalizuj jen s důkazem").
 - [~] *(architektura, nález A1 %AUDIT:CODE Sez. 35; jádro vyřešeno Sez. 50)* **`generator.py` monolit
   (3388 ř.)** — `_build_meta` smell + duplikace meta-konstrukce vyřešena Sez. 50: `_layer_meta_section`
   helper + tabulkový `real_sections` registr → `_build_meta` 26→18 param, smazána asymetrie „část vrstev

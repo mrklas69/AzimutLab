@@ -327,6 +327,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   server-side nedostupné; stačí na plošnou GT), gate 2 quad sedne na ortofoto **bez fitu** (oris/fitter overkill),
   **epsg ČÍST Z DAT** (5514 i 32633, nezávisí na poloze). GT segmentace `map_gt.py`. Detail: `data-sources.md`,
   IDEAS „UC5 runnability korpus".
+- **Kurace korpusu** — výběr vhodných map z Livelox korpusu pro trénink (GT je strop supervised modelu →
+  nekvalitní/jiný typ mapy kazí). `connectors/curate.py` (merge-aware) → manifest `resources/livelox/_curation.json`.
+  Každá mapa: **discipline** (1 hodnota: `classic` = foot-O les ISOM = tréninkové jádro / `sprint` ISSprOM / `mtbo`
+  cyklo / `overview` >=20000) + **quality tagy** (auto z jména/GT/epsg: `variant_contour`/`variant_black`/`base_layer`/
+  `basemap` ne-OB OSM podklad/`training`/`foreign_crs`; vizuál ruční: `legend`/`logo`/`damage` foto vytištěné mapy).
+  **keep** = `keep_override` JINAK (classic AND bez disqualify tagu). Sez. 71: **268 → 216 keep classic**. Reader
+  `kept_dirs('classic')` = kontrakt UC5 loaderu. Merge zachová ruční tagy přes re-run (idempotent).
 - **Karttapullautin** — generátor OB podkladů z klasifikovaného LiDAR mračna (vrstevnice +
   vegetace). Stojí za projekty MapAnt. Survey: `RESEARCH.md`.
 - **CoVe** — color line vectorization pro orienťácké čáry (v OOM).

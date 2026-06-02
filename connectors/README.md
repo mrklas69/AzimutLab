@@ -14,7 +14,8 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | `ortofoto.py` | ČÚZK ORTOFOTO | letecký snímek výseku (podkladový template) | ArcGIS MapServer `export` (`arcgis1`) |
 | `arcgis.py` | — (sdílený základ) | nízkoúrovňový ArcGIS REST transport: paging+cache+GeoJSON parsery (DRY pro `zabaged`+`ruian`+`forest`, Sez. 42/62) | — |
 | `livelox.py` | **Livelox** (reálné OB mapy) | `download_map(classId)` → rastr `map.png` + georef `meta.json` (quad + **epsg z dat**: 5514/32633, WGS84 fallback typ B) + `blend.png` (warp přes ortofoto = georef důkaz). **Batch (Sez. 70):** `search_events`/`download_corpus` → korpus **268 map** (S.Čechy CZ + Žitavsko DE/SAXBO), 1 class/event, idempotent, backoff retry. **UC5 korpus**, ne ČÚZK. Sez. 68/70 | `POST /Data/ClassInfo` → blob; `POST /Home/SearchEvents` (eventy) |
-| `map_gt.py` | — (zpracování) | `segment_gt(map.png)` → runnability **GT** `gt_labels.png` (0 průchodný/1 ISOM 406/2 408/3 410/4 open) + `gt_vis.png`. Nearest-color na ISOM refs + majority filtr. SLAP: stahování (`livelox`) ≠ segmentace. Sez. 68 | — |
+| `map_gt.py` | — (zpracování) | `segment_gt(map.png)` → runnability **GT** `gt_labels.png` (0 průchodný/1 ISOM 406/2 408/3 410/4 open) + `gt_vis.png`. Nearest-color na ISOM refs + majority filtr. **Olivová 520 → label 0** (Sez. 71, out-of-bounds ne runnability; 2 odstíny). SLAP: stahování (`livelox`) ≠ segmentace. Sez. 68/71 | — |
+| `curate.py` | — (zpracování) | `build_curation()` → manifest `_curation.json` (merge-aware): discipline {classic/sprint/mtbo/overview} + quality tagy → `keep`. Reader `load_curation`/`kept_dirs('classic')` = kontrakt UC5 loaderu. **268 → 216 keep classic** (Sez. 71). | — |
 
 **Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor topografie (ZABAGED), `ruian` = vektor
 katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `forest` = vektor věku porostu (AOPK „Les_Mapy" — třetí zdroj,
