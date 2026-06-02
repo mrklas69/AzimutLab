@@ -31,8 +31,12 @@ from dmr import fetch_elevation_grid   # connectors/ je na sys.path (zařídí g
 # --- laditelné parametry (metry / stupně; převzato z rockcore, laděno na Šulcáku) ---
 TARGET_PX_M = 1.5          # cílové rozlišení hi-res DMR fetchu [m/buňka] (rockcore ~0,7; my výš kvůli
 #                            větším výsekům + limitu ImageServeru). Menší = jemnější věže, větší fetch.
-#                            1,5 m = jeden fetch do ~6 km výseku (6000/1,5=4000=MAX_PX), bez tilingu (Sez. 63).
-MAX_PX = 4000              # strop strany hi-res gridu (limit ArcGIS exportImage) → u velkých výseků zhrubne
+#                            1,5 m drží jen u menších výseků; velké landscape (6×4 km) zhrubne plošný cap níž.
+# ImageServer exportImage vrací HTTP 500 nad ~7 Mpx (F32 tiff) — empiricky práh mezi 6,8 (OK) a 8,2 Mpx
+# (Sez. 65). Limitujeme PLOCHU (ne stranu — 6×4 km @ 1,5 m = 4000×2667 = 10,7 Mpx mělo stranu < MAX_PX,
+# přesto 500). Cap 6,5 Mpx = pod prahem, doložené HS 6,3 Mpx prochází opakovaně; 6×4 km → ~1,9 m/px.
+MAX_AREA_PX = 6_500_000    # plošný strop hi-res gridu (gw_hi*gh_hi) — primární ochrana proti 500
+MAX_PX = 4000              # sekundární strop strany (limit ArcGIS exportImage na stranu) → u velkých výseků zhrubne
 SLOPE_THR_DEG = 46.0       # práh sklonu „jistá skalní stěna" (nižší nabírá strmé lesní svahy — chyba A)
 GAUSS_SIGMA = 0.6          # vyhlazení DMR před gradientem (potlačí pixelový šum sklonu)
 OPEN_M = 1.0               # despeckle (binary_opening) — odstraní izolované pixely sklonu
@@ -191,8 +195,9 @@ def detect_rock_areas(lat: float, lon: float, geo_bbox: tuple,
     """Detekuje skalní bloky z DMR 5G sklonu → polygony [outer, díra…] v S-JTSK metrech.
 
     `geo_bbox` = (xmin, ymin, xmax, ymax) S-JTSK mapového výseku; `gw/gh/tile_m` = rozměrové globály
-    generátoru (poměr stran + N-J strana v m). Stáhne SAMOSTATNÝ hi-res DMR (TARGET_PX_M ≈ 2 m — render
-    grid generátoru je na ~8 m/buňka, na to věže nejdou) pro TENTÝŽ bbox, spočítá sklon→masku→polygony.
+    generátoru (poměr stran + N-J strana v m). Stáhne SAMOSTATNÝ hi-res DMR (TARGET_PX_M = 1,5 m, u velkých
+    výseků zhrubne plošný cap — render grid generátoru je ~8 m/buňka, na to věže nejdou) pro TENTÝŽ bbox,
+    spočítá sklon→masku→polygony.
     Vrací list polygonů, každý = [vnější prsten, díra1, …]; prsten = list (x, y) S-JTSK. Bez skal
     (rovina / mimo data) = []. Konzument: _poly_to_grid_px + _draw_gigantic_boulder + omap (ISOM 206)."""
     xmin, ymin, xmax, ymax = geo_bbox
@@ -200,7 +205,10 @@ def detect_rock_areas(lat: float, lon: float, geo_bbox: tuple,
     # fetch_elevation_grid staví bbox z (lat,lon,gw_hi,gh_hi,tile_m) — poměr gw/gh + tile_m drží bbox.
     gh_hi = int(round(tile_m / TARGET_PX_M)) + 1
     gw_hi = int(round(gh_hi * gw / gh))
-    if max(gw_hi, gh_hi) > MAX_PX:                  # limit ImageServeru → zhrubni (zachovej poměr)
+    if gw_hi * gh_hi > MAX_AREA_PX:                 # plošný strop (HTTP 500 nad ~7 Mpx) → zhrubni (poměr drží)
+        s = (MAX_AREA_PX / (gw_hi * gh_hi)) ** 0.5  # odmocnina: škáluje obě strany rovnoměrně
+        gw_hi, gh_hi = max(2, int(gw_hi * s)), max(2, int(gh_hi * s))
+    if max(gw_hi, gh_hi) > MAX_PX:                  # sekundární stranová pojistka (extrémní poměry)
         s = MAX_PX / max(gw_hi, gh_hi)
         gw_hi, gh_hi = max(2, int(gw_hi * s)), max(2, int(gh_hi * s))
     z = fetch_elevation_grid(lat, lon, gw_hi, gh_hi, tile_m, cache_dir)   # (gh_hi, gw_hi), sever nahoře
