@@ -55,9 +55,19 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (izolovaná + integrovaná). **Integrace HOTOVO Sez. 83** (DONE): `generate_map` +kwarg `predict_areas_sjtsk`
   (přednost před archiv forest-age, provenance `predict`) + orchestrátor `generator/pairs.py build_pair(cid)`
   (per-classId, Livelox grid, Gate A ~1 px) + `_fill_ignore` (přetisk tratě 704/705 → nejbližší label). **ZBÝVÁ:**
-  - [ ] **Škálovat páry** přes korpus (216 keep) → set `gen/*.omap` pro trénink `Png2Area`. Batch `build_pair`
-    (tolerance + resume, mirror `livelox.build_pairs`), velký běh (~215× ČÚZK fetch = hodiny/přes noc); vyřadit
-    outlier `1109655` (georef bug, Gate A). Zásada: separace = GT-feeder, NEleštit práh; kvalitu dotáhne model.
+  - [~] **Škálovat páry** přes korpus → set pro trénink `Png2Area`. **Sez. 84: batch `build_pairs` HOTOV**
+    (resume/tolerantní/souhrn, zdroj = 207 ČR ze `_split.json` → vyřadí 9 cizích keep + outlier `1109655`;
+    `ortho=False`; `max_km=5` crop + ořez gt; bbox prefilter v `rock_relief._group_holes`). **ALE hromadný běh
+    BLOKOVÁN výkonem** — generátor nestavěný na různorodé lokality. Dva žrouti: (#1) separace O(n²) `_group_holes`
+    + KLÍČ Branžež mpp=0.56 → 93 Mpx, ořez na crop-bbox nezabral (rotace+rozlišení) → miliony zelených px;
+    (#2) render skal (Český ráj, nepotvrzeno). Zásada: separace = GT-feeder, NEleštit práh; kvalitu dotáhne model.
+  - [!] **(NOVÝ HLAVNÍ TAH Sez. 84) Redesign párů na dlaždice 512×512** — řeší žrout #1 přes design, ne ladění
+    O(n²). **Mapy vcelku nepotřebujeme** (volba uživatele) — cíl jsou dlaždice pro `Png2Area`. %THINK promyslet:
+    **downscale na ~1.33 mpp PŘED separací** (93 Mpx @ 0.56 → ~16 Mpx; sám velká úspora), fetch ČÚZK po mapě vs
+    po dlaždici (HTTP overhead → pravděpodobně fetch/mapa + render/separace po dlaždicích = rozbít monolit
+    `generate_map`), render skal změřit zvlášť (nezávislé na separaci).
+  - [ ] **(verify dluh Sez. 84) Ověřit proc baseline 65** — `generate_map` proc režim po změně `rock_relief._group_holes`
+    (sdílená se skalami; bbox prefilter exaktní + identita separace OK, ale plný proc verify nedořešen).
 - [ ] *(enabler fáze II, rozhodnuto Sez. 82 — IDEAS „omap2png")* **omap2png** — render `.omap`→PNG pro export páru.
   OOM nemá CLI/headless. **Volba: náš rastr teď** (`generate_map` už `rgb.png` dělá), C++ headless OOM až měřený
   doménový gap dokáže potřebu. Až bude integrace fáze I + degradér fáze II.

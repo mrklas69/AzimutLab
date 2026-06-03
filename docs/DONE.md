@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 84 (2026-06-03) — Škálování párů (WIP) — batch + výkonové žrouti + směr dlaždice
+- [x] **`pairs.py build_pairs(cids, skip_existing, ortho, max_km)`** — batch wrapper (mirror `livelox.build_pairs`):
+      resume přes `gen/rgb.png`, tolerantní (chyba 1 mapy nepoloží dávku), souhrn ok/skip/fail; CLI `pairs.py batch [N]`.
+      **Zdroj `_cr_keep_cids()` = 207 ČR ze `_split.json`** (ne 216 keep — split vyřadí 9 cizích keep map + outlier
+      `1109655` najednou; real ČÚZK funguje jen pro ČR).
+- [x] **`ortho=False` default** (volba uživatele) — X-zdroj páru = sken OB mapy (bílé pozadí + ISOM), ne ortofoto;
+      reálné OB mapy fotopodklad nemají → ortofoto by X odklonilo od domény + ušetří ~50 % fetchů.
+- [x] **`max_km=5.0` crop strop + ořez gt** (`_separate_to_sjtsk(crop_bbox)`, inverz `_map_affine` → pixel-okno) —
+      render škáluje nadlineárně, obří mapy (max 106 km²) by táhly běh na víkend; pro trénink rozhoduje rozmanitost.
+- [x] **`rock_relief._group_holes` bbox prefilter** — vektorový odmítací test před čistě-Python `_point_in_ring`.
+      Exaktní (bbox = nutná podmínka), identita ověřena (separace 81/189 polygonů beze změny), ~2× rychlejší na malých.
+- [x] **Měření (measure-first):** distribuce 207 map suma 2070 km² (medián 7, max 106); 1 malá mapa 34 s (skály 14 s
+      = nejdražší fáze). **Žrout #1 separace O(n²)** (`_group_holes` point-in-ring, 4× prstenců = 11× čas). **KLÍČOVÝ
+      NÁLEZ:** Branžež mpp=0.56 → **93 Mpx**; ořez na crop-bbox skoro nezabral (rotace quadu + jemné rozlišení) →
+      miliony zelených px → separace neúnosná. **Žrout #2 render skal** (Český ráj hypotéza, NEpotvrzeno).
+- [ ] **NEdokončeno:** hromadný běh blokován výkonem. proc baseline 65 NEOVĚŘEN (rock_relief změna se dotýká skal).
+      Směr příště: **generovat rovnou dlaždice 512×512** (+ downscale na ~1.33 mpp, fetch po mapě/render po dlaždici).
+
 ## Sezení 83 (2026-06-03) — Integrace separace do generate_map() (per-classId pár real+predict) + zobecnění + oprava přetisku
 - [x] **Zobecnění separace `separate_veg.py` → `separate.py`** (rename modulu i funkce: `separate_veg` →
       `separate_areas`, `LEVELS` → registr `AREA_CLASSES`). Mechanismus (`vectorize_level`) byl už agnostický;
