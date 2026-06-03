@@ -47,19 +47,24 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 > **Foundations: nejdřív dotáhnout `generator()` predict část, pak `reconstructor()`.** Pojmy: GLOSSARY
 > `generator()`/`reconstructor()`. Korpus / páry (X,Y) / GT pipeline (kroky 1-3) **ZŮSTÁVAJÍ** užitečné.
 > Plná revize architektury (UC3 / UC4-III / UC5 / fázový plán / Pic2Omap absorpce) = **A1 odložena**.
-- [ ] **(HLAVNÍ TAH, upřesněno Sez. 80) `generator()` fáze I — prediktivní plochy ze separace HD Livelox PNG.**
-  %THINK hotový (Sez. 80, IDEAS „Tři fáze I/II/III"). Tok: I. generator() = reálná část (ČÚZK) + prediktivní
-  plochy (separace barev z NEdegradované Livelox PNG → vektorizace contourpy → `.omap` s flagem real/predict);
-  II. dataset = export PNG + degradace (overprint/odřeniny/bláto); III. reconstructor() = trénink. **Pravé veřejné
-  `.omap` vektory NEEXISTUJÍ** (průzkum Sez. 80) → `.omap` tvoří generátor. **PoC (čeká na souhlas Q1/Q2):** na
-  1 Livelox mapě separace celé plošné palety → vektorizace → vlož do generované `.omap` s flagem → vizuál v OOM.
-  Před tím rozhodnout dělbu ploch real/predict + **measure-first: vegetace z [[forest-age-proxy]] vs mapař (Livelox
-  separace)?** Spec §0b „predict", GLOSSARY (rozšířit o `Png2Polygon`/`Png2Linie`/`Png2Point`).
-- [ ] *(navazuje na hlavní tah, Sez. 80)* **Tři pomocné modely `reconstructor()` — `Png2Polygon` / `Png2Point` /
-  `Png2Linie`.** Dekompozice podle typu geometrie ISOM (area/line/point = tři CV úlohy). GT zdarma z `.omap`
-  (typ symbolu). Pořadí: Polygon první (reuse U-Net Sez. 78, vstup mapa ne ortofoto), Point druhý (generátor má
-  přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec), Linie poslední (nejtěžší,
-  segmentace+skeletonizace). Detail IDEAS „Tři fáze I/II/III + tři pomocné modely". Až fáze I/II dají páry.
+- [~] **(HLAVNÍ TAH) `generator()` fáze I — prediktivní plochy ze separace Livelox mapy.** %THINK Sez. 80 (IDEAS
+  „Tři fáze I/II/III"). **A1 measure-first VYŘEŠENO Sez. 82** (DONE): zdroj predikční vegetace = **separace z mapy**,
+  ne [[forest-age-proxy]] (ten ARCHIVOVÁN — 33 % pokrytí, IoU 0,12, přestřel 3,3×). **PoC krok 1 HOTOVO Sez. 82**
+  (`generator/separate_veg.py`): separace zelené 406/408/410 → vektorizace (contourpy reuse `rock_relief`) →
+  `.omap` + podklad map.png, věrné ~90 % (overlay verify). **ZBÝVÁ:**
+  - [ ] **OOM verify** `separate_veg.omap` (ruční, paměť `omap-verify-oom`).
+  - [ ] **Integrace do `generate_map()`** — real ČÚZK vrstvy + predikční separace v JEDNÉ `.omap` (kanál
+    `predict_veg`, nahradí `--forest-age`) + **A3 provenience flag real/predict** (precedent `proxy:true`).
+  - [ ] **Škálovat páry** přes korpus (216 keep) → set `.omap` pro trénink `Png2Area`. Zásada: separace = GT-feeder,
+    NEleštit práh (IDEAS „separace = GT-feeder"); kvalitu dotáhne model.
+- [ ] *(enabler fáze II, rozhodnuto Sez. 82 — IDEAS „omap2png")* **omap2png** — render `.omap`→PNG pro export páru.
+  OOM nemá CLI/headless. **Volba: náš rastr teď** (`generate_map` už `rgb.png` dělá), C++ headless OOM až měřený
+  doménový gap dokáže potřebu. Až bude integrace fáze I + degradér fáze II.
+- [ ] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
+  `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`). Dekompozice podle typu geometrie ISOM (tři CV
+  úlohy). GT zdarma z `.omap` (typ symbolu). Pořadí: Area první (reuse U-Net Sez. 78, vstup mapa ne ortofoto),
+  Point druhý (generátor má přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec),
+  Line poslední (nejtěžší, segmentace+skeletonizace). Detail IDEAS. Až fáze I/II dají páry.
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit

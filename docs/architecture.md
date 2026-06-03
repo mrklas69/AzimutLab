@@ -84,8 +84,9 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
   --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--forest-age/--barriers real`; form lines **i skalní
   plochy 206 z DMR** (rock-relief sklon, Sez. 63 — derivace z výškopisu, ne ZABAGED); olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
-  **Most UC2→UC5:** `--forest-age` je první **predikční** vrstva (věk porostu ≠ věrná runnability, značeno `proxy:true`) —
-  tvrdá data, měkká interpretace; první krok od projekce k UC5 vegetační predikci (vegetace gate pro open-LiDAR zavřená, Sez. 59).
+  **Most UC2→UC5:** `--forest-age` byl první **predikční** vrstva (věk porostu ≠ věrná runnability, `proxy:true`) —
+  ⟲ **ARCHIVOVÁN Sez. 82** (A1 measure-first: pokrytí jen 33 % korpusu, IoU 0,12 s kresbou kartografa, přestřel zelené
+  3,3×; kód zůstává funkční, doložená cesta). Predikční vegetaci nahrazuje **separace z reálné mapy** (`generator/separate_veg.py`).
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

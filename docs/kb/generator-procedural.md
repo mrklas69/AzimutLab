@@ -458,7 +458,11 @@ počet zdí v meta beze změny. Jediná orientovaná bodová vrstva vedle řopí
 bodový objekt 519 s rotací v .omap (mirror lávky 512.2, OOM Test OK Sez. 52). Vyžaduje `--terrain real`. Výskyt: LS 2,
 ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 52 **korigováno Sez. 55** — viz `zabaged-isom-catalog.md`; po měření zbývají kandidáti 208/519/528.)
 
-### 4.9p Věk porostu → zeleň (real-data, PROXY/predikce, Sez. 62)
+### 4.9p Věk porostu → zeleň (real-data, PROXY/predikce, Sez. 62) — ⟲ ARCHIVOVÁNO Sez. 82
+> **A1 measure-first (Sez. 82) ho vyřadil jako zdroj predikční vegetace:** pokrytí jen 33 % korpusu, IoU
+> s kresbou kartografa 0,12, přestřel zelené 3,3×. Nahrazeno **separací z reálné mapy** (`generator/separate_veg.py`,
+> [[separate_veg]]). Kód i `--forest-age` ZŮSTÁVAJÍ funkční (doložená cesta jako Orto2Colors). Detail: DONE Sez. 82.
+
 **✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
 `connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server
 `gis.nature.cz`, `maxRecordCount=1000` → paging po 1000) → ISOM zeleň **406/408/410** dle věku.

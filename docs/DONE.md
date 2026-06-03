@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 82 (2026-06-03) — A1 measure-first (forest-age → archiv) + PoC fáze I (separace zelené → .omap)
+- [x] **A1 measure-first — zdroj predikční vegetace = separace z mapy, NE forest-age (ARCHIVOVÁN).** Dvě měření:
+      **#1 šířka** — sken celého ČR korpusu (`temp/a1_corpus_scan.py` → `a1_coverage.json`): forest-age má zeleň jen
+      na **33 % map (69/207)** → NEuniverzální (separace = univerzální, každá keep mapa nese barvu). Typ-B mapy
+      (epsg 4326) dopočítány z WGS84 extentu (bug „div by zero" = projektovaný quad ve stupních). **#2 shoda** —
+      na Přeboru 2025 (1092 skupin, jediná bohatá) forest-age rasterizován do gridu `gt_grid` a porovnán
+      (`temp/a1_agree_prebor.py`): **IoU s kresbou kartografa 0,12**, forest-age **přestřeluje zelenou 3,3×**
+      (73,5 % vs 22 %), kde proxy=406/408 mapař nakreslil běhatelný bílý les 76-79 %. Vizuál `a1_prebor_compare.png`
+      potvrdil (ne artefakt zarovnání). **Závěr:** forest-age archivován (jako Orto2Colors — kód funkční, doložená
+      slepá ulička); hlavička `forest.py` + architecture/GLOSSARY/TODO značí archiv.
+- [x] **PoC fáze I krok 1 — separace zelené → vektorizace → `.omap` (`generator/separate_veg.py`, povýšeno z PoC).**
+      Na Přeboru: `map_gt` separace (gt_labels 1/2/3 = 406/408/410) → per-úroveň maska → contourpy vektorizace
+      (REUSE `rock_relief` `_contour_rings`/`_group_holes`/`_rdp`/`_chaikin`) → polygony image-px → `omap_export.
+      write_omap` (image-px=grid, kanál `forest_age_features`, podklad map.png). **392 polygonů**, `.omap` validní XML
+      (symboly 81/84/88 = 406/408/410). **Overlay verify** (`separate_veg_overlay.png`): vektorová zeleň věrná kresbě
+      kartografa **~90 %**. Dělba real/predict: zelená = predict; real ČÚZK = integrace dalším krokem.
+- [x] **Zásada: algoritmická separace = GT-FEEDER, ne finální kvalita.** ~90 % stačí — kvalitu dotáhne `Png2Area`
+      model na množství párů, ne leštění prahu. Pod konstrukcí páru (X = degradovaný export z naší `.omap`) nemusí být
+      separace věrná ani původní mapě. → IDEAS „separace = GT-feeder" (neutrácet sezení dolaďováním prahu).
+- [x] **omap2png %THINK — rozhodnuto „náš rastr teď, C++ až s důkazem".** OOM nemá CLI/headless export (ověřeno
+      manuál+issue #776); engine v C++ existuje (`RenderConfig`+`MapRenderables::draw`+Qt offscreen). Volba: `generate_map`
+      už `rgb.png` produkuje (aproximace) → měřit doménový gap; C++ headless OOM (věrné) až když gap dokáže potřebu. IDEAS „omap2png".
+- [x] **Názvosloví `Png2Polygon`/`Png2Linie` → `Png2Area`/`Png2Line`** (OOM terminologie Point/Line/Area, doloženo
+      z `template_classic.omap` `type=1/2/4`). Propsáno GLOSSARY/IDEAS/TODO. Žádná změna proc cesty (proc 65 drží triviálně).
+
 ## Sezení 81 (2026-06-03) — Úklidové: %AUDIT:CODE + %AUDIT:DOCS + IDEAS/TODO pruning
 - [x] **%AUDIT:CODE (0 kritických, 0 mrtvého kódu) — audit nového kódu od Sez. 71.** Cíl = `model/` celé (tile/
       dataset/train, 619 LOC, nikdy neauditováno) + `connectors/split.py` (nový) + livelox georef páry + map_gt

@@ -324,7 +324,7 @@ sklon/CHM, forest-age), teď s důkazem stropu (princip „generalizuj s důkaze
 sys.path skripty). Cíl: nová vrstva generátoru `--vegetation predicted`, která zacelí vegetace
 gate (druhá půlka generátoru = predikce, viz „Generátor jako prediktor").
 
-## Tři fáze I/II/III + tři pomocné modely Png2{Polygon,Linie,Point} (Sez. 80 %THINK)
+## Tři fáze I/II/III + tři pomocné modely Png2{Area,Line,Point} (Sez. 80 %THINK; přejmenováno Sez. 82)
 
 **Vyjasnění toku (oprava mého zmatku „degradér ve fázi I"):** ortofoto→runnability (Sez. 67-78)
 archivováno (slepá ulička, [[uc5-reconstructor-reframe]]); pravé veřejné `.omap`/`.ocd` vektory
@@ -347,25 +347,50 @@ co reconstructor (III) bere **z dat** (real — dopočítá z lokality+času, �
 (predict — reverse-engineeruje). Model se reálně učí jen predict část. Precedent `proxy:true`
 (forest-age). Relevantní AŽ ve fázi I/B (kde se míchá data+predikce); v čisté separační fázi ne.
 
-**Dělba ploch real × predict (OTEVŘENÉ, measure-first — A1 Sez. 80):** tvrdé plochy (voda 301,
-budovy 521, olivová 520) z dat; měkké (vegetace 406/408/410, open 401, paseky, pole/sady) z Livelox.
-**Otevřená otázka uživatele: u vegetace věřit [[forest-age-proxy]] (data, národní pokrytí, aktuální)
-nebo mapaři v terénu (Livelox separace, viděl podrost, ale stará mapa)?** Pro trénink stačí
-věrohodnost (Sez. 79 „nemusí být pravdivá"); recency může mluvit pro data (les vyrostl od mapování).
-Změřit na lokalitě s OBOJÍM, nehádat.
+**Dělba ploch real × predict (A1 VYŘEŠENO Sez. 82 measure-first):** tvrdé plochy (voda 301, budovy 521,
+olivová 520) z dat; měkké (vegetace 406/408/410, open 401, paseky, pole/sady) **ze separace Livelox mapy**.
+**Otázka „forest-age (data) vs mapař (separace)?" rozhodnuta MĚŘENÍM ve prospěch separace:**
+- **Šířka:** forest-age má zeleň jen na **33 % korpusu** (69/207 map; sken `temp/a1_coverage.json`) → NEuniverzální.
+- **Shoda:** kde forest-age bohatý (Přebor 2025, 1092 skupin), **IoU s kresbou kartografa jen 0,12**, forest-age
+  **přestřeluje zelenou 3,3×** (73,5 % vs 22 %); kde proxy = 406/408, mapař nakreslil **běhatelný bílý les 76-79 %**.
+- **Konceptuálně (Sez. 79):** predikční vegetace nemusí být pravdivá, jen **konzistentní v páru** — separace z téže
+  mapy je konzistentní z definice, forest-age by injektoval JINOU vegetaci → nekonzistentní pár.
+→ **[[forest-age-proxy]] ARCHIVOVÁN** (jako Orto2Colors; kód funkční). Zdroj predikční vegetace = `generator/separate_veg.py`.
 
-**Tři pomocné modely (A2 Sez. 80) — dekompozice reconstructoru podle typu geometrie:**
-ISOM area/line/point = TŘI různé CV úlohy (segmentace / extrakce linií / detekce bodů) → každá chce
-jinou architekturu → tři modely > monolit (SLAP, izomorfismus). GT zdarma: `.omap` symboly nesou typ
-→ rozlož na tři GT sady. Pořadí (foundations):
-- **Png2Polygon (první)** — plochy → polygony. Reuse U-Net `model/train.py` (Sez. 78); vstup = mapa
+**Zásada (Sez. 82): algoritmická separace = GT-FEEDER, ne finální kvalita.** PoC dal ~90 % věrnost — a to STAČÍ,
+protože kvalitu dotáhne **`Png2Area` model** trénovaný na množství párů, ne leštění separačního prahu. Navíc pod
+konstrukcí páru (X = degradovaný export z NAŠÍ `.omap`) nemusí být separace věrná ani původní mapě — jen půjčuje
+realistické tvary. **Neutrácet sezení dolaďováním prahu místo škálování párů.**
+
+**Tři pomocné modely (A2 Sez. 80; přejmenováno Sez. 82 na OOM Point/Line/Area) — dekompozice reconstructoru
+podle typu geometrie:** ISOM area/line/point = TŘI různé CV úlohy (segmentace / extrakce linií / detekce bodů) →
+každá chce jinou architekturu → tři modely > monolit (SLAP, izomorfismus). GT zdarma: `.omap` symboly nesou typ
+(`type=1/2/4` = Point/Line/Area, doloženo z template) → rozlož na tři GT sady. Pořadí (foundations):
+- **Png2Area (první)** — plochy → polygony. Reuse U-Net `model/train.py` (Sez. 78); vstup = mapa
   (barevně kódovaná, vysoký strop) ne ortofoto (strop 0,25) → jiná, snazší úloha; hodnota = robustnost
-  vůči degradaci skenu. Symetrie: separace fáze I (nearest-color na čisté) = baseline + GT-feeder;
-  degradace II = trénink; Png2Polygon III = model na degradovaném skenu, kde lookup selže.
+  vůči degradaci skenu. Symetrie: separace fáze I (`separate_veg`, nearest-color na čisté) = baseline + GT-feeder;
+  degradace II = trénink; Png2Area III = model na degradovaném skenu, kde algoritmus selže.
 - **Png2Point (druhý)** — bodové ISOM → lokalizace+klasifikace (keypoint/object detektor). Generátor
   má přesné polohy (109/110/111/312…) → GT zdarma + libovolně instancí (řeší vzácnost symbolů). =
   „bodová větev" (posed/pramen/vývrat) zařazená systematicky; ISOM kódy ověřit ze spec před kódem.
-- **Png2Linie (poslední)** — liniové ISOM → polyline. Nejtěžší (vektorizace linií = otevřený problém),
+- **Png2Line (poslední)** — liniové ISOM → polyline. Nejtěžší (vektorizace linií = otevřený problém),
   nejspíš segmentace + skeletonizace. Generátor má přesné linie jako GT.
 - Alternativa: multi-task jeden encoder + tři hlavy (DRY featury) — zvážit AŽ všechny tři stojí
-  (princip „generalizuj s důkazem"); start = Png2Polygon samostatně.
+  (princip „generalizuj s důkazem"); start = Png2Area samostatně.
+
+## omap2png — rendrování `.omap` → PNG pro fázi II (Sez. 82 %THINK, rozhodnuto)
+
+Fáze II (export páru) potřebuje rendrovat `.omap` → PNG ve velkém (stovky). **OOM nemá CLI/headless export**
+(jen GUI, ruční stovek = vyloučeno; ověřeno manuál + issue #776). Engine ale v C++ existuje (`RenderConfig` =
+bbox+px/mm, `Map`/`MapRenderables::draw()` tříděné dle priority barev).
+
+**Vidlička:**
+- **(C) náš rastr** — `generate_map()` už `rgb.png` produkuje ze stejných prvků; i separační `.omap` jde
+  vyrendrovat z prvků v paměti (BEZ parsování `.omap`). Zdarma, ale px-laděná aproximace, větší doménový gap.
+- **(A) C++ headless OOM** — linkuje Mapper core + Qt **offscreen**, načte self-contained `.omap` (nese template) →
+  QImage → PNG. OOM-věrné (dash patterny, knockout kombinovaných, šrafy, blending priorit), ale build OOM
+  (Qt/CMake/Win = yak-shave).
+
+**Rozhodnutí: (C) náš rastr teď, (A) C++ až měřený doménový gap dokáže, že je potřeba** (reconstructor trénovaný na
+našem rastru selže na reálných OOM/tištěných mapách) — „raw default, generalizuj s důkazem". „omap2png" v doslovném
+smyslu (parsovat libovolnou `.omap`) = jen pokud chceme OOM věrnost = cesta A; pro náš rastr stačí render prvků z paměti.

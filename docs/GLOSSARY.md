@@ -330,11 +330,22 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   modelu na párech z II. Degradér patří do II, ne do I. Pravé veřejné `.omap`/`.ocd` vektory neexistují
   (průzkum Sez. 80) → `.omap` tvoří generátor. Provenience **real/predict** flag v `.omap` říká, co model bere
   z dat vs ze skenu. Detail: IDEAS „Tři fáze I/II/III".
-- **`Png2Polygon` / `Png2Point` / `Png2Linie`** (Sez. 80) — tři pomocné modely [[reconstructor]]u, dekompozice
+- **`Png2Area` / `Png2Point` / `Png2Line`** (Sez. 80; přejmenováno Sez. 82 z `Png2Polygon`/`Png2Linie` na
+  terminologii OOM — symboly jsou v `.omap` typu **Point/Line/Area**, doloženo z `template_classic.omap`:
+  `type=1` Point / `type=2` Line / `type=4` Area) — tři pomocné modely [[reconstructor]]u, dekompozice
   podle typu geometrie ISOM (area / point / line = tři různé CV úlohy: segmentace / detekce bodů / extrakce
-  linií). GT zdarma z `.omap` (typ symbolu). Pořadí: **Polygon** první (reuse U-Net Sez. 78, vstup mapa ne
+  linií). GT zdarma z `.omap` (typ symbolu). Pořadí: **Area** první (reuse U-Net Sez. 78, vstup mapa ne
   ortofoto → vysoký strop), **Point** druhý (generátor má přesné polohy bodů → GT + libovolně instancí; „bodová
-  větev" posed/pramen/vývrat), **Linie** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
+  větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
+- **`separate_veg` / algoritmická separace** (Sez. 82, `generator/separate_veg.py`) — GT-feeder pro [[reconstructor|`Png2Area`]]:
+  z reálné Livelox mapy separuje zelenou (406/408/410) a vektorizuje (contourpy, reuse `rock_relief`) → predikční
+  plochy do `.omap`. **Záměrně NE věrná na 100 %** (PoC ~90 %): kvalitu dotáhne MODEL trénovaný na množství párů,
+  ne leštění prahu. Nahrazuje archivovaný [[forest-age-proxy]] jako zdroj predikční vegetace (univerzální + mapař =
+  ground truth + konzistentní pár; A1 measure-first Sez. 82).
+- **`omap2png` (rozhodnutí Sez. 82)** — rendrování `.omap` → PNG pro fázi II (export páru). OOM **nemá CLI/headless**
+  export (jen GUI; ověřeno) → buď náš rastr (`generate_map` už `rgb.png` produkuje, aproximace), nebo C++ headless
+  z OOM zdroje (`RenderConfig`+`MapRenderables::draw`+Qt offscreen, věrné). **Volba: náš rastr teď, C++ až měřený
+  doménový gap dokáže, že je potřeba** („generalizuj s důkazem"). Detail: IDEAS „omap2png".
 - **Projekce vs predikce** — dvě fáze prediktoru mapy. *Projekce* = deterministický převod dostupných
   geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
   v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +
@@ -352,7 +363,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   ([[forest-age-proxy]], první predikční krok k vegetaci). Generalizace L1/L2 budov NENÍ fáze 2 (věrná
   kartografie, kterou ISOM předepisuje). Spec §0b.
   Vztah k [[projekce-vs-predikce]]: fáze 2 sahá od dekorace (příčky) po predikci (vegetace, UC5).
-- **forest-age-proxy** — vrstva `--forest-age` (Sez. 62, `connectors/forest.py`): zeleň ISOM 406/408/410
+- **forest-age-proxy** — ⟲ **ARCHIVOVÁNO Sez. 82** (A1 measure-first: pokrytí 33 % korpusu, IoU 0,12 s kresbou,
+  přestřel zelené 3,3× → nevhodný zdroj predikční vegetace; nahrazeno [[separate_veg|separací z mapy]]; kód
+  funkční, doložená cesta jako [[uc5-rgb-baseline-ceiling|Orto2Colors]]). — vrstva `--forest-age` (Sez. 62, `connectors/forest.py`): zeleň ISOM 406/408/410
   odvozená z VĚKU porostu (AOPK „Les_Mapy" porostní skupiny, atribut `BARVA` = ordinální věk doložený
   standardem KSLH). Mladý porost = nejhustší → 410 fight; tyčkovina → 408 walk; mladší kmenovina → 406 slow;
   starý les + bezlesí (`BARVA 15`) → bílá. **PROXY, ne věrná runnability**: věk je hrubý prediktor hustoty
