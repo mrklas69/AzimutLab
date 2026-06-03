@@ -50,13 +50,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [~] **(HLAVNÍ TAH) `generator()` fáze I — prediktivní plochy ze separace Livelox mapy.** %THINK Sez. 80 (IDEAS
   „Tři fáze I/II/III"). **A1 measure-first VYŘEŠENO Sez. 82** (DONE): zdroj predikční vegetace = **separace z mapy**,
   ne [[forest-age-proxy]] (ten ARCHIVOVÁN — 33 % pokrytí, IoU 0,12, přestřel 3,3×). **PoC krok 1 HOTOVO Sez. 82**
-  (`generator/separate_veg.py`): separace zelené 406/408/410 → vektorizace (contourpy reuse `rock_relief`) →
-  `.omap` + podklad map.png, věrné ~90 % (overlay verify). **ZBÝVÁ:**
-  - [ ] **OOM verify** `separate_veg.omap` (ruční, paměť `omap-verify-oom`).
-  - [ ] **Integrace do `generate_map()`** — real ČÚZK vrstvy + predikční separace v JEDNÉ `.omap` (kanál
-    `predict_veg`, nahradí `--forest-age`) + **A3 provenience flag real/predict** (precedent `proxy:true`).
-  - [ ] **Škálovat páry** přes korpus (216 keep) → set `.omap` pro trénink `Png2Area`. Zásada: separace = GT-feeder,
-    NEleštit práh (IDEAS „separace = GT-feeder"); kvalitu dotáhne model.
+  (`generator/separate.py`, zobecněno Sez. 83 `separate_veg`→`separate_areas`/`AREA_CLASSES`): separace zelené
+  406/408/410 → vektorizace (contourpy reuse `rock_relief`) → `.omap`, věrné ~90 %. **OOM verify HOTOVO Sez. 83**
+  (izolovaná + integrovaná). **Integrace HOTOVO Sez. 83** (DONE): `generate_map` +kwarg `predict_areas_sjtsk`
+  (přednost před archiv forest-age, provenance `predict`) + orchestrátor `generator/pairs.py build_pair(cid)`
+  (per-classId, Livelox grid, Gate A ~1 px) + `_fill_ignore` (přetisk tratě 704/705 → nejbližší label). **ZBÝVÁ:**
+  - [ ] **Škálovat páry** přes korpus (216 keep) → set `gen/*.omap` pro trénink `Png2Area`. Batch `build_pair`
+    (tolerance + resume, mirror `livelox.build_pairs`), velký běh (~215× ČÚZK fetch = hodiny/přes noc); vyřadit
+    outlier `1109655` (georef bug, Gate A). Zásada: separace = GT-feeder, NEleštit práh; kvalitu dotáhne model.
 - [ ] *(enabler fáze II, rozhodnuto Sez. 82 — IDEAS „omap2png")* **omap2png** — render `.omap`→PNG pro export páru.
   OOM nemá CLI/headless. **Volba: náš rastr teď** (`generate_map` už `rgb.png` dělá), C++ headless OOM až měřený
   doménový gap dokáže potřebu. Až bude integrace fáze I + degradér fáze II.

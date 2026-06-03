@@ -355,7 +355,8 @@ olivová 520) z dat; měkké (vegetace 406/408/410, open 401, paseky, pole/sady)
   **přestřeluje zelenou 3,3×** (73,5 % vs 22 %); kde proxy = 406/408, mapař nakreslil **běhatelný bílý les 76-79 %**.
 - **Konceptuálně (Sez. 79):** predikční vegetace nemusí být pravdivá, jen **konzistentní v páru** — separace z téže
   mapy je konzistentní z definice, forest-age by injektoval JINOU vegetaci → nekonzistentní pár.
-→ **[[forest-age-proxy]] ARCHIVOVÁN** (jako Orto2Colors; kód funkční). Zdroj predikční vegetace = `generator/separate_veg.py`.
+→ **[[forest-age-proxy]] ARCHIVOVÁN** (jako Orto2Colors; kód funkční). Zdroj predikční vegetace = `generator/separate.py`
+(`separate_areas`); **integrováno Sez. 83** do `generate_map` (kwarg `predict_areas_sjtsk`) přes orchestrátor `generator/pairs.py`.
 
 **Zásada (Sez. 82): algoritmická separace = GT-FEEDER, ne finální kvalita.** PoC dal ~90 % věrnost — a to STAČÍ,
 protože kvalitu dotáhne **`Png2Area` model** trénovaný na množství párů, ne leštění separačního prahu. Navíc pod
@@ -368,7 +369,7 @@ každá chce jinou architekturu → tři modely > monolit (SLAP, izomorfismus). 
 (`type=1/2/4` = Point/Line/Area, doloženo z template) → rozlož na tři GT sady. Pořadí (foundations):
 - **Png2Area (první)** — plochy → polygony. Reuse U-Net `model/train.py` (Sez. 78); vstup = mapa
   (barevně kódovaná, vysoký strop) ne ortofoto (strop 0,25) → jiná, snazší úloha; hodnota = robustnost
-  vůči degradaci skenu. Symetrie: separace fáze I (`separate_veg`, nearest-color na čisté) = baseline + GT-feeder;
+  vůči degradaci skenu. Symetrie: separace fáze I (`separate_areas`, nearest-color na čisté) = baseline + GT-feeder;
   degradace II = trénink; Png2Area III = model na degradovaném skenu, kde algoritmus selže.
 - **Png2Point (druhý)** — bodové ISOM → lokalizace+klasifikace (keypoint/object detektor). Generátor
   má přesné polohy (109/110/111/312…) → GT zdarma + libovolně instancí (řeší vzácnost symbolů). =

@@ -5,6 +5,10 @@ enabler-feeder), ne sandbox experiment (povýšen ze `sandbox/generator-poc/`
 v Sez. 39 — 2600+ LOC / 24 vrstev už dávno není „PoC"). Konzumuje konektory
 reálných dat z `connectors/` (UC2). (Pozn.: UC5 **model** žije v samostatném `model/`,
 sourozenec `generator/`/`connectors/` — ne uvnitř generátoru; viz README repa „Repository layout".)
+**UC5 továrna párů (Sez. 82/83):** `separate.py` (`separate_areas`) separuje predikční plochy (vegetace
+406/408/410) z reálné Livelox mapy; `pairs.py` (`build_pair(cid)`) je spojí s real ČÚZK vrstvami `generate_map`
+do JEDNÉ georeferencované `.omap` per classId (provenance real/predict) — `[render, .omap]` pár pro `reconstructor()`.
+
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
 

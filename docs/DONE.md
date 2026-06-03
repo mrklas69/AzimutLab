@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 83 (2026-06-03) — Integrace separace do generate_map() (per-classId pár real+predict) + zobecnění + oprava přetisku
+- [x] **Zobecnění separace `separate_veg.py` → `separate.py`** (rename modulu i funkce: `separate_veg` →
+      `separate_areas`, `LEVELS` → registr `AREA_CLASSES`). Mechanismus (`vectorize_level`) byl už agnostický;
+      registr připravený na paseky/podrost (až je `map_gt` klasifikuje). **Scope (volba uživatele):** separovat
+      JEN co generátor neumí z tvrdých dat (vegetace, do budoucna paseky/podrost) — voda/skály/budovy/cesty zůstávají
+      „real" (ZABAGED/DMR), separace navíc = dvojí zdroj + konflikt + porušení DRY. Behavior-preserving (392 polygonů).
+- [x] **Gate A (measure-first) — `build_bbox` vs Livelox `_georef_grid` obal.** Riziko integrace: real vrstvy se
+      georefují přes `build_bbox(lat,lon,…)` z centroidu obalu, separace přes `_map_affine(quad)` → musí sednout do
+      jednoho S-JTSK. Měřeno na 268 map: **medián Δroh 1,15 m (~1 px), p90 3,09 m**; posun jen v ŠÍŘCE (zaokrouhlení
+      `gw` na celé buňky `M_PER_CELL` pokřiví poměr), výška přesná. Pro GT-feeder OK (separace ~90 %, model dotáhne).
+      Outlier `1109655` (1,5 mil. m) = georef bug té mapy → vyřadit z korpusu, netáhne pipeline.
+- [x] **Krok 2 — integrace do `generate_map()` + orchestrátor `generator/pairs.py` (per-classId továrna párů).**
+      `generate_map` dostal **jeden nový keyword `predict_areas_sjtsk`** (helper `_draw_predict_areas`): když přijde,
+      MÁ PŘEDNOST před archivovaným forest-age — separace v S-JTSK → `_poly_to_grid_px` → kreslí se stejnou cestou
+      (406/408/410) i `.omap` kanál jako forest-age, jen geometrie je z páru. **`pairs.py build_pair(cid)`:** `meta` →
+      `_georef_grid` → centroid→lat/lon + rozměry obalu→w_km/h_km, separace `gt_labels`→S-JTSK přes `_map_affine`,
+      pak `generate_map(forest_age="off", predict_areas_sjtsk=…)`. Společný grid = Livelox `_georef_grid`, zarovnání
+      přes jeden S-JTSK (.omap je vektorový/georeferencovaný — pixel-grid nepotřebný). **A3 provenience:** `forest_age`
+      meta sekce nese `provenance:"predict"` + `source:"separace_realne_mapy"` (vs forest-age `proxy:true`).
+- [x] **Oprava: fialový přetisk tratě vykousával zeleň → `_fill_ignore` (nález uživatele při OOM verify).** `map_gt`
+      dal kroužkům kontrol (704) a spojnicím (705) label 255 IGNORE (Sez. 72, smysluplné pro archivovaný ortofoto model)
+      → separace je viděla jako díry v zelených plochách. Fix: před vektorizací IGNORE pixel → **nejbližší ne-ignore
+      label** (`distance_transform_edt(return_indices)`) — kroužek uvnitř zeleně → zelená. Specifické pro separaci
+      (ne `map_gt`, kde ignore má vlastní smysl). Verify: výřez před/po (díry zacelené), 392 → 379 ploch.
+- [x] **OOM verify Test OK na Přeboru (1088447).** Izolovaná `separate_areas.omap` (379 ploch, podklad map.png) +
+      integrovaná `gen.omap` (**11 774 objektů**: real ČÚZK 5066 surfaces/3065 budov/1379 cest/285 voda/202 vrstevnic/… +
+      379 ploch separované vegetace, ortofoto podklad). Uživatel: „artefakty zmizely, zelená sedí, mapa lícuje". Nález
+      (sekundární): ČÚZK open land (žlutá 401) dominuje vůči realitě — pro PÁR nevadí (X = render NAŠÍ `.omap`, X↔Y konzistentní).
+
 ## Sezení 82 (2026-06-03) — A1 measure-first (forest-age → archiv) + PoC fáze I (separace zelené → .omap)
 - [x] **A1 measure-first — zdroj predikční vegetace = separace z mapy, NE forest-age (ARCHIVOVÁN).** Dvě měření:
       **#1 šířka** — sken celého ČR korpusu (`temp/a1_corpus_scan.py` → `a1_coverage.json`): forest-age má zeleň jen

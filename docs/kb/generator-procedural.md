@@ -460,8 +460,9 @@ ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 5
 
 ### 4.9p Věk porostu → zeleň (real-data, PROXY/predikce, Sez. 62) — ⟲ ARCHIVOVÁNO Sez. 82
 > **A1 measure-first (Sez. 82) ho vyřadil jako zdroj predikční vegetace:** pokrytí jen 33 % korpusu, IoU
-> s kresbou kartografa 0,12, přestřel zelené 3,3×. Nahrazeno **separací z reálné mapy** (`generator/separate_veg.py`,
-> [[separate_veg]]). Kód i `--forest-age` ZŮSTÁVAJÍ funkční (doložená cesta jako Orto2Colors). Detail: DONE Sez. 82.
+> s kresbou kartografa 0,12, přestřel zelené 3,3×. Nahrazeno **separací z reálné mapy** (`generator/separate.py`,
+> [[separate_areas]]; **integrováno Sez. 83** do `generate_map` přes kwarg `predict_areas_sjtsk` + orchestrátor
+> `generator/pairs.py`). Kód i `--forest-age` ZŮSTÁVAJÍ funkční (doložená cesta jako Orto2Colors). Detail: DONE Sez. 82/83.
 
 **✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
 `connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server

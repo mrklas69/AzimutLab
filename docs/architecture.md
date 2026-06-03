@@ -86,7 +86,9 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   plochy 206 z DMR** (rock-relief sklon, Sez. 63 — derivace z výškopisu, ne ZABAGED); olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
   **Most UC2→UC5:** `--forest-age` byl první **predikční** vrstva (věk porostu ≠ věrná runnability, `proxy:true`) —
   ⟲ **ARCHIVOVÁN Sez. 82** (A1 measure-first: pokrytí jen 33 % korpusu, IoU 0,12 s kresbou kartografa, přestřel zelené
-  3,3×; kód zůstává funkční, doložená cesta). Predikční vegetaci nahrazuje **separace z reálné mapy** (`generator/separate_veg.py`).
+  3,3×; kód zůstává funkční, doložená cesta). Predikční vegetaci nahrazuje **separace z reálné mapy** (`generator/separate.py`,
+  `separate_areas`). **Integrace Sez. 83:** orchestrátor `generator/pairs.py` (`build_pair(cid)`) spojí real ČÚZK vrstvy
+  + separovanou vegetaci do JEDNÉ georeferencované `.omap` per Livelox classId (provenance real/predict) — UC5 továrna párů.
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace

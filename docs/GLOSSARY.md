@@ -337,11 +337,21 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   linií). GT zdarma z `.omap` (typ symbolu). Pořadí: **Area** první (reuse U-Net Sez. 78, vstup mapa ne
   ortofoto → vysoký strop), **Point** druhý (generátor má přesné polohy bodů → GT + libovolně instancí; „bodová
   větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
-- **`separate_veg` / algoritmická separace** (Sez. 82, `generator/separate_veg.py`) — GT-feeder pro [[reconstructor|`Png2Area`]]:
-  z reálné Livelox mapy separuje zelenou (406/408/410) a vektorizuje (contourpy, reuse `rock_relief`) → predikční
-  plochy do `.omap`. **Záměrně NE věrná na 100 %** (PoC ~90 %): kvalitu dotáhne MODEL trénovaný na množství párů,
-  ne leštění prahu. Nahrazuje archivovaný [[forest-age-proxy]] jako zdroj predikční vegetace (univerzální + mapař =
-  ground truth + konzistentní pár; A1 measure-first Sez. 82).
+- **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
+  pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (dnes zelená
+  406/408/410 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse `rock_relief`) → predikční plochy do
+  `.omap`. **Scope (Sez. 83):** jen co generátor neumí z tvrdých dat (vegetace, do budoucna paseky/podrost) —
+  voda/skály/budovy zůstávají „real" (separace navíc = dvojí zdroj + konflikt + DRY). **Záměrně NE věrná na 100 %**
+  (PoC ~90 %): kvalitu dotáhne MODEL trénovaný na množství párů, ne leštění prahu. Nahrazuje archivovaný
+  [[forest-age-proxy]] jako zdroj predikční vegetace (univerzální + mapař = ground truth + konzistentní pár).
+  `_fill_ignore` (Sez. 83): před vektorizací nahradí IGNORE pixely (fialový přetisk tratě 704/705 → 255 z [[runnability]]
+  GT) nejbližším labelem — jinak kroužky/spojnice kontrol vykousnou díry do zelených ploch.
+- **`pairs.py` / `build_pair(cid)`** (Sez. 83, `generator/pairs.py`) — per-classId **továrna párů** [render, `.omap`]
+  pro [[reconstructor]] (izomorf reframe „generator = továrna párů"; neplést s archivovaným `livelox.build_pairs` =
+  ortofoto X,Y). Spojí REAL část (ČÚZK vrstvy z [[generator|`generate_map`]]) + PREDICT část (separace vegetace,
+  `separate_areas`) do JEDNÉ georeferencované `.omap` (provenance real/predict). Společný grid = Livelox
+  `_georef_grid` (centroid→lat/lon, obal→w_km/h_km); zarovnání přes jeden S-JTSK (`.omap` vektorový → pixel-grid
+  netřeba; Gate A Sez. 83: shoda obalu medián ~1 px). Předáno přes `generate_map(predict_areas_sjtsk=…)`.
 - **`omap2png` (rozhodnutí Sez. 82)** — rendrování `.omap` → PNG pro fázi II (export páru). OOM **nemá CLI/headless**
   export (jen GUI; ověřeno) → buď náš rastr (`generate_map` už `rgb.png` produkuje, aproximace), nebo C++ headless
   z OOM zdroje (`RenderConfig`+`MapRenderables::draw`+Qt offscreen, věrné). **Volba: náš rastr teď, C++ až měřený
@@ -364,7 +374,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   kartografie, kterou ISOM předepisuje). Spec §0b.
   Vztah k [[projekce-vs-predikce]]: fáze 2 sahá od dekorace (příčky) po predikci (vegetace, UC5).
 - **forest-age-proxy** — ⟲ **ARCHIVOVÁNO Sez. 82** (A1 measure-first: pokrytí 33 % korpusu, IoU 0,12 s kresbou,
-  přestřel zelené 3,3× → nevhodný zdroj predikční vegetace; nahrazeno [[separate_veg|separací z mapy]]; kód
+  přestřel zelené 3,3× → nevhodný zdroj predikční vegetace; nahrazeno [[separate_areas|separací z mapy]]; kód
   funkční, doložená cesta jako [[uc5-rgb-baseline-ceiling|Orto2Colors]]). — vrstva `--forest-age` (Sez. 62, `connectors/forest.py`): zeleň ISOM 406/408/410
   odvozená z VĚKU porostu (AOPK „Les_Mapy" porostní skupiny, atribut `BARVA` = ordinální věk doložený
   standardem KSLH). Mladý porost = nejhustší → 410 fight; tyčkovina → 408 walk; mladší kmenovina → 406 slow;
