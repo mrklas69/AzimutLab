@@ -307,6 +307,14 @@ záclona. Gaty PŘED model.
 - **H. Class imbalance:** 0 dominuje, fight(3) vzácný → CrossEntropy(`ignore_index=255`) +
   class weights / Dice / Focal. Změřit rozložení tříd nejdřív.
 
+**VÝSLEDEK baseline (Sez. 78):** kroky C-H realizovány. `model/dataset.py` + `model/train.py`
+(U-Net/ResNet34 ImageNet-pretrained, BF16, median-freq CE). Overfit gate prošel; plný trénink
+40 ep → **val mIoU 0,259 / test 0,223** (410 fight 0,04). **Křivka = generalizační strop:** train
+loss klesá, val mIoU plochá ~0,25 od ep1. Hlavní podezřelý (volba uživatele) = **úlohový strop,
+RGB-only málo** (runnability = podrost pod korunami, z ortofota shora omezeně viditelný — sedí na
+měření Sez. 59/66). → osa B se otevírá: další krok = **MĚŘENÁ ablace bohatšího vstupu** (DMR
+sklon/CHM, forest-age), teď s důkazem stropu (princip „generalizuj s důkazem").
+
 **Produkt:** natrénované váhy (`.pt`, gitignored) + inference skript. NE knihovna (fáze B =
 sys.path skripty). Cíl: nová vrstva generátoru `--vegetation predicted`, která zacelí vegetace
 gate (druhá půlka generátoru = predikce, viz „Generátor jako prediktor").

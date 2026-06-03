@@ -273,6 +273,16 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Výstup `resources/tiles/<split>/<cid>/<r>_<c>_{x,y}.png` (gitignored) + `_tiles.json` (počty/class%/váhy).
   ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
 
+- **IoU / mIoU** — *Intersection over Union*, metrika segmentace: pro třídu c je IoU = TP / (TP+FP+FN)
+  (překryv predikce s GT / jejich sjednocení). **Per-class IoU** ukáže každou třídu zvlášť, **mIoU** je
+  jejich průměr. UC5 měří per-class (průměr by maskoval, že vzácná 410 fight je ignorována). Počítá se
+  z confusion matice, [[IGNORE]] (255) px se vynechá. `model/train.py` (Sez. 78). Baseline val mIoU ~0,25.
+
+- **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
+  (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,
+  ale ve vstupu nebo datech. UC5 závěr: runnability (hustota podrostu) je z RGB ortofota shora omezeně
+  poznatelná → další krok = bohatší vstup (ablace), ne ladění modelu (princip „generalizuj s důkazem").
+
 - **Class imbalance** — nerovnoměrné zastoupení tříd v GT (UC5: 410 fight jen 1,35 % labeled vs průchodný
   69 %). Bez korekce model degeneruje na „vždy hádej většinovou třídu". Řeší **váhy v loss** (median-frequency
   balancing: w = medián(frekvencí) / frekvence třídy → vzácná 410 dostává w≈8,4). Měřeno Sez. 76; spočteno

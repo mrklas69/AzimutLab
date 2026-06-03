@@ -176,6 +176,8 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
 model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77)
   tile.py              #   pre-tiling of (X,Y) pairs into 512×512 tiles (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights (_tiles.json)
+  dataset.py           #   PyTorch loader over tiles + on-the-fly augmentation (D4 + brightness/contrast); ImageNet norm (session 78)
+  train.py             #   U-Net/ResNet34 (smp, ImageNet-pretrained) training, BF16, per-class IoU eval, learning curve → resources/model/ (session 78; baseline val mIoU 0.25 — RGB-only task ceiling)
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)

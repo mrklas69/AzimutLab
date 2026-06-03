@@ -63,15 +63,19 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   S-JTSK bboxů (union-find, 29 clusterů) → greedy **70/15/15 = train 145 / val 31 / test 31** → `_split.json`.
   Bez leaku (celý cluster do 1 splitu), všechny splity reprezentativní (410 nenulová 1,3-1,9 %). Pak hromadná
   výroba **207 párů** (`build_pairs`, 0 fail, medián offset 2,97 m = artefakt ocas, vizuál OK).
-- [~] **Krok 4+ — baseline**: overfit na 1-3 mapy (ověří pipeline+učení) → plný trénink U-Net/ResNet34
-  (smp, ImageNet pretrained, BF16) → per-class IoU eval.
-  **Příprava HOTOVO Sez. 77:** `model/tile.py` (nový adresář `model/`) nakrájel páry (X,Y) na **512×512
-  dlaždice** (stride 256/50% překryv, rejection <30 % validních px, split dědí z `split.dirs_for` = bez
-  leaku) → **~8 125 dlaždic** (train 5 777 / val 1 224 / test 1 124) v `resources/tiles/<split>/<cid>/`
-  (gitignored). **Median-freq váhy `[0,16, 1,0, 1,65, 8,27, 0,89]`** + class% v `resources/tiles/_tiles.json`.
-  **ZBÝVÁ:** `model/dataset.py` (loader nad dlaždicemi + augmentace flip/rot za běhu) → overfit na 1-3 mapy
-  → `model/train.py` plný trénink (`CrossEntropyLoss(weight=class_weights_list, ignore_index=255)`) →
-  per-class IoU eval na val/test. Trénink jen `mrkla` (RTX 5070, BF16).
+- [x] **Krok 4 — baseline HOTOVO Sez. 78.** `model/dataset.py` (loader nad dlaždicemi, D4 aug + jas/kontrast
+  za běhu, ImageNet norma, váhy z `_tiles.json`) + `model/train.py` (smp U-Net/ResNet34 ImageNet-pretrained,
+  `CrossEntropyLoss(weight, ignore_index=255)`, BF16, per-class IoU přes GPU confusion matici, `--overfit`
+  gate, checkpoint best, **křivka učení** `curve_full.png`+CSV po každé epoše). Overfit gate prošel. Plný
+  trénink (40 ep, batch 16): **val mIoU 0,259 / test 0,223**; per-class test 410 fight 0,04. **Nález:
+  generalizační strop** (train loss klesá, val mIoU plochá ~0,25 od ep1) → úlohový strop, RGB-only málo
+  (runnability=podrost pod korunami). Detail v DONE. Trénink jen `mrkla` (RTX 5070, BF16).
+- [~] **Krok 5 — zlepšení baseline (Sez. 78 nález).** (a) **diagnostika** pred vs GT na pár val dlaždicích
+  (rozumné záměny sousedních runnability tříd vs strukturální selhání?); (b) pokud potvrzen RGB-strop →
+  **MĚŘENÁ ablace bohatšího vstupu** — DMR sklon/CHM jako 4. kanál nebo forest-age (osa B IDEAS „raw default,
+  generalizuj s důkazem" — teď je důkaz stropu); (c) případně **recency-filtrovaný korpus** (časový nesoulad
+  input ortofoto × GT ze staré mapy, viz TODO „recency osa"). Hlavní podezřelý (volba uživatele Sez. 78):
+  RGB-only nestačí na hustotu podrostu shora.
 - [ ] *(integrace, deferred Sez. 76)* **ČR/DE filtr do `kept_dirs`** — dnes `_cz_filter.json` je jen měřicí
   artefakt (nemění `keep`). Tréninkový loader jede přes `split.dirs_for()` (už ČR-only), takže neakutní;
   doladit, až loader vznikne (krok 4) — buď číst split, nebo přidat filtr do `curate.keep`.

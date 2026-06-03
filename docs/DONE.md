@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 78 (2026-06-03) — UC5 krok 4 dokončen: loader + trénink + baseline (val mIoU 0,25)
+- [x] **`model/dataset.py` — PyTorch loader nad dlaždicemi (Sez. 77).** `TileDataset(split, augment,
+      limit_cids)` čte `resources/tiles/<split>/<cid>/*_x.png` (+ `_y`), vrací (x float32 `(3,512,512)`
+      ImageNet-normalizovaný, y int64 `(512,512)` labely 0-4/255). **Augmentace za běhu** (volba Sez. 77):
+      D4 (hflip + rot90×k — BEZ interpolace → labely přesné; obecná rotace by vyrobila smíšené px) +
+      jas/kontrast jen na X. Jen train; val/test deterministické. `class_weights()` čte z `_tiles.json`
+      (SSoT/DRY). Self-check: 5777/1224/1124 dlaždic OK.
+- [x] **`model/train.py` — U-Net trénink + per-class IoU eval + křivka učení.** smp U-Net + ResNet34
+      **ImageNet-pretrained** (precedent Pic2Omap), `CrossEntropyLoss(weight=median-freq, ignore_index=255)`,
+      AdamW lr 1e-4, **BF16 autocast** (Blackwell), `cudnn.benchmark`. Metrika per-class IoU + mIoU přes
+      **GPU confusion matici** (`bincount`, IGNORE vynechán; třída bez px → NaN → mimo mIoU). CLI `--overfit`
+      (2 mapy, bez aug+vah = čistá memorizace) vs plný (eval val + test z best ckpt). Checkpoint best →
+      `resources/model/unet_best.pt`. **Křivka učení** (žádost uživatele): po každé epoše CSV
+      `history_<tag>.csv` + `curve_<tag>.png` (matplotlib Agg, 2 panely loss+mIoU / per-class IoU). +matplotlib
+      do `requirements.txt`.
+- [x] **Overfit gate PROŠEL (pipeline).** Loss 1,99 → 0,099, train mIoU 0,03 → 0,50, 4/5 tříd (průchodný
+      0,98 / open 0,83 / 410 0,48 / 406 0,23). **408 walk = 0** vysvětleno měřením: jen ~0,3 % px v obou
+      mapách + overfit bez vah → ne defekt. Gradienty/učení/eval/checkpoint/křivka ověřeny.
+- [x] **Plný trénink (40 ep, batch 16, ~165 s/ep ≈ 1,8 h): baseline val mIoU 0,259 / test 0,223** (best ep 26).
+      Per-class test: průchodný 0,48 / 406 0,11 / 408 0,16 / **410 fight 0,04** / open 0,32. 408 walk se
+      s vahami NAUČILA (0,16) — overfitová nula byla artefakt chybějících vah.
+- [x] **Nález: generalizační strop (`curve_full.png`).** Train loss klesá (1,38 → 0,69), **val mIoU PLOCHÁ
+      ~0,25 od ep1** — ne hyperparametry, ale úlohový strop. Runnability = hustota podrostu pod korunami,
+      z RGB ortofota shora omezeně poznatelná (doložení Sez. 59/66; Petrovič 2018 ~47 % i s LiDARem).
+      **Volba uživatele:** přijmout baseline + %END, hlavní podezřelý RGB-only málo → příště bohatší vstup
+      (MĚŘENÁ ablace DMR/forest-age kanálu, osa B IDEAS). Empirický baseline = od něj se poměřuje zlepšení.
+
 ## Sezení 77 (2026-06-02) — UC5 krok 4 (příprava): tréninkové dlaždice + median-freq váhy
 - [x] **Nový adresář `model/` (UC5 model kód, sourozenec `connectors/`/`generator/`, sys.path skripty fáze B).**
       První obyvatel `model/tile.py`. Loader/trénink přijdou příště (krok 4 pokračování).
