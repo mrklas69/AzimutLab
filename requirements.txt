@@ -13,3 +13,4 @@ scipy              # morfologie + connected-components — rock-relief z DMR skl
 #   py -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 # (ověřeno: torch 2.11.0+cu128, cp314 wheel, sm_120 v arch_list, smoke test Sez. 74)
 segmentation-models-pytorch   # U-Net + pretrained encodery (ResNet34); táhne si timm + torch
+matplotlib                    # křivky učení (loss/mIoU/per-class IoU) → resources/model/curve_*.png
