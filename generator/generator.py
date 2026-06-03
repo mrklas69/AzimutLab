@@ -2381,6 +2381,29 @@ def _generate_real_forest_age(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageD
     return area_features, forest_age_info
 
 
+def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
+                        areas_sjtsk: list, geo_bbox: tuple) -> tuple[list, list]:
+    """Predikční plochy ze SEPARACE reálné mapy (Sez. 83) → ISOM 406/408/410.
+
+    Reframe (Sez. 79/82): zdroj predikční vegetace = separace barev z Livelox mapy (mapař =
+    GT), NE forest-age (archiv). Mirror _generate_real_forest_age, ale geometrie přichází
+    zvenčí v S-JTSK (orchestrátor `pairs.py` ji vyrobil ze separace přes Livelox quad) — žádný
+    fetch. Kreslení i .omap kanál (406/408/410) jsou shodné s forest-age; liší se jen PROVENIENCE
+    (predict vs real ČÚZK). `areas_sjtsk` = [(poly [vnější,díra…] v S-JTSK, code:int)].
+    Vrací (area_features [(grid, code)], info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
+    area_features: list[tuple] = []
+    info: list[dict] = []
+    for poly, code in areas_sjtsk:
+        grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
+        if len(px_rings[0]) < 3:
+            continue
+        _draw_forest_age_area(draw, fdraw, px_rings, code)   # stejná zelená výplň jako forest-age
+        area_features.append((grid_rings, code))
+        info.append({"symbol": code, "symbol_name": FOREST_AGE_NAME[code],
+                     "kind": "area", "layer": "separace reálné mapy (predict)"})
+    return area_features, info
+
+
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
@@ -2935,6 +2958,7 @@ def generate_map(
         bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
         linefeatures: str = "real", marsh: str = "real", treerows: str = "real",
         forest_age: str = "real", barriers: str = "real",
+        predict_areas_sjtsk: list | None = None,
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -3092,10 +3116,20 @@ def generate_map(
     # Zelená vegetace nad žlutou open land i nad bílým lesem; tenká stromořadí (alej) a hnědá kostra
     # zůstanou viditelné navrchu. PRVNÍ predikční vrstva (data tvrdá, věk→běhatelnost je proxy).
     # Jen --forest-age real. Mimo pokrytí AOPK (SV/HS) = 0 prvků (mirror řídkých vrstev Sez. 43).
+    # `predict_areas_sjtsk` (Sez. 83, orchestrátor pairs.py) MÁ PŘEDNOST: zeleň ze separace reálné
+    # mapy nahrazuje forest-age (archiv Sez. 82) jako zdroj predikční vegetace. Když přijde, kreslí se
+    # stejnou cestou (406/408/410), jen geometrie je z páru, ne z AOPK; provenance = predict (viz meta).
     forest_age_area_features: list[tuple] = []
     forest_age_info: list[dict] = []
     forest_age_mask_img: Image.Image | None = None
-    if forest_age == "real":
+    predict_veg = predict_areas_sjtsk is not None
+    if predict_veg:
+        forest_age_mask_img = Image.new("L", (W, H), 0)  # GT maska zeleně (§8.1), multi-class
+        fadraw = ImageDraw.Draw(forest_age_mask_img)
+        forest_age_area_features, forest_age_info = _draw_predict_areas(
+            draw, fadraw, predict_areas_sjtsk, geo_bbox)
+        _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(forest_age_info))
+    elif forest_age == "real":
         forest_age_mask_img = Image.new("L", (W, H), 0)  # GT maska věku porostu (§8.1), multi-class
         fadraw = ImageDraw.Draw(forest_age_mask_img)
         forest_age_area_features, forest_age_info = _try_layer(
@@ -3669,20 +3703,30 @@ def generate_map(
     # jiná licence a hlavně FLAG `proxy: true` + `note` (věk ≠ věrná runnability) — to helper neumí.
     # Predikční vrstva (Sez. 62): meta to musí přiznat, ať konzument (UC5/compare) nevezme zeleň jako
     # tvrdou projekci. Symboly/třídy ze SKUTEČNĚ použitých kódů (mirror _layer_meta_section).
-    if forest_age == "real":
+    if predict_veg or forest_age == "real":
         used = sorted({it["symbol"] for it in forest_age_info}, key=str)
+        # A3 provenience (Sez. 83): zeleň je PREDIKČNÍ (ne tvrdá projekce), ať ze separace (Sez. 82)
+        # nebo z věku porostu (forest-age, archiv). `provenance:"predict"` to přiznává konzumentovi
+        # (UC5/compare/reconstructor), aby zeleň nevzal jako real. Zdroj/note/licence se liší.
+        if predict_veg:
+            prov = {"source": "separace_realne_mapy", "provenance": "predict",
+                    "note": ("PREDICT: zeleň SEPAROVANÁ z barev reálné OB mapy (mapař = GT, Sez. 82/83), "
+                             "ne z tvrdých dat. GT-feeder pro Png2Area — věrnost ~90 %, dotáhne model."),
+                    "licence": "odvozeno z reálné OB mapy (kartograf/pořadatel; TDM režim)"}
+        else:
+            prov = {"source": "aopk_les_mapy", "provenance": "predict",
+                    "note": ("PROXY: zeleň odvozená z VĚKU porostu (AOPK porostní skupiny, atribut BARVA), "
+                             "NE z terénní běhatelnosti. Predikční vrstva (Sez. 62, ARCHIV Sez. 82)."),
+                    "proxy": True,
+                    "licence": "otevřená data dle zák. 106/1999 Sb. (AOPK ČR, LHP/LHO Lesy ČR + ÚHÚL)"}
         real_sections["forest_age"] = {
             "count": len(forest_age_info),
             "mask": "mask_forest_age.png",
-            "source": "aopk_les_mapy",
-            "proxy": True,
-            "note": ("PROXY: zeleň odvozená z VĚKU porostu (AOPK porostní skupiny, atribut BARVA), "
-                     "NE z terénní běhatelnosti. Predikční vrstva (Sez. 62), ne tvrdá projekce."),
+            **prov,
             "symbols": {str(c): FOREST_AGE_NAME[c] for c in used},
             "classes": {"0": "pozadí",
                         **{str(FOREST_AGE_CLASS[c]): f"{c} {FOREST_AGE_NAME[c]}" for c in used}},
             "items": forest_age_info,
-            "licence": "otevřená data dle zák. 106/1999 Sb. (AOPK ČR, LHP/LHO Lesy ČR + ÚHÚL)",
         }
     meta = _build_meta(seed, rug, det, terrain, paths, pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, len(formline_features), n_paths, paths_info,

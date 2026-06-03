@@ -7,7 +7,7 @@ measure-first ukázal, že forest-age je nevhodný zdroj predikční vegetace pr
   - kde bohatý (Přebor), IoU s kresbou kartografa 0,12 a přestřel zelené 3,3× (proxy přecení
     mladý porost jako neběhatelný; absolutní řezy BARVA→ISOM kalibrované na Jizerky negeneralizují),
   - konceptuálně (Sez. 79): predikční vegetace nemusí být PRAVDIVÁ, jen konzistentní v páru
-    [render, .omap] → zdroj = SEPARACE z reálné mapy (generator/separate_veg.py), ne data.
+    [render, .omap] → zdroj = SEPARACE z reálné mapy (generator/separate.py), ne data.
 Kód i `--forest-age` flag ZŮSTÁVAJÍ funkční (doložená cesta, regrese 0), ale pro predikční vegetaci
 je nahrazuje separace. Detail: paměť [[forest-age-proxy]], diár Sez. 82.
 
