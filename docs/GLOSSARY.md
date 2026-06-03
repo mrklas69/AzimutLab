@@ -306,6 +306,23 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (Sez. 25) → zpět `generate_map` (Sez. 39: v komunikaci převládl „generátor"; deštník i pro
   budoucí generátory, ne jen tuto syntézu). „Pseudorealistická" zůstává vlastností *výstupu*
   (viz níže), ne názvem funkce. Detail: IDEAS.
+- **`generator()`** — pojem-agent **obalující funkci [[prediktor-mapy|`generate_map()`]]** (generativní
+  větev). Generuje `.omap` (a jeho render) **z parametrů lokality**: pozice (lat/lon), rozměry výseku a —
+  kvůli měnící se [[grivace|grivaci]] (magnetická deklinace v čase driftuje) — **datum/čas**. Skládá se ze
+  dvou částí: **real** = [[projekce-vs-predikce|projekce]] tvrdých geodat (ČÚZK DMR / ZABAGED / RÚIAN → ISOM,
+  *máme*) + **predict** = [[projekce-vs-predikce|predikce]] symbolů, které v datech nejsou (vegetace /
+  paseky / hustníky), tak aby mapa vypadala co nejreálněji. Účel = [[feeder|enabler-feeder]]: libovolné
+  množství párů [render, `.omap`] s [[ground-truth-gt|GT]] zdarma pro trénink [[reconstructor]]u (obchází
+  [[sparse-gt-past|sparse-GT past]]). Pozn.: datum/čas dnes ještě není parametr → viz [[grivace]] feature.
+- **`reconstructor()`** — pojem-agent **obalující funkci `reconstruct_map()`** (dříve navrženo `mapper()`).
+  Ze **skenu existující** OB mapy (i opotřebené / pomačkané) vyrobí `.omap`. Pro **stejnou lokalitu a čas**
+  znovu opatří **real část** přes [[generator]] (tvrdé vrstvy přesně z mapových služeb) a zkombinuje ji
+  s **reverse-engineeringem skenu** (PNG→`.omap`) pro to, co v datech NENÍ — vegetace, kartografovy úpravy,
+  fialový přetisk. Trénuje se na párech z [[generator]]u ([[domain-gap|sken-augmentovaný]] render ↔ `.omap`
+  GT). **Plní hlavní aplikační cíl** (UC4-III). **[[pic2omap]] sem bude absorbován** (fáze B→A, načasování
+  TBD), ne duplikován. Pozor: model „rozumí mapám" = `reconstructor`, NE archivovaný `ORTO→4 barvy` (ten
+  „rozuměl ortofotu", Sez. 78 strop). Jméno `reconstruct_map()` voleno přes `regenerate_map()` — „regenerate"
+  koliduje s programátorským „re-run téže generace", kdežto reconstructor rastr→vektor rekonstruuje (Sez. 79).
 - **Projekce vs predikce** — dvě fáze prediktoru mapy. *Projekce* = deterministický převod dostupných
   geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
   v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +

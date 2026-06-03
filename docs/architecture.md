@@ -90,6 +90,14 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace
 bodových, liniových i plošných ISOM symbolů.
+
+> **⟲ Reframe Sez. 79 (částečná propagace, plná revize = A1).** „Rozumí mapám" = **`reconstructor()`**
+> (sken → `.omap`, dříve pracovně „mapper"), trénovaný na párech z **`generator()`** (real + **predict**
+> část — vegetace procedurálně, viz GLOSSARY). Model **`ORTO → 4 barvy`** popsaný níže (Sez. 74-78) narazil
+> na strop val mIoU ~0,25 → **archivovaná odbočka**, NE hlavní směr (nemazat — doloženo). Foundations:
+> nejdřív `generator()` predict část, pak `reconstructor()`. Datová pipeline (páry, GT, split, dlaždice)
+> zůstává užitečná. **Plná revize UC3 / UC4-III / fázový plán / Pic2Omap absorpce odložena (A1).** Pojmy:
+> GLOSSARY `generator()` / `reconstructor()`.
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
 - Přímá návaznost na Pic2Omap `color_separator.py` / detektory — kandidát na první
   reálně sdílený kód při přechodu na monorepo.

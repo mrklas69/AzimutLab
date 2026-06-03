@@ -43,6 +43,19 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 ### UC5 runnability model — kroky (Sez. 74 %THINK; architektura v IDEAS „UC5 runnability model")
 Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke test první**. Trénink jen na
 `mrkla` (RTX 5070, BF16) — `docs/kb/hardware.md`. Gaty PŘED model (pár (X,Y) = foundation).
+
+> **⟲ REFRAME Sez. 79 — směrový obrat.** Model `ORTO → 4 barvy` (kroky 0-4 níže) dal val mIoU strop ~0,25
+> (Sez. 78) → **archivováno** (NE smazáno; doložená slepá ulička „z ortofota shora podrost nevidět"). Cíl
+> „rozumí mapám" = **`reconstructor()`** (sken → `.omap`, dříve „mapper"), ne ortofoto→runnability. Feeder =
+> **`generator()`** s **predict částí** (vegetace/paseky/hustníky procedurálně, aby render vypadal reálně —
+> NE věrná predikce z dat; pravdivost vůči lokalitě nepodstatná, pár [render, `.omap`] musí být konzistentní).
+> **Foundations: nejdřív dotáhnout `generator()` predict část, pak `reconstructor()`.** Pojmy: GLOSSARY
+> `generator()`/`reconstructor()`. Korpus / páry (X,Y) / GT pipeline (kroky 1-3) **ZŮSTÁVAJÍ** užitečné.
+> Plná revize architektury (UC3 / UC4-III / UC5 / fázový plán / Pic2Omap absorpce) = **A1 odložena**.
+- [ ] **(NOVÝ HLAVNÍ TAH Sez. 79) `generator()` predict část — procedurální vegetace.** %THINK před kódem:
+  jak z dostupných dat (terén / voda / [[forest-age-proxy]]) vygenerovat plošnou zeleň 406/408/410 + paseky /
+  hustníky tak, aby render vypadal realisticky pro trénink `reconstructor()`. Navazuje na forest-age (Sez. 62)
+  + nahrazuje zavržený ortofoto směr (archiv). Spec §0b „pseudorealistic / predict", IDEAS.
 - [x] **Krok 0 HOTOVO (Sez. 74) — smoke test PyTorch+CUDA na Blackwell.** `torch 2.11.0+cu128`
   (cp314 wheel) + `torchvision` + `smp 0.5.0`; ověřeno empiricky `temp/smoke_test_gpu.py`: sm_120
   v `arch_list`, matmul fp32+bf16 + U-Net forward (1,3,512,512)→(1,5,512,512) reálně na GPU, 11,4 GB
@@ -70,7 +83,9 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   trénink (40 ep, batch 16): **val mIoU 0,259 / test 0,223**; per-class test 410 fight 0,04. **Nález:
   generalizační strop** (train loss klesá, val mIoU plochá ~0,25 od ep1) → úlohový strop, RGB-only málo
   (runnability=podrost pod korunami). Detail v DONE. Trénink jen `mrkla` (RTX 5070, BF16).
-- [~] **Krok 5 — zlepšení baseline (Sez. 78 nález).** (a) **diagnostika** pred vs GT na pár val dlaždicích
+- [×ARCHIV] **Krok 5 — zlepšení baseline (Sez. 78 nález) → ARCHIVOVÁNO Sez. 79** (ortofoto→runnability je
+  slepá ulička, viz reframe výše; nahrazeno `generator()` predict částí). Původní zadání zachováno níže pro
+  historii: (a) **diagnostika** pred vs GT na pár val dlaždicích
   (rozumné záměny sousedních runnability tříd vs strukturální selhání?); (b) pokud potvrzen RGB-strop →
   **MĚŘENÁ ablace bohatšího vstupu** — DMR sklon/CHM jako 4. kanál nebo forest-age (osa B IDEAS „raw default,
   generalizuj s důkazem" — teď je důkaz stropu); (c) případně **recency-filtrovaný korpus** (časový nesoulad
