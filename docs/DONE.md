@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 80 (2026-06-03) — %THINK fáze I/II/III + tři pomocné modely + průzkum vektorů (žádný kód)
+- [x] **Vyjasněn tok I/II/III** (oprava mého zmatku „degradér ve fázi I"): I. `generator()` = real část (ČÚZK) +
+      prediktivní plochy ze **separace barev z HD Livelox PNG** (NEdegradovat — separace chce kvalitu); II. dataset
+      = export PNG + **degradace** (overprint/odřeniny/bláto); III. `reconstructor()` = trénink. Livelox = zdroj
+      ploch fáze I, NE vstup páru (X je až degradovaný export z naší `.omap`).
+- [x] **Průzkum: pravé veřejné `.omap`/`.ocd` vektory NEEXISTUJÍ v potřebném množství** (8 web searchů + 3 fetche).
+      `OpenOrienteering/mapper/examples` = jednotky open (GPL); WOC2024 = 3 mapy embargo/restricted; British O = jen
+      nástroje (OS Crown Copyright); EU/Interreg/Erasmus = žádný hotový korpus. → `.omap` (Y) musí tvořit generátor
+      (proto existuje, sparse-GT past). Korpus pro fázi A = Livelox 268 rastrů.
+- [x] **A1 measure-first zaznamenáno:** vegetace z [[forest-age-proxy]] (data) vs mapař (Livelox separace) — změřit
+      na lokalitě s obojím. **A3 provenience real/predict** do `.omap`/XML (nosná: definuje co reconstructor bere
+      z dat vs ze skenu). **A2 tři modely** `Png2Polygon`/`Png2Point`/`Png2Linie` (dekompozice dle typu geometrie).
+- [x] **Propagace (docs-only):** IDEAS (sekce „Tři fáze I/II/III + tři pomocné modely"), TODO (hlavní tah upřesněn
+      + položka tří modelů), GLOSSARY (fáze I/II/III + tři Png2* pojmy). Censure: popletl jsem degradér (fáze I→II)
+      i roli Livelox (X→zdroj ploch) — uživatel opravil.
+
 ## Sezení 78 (2026-06-03) — UC5 krok 4 dokončen: loader + trénink + baseline (val mIoU 0,25)
 - [x] **`model/dataset.py` — PyTorch loader nad dlaždicemi (Sez. 77).** `TileDataset(split, augment,
       limit_cids)` čte `resources/tiles/<split>/<cid>/*_x.png` (+ `_y`), vrací (x float32 `(3,512,512)`

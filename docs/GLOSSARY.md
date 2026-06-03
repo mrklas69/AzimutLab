@@ -323,6 +323,18 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   TBD), ne duplikován. Pozor: model „rozumí mapám" = `reconstructor`, NE archivovaný `ORTO→4 barvy` (ten
   „rozuměl ortofotu", Sez. 78 strop). Jméno `reconstruct_map()` voleno přes `regenerate_map()` — „regenerate"
   koliduje s programátorským „re-run téže generace", kdežto reconstructor rastr→vektor rekonstruuje (Sez. 79).
+- **Fáze I / II / III** (Sez. 80) — pracovní rozklad cesty k [[reconstructor]]u: **I. [[generator]]()** vyrobí
+  pseudorealistic `.omap` (real část ČÚZK + **prediktivní plochy ze separace barev z HD Livelox PNG** — bez
+  degradace, separace chce kvalitu); **II. dataset** = export PNG z `.omap` + **degradace** (overprint /
+  odřeniny / bláto = [[domain-gap]] Stupeň 2) → páry [`.omap`, sken-PNG]; **III. [[reconstructor]]()** = trénink
+  modelu na párech z II. Degradér patří do II, ne do I. Pravé veřejné `.omap`/`.ocd` vektory neexistují
+  (průzkum Sez. 80) → `.omap` tvoří generátor. Provenience **real/predict** flag v `.omap` říká, co model bere
+  z dat vs ze skenu. Detail: IDEAS „Tři fáze I/II/III".
+- **`Png2Polygon` / `Png2Point` / `Png2Linie`** (Sez. 80) — tři pomocné modely [[reconstructor]]u, dekompozice
+  podle typu geometrie ISOM (area / point / line = tři různé CV úlohy: segmentace / detekce bodů / extrakce
+  linií). GT zdarma z `.omap` (typ symbolu). Pořadí: **Polygon** první (reuse U-Net Sez. 78, vstup mapa ne
+  ortofoto → vysoký strop), **Point** druhý (generátor má přesné polohy bodů → GT + libovolně instancí; „bodová
+  větev" posed/pramen/vývrat), **Linie** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
 - **Projekce vs predikce** — dvě fáze prediktoru mapy. *Projekce* = deterministický převod dostupných
   geodat na ISOM (DMR→vrstevnice, ZABAGED→cesty/voda/budovy; *máme*). *Predikce* = odhad symbolů, které
   v datech NEJSOU (vegetace/průchodnost) z naučeného prioru podobných lokalit (UC5, blokováno korpusem +

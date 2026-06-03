@@ -318,3 +318,49 @@ sklon/CHM, forest-age), teď s důkazem stropu (princip „generalizuj s důkaze
 **Produkt:** natrénované váhy (`.pt`, gitignored) + inference skript. NE knihovna (fáze B =
 sys.path skripty). Cíl: nová vrstva generátoru `--vegetation predicted`, která zacelí vegetace
 gate (druhá půlka generátoru = predikce, viz „Generátor jako prediktor").
+
+## Tři fáze I/II/III + tři pomocné modely Png2{Polygon,Linie,Point} (Sez. 80 %THINK)
+
+**Vyjasnění toku (oprava mého zmatku „degradér ve fázi I"):** ortofoto→runnability (Sez. 67-78)
+archivováno (slepá ulička, [[uc5-reconstructor-reframe]]); pravé veřejné `.omap`/`.ocd` vektory
+**neexistují v potřebném množství** (průzkum Sez. 80: jednotky open example v `OpenOrienteering/
+mapper/examples`, zbytek embargo/copyright — WOC2024 3 mapy restricted, British O jen nástroje;
+EU/Interreg/Erasmus bez hotového korpusu) → `.omap` (Y) **musí tvořit generátor**.
+
+- **I. generator() (přípravná fáze, ZDE):** vyrob set pseudorealistic `.omap` = **reálná část**
+  (ČÚZK, co nejvíc tvrdých symbolů) + **prediktivní plochy** ze **separace barev z HD Livelox PNG**
+  (geolokované, gate 2 Sez. 68). Livelox PNG se **NEdegraduje** — separace barev chce nejlepší
+  kvalitu (strop 1,33 m/px, gate 1 Sez. 68). Separace = `map_gt._classify` rozšířený na **celou
+  plošnou ISOM paletu**; vektorizace masky → polygony = cesta `rock_relief` (contourpy).
+- **II. dataset:** z hotové `.omap` exportuj PNG → **degraduj** (fialový overprint, odřeniny,
+  překlady, bláto = Stupeň 2 výše) → páry [`.omap`, sken-PNG], **libovolně mnoho** (degradace =
+  augmentace nad konečným setem `.omap`). Degradér patří SEM, ne do fáze I.
+- **III. reconstructor():** trénink modelu sken + lokalita + čas → `.omap` (na párech z II).
+
+**A3 provenience real/predict do `.omap`/XML (nosná, ne kosmetika):** flag na objektech definuje,
+co reconstructor (III) bere **z dat** (real — dopočítá z lokality+času, „zdarma") vs **ze skenu**
+(predict — reverse-engineeruje). Model se reálně učí jen predict část. Precedent `proxy:true`
+(forest-age). Relevantní AŽ ve fázi I/B (kde se míchá data+predikce); v čisté separační fázi ne.
+
+**Dělba ploch real × predict (OTEVŘENÉ, measure-first — A1 Sez. 80):** tvrdé plochy (voda 301,
+budovy 521, olivová 520) z dat; měkké (vegetace 406/408/410, open 401, paseky, pole/sady) z Livelox.
+**Otevřená otázka uživatele: u vegetace věřit [[forest-age-proxy]] (data, národní pokrytí, aktuální)
+nebo mapaři v terénu (Livelox separace, viděl podrost, ale stará mapa)?** Pro trénink stačí
+věrohodnost (Sez. 79 „nemusí být pravdivá"); recency může mluvit pro data (les vyrostl od mapování).
+Změřit na lokalitě s OBOJÍM, nehádat.
+
+**Tři pomocné modely (A2 Sez. 80) — dekompozice reconstructoru podle typu geometrie:**
+ISOM area/line/point = TŘI různé CV úlohy (segmentace / extrakce linií / detekce bodů) → každá chce
+jinou architekturu → tři modely > monolit (SLAP, izomorfismus). GT zdarma: `.omap` symboly nesou typ
+→ rozlož na tři GT sady. Pořadí (foundations):
+- **Png2Polygon (první)** — plochy → polygony. Reuse U-Net `model/train.py` (Sez. 78); vstup = mapa
+  (barevně kódovaná, vysoký strop) ne ortofoto (strop 0,25) → jiná, snazší úloha; hodnota = robustnost
+  vůči degradaci skenu. Symetrie: separace fáze I (nearest-color na čisté) = baseline + GT-feeder;
+  degradace II = trénink; Png2Polygon III = model na degradovaném skenu, kde lookup selže.
+- **Png2Point (druhý)** — bodové ISOM → lokalizace+klasifikace (keypoint/object detektor). Generátor
+  má přesné polohy (109/110/111/312…) → GT zdarma + libovolně instancí (řeší vzácnost symbolů). =
+  „bodová větev" (posed/pramen/vývrat) zařazená systematicky; ISOM kódy ověřit ze spec před kódem.
+- **Png2Linie (poslední)** — liniové ISOM → polyline. Nejtěžší (vektorizace linií = otevřený problém),
+  nejspíš segmentace + skeletonizace. Generátor má přesné linie jako GT.
+- Alternativa: multi-task jeden encoder + tři hlavy (DRY featury) — zvážit AŽ všechny tři stojí
+  (princip „generalizuj s důkazem"); start = Png2Polygon samostatně.

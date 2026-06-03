@@ -52,10 +52,19 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 > **Foundations: nejdřív dotáhnout `generator()` predict část, pak `reconstructor()`.** Pojmy: GLOSSARY
 > `generator()`/`reconstructor()`. Korpus / páry (X,Y) / GT pipeline (kroky 1-3) **ZŮSTÁVAJÍ** užitečné.
 > Plná revize architektury (UC3 / UC4-III / UC5 / fázový plán / Pic2Omap absorpce) = **A1 odložena**.
-- [ ] **(NOVÝ HLAVNÍ TAH Sez. 79) `generator()` predict část — procedurální vegetace.** %THINK před kódem:
-  jak z dostupných dat (terén / voda / [[forest-age-proxy]]) vygenerovat plošnou zeleň 406/408/410 + paseky /
-  hustníky tak, aby render vypadal realisticky pro trénink `reconstructor()`. Navazuje na forest-age (Sez. 62)
-  + nahrazuje zavržený ortofoto směr (archiv). Spec §0b „pseudorealistic / predict", IDEAS.
+- [ ] **(HLAVNÍ TAH, upřesněno Sez. 80) `generator()` fáze I — prediktivní plochy ze separace HD Livelox PNG.**
+  %THINK hotový (Sez. 80, IDEAS „Tři fáze I/II/III"). Tok: I. generator() = reálná část (ČÚZK) + prediktivní
+  plochy (separace barev z NEdegradované Livelox PNG → vektorizace contourpy → `.omap` s flagem real/predict);
+  II. dataset = export PNG + degradace (overprint/odřeniny/bláto); III. reconstructor() = trénink. **Pravé veřejné
+  `.omap` vektory NEEXISTUJÍ** (průzkum Sez. 80) → `.omap` tvoří generátor. **PoC (čeká na souhlas Q1/Q2):** na
+  1 Livelox mapě separace celé plošné palety → vektorizace → vlož do generované `.omap` s flagem → vizuál v OOM.
+  Před tím rozhodnout dělbu ploch real/predict + **measure-first: vegetace z [[forest-age-proxy]] vs mapař (Livelox
+  separace)?** Spec §0b „predict", GLOSSARY (rozšířit o `Png2Polygon`/`Png2Linie`/`Png2Point`).
+- [ ] *(navazuje na hlavní tah, Sez. 80)* **Tři pomocné modely `reconstructor()` — `Png2Polygon` / `Png2Point` /
+  `Png2Linie`.** Dekompozice podle typu geometrie ISOM (area/line/point = tři CV úlohy). GT zdarma z `.omap`
+  (typ symbolu). Pořadí: Polygon první (reuse U-Net Sez. 78, vstup mapa ne ortofoto), Point druhý (generátor má
+  přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec), Linie poslední (nejtěžší,
+  segmentace+skeletonizace). Detail IDEAS „Tři fáze I/II/III + tři pomocné modely". Až fáze I/II dají páry.
 - [x] **Krok 0 HOTOVO (Sez. 74) — smoke test PyTorch+CUDA na Blackwell.** `torch 2.11.0+cu128`
   (cp314 wheel) + `torchvision` + `smp 0.5.0`; ověřeno empiricky `temp/smoke_test_gpu.py`: sm_120
   v `arch_list`, matmul fp32+bf16 + U-Net forward (1,3,512,512)→(1,5,512,512) reálně na GPU, 11,4 GB
