@@ -47,6 +47,13 @@ fáze 2 a musí jít vypnout. Vazba: GLOSSARY „projekce vs predikce", „pseud
 fáze 1 (projekce) — kreslí se RAW (Sez. 27,
 generalizace zavržena); žádná „věrná kartografie" navíc, syrový footprint jako voda.
 
+> **⟲ Reframe Sez. 79-80 (pointer; plný přepis §0b = A1, TODO „Spec §0b predict").** „Fáze 2" se
+> upřesnila: hlavní konzument **vegetace už NENÍ samostatný UC5 model `ortofoto→runnability`** (ten
+> narazil na strop val mIoU ~0,25 → archivován, Sez. 78-79), ale **predict část `generator()`** —
+> prediktivní plochy ze **separace barev z HD Livelox PNG** (Sez. 80), vektorizované do `.omap`
+> s flagem `predict`. Cíl celé pipeline = krmit `reconstructor()` (sken→`.omap`). Pojmy: GLOSSARY
+> `generator()` / `reconstructor()` / „Fáze I / II / III".
+
 ---
 
 ## 1. Souřadný systém a měřítko

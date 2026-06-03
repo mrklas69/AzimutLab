@@ -126,8 +126,12 @@ bodových, liniových i plošných ISOM symbolů.
   překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`); **tréninkové dlaždice**
   (`model/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
   **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Nový adresář **`model/`** = UC5
-  model kód (sourozenec `connectors/`/`generator/`, sys.path fáze B). Zbývá krok 4 dokončení: loader
-  (`model/dataset.py`) + overfit + trénink U-Net/ResNet34 (`model/train.py`).
+  model kód (sourozenec `connectors/`/`generator/`, sys.path fáze B).
+- **Krok 4 dokončen (Sez. 78) + ARCHIVOVÁN (Sez. 79):** loader (`model/dataset.py`, D4 aug + ImageNet norma) +
+  trénink (`model/train.py`, smp U-Net/ResNet34, BF16, per-class IoU). Baseline **val mIoU 0,259 / test 0,223**,
+  ale křivka = **generalizační strop** (val plochá ~0,25 od ep1 → RGB-only málo, runnability = podrost pod
+  korunami shora nevidět). → směr `ORTO → 4 barvy` **archivovaná odbočka** (viz reframe note výše), kód nemazán.
+  Datová pipeline (páry/GT/split/dlaždice) zůstává znovupoužitelná pro budoucí modely (Png2Polygon aj.).
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

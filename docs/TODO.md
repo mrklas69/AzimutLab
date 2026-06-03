@@ -31,15 +31,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
   mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
   (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".
-- [x] *(UC5 korpus, IDEAS „UC5 runnability korpus")* **Livelox korpus reálných OB map — ŠKÁLOVÁNO Sez. 70 (268 map).**
-  Probe gate 1+2 Sez. 68 + batch Sez. 70: `allEvents` reverzováno → `POST /Home/SearchEvents` (GeoBox, `timePeriod`,
-  classId v `classes[].id`); `search_events`/`download_corpus` v `livelox.py` (1 class/event, idempotent, od nejnovějších);
-  geo S.Čechy CZ + Žitavsko DE (SAXBO). **268 map** (31 % z 865 eventů, zbytek doloženě mrtvý — Livelox staré mapy nemá).
-  **WGS84 fallback** (typ B +43) + **backoff retry**. **ORIS zavržen daty** (96 % starých bez rastru → nepomůže). DONE.
-  **Legalizace (oslovit ČSOS) až pokud model funguje** — do té doby privátní repo + TDM výjimka.
-- [x] *(HOTOVO Sez. 71)* **olivová 520 → label 0 (čistota GT) + kurace korpusu** (`connectors/curate.py` merge-aware +
-  `_curation.json`, taxonomie discipline+tagy, **268 → 216 keep classic**). Detail v DONE. Tréninkové jádro = 216
-  foot-O map s čistou olivovou GT.
+- [x] *(UC5 korpus — HOTOVO Sez. 70-71, detail v DONE)* **Livelox korpus 268 reálných OB map** (`livelox.py`
+  `search_events`/`download_corpus`, `allEvents`→`SearchEvents` reverz, WGS84 fallback, backoff) **+ kurace
+  → 216 keep classic** (`curate.py` taxonomie discipline+tagy, `_curation.json`) + olivová 520 → label 0 (čistota GT).
+  Tréninkové jádro = 216 foot-O map. Legalizace (ČSOS) až pokud model funguje — do té doby privátní repo + TDM výjimka.
 ### UC5 runnability model — kroky (Sez. 74 %THINK; architektura v IDEAS „UC5 runnability model")
 Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke test první**. Trénink jen na
 `mrkla` (RTX 5070, BF16) — `docs/kb/hardware.md`. Gaty PŘED model (pár (X,Y) = foundation).
@@ -65,41 +60,16 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (typ symbolu). Pořadí: Polygon první (reuse U-Net Sez. 78, vstup mapa ne ortofoto), Point druhý (generátor má
   přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec), Linie poslední (nejtěžší,
   segmentace+skeletonizace). Detail IDEAS „Tři fáze I/II/III + tři pomocné modely". Až fáze I/II dají páry.
-- [x] **Krok 0 HOTOVO (Sez. 74) — smoke test PyTorch+CUDA na Blackwell.** `torch 2.11.0+cu128`
-  (cp314 wheel) + `torchvision` + `smp 0.5.0`; ověřeno empiricky `temp/smoke_test_gpu.py`: sm_120
-  v `arch_list`, matmul fp32+bf16 + U-Net forward (1,3,512,512)→(1,5,512,512) reálně na GPU, 11,4 GB
-  volné VRAM. Past „no kernel image" zažehnána. `requirements.txt` doplněn (cu128 index, ne PyPI).
-- [x] **Krok 1 HOTOVO (Sez. 75) — GATE 1 zarovnané páry + měření offsetu PROŠEL.** `build_georef_pair`
-  (livelox.py) vyrobí `ortho.png` (X) + `gt_grid.png` (Y, GT warpnutá do téhož S-JTSK gridu, nearest,
-  fill IGNORE) + verify (`gt_grid_vis.png`, `blend.png`); X i Y přes identickou afinní transformaci =
-  pixel-na-pixel. `measure_georef_offset` = phase correlation hran, hledá peak JEN v okně ±40 m
-  (artefakt periodicity: bez omezení dala 1047807 falešných 549 m). CLI `pair`/`gate1`. **Měření 25
-  CZ S-JTSK map: medián 1,33 m (1 px)** → georef Liveloxu zdravý, GATE 1 prošel. **Nález:** per-mapa
-  offset >~5 m je nedůvěryhodný (artefakt husté/rušivé korelace — 1106623 sedí vizuálně dokonale, přesto
-  „17 m") → měření = **agregátní QC, ne per-mapa korektor**; vizuál (blend) je arbitr. Detail v DONE.
-- [x] **Krok 2 HOTOVO (Sez. 76) — měření datasetu.** ČR/DE filtr (near-white ortofoto probe, práh 0,5):
-  216 keep → **207 ČR / 9 cizí** (DE Žitavsko + PL, prázdné ČÚZK) → `_cz_filter.json`. Class distribution
-  (% labeled): průchodný 69 / 406 11,4 / 408 5,9 / **410 fight 1,35** / open 12,2 → **váhy median-freq**
-  (410 w≈8,4). 410 validováno proti 5 mapařským `.omap` (0,2-2,07 % → GT realistická, nepoddetekováno).
-- [x] **Krok 3 HOTOVO (Sez. 76) — geografický split.** `connectors/split.py`: clustery dle překryvu
-  S-JTSK bboxů (union-find, 29 clusterů) → greedy **70/15/15 = train 145 / val 31 / test 31** → `_split.json`.
-  Bez leaku (celý cluster do 1 splitu), všechny splity reprezentativní (410 nenulová 1,3-1,9 %). Pak hromadná
-  výroba **207 párů** (`build_pairs`, 0 fail, medián offset 2,97 m = artefakt ocas, vizuál OK).
-- [x] **Krok 4 — baseline HOTOVO Sez. 78.** `model/dataset.py` (loader nad dlaždicemi, D4 aug + jas/kontrast
-  za běhu, ImageNet norma, váhy z `_tiles.json`) + `model/train.py` (smp U-Net/ResNet34 ImageNet-pretrained,
-  `CrossEntropyLoss(weight, ignore_index=255)`, BF16, per-class IoU přes GPU confusion matici, `--overfit`
-  gate, checkpoint best, **křivka učení** `curve_full.png`+CSV po každé epoše). Overfit gate prošel. Plný
-  trénink (40 ep, batch 16): **val mIoU 0,259 / test 0,223**; per-class test 410 fight 0,04. **Nález:
-  generalizační strop** (train loss klesá, val mIoU plochá ~0,25 od ep1) → úlohový strop, RGB-only málo
-  (runnability=podrost pod korunami). Detail v DONE. Trénink jen `mrkla` (RTX 5070, BF16).
-- [×ARCHIV] **Krok 5 — zlepšení baseline (Sez. 78 nález) → ARCHIVOVÁNO Sez. 79** (ortofoto→runnability je
-  slepá ulička, viz reframe výše; nahrazeno `generator()` predict částí). Původní zadání zachováno níže pro
-  historii: (a) **diagnostika** pred vs GT na pár val dlaždicích
-  (rozumné záměny sousedních runnability tříd vs strukturální selhání?); (b) pokud potvrzen RGB-strop →
-  **MĚŘENÁ ablace bohatšího vstupu** — DMR sklon/CHM jako 4. kanál nebo forest-age (osa B IDEAS „raw default,
-  generalizuj s důkazem" — teď je důkaz stropu); (c) případně **recency-filtrovaný korpus** (časový nesoulad
-  input ortofoto × GT ze staré mapy, viz TODO „recency osa"). Hlavní podezřelý (volba uživatele Sez. 78):
-  RGB-only nestačí na hustotu podrostu shora.
+- [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
+  (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
+  prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit
+  `split.py` (145/31/31, bez leaku) + 207 párů · krok 4 baseline `model/dataset.py`+`train.py` (U-Net/ResNet34,
+  BF16): **val mIoU 0,259 / test 0,223**, křivka = **generalizační strop** (RGB-only málo, runnability = podrost
+  shora nevidět). Trénink jen `mrkla` (RTX 5070).
+- [×ARCHIV] **Krok 5 (zlepšení baseline) → ARCHIVOVÁNO Sez. 79.** Směr `ortofoto→runnability` je doložená slepá
+  ulička (reframe výše) → nahrazeno `generator()` predict částí. Původní nápady (diagnostika / ablace bohatšího
+  vstupu DMR-sklon/forest-age / recency korpus) zůstávají jako možný *budoucí* vstup, kdyby se k ortofoto vstupu
+  vrátilo — dnes mimo hlavní směr.
 - [ ] *(integrace, deferred Sez. 76)* **ČR/DE filtr do `kept_dirs`** — dnes `_cz_filter.json` je jen měřicí
   artefakt (nemění `keep`). Tréninkový loader jede přes `split.dirs_for()` (už ČR-only), takže neakutní;
   doladit, až loader vznikne (krok 4) — buď číst split, nebo přidat filtr do `curate.keep`.
@@ -107,17 +77,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
   (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".
-- [x] *(GT kvalita, strukturální — nález Sez. 71)* **legenda/okraj/přetisk crop** — strukturální GT krok místo
-  per-mapa tagování legend (nespolehlivé v 240px náhledu). **Část A HOTOVO Sez. 72: fialový přetisk tratě → label
-  255 ignore** (`map_gt.py`, 2 purpurové odstíny z dat, maska dilatovaná po median; 31 % keep map; OOB šrafa 709
-  taky ignore). **Část B HOTOVO Sez. 73 (částečně): layout mimo mapové území → 255 ignore.** Hybridní detektor
-  (`_detect_map_area`): NE geometrie (křehká — naivní největší-komponenta i XY-cut selhaly v probu), ale
-  **barevnost** — mapa má sytou ISOM paletu, mimo-mapové bloky černobílé/papír. Dlaždice → barevné > 4 % →
-  dilatace scelí řídké oblasti → největší komponenta + fill holes = mapa, zbytek ignore. Verify 12 map: titulky/
-  tiráž/loga/papírový okraj zachyceny, mapa BEZ false-cropu (konzervativní asymetrie). **Known limitation:
-  control-description tabulka s barevnými ISOM symboly blízko mapy proklouzne** (dilatace ji spojí s mapou,
-  symboly = mapová barva) — viz nový TODO „detektor mřížky tabulek". Barevné titulky (žluté pozadí) taky občas
-  proklouznou (volba „nechat konzervativně", Sez. 73).
+- [x] *(GT kvalita, strukturální — HOTOVO Sez. 72-73, detail v DONE)* **přetisk + layout crop → label 255 ignore.**
+  Část A: fialový přetisk tratě → ignore (`map_gt.py`, 2 purpurové odstíny + dilatace, 31 % keep map; OOB šrafa
+  709 taky). Část B: layout mimo mapu → ignore přes **barevný** detektor `_detect_map_area` (mapa = sytá ISOM
+  paleta, okraj = černobílé/papír; konzervativní, bez false-cropu terénu). Known limitation → follow-up níže.
 - [ ] *(GT kvalita follow-up, known limitation Sez. 73)* **detektor mřížky control-description tabulek** —
   layout-ignore Sez. 73 (barevnost) tabulku s barevnými ISOM symboly blízko mapy nezachytí. Cílený detektor na
   PRAVIDELNOU MŘÍŽKU černých čar (projekční profil / periodicita černých pixelů v pravoúhlém bloku) by ji vyřízl

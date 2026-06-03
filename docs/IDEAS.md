@@ -269,7 +269,12 @@ selže). **Nestav fitter, dokud quad neselže** (princip „stav až s důkazem"
 skandinávské archivy — možný zdroj VEKTORU (preferovaná GT); objem map ČR/globál; batch/rate-limit Livelox;
 nativní rozlišení.
 
-## UC5 runnability model — architektura (Sez. 74 %THINK)
+## UC5 runnability model — architektura (Sez. 74 %THINK) — ⟲ ARCHIVOVÁNO Sez. 79
+
+> **Tento blok = historie archivované odbočky `ortofoto → runnability` (Sez. 74-78).** Baseline narazil na
+> generalizační strop (val mIoU ~0,25) → směr opuštěn (Sez. 79: „rozumí ortofotu", ne mapám). Aktuální směr =
+> `reconstructor()` (sken→`.omap`), viz „Tři fáze I/II/III" níže + GLOSSARY `generator()`/`reconstructor()`.
+> Ponecháno pro doložení „tudy ne" (a protože datová pipeline páry/GT/split/dlaždice je znovupoužitelná).
 
 Korpus (216 keep) + čistá GT (`map_gt.py`, labely 0-4 + 255 ignore) hotové → stavba prvního
 **supervised modelu**. HW doložen: trénink jen na `mrkla` (RTX 5070, 12 GB, BF16) — viz

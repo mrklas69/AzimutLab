@@ -190,8 +190,10 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Stavební_objekt_zakrytý` | plocha | — | ✗ | technický |
 | `Skládka` | plocha | — | ✗ | skládka (probe Sez. 43: 0 ve všech 5) |
 | `Úložné_místo` | plocha | — | ✗ | technický |
-| `Areál_účelové_zástavby` | plocha | 520 / 501 | ✓ | **Sez. 42** — viz sekce 8 (id 114, `typzast_k`); duplikátní řádek (zde dříve mylně ✗ „urbánní") sjednocen Sez. 43 |
 | `Heliport` | plocha | — | ✗ | speciál (probe Sez. 43: LS 1) |
+<!-- `Areál_účelové_zástavby` (id 114, plocha → 520/501) je v sekci 8 (Vegetace a povrch); duplikátní řádek odsud odstraněn Sez. 81 (DRY, počítal se 2× v ✓ statistikách). -->
+
+
 
 ## 10. Bodové umělé / orientační prvky (ISOM 52x–53x, 417)
 

@@ -52,6 +52,11 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
   ground-truth a reference pro UC5 klasifikaci.
 
 ### Vegetace gate — ZAVŘENA pro open-data cestu (ověřeno Sez. 3; DOLOŽENO MĚŘENÍM Sez. 59)
+> **⟲ Reframe Sez. 79 (pointer):** gate (níže) zůstává platným faktem o open-LiDAR datech, ale **přestal být
+> blokátorem UC5**. Cíl `reconstructor()` (sken→`.omap`) čte vegetaci **ze skenu mapy**, ne z ČÚZK dat; feeder
+> `generator()` ji generuje procedurálně-věrohodně (predict část) — nemusí být pravdivá vůči lokalitě. Viz
+> GLOSSARY `generator()`/`reconstructor()`.
+
 ISOM zelená/žlutá kóduje **hustotu/průchodnost porostu** → potřebuje vertikální strukturu
 z **penetrujících (multi-echo) LiDAR odrazů**. Tu žádný open produkt ČÚZK neposkytuje:
 - **DMP OK** (nový 2024-25, hustý) je z **obrazové korelace, ne LiDARu** → zachytí jen viditelný

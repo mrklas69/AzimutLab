@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 81 (2026-06-03) — Úklidové: %AUDIT:CODE + %AUDIT:DOCS + IDEAS/TODO pruning
+- [x] **%AUDIT:CODE (0 kritických, 0 mrtvého kódu) — audit nového kódu od Sez. 71.** Cíl = `model/` celé (tile/
+      dataset/train, 619 LOC, nikdy neauditováno) + `connectors/split.py` (nový) + livelox georef páry + map_gt
+      přetisk/layout + curate. `generator.py` (3824 ř.) se od Sez. 71 NEZMĚNIL → nečten (audit Sez. 60+71 platí).
+      4 opravy: **D1** archivní hlavičky do `model/*.py` (Sez. 79 reframe — kód neznal, že je archivovaný =
+      conceptual integrity/SLAP); **K1** `_MAP_SCELE_DIL`→`_MAP_MERGE_DIL` (matoucí český identifikátor); **K2**
+      `N_CLASS=5` duplikováno tile+train → SSoT v `map_gt` (import); **K3** `train.py --batch` default 8→16
+      (zdokumentovaný baseline Sez. 78). Ověřeno py_compile + import N_CLASS z map_gt. Behavior-preserving.
+- [x] **%AUDIT:DOCS — 7 oprav (po kritickém profiltrování proti zdroji).** Fan-out 3 Explore agenti, 2 přepaly
+      zamítnuty (hardware mIoU 0,666 + tools-models „pilot" = korektní Pic2Omap precedent). **Tvrdé:** T1 doplněn
+      chybějící **DONE Sez. 79** (propagační díra, %END checklist Sez. 34), T2 architecture „zbývá krok 4"→hotovo+
+      archiv, T3 README UC5 status (byl u Sez. 74)→kroky 1-4+baseline+reframe (vyřešena vnitřní nekonzistence),
+      T4 katalog duplikát `Areál_účelové_zástavby` (počítal se 2×). **Měkké (reframe pointery, plný přepis = A1):**
+      M1 spec §0b, M2 data-sources+RESEARCH, M3 generator/README. Vzorně aktuální: GLOSSARY/connectors/hardware/STATISTICS.
+- [x] **IDEAS/TODO pruning.** TODO: hotové `[x]` bloky (Livelox korpus+kurace, UC5 kroky 0-5, GT crop A/B) zhuštěny
+      na souhrnné pointery (DONE drží detail) → TODO odlehčen ~35→~10 ř.; krok 5 archiv zhuštěn; živé `[ ]` follow-up
+      nedotčeny. IDEAS: archivní hlavička do bloku „UC5 runnability model architektura (Sez. 74)" (Sez. 79 ho archivoval).
+- [x] **Cadence reset Sez. 81** pro %AUDIT:CODE + %AUDIT:DOCS + pruning. %CALIBRATE +12 (nezralý). Žádný produkční
+      feature, behavior-preserving (proc 65 drží). Censure 0.
+
 ## Sezení 80 (2026-06-03) — %THINK fáze I/II/III + tři pomocné modely + průzkum vektorů (žádný kód)
 - [x] **Vyjasněn tok I/II/III** (oprava mého zmatku „degradér ve fázi I"): I. `generator()` = real část (ČÚZK) +
       prediktivní plochy ze **separace barev z HD Livelox PNG** (NEdegradovat — separace chce kvalitu); II. dataset
@@ -17,6 +37,21 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 - [x] **Propagace (docs-only):** IDEAS (sekce „Tři fáze I/II/III + tři pomocné modely"), TODO (hlavní tah upřesněn
       + položka tří modelů), GLOSSARY (fáze I/II/III + tři Png2* pojmy). Censure: popletl jsem degradér (fáze I→II)
       i roli Livelox (X→zdroj ploch) — uživatel opravil.
+
+## Sezení 79 (2026-06-03) — Konsolidace: reframe `generator()` / `reconstructor()`, ortofoto→runnability archivováno
+- [x] **Směrový obrat uživatele.** Cíl Laboratoře „rozumí mapám" = **`reconstructor()`** (sken existující OB mapy
+      → `.omap`, obaluje `reconstruct_map()`, dříve pracovně „mapper"), trénovaný na párech [render, `.omap`]
+      z **`generator()`** (obaluje `generate_map()`; **real + predict** část — vegetace/paseky/hustníky procedurálně
+      věrohodně, NE věrná predikce z dat).
+- [x] **Model `ORTO → 4 barvy` (Sez. 67-78) ARCHIVOVÁN jako slepá ulička.** val mIoU strop ~0,25 (Sez. 78) =
+      „rozumí ortofotu", ne mapám. Kód `model/*.py` NEMAZÁN (doložený nález „tudy ne"). Datová pipeline
+      (páry, GT, split, dlaždice) zůstává znovupoužitelná.
+- [x] **Klíčový insight: vegetace pro trénink NEMUSÍ být pravdivá** — reconstructor ji čte ze SKENU; `generator()`
+      ji generuje procedurálně-věrohodně → **vegetace gate padá jako blokátor** (přestává blokovat UC5).
+- [x] **Naming:** `reconstruct_map()` voleno přes `regenerate_map()` (kolize „re-run téže generace" vs „rastr→vektor
+      rekonstrukce"). Propagace: GLOSSARY (2 dvojice pojmů `generator()`/`reconstructor()` + `generate_map()`/
+      `reconstruct_map()`), TODO (reframe blok), architecture.md (UC5 reframe note „částečná propagace").
+- [x] **A1 ODLOŽENO:** plná revize UC3 / UC4-III / UC5 / fázový plán + Pic2Omap absorpce (B→A). Žádný kód.
 
 ## Sezení 78 (2026-06-03) — UC5 krok 4 dokončen: loader + trénink + baseline (val mIoU 0,25)
 - [x] **`model/dataset.py` — PyTorch loader nad dlaždicemi (Sez. 77).** `TileDataset(split, augment,

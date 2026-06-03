@@ -75,6 +75,12 @@ i **vektor vrstevnic** (`contours.geojson`, ISOM 101/102, georef S-JTSK pro real
 krok od UC5-feedru (rastr) k UC4 OCD/OMAP výstupu; přímo z contourpy polylinií, ne
 vektorizací rastru.
 
+> **⟲ Reframe Sez. 79-80 (pointer; plná revize receptu = A1).** Recept výše platí pro tvrdou geometrii, ale cíl
+> UC5 se posunul z `ortofoto→runnability` (val mIoU strop ~0,25, archivováno Sez. 78-79) na **`reconstructor()`**
+> (sken existující mapy → `.omap`), trénovaný na párech [degradovaný render, `.omap`] z **`generator()`**
+> (real + predict část). Sim-to-real se tím nemění principiálně (syntetika + reálné), ale „target" je rekonstrukce
+> vektoru, ne predikce runnability z ortofota. Detail: GLOSSARY `generator()`/`reconstructor()`, IDEAS „Tři fáze I/II/III".
+
 ## Metody (z Pic2Omap)
 
 - Segmentace ploch (U-Net) — viz Pic2Omap ML pilot (mean IoU 0.666 within-domain).

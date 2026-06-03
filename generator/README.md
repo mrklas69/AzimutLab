@@ -3,7 +3,9 @@
 Generátor výseku mapy pro orientační běh — **pilíř Laboratoře** (UC4-I/UC5
 enabler-feeder), ne sandbox experiment (povýšen ze `sandbox/generator-poc/`
 v Sez. 39 — 2600+ LOC / 24 vrstev už dávno není „PoC"). Konzumuje konektory
-reálných dat z `connectors/` (UC2). Realizuje **MVP řez** specifikace
+reálných dat z `connectors/` (UC2). (Pozn.: UC5 **model** žije v samostatném `model/`,
+sourozenec `generator/`/`connectors/` — ne uvnitř generátoru; viz README repa „Repository layout".)
+Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
 
 - **vrstevnice** — izolinie výškového pole (§4.5), hlavní zvýrazněné (3 px),
