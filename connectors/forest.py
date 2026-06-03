@@ -1,6 +1,16 @@
 """
 forest.py — věk lesního porostu (porostní skupiny) z AOPK jako PROXY plochy hustníku (UC2/UC5, Sez. 62).
 
+⟲ ARCHIVOVÁNO Sez. 82 (jako Orto2Colors model Sez. 79 — doložená slepá ulička, NEmazat). A1
+measure-first ukázal, že forest-age je nevhodný zdroj predikční vegetace pro generator():
+  - pokrytí jen 33 % korpusu (69/207 map má zelené skupiny) → NEuniverzální,
+  - kde bohatý (Přebor), IoU s kresbou kartografa 0,12 a přestřel zelené 3,3× (proxy přecení
+    mladý porost jako neběhatelný; absolutní řezy BARVA→ISOM kalibrované na Jizerky negeneralizují),
+  - konceptuálně (Sez. 79): predikční vegetace nemusí být PRAVDIVÁ, jen konzistentní v páru
+    [render, .omap] → zdroj = SEPARACE z reálné mapy (generator/separate_veg.py), ne data.
+Kód i `--forest-age` flag ZŮSTÁVAJÍ funkční (doložená cesta, regrese 0), ale pro predikční vegetaci
+je nahrazuje separace. Detail: paměť [[forest-age-proxy]], diár Sez. 82.
+
 Sourozenec zabaged.py / ruian.py (NE kopie). Zatímco ty táhnou tvrdou geometrii ČÚZK a mapují ji
 PROJEKCÍ na ISOM (geometrie = pravda), tenhle konektor je první **PREDIKČNÍ** střípek UC5:
 data jsou tvrdá (reálné porostní skupiny LHP/LHO), ale interpretace **věk → běhatelnost (zelená
