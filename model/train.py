@@ -1,6 +1,12 @@
 """
 train.py — trénink UC5 runnability modelu (Sez. 78, krok 4).
 
+⟲ ARCHIVOVÁNO (Sez. 79) — směr `ortofoto → 4 runnability barvy` je DOLOŽENÁ slepá ulička
+(val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
+(je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
+viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. U-Net/loss/IoU/křivka učení jsou ale
+znovupoužitelné pro budoucí modely (Png2Polygon = mapa→plochy, reuse tohoto skeletu).
+
 Segmentační síť ortofoto RGB → runnability (5 tříd ISOM): 0 průchodný, 1 = 406 slow,
 2 = 408 walk, 3 = 410 fight, 4 = open. Label 255 (přetisk tratě + layout mimo mapu) je
 IGNORE — loss i IoU ho přeskočí (ignore_index).
@@ -43,10 +49,9 @@ sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 import segmentation_models_pytorch as smp   # noqa: E402
 
 from dataset import TileDataset, class_weights   # noqa: E402
-from map_gt import IGNORE, LABEL_NAME            # noqa: E402
+from map_gt import IGNORE, LABEL_NAME, N_CLASS   # noqa: E402  (N_CLASS = SSoT v map_gt, audit Sez. 81)
 
 _CKPT_DIR = _REPO_ROOT / "resources" / "model"
-N_CLASS = 5
 ENCODER = "resnet34"
 
 
@@ -249,7 +254,8 @@ if __name__ == "__main__":
     ap.add_argument("--overfit", action="store_true",
                     help="sanity gate: 2 mapy, bez augmentace, sleduj train mIoU→~1")
     ap.add_argument("--epochs", type=int, default=None, help="počet epoch (default 40 / overfit 80)")
-    ap.add_argument("--batch", type=int, default=8, help="batch size (12 GB VRAM → ~8)")
+    ap.add_argument("--batch", type=int, default=16,
+                    help="batch size (mrkla RTX 5070 12 GB → 16 = zdokumentovaný baseline Sez. 78)")
     ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW)")
     args = ap.parse_args()
 

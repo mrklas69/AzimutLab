@@ -92,6 +92,9 @@ _LABEL_VIS = {
 # popis labelů (pro report)
 LABEL_NAME = {0: "průchodný", 1: "406 slow", 2: "408 walk", 3: "410 fight", 4: "open",
               IGNORE: "ignore (přetisk+layout)"}
+# počet runnability tříd 0..4 (IGNORE=255 je mimo). SSoT pro celý UC5 model — model/tile.py
+# i model/train.py importují odtud, ať se „5" nedrží na dvou místech (DRY, nález audit Sez. 81).
+N_CLASS = 5
 
 # velikost okna majority filtru (px). Na ~1,33 m/px je 7 px ≈ 9 m — potlačí vrstevnici/cestu
 # uvnitř plochy, zachová plošný tvar. Laděno probe Sez. 68.
@@ -106,7 +109,7 @@ _OVERPRINT_DILATE = 2
 # Hodnoty laděné probe Sez. 73 na 12 mapách (4 s tabulkou/titulkem + 8 organických).
 _TILE_DIV = 120
 _MAP_TILE_FRAC = 0.04
-_MAP_SCELE_DIL = 3
+_MAP_MERGE_DIL = 3
 
 
 def _classify(rgb: np.ndarray) -> np.ndarray:
@@ -137,14 +140,14 @@ def _detect_map_area(mappix: np.ndarray) -> np.ndarray:
     frac = mappix[:th * T, :tw * T].reshape(th, T, tw, T).mean((1, 3))
     maptile = frac > _MAP_TILE_FRAC
     # dilatace přimkne řídké okrajové oblasti mapy, pak největší komponenta + fill holes
-    dil = ndimage.binary_dilation(maptile, iterations=_MAP_SCELE_DIL)
+    dil = ndimage.binary_dilation(maptile, iterations=_MAP_MERGE_DIL)
     lab, n = ndimage.label(dil)
     if n == 0:
         return np.ones((H, W), bool)             # žádná mapová barva → nech celé
     sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
     biggest = int(np.argmax(sizes)) + 1
     m = ndimage.binary_fill_holes(lab == biggest)
-    m = ndimage.binary_fill_holes(ndimage.binary_erosion(m, iterations=_MAP_SCELE_DIL))
+    m = ndimage.binary_fill_holes(ndimage.binary_erosion(m, iterations=_MAP_MERGE_DIL))
     # dlaždicová maska → pixely (nearest resize pokryje celý obraz vč. ořezaného okraje)
     return np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((W, H), Image.NEAREST)) > 0
 

@@ -1,6 +1,12 @@
 """
 tile.py — příprava tréninkových dlaždic UC5 runnability modelu (Sez. 77, krok 4).
 
+⟲ ARCHIVOVÁNO (Sez. 79) — směr `ortofoto → 4 runnability barvy` je DOLOŽENÁ slepá ulička
+(val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
+(je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
+viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. Dlaždicová/split/GT pipeline ale
+zůstává znovupoužitelná pro budoucí modely (Png2Polygon aj.).
+
 Páry (X=ortho.png, Y=gt_grid.png) z Livelox korpusu jsou různě velké (~800–4000 px)
 a U-Net jede na fixní dlaždici. Tenhle skript nakrájí každý pár na 512×512 dlaždice
 s 50% překryvem (stride 256) a uloží je jako PNG dvojice do resources/tiles/<split>/.
@@ -35,14 +41,14 @@ _TILES_DIR = _REPO_ROOT / "resources" / "tiles"
 # connectors na path (split + map_gt konstanty)
 sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 import split                                   # noqa: E402
-from map_gt import IGNORE, LABEL_NAME, _LABEL_VIS   # noqa: E402
+from map_gt import IGNORE, LABEL_NAME, N_CLASS, _LABEL_VIS   # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL decompression bomb guard
 
 TILE = 512          # strana dlaždice (px) — vstup U-Netu (@1,33 m/px ≈ 680 m kontext)
 STRIDE = 256        # posun okna (px) → 50% překryv (volba Sez. 77)
 MIN_VALID = 0.30    # dlaždice s méně než 30% validních (≠IGNORE) px zahodíme (rohy quadu, layout)
-N_CLASS = 5         # runnability třídy 0..4 (IGNORE=255 je mimo)
+# N_CLASS (= 5, runnability třídy 0..4) se importuje z map_gt (SSoT, audit Sez. 81)
 
 
 def _positions(length: int) -> list[int]:

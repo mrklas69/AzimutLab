@@ -1,6 +1,12 @@
 """
 dataset.py — PyTorch loader nad tréninkovými dlaždicemi UC5 runnability modelu (Sez. 78, krok 4).
 
+⟲ ARCHIVOVÁNO (Sez. 79) — směr `ortofoto → 4 runnability barvy` je DOLOŽENÁ slepá ulička
+(val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
+(je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
+viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. Loader/augmentace je ale
+znovupoužitelná pro budoucí modely (Png2Polygon aj.).
+
 `model/tile.py` (Sez. 77) předkrájel páry (X=ortho RGB, Y=label 0-4/255) na 512×512 PNG
 dlaždice do `resources/tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu
 přidává augmentaci a vrací tensory pro `model/train.py`.
