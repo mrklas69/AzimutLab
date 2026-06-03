@@ -128,11 +128,20 @@ def _group_holes(rings: list[np.ndarray]) -> list[list[np.ndarray]]:
     zabaged.geom_to_polygons → konzument (_poly_to_grid_px / _draw_area_symbol / omap) beze změny."""
     n = len(rings)
     areas = [abs(_signed_area(r)) for r in rings]
+    # bbox každého prstence + testovací bod každého prstence (jeho první vrchol) → levný
+    # ODMÍTACÍ filtr před drahým _point_in_ring (čistý Python O(vrcholy)). Bez něj je smyčka
+    # O(n² × vrcholy); u husté vegetace (tisíce prstenců, Sez. 84) to explodovalo na desítky
+    # minut. bbox-test je exaktní: leží-li bod mimo bbox prstence j, nemůže být ani uvnitř j.
+    bx0 = np.array([r[:, 0].min() for r in rings]); bx1 = np.array([r[:, 0].max() for r in rings])
+    by0 = np.array([r[:, 1].min() for r in rings]); by1 = np.array([r[:, 1].max() for r in rings])
+    pts = np.array([r[0] for r in rings])                   # (n,2) testovací body
     contains = [[False] * n for _ in range(n)]
     for i in range(n):
-        pt = rings[i][0]
-        for j in range(n):
-            if i != j and areas[j] > areas[i] and _point_in_ring(pt, rings[j]):
+        px, py = pts[i]
+        # bbox-test naráz přes všechny prstence (vektorově); drahý _point_in_ring jen na kandidáty
+        in_box = (bx0 <= px) & (px <= bx1) & (by0 <= py) & (py <= by1)
+        for j in np.where(in_box)[0]:
+            if i != j and areas[j] > areas[i] and _point_in_ring((px, py), rings[j]):
                 contains[i][j] = True
     depth = [sum(contains[i]) for i in range(n)]
     polys: dict[int, list[np.ndarray]] = {i: [rings[i]] for i in range(n) if depth[i] % 2 == 0}

@@ -36,21 +36,38 @@ _CORPUS = _REPO_ROOT / "resources" / "livelox"
 _SJTSK_TO_WGS84 = Transformer.from_crs("EPSG:5514", "EPSG:4326", always_xy=True)
 
 
-def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list) -> list:
+def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None) -> list:
     """gt_labels → separace plošných tříd → polygony v S-JTSK (image-px → _map_affine).
 
     Vrací [(poly [vnější,díra…] v S-JTSK, code:int)] — tvar, který generate_map čeká v
-    `predict_areas_sjtsk`. `_map_affine(quad)` je 2×3 matice image-px (col,row) → S-JTSK (x,y)."""
+    `predict_areas_sjtsk`. `_map_affine(quad)` je 2×3 matice image-px (col,row) → S-JTSK (x,y).
+
+    `crop_bbox` (xmin,ymin,xmax,ymax v S-JTSK; Sez. 84) ořízne gt na pixel-okno odpovídající výseku
+    PŘED separací — nutné, protože separace husté vegetace je O(n² prstenců) a separovat celou obří
+    mapu (43 km²) by trvalo desítky minut, zatímco generuje se jen výsek (max_km). None = plný gt."""
     gt = np.asarray(Image.open(cid_dir / "gt_labels.png"))   # 0-4/255 (map_gt separace)
     H, W = gt.shape
     A = _map_affine(quad, W, H)                              # (col,row) → S-JTSK
+    c0 = r0 = 0
+    if crop_bbox is not None:
+        # inverz afinní (S-JTSK → col,row): 4 rohy crop bboxu → pixel-okno (clip na rozměr gt)
+        M = np.vstack([A, [0.0, 0.0, 1.0]])                 # 3×3 homogenní
+        Ainv = np.linalg.inv(M)[:2]                          # zpět 2×3
+        xmin, ymin, xmax, ymax = crop_bbox
+        corners = np.array([[xmin, xmin, xmax, xmax], [ymin, ymax, ymin, ymax], [1, 1, 1, 1]])
+        cr = Ainv @ corners                                  # (2,4) col,row
+        c0 = max(0, int(np.floor(cr[0].min()))); c1 = min(W, int(np.ceil(cr[0].max())))
+        r0 = max(0, int(np.floor(cr[1].min()))); r1 = min(H, int(np.ceil(cr[1].max())))
+        gt = gt[r0:r1, c0:c1]                                # ořez → menší rastr = méně prstenců
+
     polys = separate_areas(gt)
     out: list = []
     for lbl, (code, _) in AREA_CLASSES.items():
         for poly in polys[lbl]:                              # poly = [outer, díra…], prsten = (col,row)
             rings_sjtsk = []
             for ring in poly:
-                pts = np.asarray(ring, dtype=float)          # (N,2) col,row
+                pts = np.asarray(ring, dtype=float)          # (N,2) col,row v OŘÍZNUTÉM gridu
+                pts[:, 0] += c0; pts[:, 1] += r0             # lokální px → globální px (offset okna)
                 hom = np.vstack([pts.T, np.ones(len(pts))])  # (3,N) [col;row;1]
                 xy = (A @ hom).T                             # (N,2) S-JTSK
                 rings_sjtsk.append([(float(x), float(y)) for x, y in xy])
@@ -58,12 +75,17 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list) -> list:
     return out
 
 
-def build_pair(cid, out_dir: str | None = None, ortho: bool = True):
+def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0):
     """Vyrobí pár-zdroj [render rgb.png, .omap] pro Livelox classId: real ČÚZK + separace vegetace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
     vegetaci z mapy do S-JTSK a předá ji generate_map jako `predict_areas_sjtsk` (forest_age="off",
-    nahrazeno separací). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`."""
+    nahrazeno separací). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`.
+
+    `max_km` (Sez. 84): strop strany výseku okolo centroidu — render skal/objektů roste nadlineárně
+    s plochou, obří mapy (max 106 km²) by tažily noční běh na víkend. Pro trénink rozhoduje rozmanitost
+    lokalit a počet dlaždic, ne aby pár pokryl celou obří mapu → centrální výsek 5×5 km stačí. Separace
+    je v S-JTSK → na menší canvas se sama ořízne (_poly_to_grid_px). None/0 = bez stropu (plný obal)."""
     cid = str(cid)
     cid_dir = _CORPUS / cid
     meta = json.loads((cid_dir / "meta.json").read_text(encoding="utf-8"))
@@ -72,8 +94,13 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = True):
     cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
     lon, lat = _SJTSK_TO_WGS84.transform(cx, cy)             # centroid obalu → WGS84
     w_km, h_km = (xmax - xmin) / 1000.0, (ymax - ymin) / 1000.0
+    if max_km:                                               # zastropuj stranu (centroid držím)
+        w_km, h_km = min(w_km, max_km), min(h_km, max_km)
 
-    predict_sjtsk = _separate_to_sjtsk(cid_dir, g["quad"])
+    # crop bbox v S-JTSK okolo centroidu (= výsek, co generate_map vykreslí) → ořez gt před separací
+    hw, hh = w_km * 500.0, h_km * 500.0                       # km/2 → m
+    crop_bbox = (cx - hw, cy - hh, cx + hw, cy + hh)
+    predict_sjtsk = _separate_to_sjtsk(cid_dir, g["quad"], crop_bbox)
     out = out_dir or str(cid_dir / "gen")
     print(f"{cid} \"{meta.get('name', '?')}\"  výsek {w_km:.2f}×{h_km:.2f} km @ "
           f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")
@@ -81,11 +108,64 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = True):
                         predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
 
 
+def _cr_keep_cids() -> list:
+    """ČR keep mapy = klíče _split.json (split.py drží 207 ČR keep classic, geo-split train/val/test).
+
+    Zdroj párů (Sez. 84): split místo curate.kept_dirs('classic') (=216) řeší DVĚ věci najednou —
+    vyřadí 9 cizích keep map (real ČÚZK vrstvy fungují jen pro ČR; cizí pár by neměl real část)
+    I outlier 1109655 (georef bug, vyřazen už geosplitem → není ve split). Foundations-čistý zdroj."""
+    sys.path.insert(0, str(_REPO_ROOT / "connectors"))
+    from split import load_split        # noqa: E402 — sys.path skript
+    return sorted(load_split().keys())
+
+
+def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
+                max_km: float = 5.0) -> dict:
+    """Hromadně vyrobí páry-zdroje [render, .omap] pro seznam Livelox classId (UC5 trénink, Sez. 84).
+
+    Volá build_pair na každý cid. Vlastnosti dávky (mirror livelox.build_pairs):
+      - resumovatelné: skip_existing přeskočí mapy s hotovým gen/rgb.png (re-běh po přerušení
+        nestahuje ČÚZK znovu — fetch je drahý, ~204× = hodiny),
+      - tolerantní: chyba jedné mapy (síť/georef/separace) dávku NEzastaví, jen se zaznamená.
+    cids None → ČR keep ze split (_cr_keep_cids). Vrací souhrn {ok, skipped, failed:[(cid,err)]}.
+    """
+    cids = list(cids) if cids is not None else _cr_keep_cids()
+    summary = {"ok": [], "skipped": [], "failed": []}
+    total = len(cids)
+    for i, cid in enumerate(cids, 1):
+        cid = str(cid)
+        gen_rgb = _CORPUS / cid / "gen" / "rgb.png"
+        if skip_existing and gen_rgb.exists():
+            summary["skipped"].append(cid)
+            print(f"[{i}/{total}] {cid} SKIP (gen/rgb.png hotovo)")
+            continue
+        try:
+            build_pair(cid, ortho=ortho, max_km=max_km)
+            summary["ok"].append(cid)
+            print(f"[{i}/{total}] {cid} OK  (ok={len(summary['ok'])} "
+                  f"skip={len(summary['skipped'])} fail={len(summary['failed'])})")
+        except Exception as e:                       # tolerantní: 1 mapa nepoloží dávku
+            summary["failed"].append((cid, f"{type(e).__name__}: {e}"))
+            print(f"[{i}/{total}] {cid} FAIL: {type(e).__name__}: {e}")
+    print(f"\nhotovo: ok {len(summary['ok'])}, skip {len(summary['skipped'])}, "
+          f"fail {len(summary['failed'])}")
+    if summary["failed"]:
+        print("selhaly:", ", ".join(c for c, _ in summary["failed"]))
+    return summary
+
+
 if __name__ == "__main__":
     try:
         sys.stdout.reconfigure(encoding="utf-8")   # Windows cp1250 vs Unicode (Sez. 74)
     except Exception:
         pass
-    cid = sys.argv[1] if len(sys.argv) > 1 else "1088447"
-    path = build_pair(cid)
-    print(f"pár → {path}")
+    arg = sys.argv[1] if len(sys.argv) > 1 else "1088447"
+    if arg == "batch":
+        # `batch` = celý ČR keep set; `batch <N>` = jen prvních N (sanity vzorek před nočním během)
+        cids = _cr_keep_cids()
+        if len(sys.argv) > 2:
+            cids = cids[: int(sys.argv[2])]
+        build_pairs(cids)
+    else:
+        path = build_pair(arg)
+        print(f"pár → {path}")
