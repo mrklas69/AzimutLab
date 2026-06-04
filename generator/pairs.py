@@ -36,7 +36,8 @@ _CORPUS = _REPO_ROOT / "resources" / "livelox"
 _SJTSK_TO_WGS84 = Transformer.from_crs("EPSG:5514", "EPSG:4326", always_xy=True)
 
 
-def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None) -> list:
+def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
+                       src_mpp: float | None = None) -> list:
     """gt_labels → separace plošných tříd → polygony v S-JTSK (image-px → _map_affine).
 
     Vrací [(poly [vnější,díra…] v S-JTSK, code:int)] — tvar, který generate_map čeká v
@@ -44,7 +45,11 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None) -> lis
 
     `crop_bbox` (xmin,ymin,xmax,ymax v S-JTSK; Sez. 84) ořízne gt na pixel-okno odpovídající výseku
     PŘED separací — nutné, protože separace husté vegetace je O(n² prstenců) a separovat celou obří
-    mapu (43 km²) by trvalo desítky minut, zatímco generuje se jen výsek (max_km). None = plný gt."""
+    mapu (43 km²) by trvalo desítky minut, zatímco generuje se jen výsek (max_km). None = plný gt.
+
+    `src_mpp` (Sez. 85): rozlišení mapy [m/px] z meta → separace downscaluje gt na TARGET_MPP před
+    vektorizací (31,6× zrychlení žroutu #1, věrnost zachována). Crop i downscale jsou komplementární:
+    crop zmenší PLOCHU, downscale ROZLIŠENÍ — Branžež (rotovaná, 0,56 mpp) potřebuje obojí (Sez. 84)."""
     gt = np.asarray(Image.open(cid_dir / "gt_labels.png"))   # 0-4/255 (map_gt separace)
     H, W = gt.shape
     A = _map_affine(quad, W, H)                              # (col,row) → S-JTSK
@@ -60,7 +65,7 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None) -> lis
         r0 = max(0, int(np.floor(cr[1].min()))); r1 = min(H, int(np.ceil(cr[1].max())))
         gt = gt[r0:r1, c0:c1]                                # ořez → menší rastr = méně prstenců
 
-    polys = separate_areas(gt)
+    polys = separate_areas(gt, src_mpp=src_mpp)              # downscale gt na TARGET_MPP (polygony zpět v image-px)
     out: list = []
     for lbl, (code, _) in AREA_CLASSES.items():
         for poly in polys[lbl]:                              # poly = [outer, díra…], prsten = (col,row)
@@ -100,7 +105,8 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     # crop bbox v S-JTSK okolo centroidu (= výsek, co generate_map vykreslí) → ořez gt před separací
     hw, hh = w_km * 500.0, h_km * 500.0                       # km/2 → m
     crop_bbox = (cx - hw, cy - hh, cx + hw, cy + hh)
-    predict_sjtsk = _separate_to_sjtsk(cid_dir, g["quad"], crop_bbox)
+    predict_sjtsk = _separate_to_sjtsk(cid_dir, g["quad"], crop_bbox,
+                                       src_mpp=meta.get("effectiveMppX"))
     out = out_dir or str(cid_dir / "gen")
     print(f"{cid} \"{meta.get('name', '?')}\"  výsek {w_km:.2f}×{h_km:.2f} km @ "
           f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")

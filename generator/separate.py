@@ -57,6 +57,14 @@ _CORPUS_DIR = _REPO_ROOT / "resources" / "livelox"
 # referenčních barev v map_gt._classify) — vektorizace (vectorize_level) je už agnostická.
 AREA_CLASSES = {1: ("406", (181, 230, 181)), 2: ("408", (120, 200, 140)), 3: ("410", (40, 160, 90))}
 
+# Cílové rozlišení separace (Sez. 85): downscale vstupu na ~1,33 m/px PŘED vektorizací. Dva důvody:
+#   1) VÝKON — separace je O(n² prstenců); na jemném skenu (Branžež 0,56 mpp = 93 Mpx) trvá minuty.
+#      Měřeno (Sez. 85, stand-in Soví vrch): downscale 0,56→1,33 = 31,6× zrychlení @ 5,6× méně px
+#      (žrout #1 je super-lineární), věrnost velkých ploch zachována (GT-feeder ~90 %).
+#   2) KONZISTENCE — MIN_AREA_PX/SIMPLIFY_PX jsou laděné na ~1,33 mpp; na jiném vstupním rozlišení
+#      by znamenaly jinou fyzickou plochu. Sjednocením vstupu na 1,33 platí stejně napříč korpusem.
+TARGET_MPP = 1.33
+
 # čištění masky před vektorizací (image-px ~1,33 m/px): malý uzávěr scelí roztřepený okraj, min.
 # plocha zahodí pixelový šum. ISOM min. mapovatelná plocha ~1 mm² = (10 m)² ≈ 56 px @ 1,33 m;
 # bereme konzervativně 120 px (~2 mm²) — PoC neřeší drobky. RDP/Chaikin de-pixelují obrys.
@@ -113,17 +121,34 @@ def vectorize_level(mask: np.ndarray) -> list:
     return out
 
 
-def separate_areas(label_map: np.ndarray) -> dict:
+def separate_areas(label_map: np.ndarray, src_mpp: float | None = None,
+                   target_mpp: float = TARGET_MPP) -> dict:
     """Z GT labelů (map_gt: 0-4/255) → {label: [polygony]} pro plošné predikční třídy AREA_CLASSES.
 
     Jádro GT-feederu: vstup = runnability segmentace mapy (map_gt.segment_gt), výstup = vektorové
-    PLOCHY predikčních ISOM symbolů per třída (dnes 406/408/410), v image-px. Konzument: write_omap /
-    overlay / (Sez. 83) generate_map per-classId orchestrátor (predict část vedle real ČÚZK vrstev).
+    PLOCHY predikčních ISOM symbolů per třída (dnes 406/408/410), v image-px VSTUPNÍHO gridu.
+    Konzument: write_omap / overlay / (Sez. 83) generate_map per-classId orchestrátor.
+
+    `src_mpp` (Sez. 85): rozlišení vstupního gridu [m/px]. Je-li dané a jemnější než `target_mpp`,
+    se label_map PŘED vektorizací downscaluje NEAREST (ne bilineár — smíšené mezitřídní px by zničily
+    labely) faktorem f=target_mpp/src_mpp; polygony se pak vynásobí f ZPĚT na původní grid, takže
+    výstupní souřadnice zůstávají v image-px vstupu (volající _map_affine/write_omap se nemění).
+    Bez `src_mpp` = no-op (behavior-preserving, PoC/izolovaný režim). Důvod + měření: viz TARGET_MPP.
 
     Nejdřív „prohlédne" fialový přetisk tratě (_fill_ignore) — jinak kroužky/spojnice kontrol
     vykousnou díry do zelených ploch (nález Sez. 83)."""
     label_map = _fill_ignore(label_map)
-    return {lbl: vectorize_level(label_map == lbl) for lbl in AREA_CLASSES}
+    f = 1.0
+    if src_mpp and target_mpp and target_mpp > src_mpp:
+        f = target_mpp / src_mpp
+        nw, nh = max(1, round(label_map.shape[1] / f)), max(1, round(label_map.shape[0] / f))
+        label_map = np.asarray(
+            Image.fromarray(label_map.astype(np.uint8), "L").resize((nw, nh), Image.NEAREST))
+    polys = {lbl: vectorize_level(label_map == lbl) for lbl in AREA_CLASSES}
+    if f != 1.0:                          # prstence (col,row) zpět na PŮVODNÍ grid → výstup v image-px vstupu
+        polys = {lbl: [[np.asarray(r, float) * f for r in poly] for poly in ps]
+                 for lbl, ps in polys.items()}
+    return polys
 
 
 def _render_overlay(rgb: np.ndarray, level_polys: dict, out_path: pathlib.Path) -> None:
