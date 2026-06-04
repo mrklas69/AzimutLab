@@ -4,8 +4,8 @@ Reframe (Sez. 79): generator() = továrna párů pro reconstructor(). Tahle orch
 JEDEN Livelox classId dvě části do JEDNÉ georeferencované .omap:
   - REAL část: tvrdé ČÚZK vrstvy (cesty/voda/budovy/skály/…) z generate_map() pro výsek mapy,
   - PREDICT část: plošnou vegetaci SEPAROVANOU z té reálné mapy (separate.separate_areas, Sez. 82/83).
-Render rgb.png (X-zdroj; degradér fáze II přijde později) i .omap (Y-cíl) vyrobí generate_map.
-Provenance real/predict je v meta.json (A3, Sez. 83).
+Render rgb.png (čistý) i .omap (Y-cíl) vyrobí generate_map; degradér fáze II (Sez. 86) z rgb.png
+vyrobí scan.png (= X v páru, „sken"). Provenance real/predict je v meta.json (A3, Sez. 83).
 
 Společný grid = Livelox _georef_grid (Sez. 75): axis-aligned S-JTSK obal quadu. Real vrstvy se
 georefují přes build_bbox(lat,lon,…) z CENTROIDU obalu (Gate A Sez. 83: shoda s obalem medián ~1 px,
@@ -30,6 +30,7 @@ from pyproj import Transformer            # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
 from separate import separate_areas, AREA_CLASSES  # noqa: E402
 from generator import generate_map        # noqa: E402
+from degrade import degrade_file          # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
 _CORPUS = _REPO_ROOT / "resources" / "livelox"
@@ -80,12 +81,16 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
     return out
 
 
-def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0):
-    """Vyrobí pár-zdroj [render rgb.png, .omap] pro Livelox classId: real ČÚZK + separace vegetace.
+def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0,
+               degrade: bool = True):
+    """Vyrobí pár [sken scan.png, .omap] pro Livelox classId: real ČÚZK + separace vegetace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
     vegetaci z mapy do S-JTSK a předá ji generate_map jako `predict_areas_sjtsk` (forest_age="off",
     nahrazeno separací). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`.
+
+    `degrade` (Sez. 86): po renderu degraduje rgb.png → scan.png (= X v páru, fáze II). Seed = cid →
+    per-mapa reprodukovatelný sken. Čistý rgb.png zůstává (debug / Y-vizuál). False = jen čistý render.
 
     `max_km` (Sez. 84): strop strany výseku okolo centroidu — render skal/objektů roste nadlineárně
     s plochou, obří mapy (max 106 km²) by tažily noční běh na víkend. Pro trénink rozhoduje rozmanitost
@@ -110,8 +115,11 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     out = out_dir or str(cid_dir / "gen")
     print(f"{cid} \"{meta.get('name', '?')}\"  výsek {w_km:.2f}×{h_km:.2f} km @ "
           f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")
-    return generate_map(lat, lon, w_km, h_km, forest_age="off",
-                        predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
+    res = generate_map(lat, lon, w_km, h_km, forest_age="off",
+                       predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
+    if degrade:                                              # fáze II: čistý render → „sken" (X)
+        degrade_file(pathlib.Path(out) / "rgb.png", seed=int(cid) & 0xFFFFFFFF)
+    return res
 
 
 def _cr_keep_cids() -> list:
@@ -126,7 +134,7 @@ def _cr_keep_cids() -> list:
 
 
 def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
-                max_km: float = 5.0) -> dict:
+                max_km: float = 5.0, degrade: bool = True) -> dict:
     """Hromadně vyrobí páry-zdroje [render, .omap] pro seznam Livelox classId (UC5 trénink, Sez. 84).
 
     Volá build_pair na každý cid. Vlastnosti dávky (mirror livelox.build_pairs):
@@ -140,13 +148,14 @@ def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
     total = len(cids)
     for i, cid in enumerate(cids, 1):
         cid = str(cid)
-        gen_rgb = _CORPUS / cid / "gen" / "rgb.png"
-        if skip_existing and gen_rgb.exists():
+        final = "scan.png" if degrade else "rgb.png"     # finální artefakt dávky (X páru)
+        gen_out = _CORPUS / cid / "gen" / final
+        if skip_existing and gen_out.exists():
             summary["skipped"].append(cid)
-            print(f"[{i}/{total}] {cid} SKIP (gen/rgb.png hotovo)")
+            print(f"[{i}/{total}] {cid} SKIP (gen/{final} hotovo)")
             continue
         try:
-            build_pair(cid, ortho=ortho, max_km=max_km)
+            build_pair(cid, ortho=ortho, max_km=max_km, degrade=degrade)
             summary["ok"].append(cid)
             print(f"[{i}/{total}] {cid} OK  (ok={len(summary['ok'])} "
                   f"skip={len(summary['skipped'])} fail={len(summary['failed'])})")
