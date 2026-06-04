@@ -25,7 +25,8 @@ Výstup:
   resources/tiles/_tiles.json                   = počty + class distribuce + median-freq váhy
   resources/tiles/_preview.png                  = vizuální verify (mozaika X|Y vzorků)
 
-Sys.path skript (fáze B, ne balík). Spouštět z kořene repa: `python model/tile.py`.
+Sys.path skript (fáze B, ne balík). Spouštět z kořene repa: `python model/runnability/tile.py`.
+(Přesunuto do model/runnability/ v Sez. 88 — symetrie s model/png2area/ reconstructor modelem.)
 """
 import json
 import sys
@@ -35,7 +36,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[2]   # model/runnability/ → o úroveň hloub (Sez. 88)
 _TILES_DIR = _REPO_ROOT / "resources" / "tiles"
 
 # connectors na path (split + map_gt konstanty)
@@ -156,7 +157,7 @@ def build_tiles() -> dict:
 
     out = {
         "_meta": {
-            "generated": "model/tile.py (Sez. 77, krok 4)",
+            "generated": "model/runnability/tile.py (Sez. 77, krok 4)",
             "tile": TILE, "stride": STRIDE, "min_valid": MIN_VALID,
             "n_class": N_CLASS,
         },
