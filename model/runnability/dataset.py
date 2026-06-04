@@ -7,9 +7,9 @@ dataset.py — PyTorch loader nad tréninkovými dlaždicemi UC5 runnability mod
 viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. Loader/augmentace je ale
 znovupoužitelná pro budoucí modely (Png2Polygon aj.).
 
-`model/tile.py` (Sez. 77) předkrájel páry (X=ortho RGB, Y=label 0-4/255) na 512×512 PNG
-dlaždice do `resources/tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu
-přidává augmentaci a vrací tensory pro `model/train.py`.
+`model/runnability/tile.py` (Sez. 77) předkrájel páry (X=ortho RGB, Y=label 0-4/255) na 512×512
+PNG dlaždice do `resources/tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu
+přidává augmentaci a vrací tensory pro `model/runnability/train.py`.
 
 Proč augmentace AŽ tady (a ne při pre-tilingu): pre-tiling je deterministický (vizuálně
 zkontrolovatelný, Sez. 77), rozmanitost se levně dotvoří náhodnou transformací za běhu —
@@ -25,7 +25,7 @@ Augmentace = jen D4 (8 dihedrálních symetrií: hflip + rot90×k) + mírný jas
 Normalizace: ImageNet mean/std, protože encoder (ResNet34) je ImageNet-pretrained (smp) —
 musí dostat vstup ve stejné statistice, na jakou byl trénovaný.
 
-Sys.path skript (fáze B, ne balík). Importuje se z `model/train.py`.
+Sys.path skript (fáze B, ne balík). Importuje se z `model/runnability/train.py`.
 """
 import sys
 from pathlib import Path
@@ -68,7 +68,7 @@ class TileDataset(Dataset):
         self.augment = augment
         split_dir = _TILES_DIR / split
         if not split_dir.exists():
-            raise RuntimeError(f"chybí {split_dir} — spusť nejdřív `python model/tile.py`")
+            raise RuntimeError(f"chybí {split_dir} — spusť nejdřív `python model/runnability/tile.py`")
 
         # posbírej všechny X dlaždice (Y dohledáme přejmenováním _x→_y)
         xpaths = sorted(split_dir.glob("*/*_x.png"))

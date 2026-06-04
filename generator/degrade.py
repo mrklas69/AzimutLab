@@ -5,7 +5,7 @@ Vstup = `rgb.png` (čistý render z generate_map, X-zdroj páru), výstup = degr
 učí číst reálně vypadající tištěnou/naskenovanou mapu, ne hladký rastr (doložený domain gap, Sez. 82).
 
 Degradace je VÝHRADNĚ fotometrická (barva/šum/blur/komprese) — geometrii (rotace/warp) řeší
-augmentace v model/dataset.py (D4, Sez. 78), kde se transformuje X i Y zároveň. Neduplikovat (DRY/SLAP).
+augmentace v model/png2area/dataset.py (D4, Sez. 78), kde se transformuje X i Y zároveň. Neduplikovat (DRY/SLAP).
 
 Vrstvy v pořadí fyzikálního řetězce tisk → optika → médium → snímání → komprese:
   1. CMYK misregistrace — barevné desky tisku rozjeté o sub-px (spec §8.3),

@@ -47,7 +47,7 @@ _MAPS = _REPO_ROOT / "maps"
 sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
 import split                                                # noqa: E402
-from omap_raster import N_AREA, LABEL_NAME, LABEL_VIS, colorize   # noqa: E402
+from omap_raster import N_AREA, LABEL_NAME, colorize   # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL decompression bomb guard
 
@@ -223,7 +223,7 @@ def make_preview(n: int = 6) -> Path:
     """Vizuální verify: mozaika n train dlaždic, X (sken) nad Y (barevný area label). → _preview.png.
 
     Vybírá dlaždice s nejvyšším podílem ne-pozadí (ať je na náhledu vidět plochy, ne bílý les).
-    Y se barví reuse omap_raster.colorize/LABEL_VIS (DRY — stejná paleta jako Y-pipeline verify)."""
+    Y se barví reuse omap_raster.colorize (DRY — stejná paleta LABEL_VIS jako Y-pipeline verify)."""
     train_dir = _TILES_DIR / "train"
     ypaths = sorted(train_dir.glob("*/*_y.png"))
     if not ypaths:

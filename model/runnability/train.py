@@ -29,7 +29,6 @@ Sys.path skript (fáze B). Checkpoint best (dle val mIoU) → resources/model/ (
 """
 import argparse
 import csv
-import json
 import sys
 import time
 from pathlib import Path
@@ -37,7 +36,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")   # headless backend — kreslíme do PNG, žádné GUI okno (běží i na pozadí)
 import matplotlib.pyplot as plt   # noqa: E402
-import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader

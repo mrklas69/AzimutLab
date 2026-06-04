@@ -8,7 +8,7 @@ podle OOM geometrie (Sez. 80): Png2Area (type=4 plochy) | Png2Point (type=1 body
 
 Co dělá: .omap → label rastr (H×W, STEJNÝ grid jako scan.png/rgb.png), každý px nese ISOM area třídu
 (0 = pozadí/bez plochy, 1..N = jednotlivé area kódy). Per-ISOM-kód (volba Sez. 87): GT nese plnou informaci,
-seskupení tříd je modelové rozhodnutí NAD rasterizací (DRY), ne věc Y-pipeline — izomorfní s model/tile.py.
+seskupení tříd je modelové rozhodnutí NAD rasterizací (DRY), ne věc Y-pipeline — izomorfní s model/png2area/tile.py.
 
 Transformace paper µm → px (měřeno Sez. 87, robustní z meta.json): omap_export.paper() sází objekty jako
 paper_x = (gx/(gw-1) - 0.5)·pw, pw = world_w_m·1e6/scale; render mapuje grid↔px lineárně → po dosazení
