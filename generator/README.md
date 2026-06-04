@@ -11,6 +11,10 @@ do JEDNÉ georeferencované `.omap` per classId (provenance real/predict) — `[
 Separace **downscaluje vstupní gt na `TARGET_MPP`=1,33 PŘED vektorizací** (Sez. 85, `separate_areas(src_mpp)` —
 `pairs` předá `meta["effectiveMppX"]`): řeší výkon žroutu #1 (O(n² prstenců) — 31,6× zrychlení na jemném skenu,
 věrnost zachována) + sjednotí měřítko separace napříč korpusem. Polygony se ×f vrací na původní grid (volající beze změny).
+**Fáze II `degrade.py` (Sez. 86):** `degrade(rgb, seed)` degraduje čistý render → „sken" (`scan.png` = X páru) —
+4 fotometrické vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), Y (`.omap`) se nemění. `pairs`
+volá s `degrade=True`. Geometrie (rotace/warp) NEní zde — patří na úroveň páru/dlaždice (loader D4, DRY). omap2png =
+náš rastr (`generate_map` dělá `rgb.png`); C++ headless OOM až s důkazem doménového gapu (Sez. 82).
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):

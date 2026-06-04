@@ -635,7 +635,10 @@ funkce generate(seed, params):
    přehled). Reálné mapy slouží i jako hold-out pro měření skutečné generalizace.
    **Dvoustupňová realnost (rozhodnuto 2026-05-25):** stupeň 1 = kartografická věrnost
    (čistý render, vrstvy fyzikálně vázané na terén — „fyzikální gate"), stupeň 2 = věrnost
-   skenu (augmentace §8.3 jako samostatná vrstva). Roadmapa a pořadí věrnostních vrstev:
+   skenu (augmentace §8.3 jako samostatná vrstva). **Fotometrická půlka stupně 2 implementována
+   Sez. 86** (`generator/degrade.py`: CMYK misregistrace, blur, papír+zažloutnutí, šum, JPEG —
+   čistě fotometrické, Y se nemění; integrace `pairs.build_pair degrade=True` → `scan.png`). Geometrická
+   půlka (rotace/deformace) patří na úroveň páru/dlaždice (X+Y zároveň), ne sem. Roadmapa a pořadí vrstev:
    `IDEAS.md`. (Názvosloví bez A/B — ta patří vztahu k Pic2Omap.)
 5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`
    (generátor v `generator/`, konektor `connectors/dmr.py` od Sez. 16). Místo

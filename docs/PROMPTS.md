@@ -22,7 +22,12 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
 3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP. **Počítej VŠECHNY body,
    i vedlejší/carry** (ne jen fokus bod 1). Nález Sez. 69: „compare/Slovanka" visela jako vedlejší
    bod 3 devětkrát, protože Stale check sledoval jen hlavní fokus → eskalace zpožděna.
-4. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
+4. **Stroj × dostupnost fokusu.** Zjisti stroj (`hostname`) a co je tu lokálně k dispozici:
+   **Livelox korpus** (`resources/livelox/`, gitignored copyright) **+ CUDA trénink = jen `mrkla`**;
+   ČÚZK REST (fetch/`generate_map` real/separace) + docs + audity = **všude** (veřejná služba,
+   cache `.dmr_/.zabaged_`). Nenavrhuj jako fokus to, co stroj neutáhne (nález Sez. 86 C-1: na
+   ntbhej padl hlavní tah Branžež `build_pair` na chybějící korpus). Cross-stroj práce = carry na mrkla.
+5. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
 
 ## %END — konec sezení

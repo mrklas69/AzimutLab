@@ -330,6 +330,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   modelu na párech z II. Degradér patří do II, ne do I. Pravé veřejné `.omap`/`.ocd` vektory neexistují
   (průzkum Sez. 80) → `.omap` tvoří generátor. Provenience **real/predict** flag v `.omap` říká, co model bere
   z dat vs ze skenu. Detail: IDEAS „Tři fáze I/II/III".
+- **degradér / `degrade()`** (Sez. 86, `generator/degrade.py`) — fáze II krok, který z čistého renderu
+  (`rgb.png`) vyrobí realistický „sken" (`scan.png` = **X** v páru). **Čistě fotometrický** (CMYK misregistrace,
+  blur, papír+zažloutnutí, senzorový šum, JPEG) → **Y (`.omap`) se nemění**, pár zůstává konzistentní. Geometrii
+  (rotace/warp) NEdělá — ta patří na úroveň páru (transformuje X i Y zároveň, loader D4 Sez. 78), ne sem (DRY/SLAP).
+  Deterministický přes `seed` (= cid v `pairs`) → z jednoho renderu libovolně variant = augmentace. Zužuje
+  [[domain-gap]] render→sken (reconstructor trénovaný na hladkém rastru by na reálné mapě selhal). **omap2png** =
+  „render `.omap` → PNG"; náš rastr to dělá zdarma (`generate_map` produkuje `rgb.png`, Sez. 82 volba C), C++
+  headless OOM až s důkazem gapu.
 - **`Png2Area` / `Png2Point` / `Png2Line`** (Sez. 80; přejmenováno Sez. 82 z `Png2Polygon`/`Png2Linie` na
   terminologii OOM — symboly jsou v `.omap` typu **Point/Line/Area**, doloženo z `template_classic.omap`:
   `type=1` Point / `type=2` Line / `type=4` Area) — tři pomocné modely [[reconstructor]]u, dekompozice

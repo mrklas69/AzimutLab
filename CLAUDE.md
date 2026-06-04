@@ -45,5 +45,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `generator/` — UC4-I/UC5 generátor OB map (pilíř Laboratoře; povýšen ze `sandbox/generator-poc/`
   v Sez. 39 — `sandbox/` zrušen, byl jediný obyvatel). Konzumuje `connectors/`. `generate_map()` =
   hlavní vstup. Výstupy → `maps/<lokalita>/` (gitignored, kotveno v kořeni přes `MAPS_DIR`).
-- `connectors/` + `generator/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
+  Fáze I `generator()`: `separate.py` (separace barev mapy → plochy, `separate_areas` + `TARGET_MPP`
+  downscale, Sez. 82-85) + `pairs.py` (orchestrátor `build_pair`/`build_pairs` per-classId párů X,Y
+  z Livelox korpusu, Sez. 83-85). `rock_relief.py` (skály 206 z DMR sklonu, Sez. 63).
+- `model/` — UC5 trénink (3. top-level kódový adresář, sourozenec `connectors/`/`generator/`, Sez. 77):
+  `tile.py` (pre-tiling párů na 512×512) + `dataset.py` (loader + aug) + `train.py` (U-Net/ResNet34, BF16).
+  Trénink jen na `mrkla` (RTX 5070); původní `ORTO→runnability` baseline archivován (Sez. 79).
+- `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
   pořád ale **ne produkční balík** (ten přijde s přechodem na monorepo, fáze A). Sys.path skripty.

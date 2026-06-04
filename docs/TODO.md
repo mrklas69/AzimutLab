@@ -68,14 +68,20 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     **SUB-lineární → Sez. 84 hypotéza VYVRÁCENA**, `max_km` ho udrží. → tři páky: **(A) downscale HOTOVO Sez. 85**
     (`separate.TARGET_MPP` + `separate_areas(src_mpp)` + `pairs` předá `effectiveMppX`; polygony ×f zpět na grid,
     behavior-preserving, ověřeno Soví vrch 16,5×), **(B) `max_km` strop** hotovo Sez. 84, **(C) finální nářez =
-    reuse `model/tile.py`** (existuje @1,33/512/stride256). **ZBÝVÁ (mrkla):** Branžež `build_pair` verify —
-    absolutní práh (8 min → ?) + `_map_affine` na rotovaném quadu → pak odblokovat **noční batch `build_pairs`**
-    přes 207 ČR. Vedlejší: `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpusové mapy malé → neakutní).
+    reuse `model/tile.py`** (existuje @1,33/512/stride256). **Degradér fáze II HOTOVO Sez. 86** — `build_pair`
+    teď s `degrade=True` produkuje i `scan.png` (= X páru, sken). **ZBÝVÁ (mrkla):** Branžež `build_pair` verify —
+    absolutní práh (8 min → ?) + `_map_affine` na rotovaném quadu + E2E s degradací → pak odblokovat **noční batch
+    `build_pairs`** přes 207 ČR. Vedlejší: `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpus malý → neakutní).
   - [x] **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
     bbox prefilter behavior-preserving, regrese 0).
-- [ ] *(enabler fáze II, rozhodnuto Sez. 82 — IDEAS „omap2png")* **omap2png** — render `.omap`→PNG pro export páru.
-  OOM nemá CLI/headless. **Volba: náš rastr teď** (`generate_map` už `rgb.png` dělá), C++ headless OOM až měřený
-  doménový gap dokáže potřebu. Až bude integrace fáze I + degradér fáze II.
+- [x] *(enabler fáze II — HOTOVO Sez. 86)* **omap2png = de-facto hotové** — `generate_map` produkuje `rgb.png`
+  vedle `.omap` (verify `pairs.py:7`, Sez. 82 volba C „náš rastr"). C++ headless OOM až měřený doménový gap
+  dokáže potřebu (reconstructor selže na reálných OOM/tištěných mapách). „omap2png" v doslovném smyslu (parsovat
+  libovolnou `.omap`) jen pro OOM věrnost = cesta A, neakutní.
+- [~] **Fáze II degradér `generator/degrade.py` — MVP HOTOVO Sez. 86.** `degrade(rgb, seed)` 4 fotometrické
+  sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), čistě fotometrické (Y se nemění),
+  DRY proti loaderu D4 (geometrie tam, ne tady). Integrace `pairs.build_pair degrade=True` → `scan.png` (X páru).
+  **ZBÝVÁ:** porovnat s reálnou Livelox mapou (cílová doména, mrkla) + případně doladit misregistraci ±0,7 px.
 - [ ] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
   `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`). Dekompozice podle typu geometrie ISOM (tři CV
   úlohy). GT zdarma z `.omap` (typ symbolu). Pořadí: Area první (reuse U-Net Sez. 78, vstup mapa ne ortofoto),
@@ -127,7 +133,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [ ] *(rozšíření cest/vody)* věrná dvojitá linie 502 Wide road (teď PoC casing), ladění 505/506, ořez reálných linií na bbox; (voda) „hranatý" malý rybník, věrný kombinovaný 301 s břehovou linií v OMAP (teď 301.1).
 - [ ] *(drobnost, nález %AUDIT:CODE Sez. 19 — P2)* OMAP export 110 Small elongated knoll: rastr respektuje orientaci `horiz`, ale `.omap` exportuje vždy `rotation="0"`. Předat orientaci protáhlosti do exportu (rastr↔omap konzistence).
 - [ ] *(anotace, až bude vstup)* čtečka čísel kontrol **ISOM 704** ze separátního anotačního `.omap` (kanál uživatel → AI: označí místo v OOM, generátor nepřepíše; já přečtu polohu/číslo). Workflow rozhodnut Sez. 18.
-- [ ] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken" (CMYK misregistration, papír, JPEG, deformace) pro UC4-III. Až stupeň 1 stojí.
+- [~] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken". **Fotometrická půlka HOTOVO Sez. 86**
+  (`degrade.py`: CMYK misregistration, papír+zažloutnutí, JPEG, šum, blur). **ZBÝVÁ geometrická půlka** (deformace
+  sklad/sken, rotace warp) — patří na úroveň páru/dlaždice (transformuje X i Y zároveň), ne do fotometrického
+  degradéru; nejspíš do loaderu vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu. **Sez. 16: `connectors/` = první sdílená kódová složka mimo sandbox (drobný krok B→A); spouštěč „balík" stále otevřen — až 2. konzument konektorů. Sez. 39: generátor opustil sandbox (`generator/`), sandbox zrušen — krok B→A, ale pořád sys.path skripty, ne balík.**

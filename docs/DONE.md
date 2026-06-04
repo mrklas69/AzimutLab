@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 86 (2026-06-04) — %CALIBRATE (4 opravy) + fáze II degradér (sken) + integrace do pairs
+- [x] **%CALIBRATE (vynucený, +17 od Sez. 69; 0 kritických).** 4 opravy (multiselect uživatele): **A-1**
+      `settings.local.json` 35→18 (reincident vzorce C1 počtvrté — scratch + redundance s globálem + python
+      varianty); **A-2** `CLAUDE.md` key-files +`model/` (Sez. 77) +`generator/separate.py`+`pairs.py` (drift
+      mirror C4 Sez. 69); **C-1** PROMPTS `%BEGIN` bod 4 stroj×dostupnost fokusu (korpus/CUDA mrkla, ČÚZK/docs
+      všude); **B-1** DIARY split → `DIARY-archive.md` (Sez. 1-51) + `DIARY.md` (Sez. 52-86, < read-cap). Sub-prah
+      CLAUDE.md +7,2 % < 50 %. Nezvolené pojmenované: C-2 settings bobtnání systémové, B-2 cadence prahy drží.
+- [x] **omap2png = de-facto hotové** (verify `pairs.py:7`: `rgb.png` z `generate_map` vedle `.omap`, Sez. 82
+      volba C). C++ headless OOM až s důkazem doménového gapu → bod 2 redukován na samotný degradér.
+- [x] **Fáze II degradér `generator/degrade.py` (nový).** `degrade(rgb, seed) → sken` + `degrade_file`. **4
+      fotometrické sken-vrstvy** (plný MVP, volba uživatele) v pořadí tisk→optika→médium→snímání→komprese:
+      CMYK misregistrace (±1,1 px, scipy `ndi_shift`) · blur (σ 0,4-0,9) · papír (jas 0,93-1,0) + zažloutnutí
+      (teplý tint) · senzorový šum (σ 2-5) · JPEG (q 72-88). **Čistě fotometrické → Y (.omap) se nemění → pár
+      konzistentní**; geometrie (rotace) je v loaderu D4 (DRY, Sez. 78). Deterministické přes seed.
+- [x] **Integrace do `pairs.py`.** `build_pair`/`build_pairs` +param `degrade=True` → po renderu `scan.png`
+      (= X v páru), seed = `int(cid)` (per-mapa). Čistý `rgb.png` zůstává. Resume skip-check posunut na `scan.png`.
+- [x] **Verify:** proc baseline 65 drží (degrade/pairs mimo proc cestu); py_compile + import řetězec OK; vizuál
+      4 vrstvy potvrzeny na Soví vrch 2× zoomu. E2E `build_pair` s degradací = carry na mrkla (korpus).
+
 ## Sezení 85 (2026-06-04) — Measure-first dlaždice: oba žrouti vyřešeny + `target_mpp` downscale separace
 - [x] **Verify dluh Sez. 84 — proc baseline 65 DRŽÍ** (`--terrain noise --paths proc --seed 1` → `.omap objektů 65`).
       Změna `rock_relief._group_holes` (bbox prefilter) behavior-preserving, jak Sez. 84 předpokládal. Regrese 0.
