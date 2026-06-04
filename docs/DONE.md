@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 85 (2026-06-04) — Measure-first dlaždice: oba žrouti vyřešeny + `target_mpp` downscale separace
+- [x] **Verify dluh Sez. 84 — proc baseline 65 DRŽÍ** (`--terrain noise --paths proc --seed 1` → `.omap objektů 65`).
+      Změna `rock_relief._group_holes` (bbox prefilter) behavior-preserving, jak Sez. 84 předpokládal. Regrese 0.
+- [x] **%THINK redesign párů — oponentura: tři páky místo rozbíjení monolitu `generate_map`.** (1) downscale
+      separace na ~1,33 mpp, (2) `max_km` strop (hotovo Sez. 84), (3) finální nářez = **reuse `model/tile.py`**
+      (existuje, @1,33/512/stride256). Rozbití monolitu (fetch | render po dlaždicích) zamítnuto — velký refaktor
+      proti fázi B (`_apply_extent` globály), TODO odkládá na fázi A. **Tři významy „dlaždice"** rozlišeny
+      (`TILE_M` georef / `tile.py` 512 CNN / „generovat dlaždice"). Insight: X = render NAŠÍ `.omap` → downscale
+      Livelox gt před separací je bezpečný (neovlivní X/Y, sjednotí `MIN_AREA_PX` napříč korpusem).
+- [x] **Krok 1 měření — žrout #1 (separace O(n²)): páka A potvrzena.** Stand-in Soví vrch (137 Mpx, v `resources/`
+      ne korpus). Downscale gt 0,56→1,33 mpp (NEAREST, ne bilineár — labely): **31,6× zrychlení @ 5,6× méně px**
+      (super-lineární žrout), polygonů 88→39 (drobky), **overlay before/after téměř identický** (věrnost OK).
+      Vedlejší: `map_gt.segment_gt` nezvládne 137 Mpx (20 GiB; korpusové mapy malé → nepadá).
+- [x] **Krok 1b měření — žrout #2 (render skal): NEní žrout.** HS cache-warm, `rocks=real − off` na 2/3/4 km:
+      skály 2,88/5,10/5,89 s → s/km² KLESÁ → **SUB-lineární → Sez. 84 hypotéza VYVRÁCENA** (Branžež visela
+      v separaci, ne renderu). `max_km` ho udrží.
+- [x] **Implementace `target_mpp` downscale.** `separate.py`: `TARGET_MPP=1,33` + `separate_areas(src_mpp, target_mpp)`
+      — downscale NEAREST před vektorizací, **polygony ×f ZPĚT na původní grid** (výstup v image-px vstupu →
+      volající se nemění), bez `src_mpp` no-op. `pairs.py`: `_separate_to_sjtsk(src_mpp)` + `build_pair` předá
+      `meta["effectiveMppX"]` (crop=plocha, downscale=rozlišení, komplementární). **Ověřeno na Soví vrch:**
+      behavior-preserving (88 polygonů identicky) + downscale aktivní (16,5×) + souřadnice zpět v gt gridu
+      (1998,1442 < 2371×1681). `py_compile` OK, proc 65 drží.
+- [x] **`.venv` na ntbhej dorovnán** proti `requirements.txt` (chyběly scipy + matplotlib; paměť `two-machines-git-sync`).
+- [ ] **Zbývá na mrkla:** Branžež `build_pair` verify (absolutní práh + `_map_affine` rotovaný quad) → odblokovat noční batch.
+
 ## Sezení 84 (2026-06-03) — Škálování párů (WIP) — batch + výkonové žrouti + směr dlaždice
 - [x] **`pairs.py build_pairs(cids, skip_existing, ortho, max_km)`** — batch wrapper (mirror `livelox.build_pairs`):
       resume přes `gen/rgb.png`, tolerantní (chyba 1 mapy nepoloží dávku), souhrn ok/skip/fail; CLI `pairs.py batch [N]`.

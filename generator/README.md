@@ -8,6 +8,9 @@ sourozenec `generator/`/`connectors/` — ne uvnitř generátoru; viz README rep
 **UC5 továrna párů (Sez. 82/83):** `separate.py` (`separate_areas`) separuje predikční plochy (vegetace
 406/408/410) z reálné Livelox mapy; `pairs.py` (`build_pair(cid)`) je spojí s real ČÚZK vrstvami `generate_map`
 do JEDNÉ georeferencované `.omap` per classId (provenance real/predict) — `[render, .omap]` pár pro `reconstructor()`.
+Separace **downscaluje vstupní gt na `TARGET_MPP`=1,33 PŘED vektorizací** (Sez. 85, `separate_areas(src_mpp)` —
+`pairs` předá `meta["effectiveMppX"]`): řeší výkon žroutu #1 (O(n² prstenců) — 31,6× zrychlení na jemném skenu,
+věrnost zachována) + sjednotí měřítko separace napříč korpusem. Polygony se ×f vrací na původní grid (volající beze změny).
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):

@@ -346,6 +346,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   [[forest-age-proxy]] jako zdroj predikční vegetace (univerzální + mapař = ground truth + konzistentní pár).
   `_fill_ignore` (Sez. 83): před vektorizací nahradí IGNORE pixely (fialový přetisk tratě 704/705 → 255 z [[runnability]]
   GT) nejbližším labelem — jinak kroužky/spojnice kontrol vykousnou díry do zelených ploch.
+  **`TARGET_MPP` = 1,33 + `separate_areas(src_mpp)` downscale (Sez. 85):** je-li vstupní gt jemnější než
+  `TARGET_MPP`, downscaluje se NEAREST (ne bilineár — smíšené mezitřídní px) PŘED vektorizací; polygony se ×f
+  vynásobí ZPĚT na původní grid (výstup v image-px vstupu → volající se nemění). Dva důvody: **výkon** (separace
+  je O(n² prstenců) — měřeno 0,56→1,33 mpp = **31,6× zrychlení**, věrnost ploch zachována, žrout #1 ze Sez. 84) +
+  **konzistence** (`MIN_AREA_PX` laděné na 1,33 platí stejně napříč korpusem). Bez `src_mpp` = no-op (PoC).
 - **`pairs.py` / `build_pair(cid)`** (Sez. 83, `generator/pairs.py`) — per-classId **továrna párů** [render, `.omap`]
   pro [[reconstructor]] (izomorf reframe „generator = továrna párů"; neplést s archivovaným `livelox.build_pairs` =
   ortofoto X,Y). Spojí REAL část (ČÚZK vrstvy z [[generator|`generate_map`]]) + PREDICT část (separace vegetace,

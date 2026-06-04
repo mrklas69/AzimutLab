@@ -61,13 +61,18 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     BLOKOVÁN výkonem** — generátor nestavěný na různorodé lokality. Dva žrouti: (#1) separace O(n²) `_group_holes`
     + KLÍČ Branžež mpp=0.56 → 93 Mpx, ořez na crop-bbox nezabral (rotace+rozlišení) → miliony zelených px;
     (#2) render skal (Český ráj, nepotvrzeno). Zásada: separace = GT-feeder, NEleštit práh; kvalitu dotáhne model.
-  - [!] **(NOVÝ HLAVNÍ TAH Sez. 84) Redesign párů na dlaždice 512×512** — řeší žrout #1 přes design, ne ladění
-    O(n²). **Mapy vcelku nepotřebujeme** (volba uživatele) — cíl jsou dlaždice pro `Png2Area`. %THINK promyslet:
-    **downscale na ~1.33 mpp PŘED separací** (93 Mpx @ 0.56 → ~16 Mpx; sám velká úspora), fetch ČÚZK po mapě vs
-    po dlaždici (HTTP overhead → pravděpodobně fetch/mapa + render/separace po dlaždicích = rozbít monolit
-    `generate_map`), render skal změřit zvlášť (nezávislé na separaci).
-  - [ ] **(verify dluh Sez. 84) Ověřit proc baseline 65** — `generate_map` proc režim po změně `rock_relief._group_holes`
-    (sdílená se skalami; bbox prefilter exaktní + identita separace OK, ale plný proc verify nedořešen).
+  - [~] **(HLAVNÍ TAH, překlopen Sez. 85) Výkon párů — TŘI PÁKY místo rozbíjení monolitu.** %THINK Sez. 85
+    oponoval „redesign na dlaždice 512×512 + rozbití monolitu `generate_map`" (velký refaktor `_apply_extent`
+    globálů proti fázi B). **Měřeno (measure-first):** (#1 separace O(n²)) páka A **downscale gt na ~1,33 mpp
+    PŘED separací = 31,6× zrychlení @ 5,6× méně px**, věrnost OK (stand-in Soví vrch); (#2 render skal)
+    **SUB-lineární → Sez. 84 hypotéza VYVRÁCENA**, `max_km` ho udrží. → tři páky: **(A) downscale HOTOVO Sez. 85**
+    (`separate.TARGET_MPP` + `separate_areas(src_mpp)` + `pairs` předá `effectiveMppX`; polygony ×f zpět na grid,
+    behavior-preserving, ověřeno Soví vrch 16,5×), **(B) `max_km` strop** hotovo Sez. 84, **(C) finální nářez =
+    reuse `model/tile.py`** (existuje @1,33/512/stride256). **ZBÝVÁ (mrkla):** Branžež `build_pair` verify —
+    absolutní práh (8 min → ?) + `_map_affine` na rotovaném quadu → pak odblokovat **noční batch `build_pairs`**
+    přes 207 ČR. Vedlejší: `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpusové mapy malé → neakutní).
+  - [x] **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
+    bbox prefilter behavior-preserving, regrese 0).
 - [ ] *(enabler fáze II, rozhodnuto Sez. 82 — IDEAS „omap2png")* **omap2png** — render `.omap`→PNG pro export páru.
   OOM nemá CLI/headless. **Volba: náš rastr teď** (`generate_map` už `rgb.png` dělá), C++ headless OOM až měřený
   doménový gap dokáže potřebu. Až bude integrace fáze I + degradér fáze II.

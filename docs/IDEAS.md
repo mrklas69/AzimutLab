@@ -363,6 +363,22 @@ protože kvalitu dotáhne **`Png2Area` model** trénovaný na množství párů,
 konstrukcí páru (X = degradovaný export z NAŠÍ `.omap`) nemusí být separace věrná ani původní mapě — jen půjčuje
 realistické tvary. **Neutrácet sezení dolaďováním prahu místo škálování párů.**
 
+**Výkon škálování — TŘI PÁKY místo rozbíjení monolitu (Sez. 85 %THINK + measure-first).** Sez. 84 navrhla „redesign
+na dlaždice 512×512 + rozbít monolit `generate_map` (fetch | render po dlaždicích)". %THINK oponoval — rozbití je
+velký refaktor proti fázi B (render helpery visí na module-globálech `GW/GH/W/H` mutovaných `_apply_extent`; fyzický
+split TODO odkládá na fázi A). **Tři významy „dlaždice" (neplést):** (1) `TILE_M` = S-JTSK strana výseku (georef
+`build_bbox`); (2) `model/tile.py` `TILE=512` = trénovací dlaždice CNN @1,33 mpp; (3) „generovat rovnou dlaždice"
+(nápad Sez. 84). **Insight (reframe Sez. 80 na rozlišení):** v páru je X = render NAŠÍ `.omap` (ne Livelox mapa →
+ta je jen zdroj separace), takže X i Y jsou na našem gridu ~1,33 mpp; Livelox rozlišení vstupuje **jen do separace**
+→ downscale Livelox gt PŘED separací je bezpečný. **Tři páky (KISS pořadí):**
+- **(A) downscale separačního vstupu na `TARGET_MPP`=1,33** — měřeno (stand-in Soví vrch 137 Mpx): 0,56→1,33 mpp =
+  **31,6× zrychlení @ 5,6× méně px** (žrout #1 separace O(n²) super-lineární), věrnost velkých ploch zachována.
+  NEAREST downscale labelů (ne bilineár). HOTOVO Sez. 85 (`separate_areas(src_mpp)`).
+- **(B) `max_km` strop výseku** — drží PLOCHU (hotovo Sez. 84). Crop (plocha) + downscale (rozlišení) = komplementární.
+- **(C) finální nářez na 512×512 = reuse `model/tile.py`** (existuje, @1,33/512/stride256) — žádná nová mašinérie.
+- **Žrout #2 (render skal) NEexistuje** — měřeno (HS sub-lineárně, s/km² klesá) → Sez. 84 hypotéza vyvrácena,
+  `max_km` ho udrží. (Branžež visela v separaci #1, ne v renderu — diagnostika Sez. 84 k renderu nedoběhla.)
+
 **Tři pomocné modely (A2 Sez. 80; přejmenováno Sez. 82 na OOM Point/Line/Area) — dekompozice reconstructoru
 podle typu geometrie:** ISOM area/line/point = TŘI různé CV úlohy (segmentace / extrakce linií / detekce bodů) →
 každá chce jinou architekturu → tři modely > monolit (SLAP, izomorfismus). GT zdarma: `.omap` symboly nesou typ
