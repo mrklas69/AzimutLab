@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 89 (2026-06-04) — %AUDIT:CODE (úklid driftu po přesunu Sez. 88)
+- [x] **%AUDIT:CODE** (cadence-zralý, +8 = práh dosažen; scope = nový kód Sez. 82–88, ~2051 LOC, 10 souborů
+      čteno sám). **0 kritických / 1 doporučený / 4 kosmetické** — dominanta = drift cest/komentářů po přesunu
+      `git mv` Sez. 88 (vzorec konzistentní se Sez. 60/81). Izomorfismus `png2area/` ↔ `runnability/` v jádru drží.
+- [x] **D1 — drift cest `runnability/dataset.py`** (přesun Sez. 88 opravil tile/train, dataset přehlédl): 4× stará
+      `model/tile.py`/`model/train.py` → `model/runnability/…` (ř. 71 = zavádějící chybová hláška, ostatní docstring).
+- [x] **K1 — mrtvé importy** `json` + `numpy` v `runnability/train.py` smazány (png2area protějšek je neměl).
+- [x] **K2 — mrtvý `LABEL_VIS` import** v `png2area/tile.py` odebrán (jen v docstringu; `make_preview` volá jen
+      `colorize`) + komentář zpřesněn.
+- [x] **K3 — zastaralé cesty v komentářích** `degrade.py`/`omap_raster.py` → `model/png2area/…`.
+- [x] **K4 NEMĚNĚNO** (volba uživatele) — izomorfismus tile.py: archiv má `_dist` nested + chybí guard dělení nulou
+      (živý `png2area` čistší); neměnit archiv bezdůvodně, sjednotit až při reanimaci skeletu (Png2Line).
+- [x] **Verify:** py_compile 5/5 + import řetězec drží + grep reziduí čistý. **proc 65 triviálně drží** (generator
+      změny čistě komentářové, mimo proc cestu). Behavior-preserving. Cadence reset %AUDIT:CODE → Sez. 89.
+- [x] **Handoff ntbhej → mrkla** (požadavek uživatele): hlavní tah 4. sezení mrkla-blokovaný → commit + push, mrkla
+      ff-syncne a pokračuje (carry = Příště Sez. 90 body 1–2). `pip install -r requirements.txt` na mrkla ověřit.
+
 ## Sezení 88 (2026-06-04) — Png2Area loader/tile/train: dlaždicová pipeline reconstructoru (+ archiv → model/runnability/)
 - [x] **Přesun archivu (runnability směr) → `model/runnability/`** (`git mv` tile/dataset/train.py). Volba uživatele
       „podadresáře oba" (symetrie: oba modely mají vlastní `{tile,dataset,train}.py`). Oprava cest: `_REPO_ROOT`
