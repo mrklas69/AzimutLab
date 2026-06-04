@@ -21,6 +21,14 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
       správně vyříznuté z base). **proc baseline 65 drží** (git diff: jen `pairs.py` + nový `omap_raster.py`;
       `generator.py`/`omap_export.py` nedotčeny → proc cesta nezměněná). py_compile + import OK (`N_AREA=16`).
       E2E `build_pair` s `labels=True` = carry na mrkla (Livelox korpus).
+- [x] **(uživatelské úkoly, 2. část) Livelox mapy ≤16 km od Mařenic.** 101 eventů (2018–2026, CZ+DE), Fáze A
+      (1 mapa/event, 39) + Fáze B (záchrana přes ostatní třídy, +18) → **57 map / 54 unikátních / 222,9 MB** do
+      `resources/livelox/` (gitignored). 44 bez blobu (historické/MTBO = jen GPS). Statistika `_marenice_stats.{md,csv}`
+      (classId/název/obec/km/datum/měřítko/EPSG/px/MB).
+- [x] **(uživatelský dotaz) Saský geoportál GeoSN** → KB `data-sources.md` (DE ekvivalent ČÚZK: DGM1/DOP/ATKIS/ALKIS,
+      DL-DE-BY-2.0). **DGM1 probe (measure-first):** data jsou (1m, hillshade Oybin), ale WCS 403 / WMS jen vizualizace
+      / ATOM updates → raw cesta = batch dlaždice (dráž než ČÚZK). Plný DE pár navíc potřebuje ATKIS. Zaznamenáno
+      jako směr `connectors/saxony.py`, ne stavěno (foundations: 8/57 map, hlavní tah = reconstructor ČR).
 
 ## Sezení 86 (2026-06-04) — %CALIBRATE (4 opravy) + fáze II degradér (sken) + integrace do pairs
 - [x] **%CALIBRATE (vynucený, +17 od Sez. 69; 0 kritických).** 4 opravy (multiselect uživatele): **A-1**

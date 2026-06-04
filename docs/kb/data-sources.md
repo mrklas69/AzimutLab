@@ -206,6 +206,44 @@ Plošná vrstva (`fetch_paved_areas` / `map_paved_to_isom`), izomorfní s vodní
 - DMR 5G vznikl ze skenování **2009–2013** (dokončeno 2016) — pro restaurované/staré mapy
   ověřit, zda časový posun terénu vs. mapy nevadí.
 
+## GeoSN Sachsen — gate OTEVŘENA (DE ekvivalent ČÚZK, Sez. 87)
+
+Pro saské příhraničí (Lužické hory — 16 km okruh kolem Mařenic zasahuje do Saska, DE OB mapy
+SAXBO/Oybin/Olbersee) je ČÚZK mimo území → **GeoSN** (Staatsbetrieb Geobasisinformation und
+Vermessung Sachsen) je plný ekvivalent, dokonce v jemnějším výškopisu. Portál „Offene Geodaten":
+`https://www.geodaten.sachsen.de/`. **Schválený směr (uživatel Sez. 87), zatím NEimplementováno.**
+
+| GeoSN produkt | ČÚZK protějšek (`connectors/`) | pozn. |
+|---|---|---|
+| **DGM1** (model terénu 1 m, GeoTIFF) + DOM1/nDOM/raw LSC LiDAR | `dmr.py` DMR 5G | **1 m grid = jemnější** než DMR 5G |
+| **DOP / Quick-DOP** (ortofoto) | `ortofoto.py` | batch download dlaždic |
+| **ATKIS** (topo vektor) | `zabaged.py` ZABAGED | cesty/voda/budovy/landcover; WMS/WFS |
+| **ALKIS WFS** (katastr, GML/SHP, AdV schéma) | `ruian.py` RÚIAN | parcely |
+
+Distribuce: dlaždice **2×2 km** batch + WMS/WFS. CRS = **UTM33 / EPSG:25833** (výška DHHN2016 EPSG:7837),
+ne S-JTSK. Licence **Datenlizenz Deutschland – Namensnennung 2.0** (open, i komerční s atribucí) — kompatibilní
+s CC BY režimem. **Architektura:** `connectors/saxony.py` (sourozenec `dmr.py`/`zabaged.py`, izomorfní
+`build_bbox` + fetch), aby `generate_map` uměl saský výsek jako český. Hlavní práce = ATKIS třídy → ISOM
+katalog (jiný než 149 ZABAGED vrstev) + ověřit WMS/WFS endpointy. **Foundations:** UC2 enabler větev —
+před stavbou rozhodnout, zda saský generátor je MVP, nebo scope creep (hlavní tah = `reconstructor()` na ČR).
+
+**DGM1 přístup (PROBNUTO Sez. 87 — měření proveditelnosti):** GeoTIFF v dlaždicích **2×2 km jako ZIP**,
+zdarma, DL-DE-BY-2.0, bez API klíče. **Verdikt: data jsou (1m, jemnější než ČÚZK DMR 5G, hillshade Oybin
+ověřen), ale pohodlný programový bbox-fetch raw elevation NENÍ veřejný:**
+- ❌ **ATOM feed** (`geodownload.sachsen.de/inspire/el_atom/Service_el.xml` → `Dataset_el_dhm.xml`) = jen
+  „updates" feed, vede na bbox celého Saska, NE per-dlaždicový download.
+- ❌ **WCS** (`geodienste.sachsen.de/wcs_geosn_hoehe/guest`) = **HTTP 403** guest (žádný ekvivalent ČÚZK
+  ImageServer `exportImage` → F32).
+- ❌ **WMS** (`wms_geosn_hoehe`, vrstva `gelaendehoehe`, i `hangneigung` sklon) `image/tiff` = vrací
+  **RGB uint8 VIZUALIZACI**, ne raw F32 elevation → nepoužitelné pro vrstevnice (jen hillshade k zobrazení).
+- ✓ **Batch-Download** dlaždic 2×2 km = jediná raw cesta; interaktivní web app / přímý URL pattern neznámý
+  → konektor by musel stahovat+skládat dlaždice (analogie Sez. 59 ČÚZK DMP klad+ATOM), **dráž než ČÚZK ImageServer**.
+DGM1 = **náhrada `dmr.py`** pro DE (vrstevnice + rock-relief ze sklonu) — ale to je JEN terén; plný DE pár
+[scan, .omap] potřebuje i **ATKIS** (cesty/voda/budovy/landcover), jinak by DE `.omap` měla jen vrstevnice +
+skály + separovanou vegetaci (chybí černé/modré prvky). **Souvislost s datasetem:** `split.py` dnes DE mapy
+**vědomě vyřazuje** (207 ČR keep, 9 cizích pryč) právě proto, že real ČÚZK vrstvy fungují jen pro ČR — zahrnutí
+8 saských Livelox map do tréninku = zrušit ten filtr + postavit saský konektor (min. DGM1 + ATKIS).
+
 ## Mapový portál ČSOS — gate ZAVŘENA (náhledy + copyright klubů)
 
 Digitální archiv map ČSOS — **7000+ georeferencovaných map** pro OB / MTBO / Trail-O /
