@@ -175,6 +175,7 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
   separate.py          #   phase I: separate predictive areas (vegetation) from real Livelox map → polygons (sessions 82-85)
   pairs.py             #   phase I orchestrator: build_pair(cid) = real ČÚZK + separation → [scan.png, .omap] pair (sessions 83-86)
   degrade.py           #   phase II: degrade clean render → "scan" (CMYK misregistration/blur/paper/noise/JPEG; session 86)
+  omap_raster.py       #   Y-pipeline: rasterize area ISOM symbols from .omap → label raster (Y for Png2Area; per-code, z-order, holes; session 87)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
 model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77)

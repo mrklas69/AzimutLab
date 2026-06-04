@@ -338,6 +338,17 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   [[domain-gap]] render→sken (reconstructor trénovaný na hladkém rastru by na reálné mapě selhal). **omap2png** =
   „render `.omap` → PNG"; náš rastr to dělá zdarma (`generate_map` produkuje `rgb.png`, Sez. 82 volba C), C++
   headless OOM až s důkazem gapu.
+- **`omap_raster` / `area_labels.png`** (Sez. 87, `generator/omap_raster.py`) — Y-pipeline páru: rasterizace
+  plošných (Area) ISOM symbolů z `.omap` → **label rastr** (`area_labels.png` = **Y** pro [[reconstructor|`Png2Area`]]).
+  **Y odvozeno z `.omap`, NE z render masek `mask_*.png`** — reconstructor se učí na páru [scan, `.omap`], Y z téže
+  `.omap` → pár **self-konzistentní** (nezávisí na render artefaktech). **Per-ISOM-kód** (volba Sez. 87): `CODE_TO_LABEL`
+  15 area kódů → label 0..15 (0=pozadí); **statický** (konzistence napříč korpusem), seskupení tříd = modelové
+  rozhodnutí NAD rasterizací (DRY, izomorf s [[degradér|`tile.py`]] labely). **Z-order statický ISOM** zdola nahoru
+  (501.1/520 base … 521 budovy), **díry per-objekt** (vyříznuté jen v rámci objektu → odhalí nižší vrstvu).
+  Transformace paper µm→px triviální z `meta.json`: `px=(paper/pw+0.5)·W`, `pw=world_m·1e6/scale` (měřeno Sez. 87,
+  nezávislá na gridu). `object symbol="N"` = N-tý symbol v `<symbols>` (pořadový index; id==index ověřeno). Integrováno
+  do [[pairs|`build_pair`]] (`labels=True` → `area_labels.png`). Vztah k `omap_export.AREA_CODES`: tam = „co se zapíše
+  jako uzavřený path"; tady = „label schéma Png2Area" (jiná doména → vlastní seznam; DRY-extrakce až 3. konzument).
 - **`Png2Area` / `Png2Point` / `Png2Line`** (Sez. 80; přejmenováno Sez. 82 z `Png2Polygon`/`Png2Linie` na
   terminologii OOM — symboly jsou v `.omap` typu **Point/Line/Area**, doloženo z `template_classic.omap`:
   `type=1` Point / `type=2` Line / `type=4` Area) — tři pomocné modely [[reconstructor]]u, dekompozice

@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 87 (2026-06-04) — Png2Area Y-pipeline: rasterizace plošných ISOM symbolů z .omap → label rastr
+- [x] **`generator/omap_raster.py` (nový) — rasterizér plošných (Area) ISOM symbolů z `.omap` → label rastr (Y
+      pro reconstructor Png2Area).** `rasterize(omap, meta) → label (H,W) uint8`; `parse_area_objects` (object
+      symbol = pořadový index do `<symbols>`, ověřeno id==index) + `_split_rings` (ring-split na hole-flagu bit 16)
+      + `_paper_to_px` (paper µm→px `(p/pw+0.5)·W`, `pw=world_m·1e6/scale`, triviální z meta — měřeno) + `colorize`
+      + `rasterize_map_dir`. **Y per-ISOM-kód** (volba uživatele): `AREA_ZORDER` 15 kódů → `CODE_TO_LABEL` (label
+      0=pozadí, 1..15), statický (konzistence napříč korpusem), seskupení tříd = modelové rozhodnutí NAD (DRY).
+      Z-order zdola nahoru (501.1/520 base … 521 budovy), díry vyříznuté JEN v rámci objektu (per-objekt bbox maska).
+- [x] **Y = rasterizace `.omap`, NE render masky `mask_*.png`** (reframe Sez. 79/80): pár [scan, .omap] →
+      Y z téže `.omap` = self-konzistentní (nezávisí na render artefaktech). Measure-first area inventář (Soví
+      vrch.omap): 10 distinct area kódů, 3582 objektů.
+- [x] **Integrace `pairs.py`** (izomorfní s degrade Sez. 86): `build_pair`/`build_pairs` +param `labels=True` →
+      po render+degrade rasterizuje `.omap` → `area_labels.png` (= Y páru). Skip-check posunut na `area_labels.png`
+      (poslední krok). Pár = **[scan.png (X), area_labels.png (Y)]**.
+- [x] **Verify (oko=source):** vizuál overlay vs `rgb.png` na **Soví vrch** (lesní, pokrytí 34 %, pixel-přesné
+      zarovnání + z-order) i **Lidové sady** (městský, 59 %, 501.1 base 12 % = tvrdý test **děr** — budovy/zeleň/voda
+      správně vyříznuté z base). **proc baseline 65 drží** (git diff: jen `pairs.py` + nový `omap_raster.py`;
+      `generator.py`/`omap_export.py` nedotčeny → proc cesta nezměněná). py_compile + import OK (`N_AREA=16`).
+      E2E `build_pair` s `labels=True` = carry na mrkla (Livelox korpus).
+
 ## Sezení 86 (2026-06-04) — %CALIBRATE (4 opravy) + fáze II degradér (sken) + integrace do pairs
 - [x] **%CALIBRATE (vynucený, +17 od Sez. 69; 0 kritických).** 4 opravy (multiselect uživatele): **A-1**
       `settings.local.json` 35→18 (reincident vzorce C1 počtvrté — scratch + redundance s globálem + python

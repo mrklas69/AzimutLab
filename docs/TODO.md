@@ -82,11 +82,16 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), čistě fotometrické (Y se nemění),
   DRY proti loaderu D4 (geometrie tam, ne tady). Integrace `pairs.build_pair degrade=True` → `scan.png` (X páru).
   **ZBÝVÁ:** porovnat s reálnou Livelox mapou (cílová doména, mrkla) + případně doladit misregistraci ±0,7 px.
-- [ ] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
+- [~] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
   `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`). Dekompozice podle typu geometrie ISOM (tři CV
   úlohy). GT zdarma z `.omap` (typ symbolu). Pořadí: Area první (reuse U-Net Sez. 78, vstup mapa ne ortofoto),
   Point druhý (generátor má přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec),
-  Line poslední (nejtěžší, segmentace+skeletonizace). Detail IDEAS. Až fáze I/II dají páry.
+  Line poslední (nejtěžší, segmentace+skeletonizace). Detail IDEAS. **Png2Area Y-pipeline HOTOVÁ Sez. 87**
+  (`generator/omap_raster.py`): rasterizace plošných ISOM symbolů z `.omap` → label rastr (per-ISOM-kód, 15 area
+  kódů + pozadí, statický z-order, díry per-objekt); paper µm→px triviální z meta. Integrováno do `pairs.build_pair`
+  (`labels=True` → `area_labels.png` = Y). Vizuál SV+LS pixel-přesný. **ZBÝVÁ:** Png2Area loader/tile na párech
+  [scan.png, area_labels.png] (nový, ne archiv `model/tile.py`) + trénink (reuse U-Net Sez. 78, 15 tříd) — až
+  noční batch na mrkla dá set.
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit

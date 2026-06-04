@@ -15,6 +15,10 @@ věrnost zachována) + sjednotí měřítko separace napříč korpusem. Polygon
 4 fotometrické vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), Y (`.omap`) se nemění. `pairs`
 volá s `degrade=True`. Geometrie (rotace/warp) NEní zde — patří na úroveň páru/dlaždice (loader D4, DRY). omap2png =
 náš rastr (`generate_map` dělá `rgb.png`); C++ headless OOM až s důkazem doménového gapu (Sez. 82).
+**Y-pipeline `omap_raster.py` (Sez. 87):** `rasterize(omap, meta)` rasterizuje plošné (Area) ISOM symboly z `.omap`
+→ **label rastr** (`area_labels.png` = **Y** páru, pro reconstructor `Png2Area`). Y z `.omap` (NE z render masek) →
+pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL` 15 area kódů + pozadí, statický z-order zdola nahoru, díry
+per-objekt); paper µm→px triviální z meta. `pairs` volá s `labels=True`. Pár = **[scan.png (X), area_labels.png (Y)]**.
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
@@ -147,7 +151,8 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 
 | Soubor | Obsah |
 |--------|-------|
-| `rgb.png` | finální mapa (vstup modelu) |
+| `rgb.png` | finální mapa (čistý render); `scan.png` = degradovaný „sken" (X páru, `pairs` `degrade=True`, Sez. 86) |
+| `area_labels.png` | label rastr plošných ISOM symbolů z `.omap` (Y páru pro `Png2Area`; `pairs` `labels=True`, Sez. 87) |
 | `rgb.pgw` | world file — georef rastru do S-JTSK (jen `--terrain real`; grid-north-up, rotace 0 = bez grivace) |
 | `mask_contours.png` | binární maska vrstevnic |
 | `mask_paths.png` | multi-class maska cest (1=503 / 2=505 / 3=502 / 4=504 / 5=506; proc dělá 1+2, real 2-6 dle dat) |
