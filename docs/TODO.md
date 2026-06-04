@@ -89,9 +89,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   Line poslední (nejtěžší, segmentace+skeletonizace). Detail IDEAS. **Png2Area Y-pipeline HOTOVÁ Sez. 87**
   (`generator/omap_raster.py`): rasterizace plošných ISOM symbolů z `.omap` → label rastr (per-ISOM-kód, 15 area
   kódů + pozadí, statický z-order, díry per-objekt); paper µm→px triviální z meta. Integrováno do `pairs.build_pair`
-  (`labels=True` → `area_labels.png` = Y). Vizuál SV+LS pixel-přesný. **ZBÝVÁ:** Png2Area loader/tile na párech
-  [scan.png, area_labels.png] (nový, ne archiv `model/tile.py`) + trénink (reuse U-Net Sez. 78, 15 tříd) — až
-  noční batch na mrkla dá set.
+  (`labels=True` → `area_labels.png` = Y). Vizuál SV+LS pixel-přesný. **Png2Area loader/tile/train HOTOVO Sez. 88**
+  (`model/png2area/{tile,dataset,train}.py`): tile 512/stride256 BEZ rejection (pozadí=legitimní třída), 16 tříd ze
+  `omap_raster` (SSoT), median-freq váhy, D4+ImageNet loader, U-Net 16 tříd bez ignore_index. Archiv (runnability)
+  `git mv` → `model/runnability/` (symetrie). Smoke Soví vrch 70 dlaždic OK (ntbhej, dev-fallback `build_tiles_dev`).
+  **ZBÝVÁ (mrkla, torch+korpus):** `build_tiles()` z korpusového setu (po nočním `build_pairs`) + dataset/train torch
+  self-check + **overfit gate** (2 mapy, train mIoU→~1) + plný trénink prvního Png2Area reconstructor modelu.
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit

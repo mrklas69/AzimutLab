@@ -266,11 +266,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   S-JTSK bboxů = clustery; celý cluster do jednoho splitu. `connectors/split.py` → `_split.json`. Sez. 76.
 
 - **Dlaždice / tiling** — páry (X,Y) jsou různě velké (~800-4000 px), ale U-Net jede na **fixní vstup
-  512×512**. `model/tile.py` (Sez. 77) je proto nakrájí: sliding window 512 px, **stride 256 (50% překryv)**,
-  poslední dlaždice zarovnaná k okraji. Dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu,
-  layout). **Pre-tiling na disk** (ne random-crop za běhu): deterministické + vizuálně kontrolovatelné +
-  rychlé IO; augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak).
-  Výstup `resources/tiles/<split>/<cid>/<r>_<c>_{x,y}.png` (gitignored) + `_tiles.json` (počty/class%/váhy).
+  512×512** → sliding window 512 px, **stride 256 (50% překryv)**, poslední dlaždice zarovnaná k okraji.
+  **Pre-tiling na disk** (ne random-crop za běhu): deterministické + vizuálně kontrolovatelné + rychlé IO;
+  augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak). **Dva
+  konzumenti (Sez. 88):** (a) archiv `model/runnability/tile.py` (Sez. 77, ortofoto→runnability) — Y=runnability,
+  dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu/layout) → `resources/tiles/`; (b) Png2Area
+  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png` 16 tříd, **BEZ rejection** (scan.png je plný render,
+  pozadí 0 = legitimní třída, ne IGNORE) → `resources/area_tiles/`. Oba gitignored + `_tiles.json` (počty/class%/váhy).
   ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
 
 - **IoU / mIoU** — *Intersection over Union*, metrika segmentace: pro třídu c je IoU = TP / (TP+FP+FN)
@@ -356,6 +358,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   linií). GT zdarma z `.omap` (typ symbolu). Pořadí: **Area** první (reuse U-Net Sez. 78, vstup mapa ne
   ortofoto → vysoký strop), **Point** druhý (generátor má přesné polohy bodů → GT + libovolně instancí; „bodová
   větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
+  **`Png2Area` model HOTOVO Sez. 88** (`model/png2area/{tile,dataset,train}.py`, izomorf s archivem
+  `model/runnability/`): dlaždice [scan.png, area_labels.png] → `AreaTileDataset` (D4+ImageNet) → U-Net/ResNet34
+  **16 area tříd** (0 pozadí + 15 ISOM kódů ze [[omap_raster]], bez ignore_index — Y je celé validní). Trénink = mrkla.
 - **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
   pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (dnes zelená
   406/408/410 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse `rock_relief`) → predikční plochy do

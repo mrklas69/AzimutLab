@@ -127,14 +127,23 @@ bodových, liniových i plošných ISOM symbolů.
   ČÚZK ortofoto); class distribution (410 fight 1,35 % → váhy do loss, validováno proti 5 mapařským `.omap`);
   **geografický split** (`connectors/split.py` → `_split.json`: train/val/test 145/31/31, clustery dle
   překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`); **tréninkové dlaždice**
-  (`model/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
-  **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Nový adresář **`model/`** = UC5
-  model kód (sourozenec `connectors/`/`generator/`, sys.path fáze B).
-- **Krok 4 dokončen (Sez. 78) + ARCHIVOVÁN (Sez. 79):** loader (`model/dataset.py`, D4 aug + ImageNet norma) +
-  trénink (`model/train.py`, smp U-Net/ResNet34, BF16, per-class IoU). Baseline **val mIoU 0,259 / test 0,223**,
-  ale křivka = **generalizační strop** (val plochá ~0,25 od ep1 → RGB-only málo, runnability = podrost pod
-  korunami shora nevidět). → směr `ORTO → 4 barvy` **archivovaná odbočka** (viz reframe note výše), kód nemazán.
-  Datová pipeline (páry/GT/split/dlaždice) zůstává znovupoužitelná pro budoucí modely (Png2Polygon aj.).
+  (`model/runnability/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
+  **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Adresář **`model/`** = UC5 model kód
+  (sourozenec `connectors/`/`generator/`, sys.path fáze B); od Sez. 88 dva podadresáře `runnability/` (archiv) +
+  `png2area/` (živý reconstructor model).
+- **Krok 4 dokončen (Sez. 78) + ARCHIVOVÁN (Sez. 79), přesun do `model/runnability/` (Sez. 88):** loader
+  (`model/runnability/dataset.py`, D4 aug + ImageNet norma) + trénink (`model/runnability/train.py`, smp
+  U-Net/ResNet34, BF16, per-class IoU). Baseline **val mIoU 0,259 / test 0,223**, ale křivka = **generalizační
+  strop** (val plochá ~0,25 od ep1 → RGB-only málo, runnability = podrost pod korunami shora nevidět). → směr
+  `ORTO → 4 barvy` **archivovaná odbočka** (viz reframe note výše), kód nemazán. Datová pipeline
+  (páry/GT/split/dlaždice) zůstává znovupoužitelná — reálně reusována Png2Area modelem níže.
+- **Png2Area reconstructor — model HOTOVO (Sez. 88), `model/png2area/{tile,dataset,train}.py`:** první ze tří
+  CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`scan.png` (X, degradovaný render), `area_labels.png`
+  (Y, 16 area tříd ze `omap_raster`)]** vyrobeném `generator/pairs.py`. Izomorf s archivem (reuse tiling 512/256,
+  median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto** (proto vysoký strop, na
+  rozdíl od archivu), 16 tříd, **bez rejection** (pozadí = legitimní třída) a **bez IGNORE** (Y z naší `.omap` je
+  celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. Smoke ntbhej (Soví vrch
+  70 dlaždic); plný `build_tiles()` z korpusu + trénink = mrkla (torch+CUDA), po nočním `build_pairs`.
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

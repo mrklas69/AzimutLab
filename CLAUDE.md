@@ -48,8 +48,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   Fáze I `generator()`: `separate.py` (separace barev mapy → plochy, `separate_areas` + `TARGET_MPP`
   downscale, Sez. 82-85) + `pairs.py` (orchestrátor `build_pair`/`build_pairs` per-classId párů X,Y
   z Livelox korpusu, Sez. 83-85). `rock_relief.py` (skály 206 z DMR sklonu, Sez. 63).
-- `model/` — UC5 trénink (3. top-level kódový adresář, sourozenec `connectors/`/`generator/`, Sez. 77):
-  `tile.py` (pre-tiling párů na 512×512) + `dataset.py` (loader + aug) + `train.py` (U-Net/ResNet34, BF16).
-  Trénink jen na `mrkla` (RTX 5070); původní `ORTO→runnability` baseline archivován (Sez. 79).
+- `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). Od Sez. 88
+  **dva podadresáře** (`{tile,dataset,train}.py` v každém, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
+  baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
+  sken → area label rastr, 16 tříd ze `omap_raster`; pár [scan.png, area_labels.png] z `pairs.py`; tile BEZ rejection
+  — pozadí je legitimní třída). Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
+  (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
   pořád ale **ne produkční balík** (ten přijde s přechodem na monorepo, fáze A). Sys.path skripty.

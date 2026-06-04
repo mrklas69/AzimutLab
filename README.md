@@ -122,7 +122,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification; runnability prediction | ◐ corpus built & curated, baseline trained then reframed (session 68 connector + gates; session 70 scaled to **268 maps**; session 71 `map_gt` olive→out-of-bounds GT fix + `curate.py` taxonomy/manifest → **216 keep classic** foot-O training core; sessions 72–73 GT cleanup: purple course overprint + off-map layout → label 255 ignore; sessions 74–77 model pipeline: %THINK + step 0 smoke test (PyTorch cu128 on Blackwell RTX 5070) → aligned (X,Y) pairs + geographic split 145/31/31 + ~8 125 tiles; session 78 **baseline U-Net val mIoU 0.25 = RGB-only task ceiling**; **session 79 reframe**: the real goal "understand maps" = `reconstructor()` (map scan → `.omap`) fed by `generator()` (real + predict parts), and the ortho→runnability direction is **archived as a documented dead-end**, not the main line — see `docs/architecture.md`) |
+| UC5 | Map-understanding models | 100 % palette separation; point/line/area ISOM symbol classification; runnability prediction | ◐ corpus built & curated, baseline trained then reframed (session 68 connector + gates; session 70 scaled to **268 maps**; session 71 `map_gt` olive→out-of-bounds GT fix + `curate.py` taxonomy/manifest → **216 keep classic** foot-O training core; sessions 72–73 GT cleanup: purple course overprint + off-map layout → label 255 ignore; sessions 74–77 model pipeline: %THINK + step 0 smoke test (PyTorch cu128 on Blackwell RTX 5070) → aligned (X,Y) pairs + geographic split 145/31/31 + ~8 125 tiles; session 78 **baseline U-Net val mIoU 0.25 = RGB-only task ceiling**; **session 79 reframe**: the real goal "understand maps" = `reconstructor()` (map scan → `.omap`) fed by `generator()` (real + predict parts), and the ortho→runnability direction is **archived as a documented dead-end**, not the main line — see `docs/architecture.md`; session 88 builds the **first live reconstructor model `Png2Area`** (`model/png2area/`, U-Net 16 area classes, map scan → area label raster; archive moved to `model/runnability/`) — tile/dataset/train done, training on mrkla after the nightly pair batch) |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = PoC generator; III = Pic2Omap) |
 
@@ -178,10 +178,15 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
   omap_raster.py       #   Y-pipeline: rasterize area ISOM symbols from .omap → label raster (Y for Png2Area; per-code, z-order, holes; session 87)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
-model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77)
-  tile.py              #   pre-tiling of (X,Y) pairs into 512×512 tiles (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights (_tiles.json)
-  dataset.py           #   PyTorch loader over tiles + on-the-fly augmentation (D4 + brightness/contrast); ImageNet norm (session 78)
-  train.py             #   U-Net/ResNet34 (smp, ImageNet-pretrained) training, BF16, per-class IoU eval, learning curve → resources/model/ (session 78; baseline val mIoU 0.25 — RGB-only task ceiling)
+model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Two models since session 88:
+  runnability/         #   ARCHIVED ortho→runnability model (dead-end session 79; git-moved here session 88)
+    tile.py            #     pre-tiling (X,Y) pairs → 512×512 (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights
+    dataset.py         #     PyTorch loader over tiles + augmentation (D4 + brightness/contrast); ImageNet norm (session 78)
+    train.py           #     U-Net/ResNet34 (smp), BF16, per-class IoU → resources/model/ (session 78; baseline val mIoU 0.25 = RGB-only ceiling)
+  png2area/            #   LIVE Png2Area reconstructor model (session 88): map scan → area label raster, first of the 3 OOM-geometry CV tasks
+    tile.py            #     pre-tiling [scan.png, area_labels.png] pairs → 512×512 (no rejection — background is a class); 16 classes from omap_raster; → resources/area_tiles/
+    dataset.py         #     PyTorch loader (D4 + ImageNet norm, no IGNORE — Y is all-valid)
+    train.py           #     U-Net/ResNet34, in→16 area classes, BF16, per-class IoU → resources/area_model/ (train on mrkla)
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)

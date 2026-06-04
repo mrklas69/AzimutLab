@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 88 (2026-06-04) — Png2Area loader/tile/train: dlaždicová pipeline reconstructoru (+ archiv → model/runnability/)
+- [x] **Přesun archivu (runnability směr) → `model/runnability/`** (`git mv` tile/dataset/train.py). Volba uživatele
+      „podadresáře oba" (symetrie: oba modely mají vlastní `{tile,dataset,train}.py`). Oprava cest: `_REPO_ROOT`
+      `parents[1]`→`parents[2]`, `train.py` sys.path `model`→`model/runnability`, docstring cesty. Import ověřen
+      (`_REPO_ROOT` = kořen repa, split/map_gt OK) → **behavior-preserving přesun**.
+- [x] **`model/png2area/tile.py` (nový) — pre-tiling párů [scan.png, area_labels.png] na 512×512 dlaždice.**
+      `build_tiles()` (korpus přes `split.dirs_for` → `<cid>/gen/`) + `build_tiles_dev()` (dev mapy z `maps/`, ntbhej
+      smoke bez korpusu) + `tile_one`/`_positions`/`_crop`/`_median_freq_weights`/`make_preview`. TILE 512/stride 256,
+      SSoT `N_AREA`/`LABEL_NAME`/`colorize` import z `omap_raster` (DRY, 16 tříd). Výstup `resources/area_tiles/`
+      (gitignored) + `_tiles.json` (median-freq váhy) + `_preview.png`. **BEZ rejection dlaždic** (volba Sez. 88):
+      scan.png je plný obdélníkový render (žádné IGNORE), pozadí (label 0) = legitimní třída „tady žádná plocha"
+      → archivní `MIN_VALID` by ukrojil lesní kontext; nevyváženost řeší median-freq váhy.
+- [x] **`model/png2area/dataset.py` (nový) — `AreaTileDataset` loader.** D4 aug + jas/kontrast na X, ImageNet
+      norma (ResNet34 pretrained), **bez IGNORE** (y 0..15, Y z naší `.omap` je celé validní). `class_weights()`
+      z `_tiles.json`. Izomorf s archivem.
+- [x] **`model/png2area/train.py` (nový) — U-Net/ResNet34 trénink 16 tříd.** `in_channels=3`→`classes=N_AREA`, BF16,
+      overfit/full režim, per-class IoU (confusion **bez** valid-mask), `CrossEntropyLoss(weight=)` **bez ignore_index**,
+      křivka učení → `resources/area_model/` (gitignored).
+- [x] **Verify (ntbhej):** py_compile 6/6. **Smoke tile Soví vrch: 70 dlaždic**, class% pozadí 66,1/401 25,8/520 4,7
+      (lesní profil), median-freq potlačí pozadí (0,009)/zvedne vzácné (501 254). Formát dlaždic numpy: 70/70 shape OK,
+      labely **0–15**. Preview lícuje X↔Y. Archiv import (`runnability/tile`) OK. **torch jen mrkla** → dataset/train
+      torch self-check + korpusový `build_tiles()` + trénink = carry na mrkla. proc nedotčen (`model/` mimo proc cestu).
+
 ## Sezení 87 (2026-06-04) — Png2Area Y-pipeline: rasterizace plošných ISOM symbolů z .omap → label rastr
 - [x] **`generator/omap_raster.py` (nový) — rasterizér plošných (Area) ISOM symbolů z `.omap` → label rastr (Y
       pro reconstructor Png2Area).** `rasterize(omap, meta) → label (H,W) uint8`; `parse_area_objects` (object
