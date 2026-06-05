@@ -28,6 +28,23 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 - [x] **Verify:** bez změny prod. kódu (jen běhy pipeline Sez. 82–88 + 2 scratch skripty `temp/`, smazány);
       proc baseline 65 nedotčen (negeneroval jsem v noise větvi). Deštníková fáze → jeden `docs(session)` commit.
 
+### Sezení 90 — 2. část (plný trénink + pattern + Jonsdorf)
+- [x] **Pattern/granularita 401/403** (koncepční dotaz uživatele): tři místa „barva→třída" (map_gt nearest-color
+      pattern-blind / Png2Area CNN pattern-aware / Y per-objekt jistý). Měření 401 (Yellow100% `255,186,54`) vs 403
+      (Yellow50% `255,221,154`, separabilní 106): surové „94 % oba" nafouknuté profil-variacemi, ale **vizuál `690592`
+      doložil 403 jako běžné ČR rozlišení** → sloučení 403→401 = ztráta. Opraven zavádějící komentář `separate.py`.
+      Rozhodnuto: trénovat hrubě, granularita = doložený směr (IDEAS).
+- [x] **Noční batch + resume → 196/207 párů** (95 %). 83 fail = ČÚZK rate-limit (NE bug), resume zotaven na 11.
+- [x] **Demo příprava saské alternativy → `maps/Jonsdorf/`**: Livelox „Hölle"/Oybin (1138425, SAXBO, překračuje
+      hranici DE/ČR). Reference/cíl, ne saská generace (= `saxony.py`, neexistuje). Scope vymezen.
+- [x] **PRVNÍ funkční Png2Area reconstructor — plný trénink.** `build_tiles` train 137/val 30/test 29 (geo-split
+      bez leaku). 40 ep, BF16, ~65 min → **test mIoU 0,621 ≈ val 0,629** (vs baseline 0,25). Per-class: 401 0,93,
+      412.1 0,91, 402 0,81, 520 0,78, 308 0,72, 521 budovy 0,68, … 208 0,00. **Budovy 521 ZACHRÁNĚNY** (overfit
+      0,00 → 0,68, median-freq váhy + data). Vizuál `1024666` (test, neviděná) lícuje. `unet_best.pt` (ep 40).
+- [x] **Nálezy:** loss-spiky (obří váhy 208=120 → cap/LR decay příště); 208/501/301.1 datový strop →
+      class-balanced expansion (model=detektor, active learning, IDEAS); legacy forest_age názvosloví + layout
+      watermark + degradér misregistrace 417 → TODO (neřešeno teď). Edukace train/val/test + curve_full legenda.
+
 ## Sezení 89 (2026-06-04) — %AUDIT:CODE (úklid driftu po přesunu Sez. 88)
 - [x] **%AUDIT:CODE** (cadence-zralý, +8 = práh dosažen; scope = nový kód Sez. 82–88, ~2051 LOC, 10 souborů
       čteno sám). **0 kritických / 1 doporučený / 4 kosmetické** — dominanta = drift cest/komentářů po přesunu

@@ -444,3 +444,24 @@ schéma `omap_raster.CODE_TO_LABEL` má label. Chybí-li kterákoli, reconstruct
 **doložený prioritní směr**. Rozsah (jen 401/403 odstín? celá patternová rodina?) rozhodnout PO prvním
 plném tréninku z reálného per-class chování (kde reconstructor na realitě slévá/padá), ne z odhadu.
 Pozn.: 403 rough open data ČÚZK přímo nemá (vřesoviště/paseky) → musel by ze separace = profil-problém.
+
+---
+
+## Class-balanced corpus expansion — cílené hledání vzácných ISOM tříd (Sez. 90, nápad uživatele)
+
+**Problém (měřeno Sez. 90):** vzácné area třídy (208 boulder 0,01 %, 501 paved-obrys 0,03 %, 402 open+stromy
+0,04 %, 301.1 vodní plocha 0 %) → obří median-freq váhy (208=120, 501=36) → **rozhoupávají trénink** (ep 30
+spike val 0,615→0,571) a mají nízký strop IoU (~0,15). Řešení: doplnit korpus mapami bohatými na tyto třídy →
+menší disproporce → menší váhy → stabilnější + vyšší strop.
+
+**Podmínka (uživatel): umět vzácnou třídu alespoň NEDOKONALE detekovat** v reálné Livelox rastru (jinak
+nevíme, kterou mapu stáhnout/zařadit). Tři cesty:
+1. **Barva** — nearest-color (`map_gt`) pro odstínem-odlišené (301.1 modrá, 520 olivová). Hrubý filtr hned.
+2. **Pattern** — 402/412/413/414 + zelené directional: nearest-color SLEPÝ (Sez. 90) → texturní/CNN detektor.
+3. **Model jako detektor (KLÍČ — active learning / hard-example mining):** trénovaný Png2Area (i slabý, val
+   ~0,6) projede korpus/nové mapy → kde PREDIKUJE vzácnou třídu = kandidát → vizuál potvrdí → přidat → přetrénovat.
+   Mizerné IoU 0,15 stačí jako FILTR, ne jako finální kvalita. Sebezlepšující smyčka (model si hledá svá slabá data).
+
+**Geografický prior** (cílený `search_events` Sez. 70): vzácné třídy korelují s terénem — 208 boulder = skalní
+oblasti (Hruboskalsko/Jizerky), 308 mokřad = rašeliniště (Krušné/Jizerky), 412 cultivated = zemědělská krajina.
+Filtrovat oblastí PŘED stažením. Souvisí s [[png2area-overfit-shape-over-size]] (tenké/vzácné = slabý článek).

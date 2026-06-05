@@ -278,7 +278,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **IoU / mIoU** — *Intersection over Union*, metrika segmentace: pro třídu c je IoU = TP / (TP+FP+FN)
   (překryv predikce s GT / jejich sjednocení). **Per-class IoU** ukáže každou třídu zvlášť, **mIoU** je
   jejich průměr. UC5 měří per-class (průměr by maskoval, že vzácná 410 fight je ignorována). Počítá se
-  z confusion matice, [[IGNORE]] (255) px se vynechá. `model/train.py` (Sez. 78). Baseline val mIoU ~0,25.
+  z confusion matice, [[IGNORE]] (255) px se vynechá. `model/{runnability,png2area}/train.py`. Archiv runnability
+  baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90, první funkční
+  model — val≈test = bez leaku; budovy 521 zachráněny vahami 0,00→0,68 proti overfitu).
 
 - **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
   (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,

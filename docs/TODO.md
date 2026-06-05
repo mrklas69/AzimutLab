@@ -82,7 +82,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [~] **Fáze II degradér `generator/degrade.py` — MVP HOTOVO Sez. 86.** `degrade(rgb, seed)` 4 fotometrické
   sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), čistě fotometrické (Y se nemění),
   DRY proti loaderu D4 (geometrie tam, ne tady). Integrace `pairs.build_pair degrade=True` → `scan.png` (X páru).
-  **ZBÝVÁ:** porovnat s reálnou Livelox mapou (cílová doména, mrkla) + případně doladit misregistraci ±0,7 px.
+  **ZBÝVÁ:** porovnat s reálnou Livelox mapou (cílová doména, mrkla) + **doladit misregistraci ±0,7 px (DŮKAZ
+  Sez. 90):** ±1,1 px rozdvojuje tenké symboly — zelený kroužek **417** (Prominent large tree) na zeleném
+  podkladu → světlé lemy = „dva bílé kruhy". Pro Png2Area nevadí (417=bod, není v Y), ale pro **Png2Point** musí
+  tenké symboly po degradaci zůstat čitelné → zmírnit posun nebo škálovat misregistraci dle tloušťky prvku.
 - [~] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
   `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`). Dekompozice podle typu geometrie ISOM (tři CV
   úlohy). GT zdarma z `.omap` (typ symbolu). Pořadí: Area první (reuse U-Net Sez. 78, vstup mapa ne ortofoto),
@@ -97,9 +100,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   **Overfit gate HOTOVO Sez. 90 — PROŠEL** (10-map vzorek, `build_tiles` 162 dlaždic; 2-mapový overfit bez vah:
   80 ep mIoU 0,518 nedotrénováno → **200 ep 0,665**, 11/13 tříd 0,73–0,99, `308` mokřad naskočil 0→0,73 ~ep 190).
   Nález: **tvar > velikost** — budovy `521` (tenké) → 0,00 vs `410` (kompaktní, podobný podíl) → 0,64; U-Net
-  downsampling rozpustí tenké třídy (doložený limit, reálné číslo až plný trénink s vahami). **ZBÝVÁ (mrkla):**
-  `build_tiles()` na PLNÉM korpusovém setu (po doběhnutí nočního `build_pairs`) → **plný trénink** prvního
-  Png2Area reconstructor modelu (40 ep, val/test mIoU, median-freq váhy; sledovat per-class IoU budov `521`).
+  downsampling rozpustí tenké třídy (doložený limit, reálné číslo až plný trénink s vahami). **PLNÝ TRÉNINK
+  HOTOVO Sez. 90 — PRVNÍ funkční reconstructor:** `build_pairs`+resume 196/207 párů → `build_tiles` train 137/
+  val 30/test 29 → 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs baseline 0,25). **Budovy 521 zachráněny
+  0,00→0,68** (váhy+data). `unet_best.pt`. **ZBÝVÁ — zlepšit model (Sez. 91):** (a) loss-spiky (ep 30/36, obří
+  váhy 208=120) → **cap vah ~10 nebo cosine LR decay**; (b) **class-balanced expansion** (IDEAS) — model=detektor
+  vzácných 208/501/301.1 → cílený Livelox download → přetrénovat.
 - [ ] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)
@@ -108,6 +114,19 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   žluté (403 z ČÚZK přímo nejde → profil-problém) + generátor + `CODE_TO_LABEL`; (b) patternová rodina
   (404/412/413/414 + zelené directional) — generátor kreslit + Y rozšířit, separace pattern-aware (těžké).
   Konzistentní trojice: generátor umí + render kreslí signál + Y má label. Y se jen přerasterizuje (`omap_raster`).
+- [ ] *(GT kvalita, nález Sez. 90 — NEŘEŠIT TEĎ, volba uživatele)* **Layout/watermark prosakuje do separace** —
+  Livelox mapy s plným layoutem (NEořezané na mapové pole; např. `652602` SKALÁČEK: titulek + sponzorská loga
+  + watermark „APP AGENT" + čárový kód) → `map_gt` je zčásti klasifikuje jako zeleň → projde do páru jako falešná
+  vegetace ve tvaru textu/loga. `_detect_map_area` (Sez. 73) část vyřízne (652602 gt 13 % ignore), ale watermark
+  UVNITŘ mapy + loga proklouznou. **Volba uživatele: pro trénink nevadí** — pár [scan, area_labels] je KONZISTENTNÍ
+  (X i Y z téže gen.omap), mapování X→Y validní. Dvě kategorie: (a) watermark uvnitř pole = zeleň na lese, neškodí;
+  (b) logo/titulek MIMO pole = „papír jako les", soustavný šum kdyby přes hodně map. **Reálné riziko = ROZSAH** →
+  po 1. tréninku změřit, kolik párů nese layout (near-near vs `_detect_map_area` zlepšit / agresivnější crop).
+- [ ] *(úklid, conceptual integrity, nález Sez. 90)* **Legacy „forest_age" názvosloví v predict cestě** —
+  v predict režimu (`predict_areas_sjtsk`) generate_map recykluje jména z archivované forest-age éry:
+  `mask_forest_age.png` / `forest_age_mask_img` / `forest_age_info` / `real_sections["forest_age"]`, ač obsah je
+  SEPARACE zeleně (Sez. 83). Zmátlo (vypadá jako by se generoval archiv. AOPK věk — NEgeneruje, `_generate_real_forest_age`
+  se nevolá, ověřeno). Přejmenovat na neutrální (`predict_veg`/`areas`/`green`). Kosmetika, ne blokátor; do `%AUDIT:CODE`.
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit
