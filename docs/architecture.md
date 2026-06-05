@@ -101,6 +101,11 @@ bodových, liniových i plošných ISOM symbolů.
 > nejdřív `generator()` predict část, pak `reconstructor()`. Datová pipeline (páry, GT, split, dlaždice)
 > zůstává užitečná. **Plná revize UC3 / UC4-III / fázový plán / Pic2Omap absorpce odložena (A1).** Pojmy:
 > GLOSSARY `generator()` / `reconstructor()`.
+>
+> **DoD generátoru (Sez. 91):** `generator()` je strop tréninku — co nenakreslí do `.omap`, to se
+> `reconstructor()` nenaučí. **Fáze výroby hotová až při ≥ 90 % pokrytí ISOM mapových symbolů 5 vzorových map
+> v `resources/`** (`generator/compare_isom.py`; Sez. 91 Bedřichovka 38 %). Větší páka = rozšiřovat pokrytí
+> generátoru, ne ladit model.
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
 - Přímá návaznost na Pic2Omap `color_separator.py` / detektory — kandidát na první
   reálně sdílený kód při přechodu na monorepo.

@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 91 (2026-06-05) — Stabilizace Png2Area + ZMĚŘENO pokrytí generátoru (38 % ISOM) + DoD ≥90 %
+- [x] **Trénink Png2Area `cap vah @10 + cosine LR`** (`model/png2area/train.py`, obě páky naráz = volba uživatele):
+      `WEIGHT_CAP=10` (cap = tréninkový hyperparametr → v train.py, ne `_tiles.json`=SSoT; `--weight-cap`) +
+      `CosineAnnealingLR` (jen plný trénink). **Výsledek: test mIoU 0,621→0,640, val 0,654, loss-spiky ZMIZELY**
+      (hladký sestup). `208` test 0,00 = cap vzal váhu 120→10 → váha sama vzácnou třídu nezachrání (datový strop
+      potvrzen → 1b expansion). Baseline zazálohován `unet_baseline_s90.pt`. Běh přes `.venv` (smp).
+- [x] **Jonsdorf — měření vyvrátilo „jih ČR".** gt_labels profil: obsah jen horní ~55 % PNG, celý v DE (Oybin);
+      hranice padá do prázdné spodní části → ČÚZK nedosáhne. README opraven (drift z rohů bbox quadu). Volba:
+      negenerovat chudou separační .omap, plné demo čeká na `saxony.py`.
+- [x] **ZMĚŘENO pokrytí ISOM generátorem = 38 %** (`generator/compare_isom.py`, ex-`temp/`): `generate_map`
+      (všechny real vrstvy) vs `resources/Bedřichovka.omap` → **27/71 mapových kódů** (uživatel odhadl 40 %).
+      44 chybí (416 veg hranice 447×, 403 Rough open 356×, 409/407 hustníky, 418/419/420 veg features 260×,
+      112-118 mikroformy, 307/302/310 voda, 527/522/507 man-made). Dvojitá mezera: šířka + kvalita (porosty =
+      AOPK proxy nesedí, žlutá 401 nadhodnocená vs bílý les). Vyvrátilo mé chybné „generator hotový".
+- [x] **DoD generátoru (kritérium uživatele) propsán** do TODO + architecture + memory: fáze výroby `generator()`
+      hotová až při **≥ 90 % ISOM z 5 vzorových map** v `resources/`. Censure ověřena: degradér jen na X, nikdy
+      Y/GT. Memory `generator-coverage-is-the-ceiling`. Přerovnání priorit: rozšiřovat pokrytí > ladit model.
+
 ## Sezení 90 (2026-06-05) — Hlavní tah ODBLOKOVÁN: Branžež E2E verify + sanity batch + overfit gate prošel
 - [x] **Branžež E2E `build_pair` (worst-case 93 Mpx)** — z 14 Branžeží vybrán `1005002` (`effectiveMppX` 0,5644,
       UTM33 rotovaný = žrout Sez. 84). **357 s ≈ 6 min** (Sez. 84 čekala 8 min bez downscale; páka A `target_mpp`
