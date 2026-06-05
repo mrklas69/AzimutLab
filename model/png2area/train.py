@@ -48,6 +48,13 @@ from omap_raster import N_AREA, LABEL_NAME   # noqa: E402  (SSoT area schématu,
 _CKPT_DIR = _REPO_ROOT / "resources" / "area_model"
 ENCODER = "resnet34"
 
+# Strop median-freq vah (Sez. 91). Bez něj obří váhy (208=120 / 501=36 / 402=23) rozhoupávaly
+# loss (spiky ep 30/36, Sez. 90) — jeden batch s několika px vzácné třídy vystřelí gradient.
+# Cap je tréninkový HYPERPARAMETR (jak agresivně vážit), ne vlastnost dat → žije tady, ne v
+# _tiles.json (ten drží surové median-freq váhy = SSoT). Tím zůstává raw váha dohledatelná
+# a cap laditelný (--weight-cap) bez re-tilingu.
+WEIGHT_CAP = 10.0
+
 
 # ----------------------------------------------------------------------------- model
 def build_model() -> nn.Module:
@@ -150,7 +157,8 @@ def _plot_curve(history: list[dict], tag: str, miou_label: str) -> None:
 
 
 # -------------------------------------------------------------------------- trénink
-def train(*, epochs: int, batch: int, lr: float, overfit: bool) -> None:
+def train(*, epochs: int, batch: int, lr: float, overfit: bool,
+          weight_cap: float = WEIGHT_CAP) -> None:
     """Hlavní tréninková smyčka. overfit=True → 2 mapy, bez augmentace (sanity gate)."""
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla, RTX 5070)"
     device = "cuda"
@@ -176,14 +184,27 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool) -> None:
 
     # --- model + loss + optimizer ---
     model = build_model().to(device)
-    w = torch.tensor(class_weights(), dtype=torch.float32, device=device)
     if overfit:
         w = None                                # overfit: bez vážení, ať vidíme čistou memorizaci
+    else:
+        raw = torch.tensor(class_weights(), dtype=torch.float32, device=device)
+        w = raw.clamp(max=weight_cap)           # strop vah (Sez. 91) — viz WEIGHT_CAP
+        # vypiš, které třídy cap reálně ořízl (raw → capped), ať je zásah dohledatelný
+        clipped = [(LABEL_NAME[c], float(raw[c]), float(w[c]))
+                   for c in range(N_AREA) if raw[c] > weight_cap]
+        if clipped:
+            print("cap vah @ {:.0f}: ".format(weight_cap)
+                  + "  ".join(f"{n} {r:.1f}->{cv:.0f}" for n, r, cv in clipped))
     criterion = nn.CrossEntropyLoss(weight=w)   # BEZ ignore_index — Y je celé validní (0..15)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    # Cosine LR decay (Sez. 91): LR plynule k ~0 ke konci tréninku → uhladí finální oscilace
+    # vah/loss. Jen plný trénink (overfit chce čistou memorizaci s fixním LR = baseline).
+    scheduler = (None if overfit
+                 else torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs))
 
     print(f"train {len(train_ds)} dlaždic | val {len(val_ds)} | batch {batch} | "
-          f"lr {lr} | epoch {epochs} | BF16 | {ENCODER} U-Net | {N_AREA} tříd")
+          f"lr {lr} | epoch {epochs} | BF16 | {ENCODER} U-Net | {N_AREA} tříd"
+          + ("" if overfit else " | cosine LR"))
 
     best_miou = -1.0
     history: list[dict] = []
@@ -205,10 +226,14 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool) -> None:
             running += loss.item()
         avg = running / len(train_dl)
 
+        if scheduler is not None:
+            scheduler.step()                    # posun LR podle cosine rozvrhu (po epoše)
+
         per, miou = evaluate(model, val_dl, device)
         dt = time.time() - t0
+        lr_now = optimizer.param_groups[0]["lr"]
         print(f"ep {ep:>3}/{epochs}  loss {avg:.4f}  {miou_label} mIoU {miou:.3f}  "
-              f"[{_fmt_iou(per)}]  {dt:.0f}s")
+              f"lr {lr_now:.2e}  [{_fmt_iou(per)}]  {dt:.0f}s")
 
         history.append({"epoch": ep, "loss": avg, "miou": miou, "iou": per})
         _save_history(history, tag)
@@ -242,8 +267,11 @@ if __name__ == "__main__":
     ap.add_argument("--epochs", type=int, default=None, help="počet epoch (default 40 / overfit 80)")
     ap.add_argument("--batch", type=int, default=16,
                     help="batch size (mrkla RTX 5070 → 16 = zdokumentovaný baseline Sez. 78)")
-    ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW)")
+    ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW, cosine decay)")
+    ap.add_argument("--weight-cap", type=float, default=WEIGHT_CAP,
+                    help=f"strop median-freq vah (default {WEIGHT_CAP:.0f}, Sez. 91)")
     args = ap.parse_args()
 
     n_ep = args.epochs if args.epochs is not None else (80 if args.overfit else 40)
-    train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit)
+    train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit,
+          weight_cap=args.weight_cap)
