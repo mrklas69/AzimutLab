@@ -411,3 +411,36 @@ bbox+px/mm, `Map`/`MapRenderables::draw()` tříděné dle priority barev).
 **Rozhodnutí: (C) náš rastr teď, (A) C++ až měřený doménový gap dokáže, že je potřeba** (reconstructor trénovaný na
 našem rastru selže na reálných OOM/tištěných mapách) — „raw default, generalizuj s důkazem". „omap2png" v doslovném
 smyslu (parsovat libovolnou `.omap`) = jen pokud chceme OOM věrnost = cesta A; pro náš rastr stačí render prvků z paměti.
+
+---
+
+## Granularita area tříd — pattern vs odstín (Sez. 90, measure-first)
+
+**Nález uživatele:** převod barvy→ISOM area třída není čistě o base barvě — řada tříd sdílí odstín a
+liší se PATTERNEM (screen): 412 oranžová + černá mřížka, 404 + zelené diagonály, 413/414 + tečky,
+zelené directional 406.1/408.1/409/410.1-4 + bílé čárky. Template `template_classic.omap` má **plnou
+ISOM 2017 knihovnu** (40x–41x všechny), generátor jich dnes většinu **slévá podle KISS** (403→401,
+413→520, 404/414 neumí).
+
+**Dva typy rozlišení (NEPLÉST — jiný nástroj):**
+- **ODSTÍN** (401 sytá vs 403 bledá žlutá) — nearest-color (per-pixel) ho UMÍ; měřeno separabilní
+  106 v RGB (401=Yellow100% `(255,186,54)`, 403=Yellow50% `(255,221,154)` z template). Rozšíření
+  separace = přidat referenční barvu do `map_gt._classify`.
+- **PATTERN** (mřížka/tečky/diagonály/směrové čárky) — nearest-color je PRINCIPIÁLNĚ slepý (kouká na
+  1 px). Pattern vidí jen model s receptive fieldem — **Png2Area CNN** (argument PRO reconstructor,
+  PROTI mechanickému filtru; ladí s reframe Sez. 79). Separace by potřebovala pattern-aware metodu.
+
+**Měření 401 vs 403 (207 ČR map, Sez. 90):** surové číslo „403 ve 207/207, oba v 94 %" je
+NAFOUKNUTÉ profil-variacemi (různé OCAD žluté odstíny → `1096573` celá padá na 403 ač 401=0 %) +
+antialiasingem → nebrat doslova. **Vizuál ale potvrdil** (`690592` učebnicový: sytá 401 dole vs bledá
+403 nahoře, velké souvislé plochy) → **403 je v ČR OB mapách běžné rozlišení, ne vzácnost; sloučení
+403→401 je doložená ztráta.** Spolehlivé absolutní číslo by chtělo per-mapa kalibraci žluté.
+
+**Konzistentní trojice pro JAKOUKOLI novou jemnou třídu** (conceptual integrity): (a) generátor ji
+umí vyrobit (.omap objekt s kódem) + (b) render kreslí pattern/odstín věrně → X má signál + (c) Y
+schéma `omap_raster.CODE_TO_LABEL` má label. Chybí-li kterákoli, reconstructor třídu nerozliší.
+
+**Rozhodnutí (Sez. 90, volba uživatele):** trénovat první Png2Area HRUBĚ (16 tříd), rozlišení =
+**doložený prioritní směr**. Rozsah (jen 401/403 odstín? celá patternová rodina?) rozhodnout PO prvním
+plném tréninku z reálného per-class chování (kde reconstructor na realitě slévá/padá), ne z odhadu.
+Pozn.: 403 rough open data ČÚZK přímo nemá (vřesoviště/paseky) → musel by ze separace = profil-problém.

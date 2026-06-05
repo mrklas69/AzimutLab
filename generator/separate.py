@@ -52,9 +52,12 @@ Image.MAX_IMAGE_PIXELS = None
 _CORPUS_DIR = _REPO_ROOT / "resources" / "livelox"
 
 # Registr plošných predikčních tříd: map_gt label → (ISOM kód, vizualizační barva pro overlay).
-# Dnes 3 zelené úrovně (map_gt runnability: 1=406 slow, 2=408 walk, 3=410 fight). Rozšiřitelný:
-# paseky / podrost / hustník přibudou jako další label, AŽ je map_gt umí odlišit (přidáním
-# referenčních barev v map_gt._classify) — vektorizace (vectorize_level) je už agnostická.
+# Dnes 3 zelené úrovně (map_gt runnability: 1=406 slow, 2=408 walk, 3=410 fight). Rozšiřitelný,
+# ALE POZOR (nález Sez. 90): rozšíření přes „přidat referenční barvu do map_gt._classify" funguje
+# JEN pro třídy odlišené ODSTÍNEM (např. 401 sytá vs 403 bledá žlutá — měřeno separabilní 106 v RGB,
+# vizuálně doložená koexistence v korpusu). Pro třídy odlišené PATTERNEM (404 diagonály, 412 mřížka,
+# 413/414 tečky, zelené directional 406.1/408.1…) je nearest-color (per-pixel) PRINCIPIÁLNĚ slepý —
+# pattern vidí jen model s receptive fieldem (Png2Area CNN), ne separace. vectorize_level je agnostická.
 AREA_CLASSES = {1: ("406", (181, 230, 181)), 2: ("408", (120, 200, 140)), 3: ("410", (40, 160, 90))}
 
 # Cílové rozlišení separace (Sez. 85): downscale vstupu na ~1,33 m/px PŘED vektorizací. Dva důvody:

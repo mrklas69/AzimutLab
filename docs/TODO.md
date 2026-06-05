@@ -100,6 +100,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   downsampling rozpustí tenké třídy (doložený limit, reálné číslo až plný trénink s vahami). **ZBÝVÁ (mrkla):**
   `build_tiles()` na PLNÉM korpusovém setu (po doběhnutí nočního `build_pairs`) → **plný trénink** prvního
   Png2Area reconstructor modelu (40 ep, val/test mIoU, median-freq váhy; sledovat per-class IoU budov `521`).
+- [ ] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
+  401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
+  403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)
+  v IDEAS „Granularita area tříd". **Rozhodnuto (volba uživatele): trénovat hrubě teď, rozšířit po 1. plném
+  tréninku z reálného per-class chování.** Možný rozsah: (a) jen 401/403 odstín — separace per-mapa kalibrace
+  žluté (403 z ČÚZK přímo nejde → profil-problém) + generátor + `CODE_TO_LABEL`; (b) patternová rodina
+  (404/412/413/414 + zelené directional) — generátor kreslit + Y rozšířit, separace pattern-aware (těžké).
+  Konzistentní trojice: generátor umí + render kreslí signál + Y má label. Y se jen přerasterizuje (`omap_raster`).
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit
