@@ -69,9 +69,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     (`separate.TARGET_MPP` + `separate_areas(src_mpp)` + `pairs` předá `effectiveMppX`; polygony ×f zpět na grid,
     behavior-preserving, ověřeno Soví vrch 16,5×), **(B) `max_km` strop** hotovo Sez. 84, **(C) finální nářez =
     reuse `model/tile.py`** (existuje @1,33/512/stride256). **Degradér fáze II HOTOVO Sez. 86** — `build_pair`
-    teď s `degrade=True` produkuje i `scan.png` (= X páru, sken). **ZBÝVÁ (mrkla):** Branžež `build_pair` verify —
-    absolutní práh (8 min → ?) + `_map_affine` na rotovaném quadu + E2E s degradací → pak odblokovat **noční batch
-    `build_pairs`** přes 207 ČR. Vedlejší: `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpus malý → neakutní).
+    teď s `degrade=True` produkuje i `scan.png` (= X páru, sken). **Branžež verify + noční batch HOTOVO Sez. 90:**
+    `build_pair(1005002)` worst-case 93 Mpx **357 s** (downscale drží), `_map_affine` na rotovaném quadu lícuje
+    (vizuál); sanity `batch 10` 9/9 OK **~51 s/mapa** → noční `build_pairs batch` 207 ČR **SPUŠTĚN** (resume). Vedlejší:
+    `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpus malý → neakutní).
   - [x] **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
     bbox prefilter behavior-preserving, regrese 0).
 - [x] *(enabler fáze II — HOTOVO Sez. 86)* **omap2png = de-facto hotové** — `generate_map` produkuje `rgb.png`
@@ -93,8 +94,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (`model/png2area/{tile,dataset,train}.py`): tile 512/stride256 BEZ rejection (pozadí=legitimní třída), 16 tříd ze
   `omap_raster` (SSoT), median-freq váhy, D4+ImageNet loader, U-Net 16 tříd bez ignore_index. Archiv (runnability)
   `git mv` → `model/runnability/` (symetrie). Smoke Soví vrch 70 dlaždic OK (ntbhej, dev-fallback `build_tiles_dev`).
-  **ZBÝVÁ (mrkla, torch+korpus):** `build_tiles()` z korpusového setu (po nočním `build_pairs`) + dataset/train torch
-  self-check + **overfit gate** (2 mapy, train mIoU→~1) + plný trénink prvního Png2Area reconstructor modelu.
+  **Overfit gate HOTOVO Sez. 90 — PROŠEL** (10-map vzorek, `build_tiles` 162 dlaždic; 2-mapový overfit bez vah:
+  80 ep mIoU 0,518 nedotrénováno → **200 ep 0,665**, 11/13 tříd 0,73–0,99, `308` mokřad naskočil 0→0,73 ~ep 190).
+  Nález: **tvar > velikost** — budovy `521` (tenké) → 0,00 vs `410` (kompaktní, podobný podíl) → 0,64; U-Net
+  downsampling rozpustí tenké třídy (doložený limit, reálné číslo až plný trénink s vahami). **ZBÝVÁ (mrkla):**
+  `build_tiles()` na PLNÉM korpusovém setu (po doběhnutí nočního `build_pairs`) → **plný trénink** prvního
+  Png2Area reconstructor modelu (40 ep, val/test mIoU, median-freq váhy; sledovat per-class IoU budov `521`).
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit

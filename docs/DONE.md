@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 90 (2026-06-05) — Hlavní tah ODBLOKOVÁN: Branžež E2E verify + sanity batch + overfit gate prošel
+- [x] **Branžež E2E `build_pair` (worst-case 93 Mpx)** — z 14 Branžeží vybrán `1005002` (`effectiveMppX` 0,5644,
+      UTM33 rotovaný = žrout Sez. 84). **357 s ≈ 6 min** (Sez. 84 čekala 8 min bez downscale; páka A `target_mpp`
+      Sez. 85 drží). Separace 1452 ploch, `scan.png` 2293×2293. **`_map_affine` na rotovaném quadu DRŽÍ** — vizuál
+      rgb/scan/area_labels lícuje (jezero/open-land/les/olivová), histogram Y fyzicky sedí, labely 0–15.
+- [x] **Sanity batch 10** (`build_pairs batch 10`): 1 SKIP + **9 nových OK, 0 fail, 7,7 min**, průměr **~51 s/mapa**
+      (Branžež outlier). Edge-cases prošly (Slovanka UTM, rokle, Borecké/Rovné skály 25–36 s → render skal není
+      žrout). → **noční batch odhad ~3 h** (207 × ~51 s), ne 12–15 h.
+- [x] **`build_tiles()` korpus-vzorek** — 10 hotových (197 přeskočeno, resume): **162 train dlaždic** + 40 test,
+      0 val (geo-split z 10 nerovnoměrný). Preview X↔Y lícuje.
+- [x] **Overfit gate Png2Area (první trénink na REÁLNÝCH korpusových datech) — PROŠEL.** 2 mapy (Branžež+Selská
+      rokle), 94 dlaždic, bez vah (čistá memorizace). **80 ep:** mIoU 0,518 (nedotrénováno, ne bug — mIoU pořád
+      roste). **200 ep:** **mIoU 0,665, loss 0,10**, 11/13 přítomných tříd **0,73–0,99** (kompaktní průměr ~0,89).
+      `308` mokřad **naskočil 0→0,73 náhle ~ep 190** (tenké/roztroušené třídy = pozdní latence, jen víc epoch),
+      `410` fight pozdní S-křivka k 0,80.
+- [x] **Px-diagnostika 0,00 tříd:** rozhoduje **TVAR, ne velikost** — `410` (0,52 %)→0,64 vs `521` budovy
+      (0,46 %, podobný podíl)→0,00. Budovy = tenké rozházené obdélníky → U-Net downsampling 32× je rozpustí.
+      Zbylé nuly tenké/mizivé (`501.1` 0,28 %, `402.1` 0,037 %) nebo 0 px (`402`/`301.1`/`501`/`208`).
+      **Doložený limit** (ne blokátor): reálné číslo budov ukáže plný trénink (s vahami, 207 map).
+- [x] **Noční batch spuštěn** (`build_pairs batch` 207 ČR, skip 10 hotových, volba uživatele „pustit teď") →
+      kompletní set [scan.png, area_labels.png]. **Carry Sez. 91:** `build_tiles()` plný + **plný trénink** prvního
+      Png2Area reconstructoru (val/test mIoU, median-freq váhy). Sledování: `resources/area_model/curve_full.png`
+      + `history_full.csv` + konzole; checkpoint `unet_best.pt`. POZOR neplést s archivem `resources/model/`.
+- [x] **Verify:** bez změny prod. kódu (jen běhy pipeline Sez. 82–88 + 2 scratch skripty `temp/`, smazány);
+      proc baseline 65 nedotčen (negeneroval jsem v noise větvi). Deštníková fáze → jeden `docs(session)` commit.
+
 ## Sezení 89 (2026-06-04) — %AUDIT:CODE (úklid driftu po přesunu Sez. 88)
 - [x] **%AUDIT:CODE** (cadence-zralý, +8 = práh dosažen; scope = nový kód Sez. 82–88, ~2051 LOC, 10 souborů
       čteno sám). **0 kritických / 1 doporučený / 4 kosmetické** — dominanta = drift cest/komentářů po přesunu
