@@ -42,6 +42,7 @@ AREA_ZORDER = [
     "501.1",  # Paved area bez obrysu (administrativní výplň sídel) — base vespod
     "520",    # Out-of-bounds (olivová: hřbitov/privátní/sad/lom)
     "401",    # Open land (žlutá)
+    "403",    # Rough open land (bledá žlutá, separace Sez. 92)
     "402",    # Open land se stromy (park)
     "402.1",  # Open land s keři (ostatní udržovaná zeleň)
     "412.1",  # Cultivated land (pole) — combined složka 401+412.1
@@ -63,7 +64,8 @@ N_AREA = len(AREA_ZORDER) + 1   # + pozadí (label 0)
 LABEL_VIS = {
     0: (255, 255, 255),
     CODE_TO_LABEL["501.1"]: (200, 170, 140), CODE_TO_LABEL["520"]: (160, 150, 60),
-    CODE_TO_LABEL["401"]: (252, 221, 118), CODE_TO_LABEL["402"]: (250, 235, 160),
+    CODE_TO_LABEL["401"]: (252, 221, 118), CODE_TO_LABEL["403"]: (254, 235, 175),
+    CODE_TO_LABEL["402"]: (250, 235, 160),
     CODE_TO_LABEL["402.1"]: (210, 225, 130), CODE_TO_LABEL["412.1"]: (245, 215, 140),
     CODE_TO_LABEL["301.1"]: (50, 162, 222), CODE_TO_LABEL["308"]: (120, 200, 230),
     CODE_TO_LABEL["406"]: (181, 230, 181), CODE_TO_LABEL["408"]: (120, 200, 140),

@@ -30,7 +30,7 @@ sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 from pyproj import Transformer            # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
-from separate import separate_areas, AREA_CLASSES  # noqa: E402
+from separate import separate_areas  # noqa: E402
 from generator import generate_map        # noqa: E402
 from degrade import degrade_file          # noqa: E402
 from omap_raster import rasterize_map_dir  # noqa: E402
@@ -55,6 +55,7 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
     vektorizací (31,6× zrychlení žroutu #1, věrnost zachována). Crop i downscale jsou komplementární:
     crop zmenší PLOCHU, downscale ROZLIŠENÍ — Branžež (rotovaná, 0,56 mpp) potřebuje obojí (Sez. 84)."""
     gt = np.asarray(Image.open(cid_dir / "gt_labels.png"))   # 0-4/255 (map_gt separace)
+    rgb = np.asarray(Image.open(cid_dir / "map.png").convert("RGB"))  # sken (403 split žluté, Sez. 92)
     H, W = gt.shape
     A = _map_affine(quad, W, H)                              # (col,row) → S-JTSK
     c0 = r0 = 0
@@ -68,11 +69,12 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
         c0 = max(0, int(np.floor(cr[0].min()))); c1 = min(W, int(np.ceil(cr[0].max())))
         r0 = max(0, int(np.floor(cr[1].min()))); r1 = min(H, int(np.ceil(cr[1].max())))
         gt = gt[r0:r1, c0:c1]                                # ořez → menší rastr = méně prstenců
+        rgb = rgb[r0:r1, c0:c1]                              # rgb ořez STEJNĚ jako gt (zarovnání 403 masky)
 
-    polys = separate_areas(gt, src_mpp=src_mpp)              # downscale gt na TARGET_MPP (polygony zpět v image-px)
+    polys = separate_areas(gt, rgb=rgb, src_mpp=src_mpp)     # downscale na TARGET_MPP (polygony zpět v image-px)
     out: list = []
-    for lbl, (code, _) in AREA_CLASSES.items():
-        for poly in polys[lbl]:                              # poly = [outer, díra…], prsten = (col,row)
+    for code, polys_c in polys.items():                     # {ISOM kód: [polygony]}
+        for poly in polys_c:                                # poly = [outer, díra…], prsten = (col,row)
             rings_sjtsk = []
             for ring in poly:
                 pts = np.asarray(ring, dtype=float)          # (N,2) col,row v OŘÍZNUTÉM gridu

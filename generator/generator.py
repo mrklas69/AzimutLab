@@ -54,7 +54,7 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_PAVED, C_YELLOW, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_PAVED, C_YELLOW, C_YELLOW_PALE, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -528,6 +528,18 @@ FOREST_AGE_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running",
 FOREST_AGE_FILL = {ISOM_VEG_SLOW: C_GREEN1, ISOM_VEG_WALK: C_GREEN2, ISOM_VEG_FIGHT: C_GREEN3}
 # ISOM kód → třída v mask_forest_age.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3.
 FOREST_AGE_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3}
+
+
+# ---------- Predikční plochy ze SEPARACE reálné mapy (Sez. 83/92) ----------
+# Obecný registr plošných predikčních symbolů, které kreslí _draw_predict_areas (geometrie zvenčí,
+# ze separace Livelox mapy přes pairs.py). Zeleň 406/408/410 sdílí render i GT class s forest-age
+# (archiv); 403 Rough open (Sez. 92) = bledá žlutá (C_YELLOW_PALE), separovaná rozštěpem žluté uvnitř
+# open (sytá 401 je real část, neseparuje se). Oddělené od FOREST_AGE_* záměrně: 403 NENÍ věk/vegetace
+# → míchat ho do „forest_age" by zhoršilo už tak legacy názvosloví predict cesty (úklid TODO Sez. 90).
+ISOM_ROUGH_OPEN = 403
+PREDICT_AREA_FILL = {**FOREST_AGE_FILL, ISOM_ROUGH_OPEN: C_YELLOW_PALE}
+PREDICT_AREA_CLASS = {**FOREST_AGE_CLASS, ISOM_ROUGH_OPEN: 4}      # mask_forest_age.png class (debug GT)
+PREDICT_AREA_NAME = {**FOREST_AGE_NAME, ISOM_ROUGH_OPEN: "Rough open land"}
 
 
 # ---------- Mosty / tunely / lávky (ISOM 512 + 512.2, Sez. 32 spec-driven) ----------
@@ -2388,18 +2400,20 @@ def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
     Reframe (Sez. 79/82): zdroj predikční vegetace = separace barev z Livelox mapy (mapař =
     GT), NE forest-age (archiv). Mirror _generate_real_forest_age, ale geometrie přichází
     zvenčí v S-JTSK (orchestrátor `pairs.py` ji vyrobil ze separace přes Livelox quad) — žádný
-    fetch. Kreslení i .omap kanál (406/408/410) jsou shodné s forest-age; liší se jen PROVENIENCE
-    (predict vs real ČÚZK). `areas_sjtsk` = [(poly [vnější,díra…] v S-JTSK, code:int)].
-    Vrací (area_features [(grid, code)], info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
+    fetch. Predikční plochy: zeleň 406/408/410 (stejná výplň jako forest-age) + 403 Rough open
+    (bledá žlutá, Sez. 92) — render/class/název z PREDICT_AREA_* (obecný registr). Liší se od
+    forest-age jen PROVENIENCÍ (predict vs real ČÚZK). `areas_sjtsk` = [(poly [vnější,díra…] v
+    S-JTSK, code:int)]. Vrací (area_features [(grid, code)], info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
     area_features: list[tuple] = []
     info: list[dict] = []
     for poly, code in areas_sjtsk:
         grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
         if len(px_rings[0]) < 3:
             continue
-        _draw_forest_age_area(draw, fdraw, px_rings, code)   # stejná zelená výplň jako forest-age
+        # plná výplň bez obrysu (vegetační/open plošný symbol; barva+GT class dle kódu)
+        _draw_area_symbol(draw, fdraw, px_rings, PREDICT_AREA_FILL[code], None, PREDICT_AREA_CLASS[code])
         area_features.append((grid_rings, code))
-        info.append({"symbol": code, "symbol_name": FOREST_AGE_NAME[code],
+        info.append({"symbol": code, "symbol_name": PREDICT_AREA_NAME[code],
                      "kind": "area", "layer": "separace reálné mapy (predict)"})
     return area_features, info
 
@@ -3723,9 +3737,10 @@ def generate_map(
             "count": len(forest_age_info),
             "mask": "mask_forest_age.png",
             **prov,
-            "symbols": {str(c): FOREST_AGE_NAME[c] for c in used},
+            # PREDICT_AREA_* (superset FOREST_AGE_*): predict cesta nese i 403 (Sez. 92), archiv jen zeleň
+            "symbols": {str(c): PREDICT_AREA_NAME[c] for c in used},
             "classes": {"0": "pozadí",
-                        **{str(FOREST_AGE_CLASS[c]): f"{c} {FOREST_AGE_NAME[c]}" for c in used}},
+                        **{str(PREDICT_AREA_CLASS[c]): f"{c} {PREDICT_AREA_NAME[c]}" for c in used}},
             "items": forest_age_info,
         }
     meta = _build_meta(seed, rug, det, terrain, paths, pseudorealistic, lat, lon, elev,

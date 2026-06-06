@@ -37,6 +37,7 @@ class Swatch(NamedTuple):
 PALETTE: dict[str, Swatch] = {
     "white":  Swatch((255, 255, 255), "průběžný les / podklad"),
     "yellow": Swatch((254, 202, 23),  "otevřená plocha (paseka)"),
+    "yellow_pale": Swatch((254, 228, 139), "rough open 403 (Yellow 50% — bledá, 50% tint syté žluté na bílé; Sez. 92)"),
     "green1": Swatch((194, 232, 176), "světle zelená — pomalý běh"),
     "green2": Swatch((109, 199, 113), "středně zelená — chůze"),
     "green3": Swatch((45, 169, 79),   "tmavě zelená — těžko prostupné"),
@@ -55,6 +56,7 @@ PALETTE: dict[str, Swatch] = {
 # které generátor zatím nekreslí (purpurová trať), tu jsou připravené.
 C_WHITE  = PALETTE["white"].rgb
 C_YELLOW = PALETTE["yellow"].rgb
+C_YELLOW_PALE = PALETTE["yellow_pale"].rgb   # 403 Rough open (Sez. 92)
 C_GREEN1 = PALETTE["green1"].rgb
 C_GREEN2 = PALETTE["green2"].rgb
 C_GREEN3 = PALETTE["green3"].rgb

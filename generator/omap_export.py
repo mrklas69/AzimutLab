@@ -58,7 +58,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "304", "305", "306", "301", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
               "204", "206", "207", "208",  # skály/balvany Sez. 30+57 (204 bod, 207 bod, 206 plocha, 208 pole)
               "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
-              "401", "520",              # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu)
+              "401", "403", "520",       # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu) + 403 rough open (separace Sez. 92)
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
               "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
               "524", "526", "530", "417",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom)
@@ -82,7 +82,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder + 208 Boulder field = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "402", "402.1", "520", "308", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY)
+AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "403", "402", "402.1", "520", "308", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY); 403 rough open Sez. 92 (separace)
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 

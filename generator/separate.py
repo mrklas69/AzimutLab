@@ -51,14 +51,46 @@ from omap_export import write_omap  # noqa: E402
 Image.MAX_IMAGE_PIXELS = None
 _CORPUS_DIR = _REPO_ROOT / "resources" / "livelox"
 
-# Registr plošných predikčních tříd: map_gt label → (ISOM kód, vizualizační barva pro overlay).
-# Dnes 3 zelené úrovně (map_gt runnability: 1=406 slow, 2=408 walk, 3=410 fight). Rozšiřitelný,
-# ALE POZOR (nález Sez. 90): rozšíření přes „přidat referenční barvu do map_gt._classify" funguje
-# JEN pro třídy odlišené ODSTÍNEM (např. 401 sytá vs 403 bledá žlutá — měřeno separabilní 106 v RGB,
-# vizuálně doložená koexistence v korpusu). Pro třídy odlišené PATTERNEM (404 diagonály, 412 mřížka,
-# 413/414 tečky, zelené directional 406.1/408.1…) je nearest-color (per-pixel) PRINCIPIÁLNĚ slepý —
-# pattern vidí jen model s receptive fieldem (Png2Area CNN), ne separace. vectorize_level je agnostická.
-AREA_CLASSES = {1: ("406", (181, 230, 181)), 2: ("408", (120, 200, 140)), 3: ("410", (40, 160, 90))}
+# Registr plošných predikčních tříd: ISOM kód → {gt: map_gt label, vis: overlay barva, [pale_yellow]}.
+# Zelené 3 úrovně jedou přímo z map_gt runnability labelu (1=406 slow, 2=408 walk, 3=410 fight).
+# 403 (Sez. 92) = rozštěp žluté UVNITŘ open (gt label 4): map_gt 401 i 403 řadí do „open", odstínem
+# je nerozliší → separace si je rozliší sama (`pale_yellow` → maska bledé žluté přes YELLOW_REFS).
+# Staví na OČIŠTĚNÉM gt (map_gt: median + ignore přetisku + layout crop), jen v rámci open oddělí
+# bledou (403) od syté (401, ta je real část — neseparujeme, scope Sez. 83).
+#
+# POZOR (nález Sez. 90): odstínová separace funguje JEN pro třídy odlišené ODSTÍNEM (401 sytá vs 403
+# bledá — doloženo Sez. 92 bimodalitou žluté na 5 mapách + 3-way clusteringem oddělujícím i road).
+# Pro třídy odlišené PATTERNEM (404 tečky, 407/409 pruhy, 412 mřížka) je nearest-color PRINCIPIÁLNĚ
+# slepý — pattern vidí jen model s receptive fieldem (Png2Area CNN), ne separace. vectorize_level je agnostická.
+AREA_CLASSES = {
+    "406": {"gt": 1, "vis": (181, 230, 181)},
+    "408": {"gt": 2, "vis": (120, 200, 140)},
+    "410": {"gt": 3, "vis": (40, 160, 90)},
+    "403": {"gt": 4, "pale_yellow": True, "vis": (254, 228, 139)},  # rough open (bledá žlutá uvnitř open)
+}
+
+# Reálné SCAN reference žlutooranžových odstínů (RGB), DOLOŽENÉ k-means na 5 vzorových mapách (Sez. 92).
+# POZOR: tohle jsou barvy SKENU (jako map_gt.ISOM_REF), NE render palette (palette.py je generátorová,
+# sytější). 403 se klasifikuje z reálné Livelox map.png, takže potřebuje scan barvy. Pořadí v poli =
+# index: 0 = 403 bledá (Yellow 50 %), 1 = 401 sytá (Yellow 100 %), 2 = oranžová cesta (NE area — jen
+# rozlišovač, aby cesta nepadla na 403), 3 = BÍLÁ papír (záchyt, viz níže). Bledá žlutá = nearest == 0.
+#
+# Bílá je tu kvůli nálezu Sez. 92 (vizuál 1088447): _fill_ignore zaplní velký okrajový IGNORE (papír
+# mimo mapu, který _detect_map_area nezachytil) nejbližším labelem = open (4). Bílý papír je BLÍŽ
+# bledé žluté než syté (403 má nejvyšší B z trojice) → falešné 403 na papíru. Čtvrtá reference (bílá)
+# papír zachytí (nearest == 3, ne 0) → 403 zůstane jen na skutečně bledě žlutých plochách.
+YELLOW_REFS = np.array([(254, 222, 154), (255, 200, 58), (227, 168, 118), (255, 255, 255)], dtype=np.int32)
+
+
+def _is_pale_yellow(rgb: np.ndarray) -> np.ndarray:
+    """Bool maska (H,W): pixel je bledá žlutá (403), tj. nejbližší z YELLOW_REFS je index 0.
+
+    Nearest-color mezi žlutooranžovými odstíny + bílou — předpokládá, že volající už zúžil na „open"
+    plochu (gt == 4), takže zeleň/modř sem nepřijdou; rozhoduje se bledá vs sytá vs cesta vs papír.
+    Sytá (401)/cesta jsou real část → nevektorizují se, bílá = papír (záchyt), slouží jen k odlišení."""
+    flat = rgb.reshape(-1, 3).astype(np.int32)
+    d = ((flat[:, None, :] - YELLOW_REFS[None, :, :]) ** 2).sum(2)
+    return (d.argmin(1) == 0).reshape(rgb.shape[:2])
 
 # Cílové rozlišení separace (Sez. 85): downscale vstupu na ~1,33 m/px PŘED vektorizací. Dva důvody:
 #   1) VÝKON — separace je O(n² prstenců); na jemném skenu (Branžež 0,56 mpp = 93 Mpx) trvá minuty.
@@ -124,33 +156,50 @@ def vectorize_level(mask: np.ndarray) -> list:
     return out
 
 
-def separate_areas(label_map: np.ndarray, src_mpp: float | None = None,
-                   target_mpp: float = TARGET_MPP) -> dict:
-    """Z GT labelů (map_gt: 0-4/255) → {label: [polygony]} pro plošné predikční třídy AREA_CLASSES.
+def _downscale_mask(mask: np.ndarray, f: float) -> np.ndarray:
+    """Bool maska → downscale faktorem f NEAREST (ne bilineár — mezitřídní px by maska rozmazala)."""
+    nw, nh = max(1, round(mask.shape[1] / f)), max(1, round(mask.shape[0] / f))
+    return np.asarray(
+        Image.fromarray(mask.astype(np.uint8) * 255, "L").resize((nw, nh), Image.NEAREST)) > 0
+
+
+def separate_areas(label_map: np.ndarray, rgb: np.ndarray | None = None,
+                   src_mpp: float | None = None, target_mpp: float = TARGET_MPP) -> dict:
+    """Z GT labelů (map_gt: 0-4/255) [+ rgb skenu] → {ISOM kód: [polygony]} pro třídy AREA_CLASSES.
 
     Jádro GT-feederu: vstup = runnability segmentace mapy (map_gt.segment_gt), výstup = vektorové
-    PLOCHY predikčních ISOM symbolů per třída (dnes 406/408/410), v image-px VSTUPNÍHO gridu.
-    Konzument: write_omap / overlay / (Sez. 83) generate_map per-classId orchestrátor.
+    PLOCHY predikčních ISOM symbolů per ISOM kód (zelené 406/408/410 + 403 rough open), v image-px
+    VSTUPNÍHO gridu. Konzument: write_omap / overlay / (Sez. 83) generate_map per-classId orchestrátor.
+
+    `rgb` (Sez. 92): reálný sken (map.png) ve STEJNÉM rozměru jako label_map. Potřeba jen pro třídy
+    s `pale_yellow` (403): map_gt 401 i 403 řadí do open (label 4), odstínem je rozliší až _is_pale_yellow
+    nad rgb. Bez rgb se pale_yellow třídy přeskočí (PoC/izolovaný režim = jen zeleň, behavior-preserving).
 
     `src_mpp` (Sez. 85): rozlišení vstupního gridu [m/px]. Je-li dané a jemnější než `target_mpp`,
-    se label_map PŘED vektorizací downscaluje NEAREST (ne bilineár — smíšené mezitřídní px by zničily
-    labely) faktorem f=target_mpp/src_mpp; polygony se pak vynásobí f ZPĚT na původní grid, takže
-    výstupní souřadnice zůstávají v image-px vstupu (volající _map_affine/write_omap se nemění).
-    Bez `src_mpp` = no-op (behavior-preserving, PoC/izolovaný režim). Důvod + měření: viz TARGET_MPP.
+    se per-kód masky PŘED vektorizací downscalují NEAREST faktorem f=target_mpp/src_mpp; polygony se
+    pak vynásobí f ZPĚT na původní grid, takže výstupní souřadnice zůstávají v image-px vstupu
+    (volající _map_affine/write_omap se nemění). Bez `src_mpp` = no-op. Důvod + měření: viz TARGET_MPP.
 
     Nejdřív „prohlédne" fialový přetisk tratě (_fill_ignore) — jinak kroužky/spojnice kontrol
     vykousnou díry do zelených ploch (nález Sez. 83)."""
     label_map = _fill_ignore(label_map)
+    # per-ISOM-kód bool maska ve vstupním rozlišení (403 = open ∩ bledá žlutá; zeleň = přímo gt label)
+    masks: dict[str, np.ndarray] = {}
+    for code, spec in AREA_CLASSES.items():
+        m = label_map == spec["gt"]
+        if spec.get("pale_yellow"):
+            if rgb is None:                   # bez skenu 403 nelze určit → přeskoč (PoC)
+                continue
+            m = m & _is_pale_yellow(rgb)
+        masks[code] = m
     f = 1.0
     if src_mpp and target_mpp and target_mpp > src_mpp:
         f = target_mpp / src_mpp
-        nw, nh = max(1, round(label_map.shape[1] / f)), max(1, round(label_map.shape[0] / f))
-        label_map = np.asarray(
-            Image.fromarray(label_map.astype(np.uint8), "L").resize((nw, nh), Image.NEAREST))
-    polys = {lbl: vectorize_level(label_map == lbl) for lbl in AREA_CLASSES}
+        masks = {c: _downscale_mask(m, f) for c, m in masks.items()}
+    polys = {c: vectorize_level(m) for c, m in masks.items()}
     if f != 1.0:                          # prstence (col,row) zpět na PŮVODNÍ grid → výstup v image-px vstupu
-        polys = {lbl: [[np.asarray(r, float) * f for r in poly] for poly in ps]
-                 for lbl, ps in polys.items()}
+        polys = {c: [[np.asarray(r, float) * f for r in poly] for poly in ps]
+                 for c, ps in polys.items()}
     return polys
 
 
@@ -159,8 +208,9 @@ def _render_overlay(rgb: np.ndarray, level_polys: dict, out_path: pathlib.Path) 
     base = (rgb.astype(np.float32) * 0.35 + 255 * 0.65).astype(np.uint8)
     ov = Image.fromarray(base).convert("RGB")
     d = ImageDraw.Draw(ov, "RGBA")
-    for lbl, (_, col) in AREA_CLASSES.items():
-        for poly in level_polys[lbl]:
+    for code, spec in AREA_CLASSES.items():
+        col = spec["vis"]
+        for poly in level_polys[code]:
             outer = [(float(x), float(y)) for x, y in poly[0]]
             if len(outer) >= 3:
                 d.polygon(outer, fill=(*col, 170), outline=(0, 0, 0, 120))
@@ -183,18 +233,22 @@ def main(cid: str) -> None:
     H, W = gt.shape
     print(f"{cid} {W}x{H}  scale 1:{int(meta['mapScale'])}  mpp {meta['effectiveMppX']:.2f}")
 
-    level_polys = separate_areas(gt)
-    for lbl, (code, _) in AREA_CLASSES.items():
-        px = int((gt == lbl).sum())
-        print(f"  {code} (label {lbl}): {px:>8} px = {100*px/gt.size:4.1f}%  "
-              f"→ {len(level_polys[lbl]):4d} polygonů")
+    level_polys = separate_areas(gt, rgb=rgb)
+    for code, spec in AREA_CLASSES.items():
+        # px count v plné gt: zeleň = label, 403 = open ∩ bledá žlutá (potřebuje rgb)
+        m = gt == spec["gt"]
+        if spec.get("pale_yellow"):
+            m = m & _is_pale_yellow(rgb)
+        px = int(m.sum())
+        print(f"  {code} (gt label {spec['gt']}{', pale' if spec.get('pale_yellow') else ''}): "
+              f"{px:>8} px = {100*px/gt.size:4.1f}%  → {len(level_polys[code]):4d} polygonů")
 
     _render_overlay(rgb, level_polys, map_dir / "separate_overlay.png")
     print(f"overlay → {map_dir/'separate_overlay.png'}")
 
     # .omap: plochy jako forest_age_features (image-px = grid), map.png podklad pro OOM verify
     feats = [([[(float(x), float(y)) for x, y in r] for r in poly], code)
-             for lbl, (code, _) in AREA_CLASSES.items() for poly in level_polys[lbl]]
+             for code in AREA_CLASSES for poly in level_polys[code]]
     counts = write_omap(
         contour_features=[], path_features=[], point_symbols=[], water_features=[],
         building_features=[], powerline_features=[],
