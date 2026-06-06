@@ -6,7 +6,8 @@ v Sez. 39 — 2600+ LOC / 24 vrstev už dávno není „PoC"). Konzumuje konekto
 reálných dat z `connectors/` (UC2). (Pozn.: UC5 **model** žije v samostatném `model/`,
 sourozenec `generator/`/`connectors/` — ne uvnitř generátoru; viz README repa „Repository layout".)
 **UC5 továrna párů (Sez. 82/83):** `separate.py` (`separate_areas`) separuje predikční plochy (vegetace
-406/408/410) z reálné Livelox mapy; `pairs.py` (`build_pair(cid)`) je spojí s real ČÚZK vrstvami `generate_map`
+406/408/410 + **403 Rough open** ze Sez. 92 — rozštěp žluté uvnitř open: bledá=403 predikt / sytá=401 real,
+přes `_is_pale_yellow`, vlastní scan reference) z reálné Livelox mapy; `pairs.py` (`build_pair(cid)`) je spojí s real ČÚZK vrstvami `generate_map`
 do JEDNÉ georeferencované `.omap` per classId (provenance real/predict) — `[render, .omap]` pár pro `reconstructor()`.
 Separace **downscaluje vstupní gt na `TARGET_MPP`=1,33 PŘED vektorizací** (Sez. 85, `separate_areas(src_mpp)` —
 `pairs` předá `meta["effectiveMppX"]`): řeší výkon žroutu #1 (O(n² prstenců) — 31,6× zrychlení na jemném skenu,

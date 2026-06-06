@@ -351,7 +351,8 @@ HS 16 / NV 44.
 **✅ Reálný pokryv:** `--surfaces real` vezme plošné pokryvové vrstvy a mapuje na ISOM symboly (`zabaged.fetch_open_land`
 / `fetch_cemeteries` / `fetch_utility_areas` + `ruian.fetch_private_land`, mappery `map_*_to_isom`):
 - **Open land → ISOM 401** (plná ŽLUTÁ, bez obrysu): `Trvalý travní porost` (louka). Louka není kultura → bez
-  patternu. Odstín 401 vs 403 Rough open (průchodnost) = vegetace-gate nuance → KISS 401.
+  patternu. Odstín 401 (sytá) = real část z dat; **403 Rough open (bledá žlutá) = PREDIKČNÍ ze separace**
+  (Sez. 92, §4.9-predict) — ZABAGED 401/403 nerozliší (oba travní porost), 403 přichází jen ze separace mapy.
 - **Udržovaná zeleň → ISOM 402 / 402.1** ✅ (Sez. 53): `Udržovaná zeleň` se ŠTĚPÍ podle atributu `typ_pudy_k`:
   `PO` „park, okrasná zahrada" → **402 Open land with scattered trees** (žlutá + BÍLÉ tečky = rozptýlené stromy,
   template color 30); `UZ` „ostatní udržovaná zeleň" → **402.1 …with scattered bushes** (žlutá + ZELENÉ tečky =
@@ -463,6 +464,21 @@ ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 5
 > s kresbou kartografa 0,12, přestřel zelené 3,3×. Nahrazeno **separací z reálné mapy** (`generator/separate.py`,
 > [[separate_areas]]; **integrováno Sez. 83** do `generate_map` přes kwarg `predict_areas_sjtsk` + orchestrátor
 > `generator/pairs.py`). Kód i `--forest-age` ZŮSTÁVAJÍ funkční (doložená cesta jako Orto2Colors). Detail: DONE Sez. 82/83.
+
+#### 4.9p-predict — Predikční plochy ze SEPARACE reálné mapy (Sez. 82/83/92, ŽIVÁ cesta)
+Zdroj predikční vegetace (náhrada archiv forest-age): **separace barev z Livelox mapy** (`generator/separate.py`,
+[[separate_areas]]). map_gt segmentace mapy → per-ISOM-kód maska → contourpy vektorizace → polygony v S-JTSK
+(přes Livelox quad) → `generate_map(predict_areas_sjtsk=…)` (provenance `predict`, render `_draw_predict_areas`).
+**Třídy (registr `AREA_CLASSES` v separate.py + `PREDICT_AREA_*` v generator.py):**
+- **406/408/410** (zeleň) — přímo z map_gt runnability labelu (1/2/3), plná zelená výplň.
+- **403 Rough open** (Sez. 92, bledá žlutá `C_YELLOW_PALE`) — rozštěp žluté UVNITŘ open (gt label 4):
+  `_is_pale_yellow` (nearest-color mezi scan ref **403 (254,222,154)** / 401 sytá / road / bílá-záchyt)
+  oddělí bledou (403, predikt) od syté (401, real část — neseparuje se, scope „jen co data neumí").
+  Staví na OČIŠTĚNÉM gt z map_gt (median + ignore přetisku + layout crop). Doloženo bimodalitou žluté
+  na 5 vzorových mapách. **Pattern třídy (404/407/409) separace NEumí** (per-pixel slepá na tečky/pruhy,
+  nález Sez. 90) → vlastní budoucí krok (model nebo generátor kreslí + Y rozšíří).
+Zásada: separace = GT-feeder (~90 %, NEleštit práh; kvalitu dotáhne `Png2Area` model). Y rastr = `omap_raster`
+(403 v `AREA_ZORDER` + `omap_export.AREA_CODES`/`USED_CODES`).
 
 **✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
 `connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server

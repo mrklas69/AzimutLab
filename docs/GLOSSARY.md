@@ -364,9 +364,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   `model/runnability/`): dlaždice [scan.png, area_labels.png] → `AreaTileDataset` (D4+ImageNet) → U-Net/ResNet34
   **16 area tříd** (0 pozadí + 15 ISOM kódů ze [[omap_raster]], bez ignore_index — Y je celé validní). Trénink = mrkla.
 - **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
-  pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (dnes zelená
-  406/408/410 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse `rock_relief`) → predikční plochy do
-  `.omap`. **Scope (Sez. 83):** jen co generátor neumí z tvrdých dat (vegetace, do budoucna paseky/podrost) —
+  pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (zelená
+  406/408/410 + **403 Rough open** ze Sez. 92 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse
+  `rock_relief`) → predikční plochy do
+  `.omap`. **403 (Sez. 92):** rozštěp žluté UVNITŘ open (gt label 4) přes `_is_pale_yellow` — bledá (403,
+  predikt) vs sytá (401, real, neseparuje se) vs cesta vs bílá-záchyt; vlastní SCAN reference (ne render
+  palette), staví na očištěném map_gt. Pattern třídy (404/407/409) separace NEumí (per-pixel slepá, Sez. 90).
+  **Scope (Sez. 83):** jen co generátor neumí z tvrdých dat (vegetace, do budoucna paseky/podrost) —
   voda/skály/budovy zůstávají „real" (separace navíc = dvojí zdroj + konflikt + DRY). **Záměrně NE věrná na 100 %**
   (PoC ~90 %): kvalitu dotáhne MODEL trénovaný na množství párů, ne leštění prahu. Nahrazuje archivovaný
   [[forest-age-proxy]] jako zdroj predikční vegetace (univerzální + mapař = ground truth + konzistentní pár).

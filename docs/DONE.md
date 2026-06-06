@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 92 (2026-06-06) — Rozšíření pokrytí generátoru: 403 Rough open ze separace
+- [x] **Měření pokrytí přes 5 vzorových map** (`temp/coverage_union.py`, scratch): union ISOM kódů
+      z reálných `.omap` vs `omap_export.USED_CODES` → **46–52 %** schopnostmi (matched 38 % Sez. 91
+      je přísnější). Top chybějící žádané všemi 5: 210 Stony (4641×), 416 veg hranice (linie), 403
+      Rough open (2321), 419/418 body, 112 mikroformy, 409/407 hustníky, 507 footpath, 404.
+- [x] **Rozhodnutí (uživatel):** vegetační rodina přes separaci, ale rozpad geometrií+metodou → teď
+      jen **403** (404/407/409 pattern = separace slepá Sez. 90, 416 linie → Png2Line, 418-420 body →
+      Png2Point). Architektura = vlastní area-color klasifikace v `separate.py` (SLAP, ne map_gt).
+- [x] **Doložena separabilita 403** (verify-against-source z rastru, georef resources je „Local"):
+      bimodalita žluté na všech 5 mapách (sytá B~54-74 vs bledá B~148-155 = ISOM Yellow 100/50 %),
+      k=3 oddělil i cesty → 3 scan reference **403 (254,222,154)** / 401 sytá (255,200,58) / road
+      (227,168,118).
+- [x] **403 E2E napříč vrstvami:** `palette` swatch yellow_pale + `C_YELLOW_PALE` · `separate`
+      AREA_CLASSES code-centric + `YELLOW_REFS`(4: +BÍLÁ) + `_is_pale_yellow`, **403 = (gt==4 open) ∩
+      bledá žlutá** (staví na očištěném map_gt: median+ignore+layout) · `pairs` ořez rgb jako gt ·
+      `generator` `PREDICT_AREA_*` registr (403 bledá žlutá, ne „forest_age" sémantika) ·
+      `omap_raster` AREA_ZORDER+403 · `omap_export` USED_CODES/AREA_CODES+403 (template má area 403).
+- [x] **Fix bug bílého papíru** (vizuál 1088447): `_fill_ignore` zaplnil okrajový IGNORE jako open,
+      bílý papír je bližší bledé žluté než syté → falešné 403. 4. reference BÍLÁ → papír→bílá, ne 403.
+- [x] **Verify:** `build_pair(1088447)` E2E OK (542 ploch), **403 v Y label rastru (label 4, 0,52 %,
+      27313 px)**, konzistentní X↔Y. Proc/noise behavior-preserving (246=246, git-stash). py_compile 6/6.
+      **Dopad: pokrytí +1 symbol na všech 5 mapách.** Carry: Q2 separace na `resources/*.png` → tvrdý DoD.
+
 ## Sezení 91 (2026-06-05) — Stabilizace Png2Area + ZMĚŘENO pokrytí generátoru (38 % ISOM) + DoD ≥90 %
 - [x] **Trénink Png2Area `cap vah @10 + cosine LR`** (`model/png2area/train.py`, obě páky naráz = volba uživatele):
       `WEIGHT_CAP=10` (cap = tréninkový hyperparametr → v train.py, ne `_tiles.json`=SSoT; `--weight-cap`) +
