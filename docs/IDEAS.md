@@ -466,3 +466,46 @@ nevíme, kterou mapu stáhnout/zařadit). Tři cesty:
 **Geografický prior** (cílený `search_events` Sez. 70): vzácné třídy korelují s terénem — 208 boulder = skalní
 oblasti (Hruboskalsko/Jizerky), 308 mokřad = rašeliniště (Krušné/Jizerky), 412 cultivated = zemědělská krajina.
 Filtrovat oblastí PŘED stažením. Souvisí s [[png2area-overfit-shape-over-size]] (tenké/vzácné = slabý článek).
+
+---
+
+## Pokrytí do statistické míry četnosti + kompas tabulka (Sez. 96, %THINK uživatele)
+
+**Kompas (HOTOVO Sez. 96): `measure_dod.py --table`.** Tři kapitoly (Png2Area/Png2Line/Png2Point), řádky
+= ISOM 2017-2 kódy, sloupce = Σ objektů ORIG (reálné `.omap`) vs GEN (separační gen `.omap`) přes 3 měřené
+mapy. Geometrie z reálné mapy (`used_geom`, ne template-primary). **Nad rámec DoD %:** DoD je binární
+(kreslí ≥1 = pokryto), tabulka ukazuje PROPORCE — blížíme se k cíli ve správné četnosti, nebo stojíme?
+Tohle je trvalý kompas „přibližuje se `generate()` k cíli, nebo setrvává" (formulace uživatele).
+
+**Nálezy z prvního měření (Sez. 96):**
+- **Png2Point je strukturálně nejhorší** (gen Σ149 vs orig Σ3960 ≈ 4 %): 204 Boulder 1064/7, 210 Stony
+  975/0, 417/419/418 veg features stovky/0. Generátor body skoro nedělá → největší dluh.
+- **Gen PŘESTŘELUJE** husté ČÚZK plochy: 520 Settlement 838/orig 94 (9×), 521 Building 626/136, cesty
+  503/504/502 5–6×. Příčina: projekce na axis-aligned obal výseku, který přesahuje natočenou mapu.
+- **Gen PODSTŘELUJE** vegetaci: 403/406/408 řádově méně než orig.
+
+**(A) Zastřešující princip — generovat do statistické míry, kde detekce nejde (bod 4 uživatele).** Symboly,
+které z dat NEUMÍME věrně odvodit (ani ČÚZK projekcí, ani separací), se NEnechávají prázdné — generují se
+**procedurálně-věrohodně do obvyklé / ručně nastavené míry četnosti** (cílová Σ z kompasu = reálné mapy).
+Plně v duchu reframe [[uc5-reconstructor-reframe]]: predict část NEMUSÍ být fyzicky pravdivá vůči terénu,
+jen věrohodná a konzistentní s `.omap` (pár [render, `.omap`] učí „tahle textura → tenhle symbol", poloha
+nepodstatná). Kompas dává cílový počet, na který se generuje.
+
+**(B) Png2Point trénink injektováním symbolů (bod 1 uživatele).** Bodové detektory (posedy/krmelce 527,
+vývraty/broken ground 113, jámy 112, 419/418 veg features, …) trénovat tak, že na REÁLNÝ podklad
+(render/sken) se přidá ISOM symbol na NÁHODNOU ZNÁMOU souřadnici → GT zdarma (poloha+třída), libovolně
+instancí, vyvážené třídy. Obchází nedostatek bodů v gen i nutnost je věrně umisťovat. (Pozn.: ověřit ISOM
+kódy proti spec — „631" zmíněn uživatelem, ale 6xx je mimo mapové 100-599; doupřesnit které symboly.)
+
+**(C) 416 Distinct vegetation boundary JEN do statistické míry (bod 3 uživatele).** 416 = největší missing
+linie (1111 orig/0 gen) a šla by odvodit z hranic separovaných ploch 403/406/408 (zdroj už máme). ALE
+NEPŘIDÁVAT VŠUDE — reálné hranice vegetace jsou většinou NEJASNÉ/postupné (ostrá linie 416 jen na výrazných
+přechodech) → generovat 416 jen na zlomek obvodu do obvyklé statistické míry (kalibrovat na reálné mapy).
+Instance principu (A).
+
+**(D) Pattern třídy splývají do base odstínů — kontext over-count (bod 2 uživatele).** Část přestřelu/
+nesouladu počtů je tím, že 402/402.1/404/404.1 (žlutá/oranžová s bílými/zelenými tečkami) separace
+detekuje jako 401/403 base odstín (per-pixel slepá k patternu, [[area-coverage-shade-vs-pattern]]) → reálné
+mapy nesou ty pattern třídy jako samostatné objekty, gen je slévá. **Pokrok:** oba odstíny oranžové/žluté
+(401 sytá / 403 bledá) UŽ umíme rozlišit (Sez. 92). Pattern rodina = budoucí krok (generátor kreslit vzor
++ Y rozšířit, [[area-coverage-shade-vs-pattern]]).

@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 96 (2026-06-07) — 210 Stony = bodový gap (ne plošný) + kompas tabulka orig/gen
+- [x] **A1 measure-first nad 210 Stony ground (fokus bod 1 Příště) → VYVRÁCENO plošné zařazení.**
+      Změřena reálná geometrie 210 v 5 mapách: **VŠECHNY objekty jsou `type=point`** (210.0/210.1
+      „individual dot"/„jediná tečka"; Slovanka 3473, Velbloud 603, Blatná 340, Soví vrch 193, Bedř 32).
+      Reální kartografové kreslí kamenitou zem jako POLE TEČEK, ne plochu s pattern výplní → **210 patří
+      na Png2Point dluh, ne plošný generátor** (volba uživatele „překlopit na Png2Point"). Měření ušetřilo
+      psaní zbytečného DMR-drsnost konektoru.
+- [x] **Kořen vady opraven — analytický cut byl nadhodnocen (variant-aware geometrie).**
+      `compare_isom.symbol_geometry()` bral geom z template podle PRIMÁRNÍHO kódu (210 = area „slow
+      running"), ale `isom_usage` kolabuje integer-prefixem → reálně použitá point varianta se ztratila →
+      cut počítal 210 (975 obj) do plošného stropu. **Přidána `compare_isom.used_geometry(path)`** (geom
+      REÁLNĚ použitého symbolu z mapy, majorita přes objekty) → `coverage()` vrací `used_geom` →
+      `measure_dod` cut měří geom z reálné mapy, ne template. **Pravý plošný strop = 54 %** (z 58).
+      GAP: plocha 9 typů/894 obj (Png2Area) · linie 19/1974 (Png2Line) · **bod 21/2213 (Png2Point)**.
+- [x] **Kompas tabulka `measure_dod.py --table`** (volba uživatele „toto bude náš kompas") — tři kapitoly
+      (Png2Area/Png2Line/Png2Point), řádky ISOM 2017-2 kódy, sloupce Σ objektů ORIG (reálné `.omap`) vs
+      GEN (separační) přes 3 mapy, geom z reálné mapy. Nad rámec DoD %: ukazuje PROPORCE. Nálezy: **Png2Point
+      gen Σ149/orig 3960 (~4 %)** = nejhorší; gen **PŘESTŘELUJE** 520 Settlement 838/94 (9×), 521/cesty;
+      **PODSTŘELUJE** vegetaci (403/406/408); **416** veg boundary 1111/0 = největší missing linie.
+- [x] **IDEAS sekce „Pokrytí do statistické míry četnosti + kompas tabulka"** (4 body uživatele):
+      (A) nedetekovatelné ISOM → generovat věrohodně do obvyklé/ruční míry četnosti (cíl = kompas Σ);
+      (B) Png2Point trénink injektováním symbolů na náhodné známé souřadnice (GT zdarma); (C) 416 jen do
+      statistické míry (hranice vegetace většinou nejasné); (D) pattern 402/404 splývá do 401/403 (separace
+      pattern-slepá) = kontext over-countu, 401/403 split = pokrok. Oponentura: kompas po statistickém fillu
+      potřebuje provenance rozpad (real-derived vs predict-fill), jinak gen sloupec klame.
+- [x] Generátor NETKNUTÝ (jen měřicí nástroje `compare_isom.py`/`measure_dod.py`) → proc baseline drží
+      triviálně. py_compile OK, standalone `compare_isom` + `--proxy` ověřeny. memory `generator-coverage-is-the-ceiling`
+      aktualizováno (210 = bod, strop 54 %, „měř geom z reálné mapy ne template").
+
 ## Sezení 95 (2026-06-07) — Analytický cut (plošný strop 58 %) + DoD baseline přepnut na separaci
 - [x] **Analytický cut — `compare_isom.symbol_geometry()`** (volba uživatele „změřit strop nejdřív"):
       mapuje ISOM kód → geometrie z OOM `<symbol type>` (1=bod/2=linie/4=plocha/8=text/16=kombi,
