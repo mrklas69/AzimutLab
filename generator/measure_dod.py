@@ -36,7 +36,7 @@ sys.path.insert(0, str(REPO / "generator"))
 
 from pyproj import Transformer            # noqa: E402
 from generator import generate_map        # noqa: E402
-from compare_isom import (coverage, _load_crosswalk, detect_version,   # noqa: E402
+from compare_isom import (coverage, _load_crosswalk, _resolve_targets, detect_version,   # noqa: E402
                           isom_usage, used_geometry)   # crosswalk-aware Sez. 94; used_geom + tabulka Sez. 96
 from separate import separate_areas, TARGET_MPP  # noqa: E402  (cesta b: separace-ze-skenu)
 from map_gt import segment_gt             # noqa: E402  (runnability GT z resources skenu)
@@ -173,15 +173,8 @@ def run_table() -> None:
         for c, n in g.items():
             gen[c] += n
         for c, n in real.items():                              # reálné kódy → 2017-2 cíl crosswalkem
-            if ver == "2000":
-                if c not in v2000:                             # custom (mimo ISOM) → vyřaď
-                    continue
-                targets = cw.get(c, set())
-            else:
-                if c not in v2017:
-                    continue
-                targets = {c}
-            if not targets:
+            targets = _resolve_targets(c, ver, cw, v2000, v2017)
+            if not targets:                                    # custom (None) nebo bez cíle → vyřaď
                 continue
             key = sorted(targets)[0]                           # primární 2017 cíl (jako measure_dod main)
             orig[key] += n

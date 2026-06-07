@@ -6,7 +6,7 @@ generátor nenakreslí do `.omap`, to se `reconstructor()` nikdy nenaučí → p
 
 Měří jen POUŽITÉ symboly (≥1 objekt, ne celá template knihovna) a jen MAPOVÉ kódy 100-599
 (vyloučí layout 6xxx, loga 5002/5006, control/overprint 7xx — ten se v map_gt stejně ignoruje).
-Match integer prefixem (415.0 → 415; .0/.1 jsou template variace, paměť `omap-area-code-suffix`).
+Match integer prefixem (415.0 → 415; .0/.1 jsou template variace).
 
 CROSSWALK (Sez. 94, oprava metodiky): reálné OB mapy jsou většinou v ISOM 2000, generátor v
 ISOM 2017-2. Číslování se mezi verzemi RECYKLUJE s jiným významem (526 Building 2000 → 521 2017,
@@ -71,37 +71,11 @@ def isom_usage(path: str) -> tuple[Counter, dict]:
     return codes, names
 
 
-def symbol_geometry(template: str | None = None) -> dict:
-    """Mapuje ISOM integer kód → geometrie ('point'/'line'/'area'/'text'/'combined'/'?') z OOM `type`.
-
-    Zdroj = `template_classic.omap` (plná ISOM 2017-2 knihovna, z níž generátor bere symboly).
-    Geometrie říká, který reconstructor kód umí: `Png2Area` (4) existuje, `Png2Point` (1) /
-    `Png2Line` (2) zatím ne → rozpad gapu podle geometrie = strop plošné fáze (Sez. 95).
-
-    Kolize integer prefixu (104 Earth bank LINE + 104.1 minimum size POINT → oba ci=104): PRIMÁRNÍ
-    symbol (code bez suffixu nebo `.0`) vyhrává nad variantami; varianta jen doplní chybějící kód."""
-    root = ET.parse(template or _TEMPLATE).getroot()
-    geom: dict[int, str] = {}
-    for el in root.iter():
-        if _local(el.tag) != "symbol":
-            continue
-        code = el.get("code", "")
-        try:
-            ci = int(float(code))                       # integer prefix (415.0 → 415)
-        except ValueError:
-            continue
-        g = _TYPE_GEOM.get(int(el.get("type", "0")), "?")
-        primary = code in (str(ci), f"{ci}.0")          # čistý integer kód = hlavní symbol skupiny
-        if primary or ci not in geom:                   # primární přepíše; varianta jen doplní chybějící
-            geom[ci] = g
-    return geom
-
-
 def used_geometry(path: str) -> dict:
     """Mapuje ISOM integer kód → geometrie REÁLNĚ POUŽITÉHO symbolu v dané mapě (z OOM `type`).
 
-    Na rozdíl od `symbol_geometry()` (template, primary-wins) čte geometrii přímo z mapy podle
-    symbolu, který objekty SKUTEČNĚ nesou — ground truth kartografovy reprezentace. Klíčové pro
+    Geometrii čte přímo z mapy podle symbolu, který objekty SKUTEČNĚ nesou (ne z template podle
+    primárního kódu) — ground truth kartografovy reprezentace. Klíčové pro
     analytický cut (Sez. 96): 210 má v template primary 'area' ('Stony ground, slow running'),
     ale VŠECHNY reálné mapy kreslí variantu 210.0/210.1 = 'point' ('individual dot') → strop plošné
     fáze ho nesmí počítat jako plochu (jinak nadhodnocení). Stejná past u dalších kódů s point/area
@@ -162,6 +136,21 @@ def _load_crosswalk() -> tuple[dict, set, set]:
     return cw, v2000, v2017
 
 
+def _resolve_targets(c: int, ver: str, cw: dict, v2000: set, v2017: set) -> set | None:
+    """ISOM kód reálné mapy → set 2017-2 cílů (crosswalk), nebo None pro custom (mimo ISOM).
+
+    2000: kód musí být v tabulce (jinak custom → None), pak jeho crosswalk cíle. 2017-2: identita
+    {c} (kód musí být známý 2017 cíl, jinak custom). Sdílí coverage() i measure_dod.run_table()
+    — single source of truth crosswalk-resolve logiky (DRY)."""
+    if ver == "2000":
+        if c not in v2000:
+            return None
+        return cw.get(c, set())
+    if c not in v2017:
+        return None
+    return {c}
+
+
 _BUILDING_KW = ("building", "budov", "dům", "dum", "house")   # CZ i EN (Soví vrch má „Budova")
 
 
@@ -213,30 +202,22 @@ def coverage(real_path: str, gen_path: str) -> dict:
     real, rnames = isom_usage(real_path)
     gen, _ = isom_usage(gen_path)
     gen_set = set(gen)
-    covered: list = []          # int real kód (pokrytý) — kompat (run_sep/main počítají len/set)
-    covered_t: list = []        # (real kód, tuple 2017 cílů) — pro geometrický rozpad (Sez. 95)
+    covered: list = []          # int real kód (pokrytý) — main/run_proxy počítají len/set
     missing: list = []          # (real kód, tuple 2017 cílů, freq, jméno)
     custom: list = []           # int real kód mimo ISOM crosswalk (vyřazen z jmenovatele)
     for c in real:
-        if ver == "2000":
-            if c not in v2000:                      # ne-ISOM-2000 kód = custom kartografova značka
-                custom.append(c)
-                continue
-            targets = cw.get(c, set())
-        else:                                        # 2017-2: identita (kód = 2017 cíl)
-            if c not in v2017:
-                custom.append(c)
-                continue
-            targets = {c}
+        targets = _resolve_targets(c, ver, cw, v2000, v2017)
+        if targets is None:                          # custom ne-ISOM kód → vyřaď z jmenovatele
+            custom.append(c)
+            continue
         if targets & gen_set:
             covered.append(c)
-            covered_t.append((c, tuple(sorted(targets))))
         else:
             missing.append((c, tuple(sorted(targets)), real[c], rnames.get(c, "")))
     denom = len(covered) + len(missing)
     pct = 100 * len(covered) / denom if denom else 0
-    return {"version": ver, "covered": covered, "covered_t": covered_t, "missing": missing,
-            "custom": custom, "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames,
+    return {"version": ver, "covered": covered, "missing": missing,
+            "custom": custom, "denom": denom, "pct": pct,
             "used_geom": used_geometry(real_path)}   # geom reálně použitých symbolů (Sez. 96 cut)
 
 
