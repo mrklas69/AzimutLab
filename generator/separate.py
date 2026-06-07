@@ -246,7 +246,7 @@ def main(cid: str) -> None:
     _render_overlay(rgb, level_polys, map_dir / "separate_overlay.png")
     print(f"overlay → {map_dir/'separate_overlay.png'}")
 
-    # .omap: plochy jako forest_age_features (image-px = grid), map.png podklad pro OOM verify
+    # .omap: plochy jako veg_area_features (image-px = grid), map.png podklad pro OOM verify
     feats = [([[(float(x), float(y)) for x, y in r] for r in poly], code)
              for code in AREA_CLASSES for poly in level_polys[code]]
     counts = write_omap(
@@ -255,10 +255,10 @@ def main(cid: str) -> None:
         gw=W, gh=H, world_w_m=meta["effectiveMppX"] * W, world_h_m=meta["effectiveMppY"] * H,
         scale=float(meta["mapScale"]), out_path=map_dir / "separate_areas.omap",
         ortho_template={"name": "map.png", "img_w": W, "img_h": H, "opacity": 1.0},
-        forest_age_features=feats,
+        veg_area_features=feats,
     )
     print(f".omap  → {map_dir/'separate_areas.omap'}  (objektů {counts['objects']}, "
-          f"plochy {counts['forest_age']}, podklad map.png)")
+          f"plochy {counts['veg_area']}, podklad map.png)")
 
 
 if __name__ == "__main__":

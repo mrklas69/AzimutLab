@@ -526,7 +526,7 @@ FOREST_AGE_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running",
                    ISOM_VEG_WALK: "Vegetation: walk",
                    ISOM_VEG_FIGHT: "Vegetation: fight"}
 FOREST_AGE_FILL = {ISOM_VEG_SLOW: C_GREEN1, ISOM_VEG_WALK: C_GREEN2, ISOM_VEG_FIGHT: C_GREEN3}
-# ISOM kód → třída v mask_forest_age.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3.
+# ISOM kód → třída v mask_veg_area.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3.
 FOREST_AGE_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3}
 
 
@@ -534,11 +534,12 @@ FOREST_AGE_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3}
 # Obecný registr plošných predikčních symbolů, které kreslí _draw_predict_areas (geometrie zvenčí,
 # ze separace Livelox mapy přes pairs.py). Zeleň 406/408/410 sdílí render i GT class s forest-age
 # (archiv); 403 Rough open (Sez. 92) = bledá žlutá (C_YELLOW_PALE), separovaná rozštěpem žluté uvnitř
-# open (sytá 401 je real část, neseparuje se). Oddělené od FOREST_AGE_* záměrně: 403 NENÍ věk/vegetace
-# → míchat ho do „forest_age" by zhoršilo už tak legacy názvosloví predict cesty (úklid TODO Sez. 90).
+# open (sytá 401 je real část, neseparuje se). Oddělené od FOREST_AGE_* záměrně: ty drží jen archiv-zeleň
+# 406/408/410, PREDICT_AREA_* je superset o 403. (Plošnou predikční zeleň nese neutrální `veg_area_*`
+# proměnná / `mask_veg_area.png` / `real_sections["veg_area"]` — rename Sez. 93, dřív matoucí „forest_age".)
 ISOM_ROUGH_OPEN = 403
 PREDICT_AREA_FILL = {**FOREST_AGE_FILL, ISOM_ROUGH_OPEN: C_YELLOW_PALE}
-PREDICT_AREA_CLASS = {**FOREST_AGE_CLASS, ISOM_ROUGH_OPEN: 4}      # mask_forest_age.png class (debug GT)
+PREDICT_AREA_CLASS = {**FOREST_AGE_CLASS, ISOM_ROUGH_OPEN: 4}      # mask_veg_area.png class (debug GT)
 PREDICT_AREA_NAME = {**FOREST_AGE_NAME, ISOM_ROUGH_OPEN: "Rough open land"}
 
 
@@ -2374,10 +2375,10 @@ def _generate_real_forest_age(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageD
     _generate_real_surfaces (RAW S-JTSK → grid → px → plná výplň, bez generalizace, díry zachovány).
     Mapper forest.map_forest_age_to_isom vrací 410/408/406 nebo None — None (běhatelný les / bezlesí)
     se NEkreslí (bílá = default pozadí, izomorf s lesem). Vrací (area_features [(grid, code)],
-    forest_age_info) v souřadnicích MŘÍŽKY (zdroj pro .omap). Mimo pokrytí AOPK (SV/HS) = 0 prvků."""
+    veg_area_info) v souřadnicích MŘÍŽKY (zdroj pro .omap). Mimo pokrytí AOPK (SV/HS) = 0 prvků."""
     from forest import fetch_forest_age, map_forest_age_to_isom
     area_features: list[tuple] = []
-    forest_age_info: list[dict] = []
+    veg_area_info: list[dict] = []
     for f in fetch_forest_age(lat, lon, GW, GH, TILE_M):
         code = map_forest_age_to_isom(f["props"])
         if code is None:                      # běhatelný les / bezlesí → bílá (žádný symbol)
@@ -2388,9 +2389,9 @@ def _generate_real_forest_age(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageD
                 continue
             _draw_forest_age_area(draw, fdraw, px_rings, code)
             area_features.append((grid_rings, code))
-            forest_age_info.append({"symbol": code, "symbol_name": FOREST_AGE_NAME[code],
+            veg_area_info.append({"symbol": code, "symbol_name": FOREST_AGE_NAME[code],
                                     "kind": "area", "layer": f["layer"]})
-    return area_features, forest_age_info
+    return area_features, veg_area_info
 
 
 def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
@@ -3133,23 +3134,23 @@ def generate_map(
     # `predict_areas_sjtsk` (Sez. 83, orchestrátor pairs.py) MÁ PŘEDNOST: zeleň ze separace reálné
     # mapy nahrazuje forest-age (archiv Sez. 82) jako zdroj predikční vegetace. Když přijde, kreslí se
     # stejnou cestou (406/408/410), jen geometrie je z páru, ne z AOPK; provenance = predict (viz meta).
-    forest_age_area_features: list[tuple] = []
-    forest_age_info: list[dict] = []
-    forest_age_mask_img: Image.Image | None = None
+    veg_area_features: list[tuple] = []
+    veg_area_info: list[dict] = []
+    veg_area_mask_img: Image.Image | None = None
     predict_veg = predict_areas_sjtsk is not None
     if predict_veg:
-        forest_age_mask_img = Image.new("L", (W, H), 0)  # GT maska zeleně (§8.1), multi-class
-        fadraw = ImageDraw.Draw(forest_age_mask_img)
-        forest_age_area_features, forest_age_info = _draw_predict_areas(
+        veg_area_mask_img = Image.new("L", (W, H), 0)  # GT maska zeleně (§8.1), multi-class
+        fadraw = ImageDraw.Draw(veg_area_mask_img)
+        veg_area_features, veg_area_info = _draw_predict_areas(
             draw, fadraw, predict_areas_sjtsk, geo_bbox)
-        _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(forest_age_info))
+        _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(veg_area_info))
     elif forest_age == "real":
-        forest_age_mask_img = Image.new("L", (W, H), 0)  # GT maska věku porostu (§8.1), multi-class
-        fadraw = ImageDraw.Draw(forest_age_mask_img)
-        forest_age_area_features, forest_age_info = _try_layer(
+        veg_area_mask_img = Image.new("L", (W, H), 0)  # GT maska věku porostu (§8.1), multi-class
+        fadraw = ImageDraw.Draw(veg_area_mask_img)
+        veg_area_features, veg_area_info = _try_layer(
             "forest_age", lambda: _generate_real_forest_age(draw, fadraw, lat, lon, geo_bbox),
             ([], []), tolerant, layer_errors)
-        _log.info("  věk porostu: %d (406/408/410 zeleň PROXY)", len(forest_age_info))
+        _log.info("  věk porostu: %d (406/408/410 zeleň PROXY)", len(veg_area_info))
 
     # --- stromořadí / lineární les (ISOM 406): `Liniová vegetace` → úzký zelený pás (Sez. 45) ---
     # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body — světle
@@ -3587,8 +3588,8 @@ def generate_map(
         marsh_mask_img.save(out / "mask_marsh.png")                         # mokřady (GT, 1=marsh 308)
     if treerow_mask_img is not None:
         treerow_mask_img.save(out / "mask_treerows.png")                    # stromořadí (GT, 1=lineární les 406)
-    if forest_age_mask_img is not None:
-        forest_age_mask_img.save(out / "mask_forest_age.png")              # věk porostu (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406 — PROXY Sez. 62)
+    if veg_area_mask_img is not None:
+        veg_area_mask_img.save(out / "mask_veg_area.png")              # věk porostu (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406 — PROXY Sez. 62)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -3628,7 +3629,7 @@ def generate_map(
     treerow_omap_features = [(g, str(c)) for g, c in treerow_area_features]
     # věk porostu → 406/408/410 zeleň = plošný symbol (area, uzavřený path s close flagem; OOM
     # vyplní příslušnou zelenou z definice). PROXY (věk→běhatelnost), Sez. 62. Code z featur.
-    forest_age_omap_features = [(g, str(c)) for g, c in forest_age_area_features]
+    veg_area_omap_features = [(g, str(c)) for g, c in veg_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
     formline_omap_features = [(g, "103") for g, _ in formline_features]
@@ -3674,7 +3675,7 @@ def generate_map(
                              linefeature_features=linefeat_omap_features,
                              marsh_features=marsh_omap_features,
                              treerow_features=treerow_omap_features,
-                             forest_age_features=forest_age_omap_features,
+                             veg_area_features=veg_area_omap_features,
                              barrier_features=barrier_omap_features)
     omap_info = {"file": omap_name, **omap_counts}
     # reálné ZABAGED/RÚIAN vrstvy → meta sekce přes _layer_meta_section (A1 Sez. 50, DRY: jediná
@@ -3718,7 +3719,7 @@ def generate_map(
     # Predikční vrstva (Sez. 62): meta to musí přiznat, ať konzument (UC5/compare) nevezme zeleň jako
     # tvrdou projekci. Symboly/třídy ze SKUTEČNĚ použitých kódů (mirror _layer_meta_section).
     if predict_veg or forest_age == "real":
-        used = sorted({it["symbol"] for it in forest_age_info}, key=str)
+        used = sorted({it["symbol"] for it in veg_area_info}, key=str)
         # A3 provenience (Sez. 83): zeleň je PREDIKČNÍ (ne tvrdá projekce), ať ze separace (Sez. 82)
         # nebo z věku porostu (forest-age, archiv). `provenance:"predict"` to přiznává konzumentovi
         # (UC5/compare/reconstructor), aby zeleň nevzal jako real. Zdroj/note/licence se liší.
@@ -3733,15 +3734,15 @@ def generate_map(
                              "NE z terénní běhatelnosti. Predikční vrstva (Sez. 62, ARCHIV Sez. 82)."),
                     "proxy": True,
                     "licence": "otevřená data dle zák. 106/1999 Sb. (AOPK ČR, LHP/LHO Lesy ČR + ÚHÚL)"}
-        real_sections["forest_age"] = {
-            "count": len(forest_age_info),
-            "mask": "mask_forest_age.png",
+        real_sections["veg_area"] = {
+            "count": len(veg_area_info),
+            "mask": "mask_veg_area.png",
             **prov,
             # PREDICT_AREA_* (superset FOREST_AGE_*): predict cesta nese i 403 (Sez. 92), archiv jen zeleň
             "symbols": {str(c): PREDICT_AREA_NAME[c] for c in used},
             "classes": {"0": "pozadí",
                         **{str(PREDICT_AREA_CLASS[c]): f"{c} {PREDICT_AREA_NAME[c]}" for c in used}},
-            "items": forest_age_info,
+            "items": veg_area_info,
         }
     meta = _build_meta(seed, rug, det, terrain, paths, pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, len(formline_features), n_paths, paths_info,

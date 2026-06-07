@@ -123,7 +123,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                linefeature_features: list[tuple] | None = None,
                marsh_features: list[tuple] | None = None,
                treerow_features: list[tuple] | None = None,
-               forest_age_features: list[tuple] | None = None,
+               veg_area_features: list[tuple] | None = None,
                barrier_features: list[tuple] | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
@@ -211,7 +211,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     objs: list[str] = []
     n_contours = n_paths = n_water = n_buildings = n_powerlines = n_railways = n_paved = n_points = n_ropiky = 0
     n_formlines = n_rocks = n_bridges = n_rides = n_surfaces = n_landmarks = n_linefeatures = n_marsh = n_treerows = 0
-    n_barriers = n_forest_age = 0
+    n_barriers = n_veg_area = 0
     # Liniové objekty (vrstevnice/cesty/vodní toky) = otevřený path; plošné (301 voda,
     # 521 budova) = uzavřený path s close flagem (jinak OOM nevyplní — viz AREA_CODES).
     for line, code in contour_features:
@@ -285,13 +285,13 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         o = area_object(ring, str(code))
         if o:
             objs.append(o); n_treerows += 1
-    # věk porostu → zeleň (Sez. 62, PROXY z AOPK porostních skupin): 406 slow / 408 walk / 410 fight
-    # = plošný objekt (uzavřený path s close flagem; OOM vyplní zelenou z definice symbolu). Tři
-    # odstíny dle věku — interpretace, ne věrná runnability (značeno PROXY v meta/spec/GLOSSARY).
-    for ring, code in (forest_age_features or []):
+    # plošná predikční zeleň/open → 406 slow / 408 walk / 410 fight / 403 rough open = plošný objekt
+    # (uzavřený path s close flagem; OOM vyplní barvu z definice symbolu). Zdroj = separace reálné mapy
+    # (predict, Sez. 82/92) NEBO věk porostu (archiv forest-age, Sez. 62 PROXY) — značeno v meta provenance.
+    for ring, code in (veg_area_features or []):
         o = area_object(ring, str(code))
         if o:
-            objs.append(o); n_forest_age += 1
+            objs.append(o); n_veg_area += 1
     # řopíky (Sez. 27): asset = budova 521 (plocha) + vrstevnice náspu 101 (linie). Geometrie už
     # natočená/umístěná generátorem; emise jako ostatní (521 area s close flagem, 101 line).
     for geom, code in (ropik_features or []):
@@ -487,5 +487,5 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             "railways": n_railways, "paved": n_paved, "ropiky": n_ropiky, "rocks": n_rocks,
             "bridges": n_bridges, "surfaces": n_surfaces, "landmarks": n_landmarks,
             "linefeatures": n_linefeatures, "marsh": n_marsh, "treerows": n_treerows,
-            "forest_age": n_forest_age, "barriers": n_barriers,
+            "veg_area": n_veg_area, "barriers": n_barriers,
             "points": n_points, "objects": len(objs)}

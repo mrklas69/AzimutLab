@@ -53,7 +53,7 @@ Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL 
 
 TILE = 512          # strana dlaždice (px) — vstup U-Netu
 STRIDE = 256        # posun okna (px) → 50% překryv (volba Sez. 77, sdíleno s archivem)
-# N_AREA (= 16: pozadí + 15 area kódů) se importuje z omap_raster (SSoT label schématu, Sez. 87).
+# N_AREA (= 17: pozadí + 16 area kódů, +403 Sez. 92) se importuje z omap_raster (SSoT label schématu, Sez. 87).
 # BEZ MIN_VALID rejection (viz hlavička) — všechny dlaždice plného renderu jsou validní.
 
 
