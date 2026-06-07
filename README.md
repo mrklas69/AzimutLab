@@ -90,7 +90,11 @@ switching `zabaged.py` from WFS to ArcGIS REST `MapServer/<id>/query`** with rel
 session marked the project's first **large-area base fill beneath many other symbols** (501.1), which the
 default ISOM Mapper palette couldn't handle: a custom colour "Dolní hnědá 50%" was added to
 `template_classic.omap` at the very bottom of the colour-table priority so roads/paths stay on top (see
-`docs/GLOSSARY.md` and the `omap-colortable-base-fill-priority` lesson).**
+`docs/GLOSSARY.md` and the `omap-colortable-base-fill-priority` lesson).** Session 98 fixed a measured
+**olive 520 over-projection** (RÚIAN cadastre fragments built-up land into thousands of tiny parcels — compass
+9× over-draw): the olive areas are now **dissolved into contiguous blocks** (contourpy on the raster mask, no
+`shapely`; compass 9×→1.3×), and a **fence 516** is drawn pseudo-realistically (phase 2) around the built-up
+blocks ≥ 0.5 ha — straightened (RDP) with tags inside the enclosure (ISOM spec), since ZABAGED carries no fence layer.
 
 ## What this is
 

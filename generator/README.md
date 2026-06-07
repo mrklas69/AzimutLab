@@ -71,6 +71,9 @@ Realizuje **MVP řez** specifikace
   ne 201 — plocha→plocha, kamenné útvary v z-orderu nad olivovou). Kůlny (105)
   → 521. Parkoviště → **501.1** (bez obrysu, průchozí; Sez. 57 oprava z 501), asfalt areálů → 501 přes `--paved`. **Z-order vespod** (podklad pod
   vrstevnicemi; olivová nad žlutou; les = bílá default = vegetace gate). Vyžaduje `--terrain real`,
+- **olivová 520 dissolve + plot 516** — `--surfaces real` (Sez. 98): olivová 520 se sjednocuje do **souvislých bloků**
+  (RÚIAN katastr fragmentuje zástavbu na tisíce parcel → kompas přestřel 9× → contourpy dissolve bez `shapely` → 1,3×).
+  **Plot 516 Fence** (pseudo fáze 2, ZABAGED plot nevede) po obvodu RÚIAN-privát bloků ≥ 0,5 ha: RDP narovnání + ticky DOVNITŘ (ISOM „tags inside").
 - **budovové stavby** — `--buildings real` (Sez. 43 rozšíření): + `Zámek`/`Hrad` → **521**, `Rozvalina, zřícenina`
   → **523 Ruin** (čárkovaný obrys bez výplně). ČÚZK je vede zvlášť, ne v `Budova_99` (domov mládeže = bývalý zámek),
 - **bodové orient. prvky** — `--landmarks real` (Sez. 43, audit katalogu): kříž→**530**, mohyla→**526**,

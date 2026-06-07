@@ -163,6 +163,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   105) → 521 přes budovy. Render `_draw_surface_area`/`_draw_dotted_surface_area` (`outline=None`), barvy
   `C_YELLOW`/`C_OLIVE`, maska `mask_surfaces.png` (multi-class 1=open/2=olivová/3=pole/4=402 park/5=402.1 zeleň). **Z-order: ÚPLNĚ VESPOD**
   (olivová NAD žlutou/polem — privátní zahrada RÚIAN přemaže pokryv pod ní), les = bílá default = [[vegetace-gate]] (UC5).
+  **Olivová 520 = DISSOLVE do bloků (Sez. 98):** RÚIAN katastr fragmentuje zástavbu na tisíce drobných parcel
+  (LS 52 % výseku, 91–96 % objektů 520) → kartograf kreslí jeden souvislý blok. Všechny zdroje 520 → sběrná maska →
+  `contourpy` vektorizace (`_dissolve_mask_to_polys`, reuse `rock_relief`, bez `shapely`) → souvislé bloky. Kompas přestřel 9×→1,3×.
+- **Plot 516 Fence** (Sez. 98) — liniový symbol oplocení. ZABAGED plot nevede (Sez. 57) → kreslen jako
+  **pseudorealistická dekorace (fáze 2, vypne `--only-real`)** po obvodu RÚIAN-privát bloků (zástavba, kde je
+  oplocení věrohodné). Práh `FENCE_MIN_AREA_M2` 0,5 ha (kalibr. proti reálným mapám gen≈orig); obvod narovnán `_rdp`
+  (přímé spojnice vrcholů); ticky DOVNITŘ pozemku (`_draw_fence_line` per-tick `_point_in_ring`, ISOM spec „tags inside").
+  Jen `.omap` + rgb (vlastní GT maska zatím ne — linie mimo plošné Png2Area Y, Png2Line neexistuje).
 - **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
   301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
   (přebrodit/překročit); plný obrys nepřekonatelné plochy (301, kolejiště 501) = bariéra. Generátor to honoruje

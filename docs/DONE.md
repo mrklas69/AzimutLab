@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 98 (2026-06-07) — %AUDIT:CODE měřicího kódu + dissolve olivové 520 + plot 516 (ntbhej)
+- [x] **Sync 16 commitů pozadu → ff-pull** na `d9152be` (sezení 90–97 z mrkla) PŘED prací (paměť stale-clone-fetch-first).
+- [x] **Nález struktury:** `resources/` na ntbhej lokálně JE (proti předpokladu Sez. 97), jen neúplné (chybí `Velbloud.pgw`).
+      Lekce: „gitignored ⇒ chybí" je nespolehlivý odhad, stav `resources/` se mezi stroji liší → ověřit `ls`.
+- [x] **%AUDIT:CODE** `compare_isom.py` + `measure_dod.py` (~700 LOC od Sez. 89, 0 krit./2 dop./3 kosm., drift Sez. 95→96):
+      D1 mrtvý `symbol_geometry()` smazán (nahrazen `used_geometry` v Sez. 96; `_TYPE_GEOM` ponechán) + propagace
+      `architecture.md` (odkaz + strop 58→54 %); D2 DRY helper `_resolve_targets` (crosswalk-resolve 2×→1×);
+      K1 osiřelé klíče `coverage()` dictu (`covered_t`/`real_freq`/`rnames`); K2 broken paměť odkaz. Behavior-preserving
+      (smoke `compare_isom` CLI, `_resolve_targets(526,'2000')→{521}`).
+- [x] **Přestřel olivové 520 → dissolve do bloků** (measure-first `temp/measure_520.py`: 91–96 % z RÚIAN privát drobných
+      parcel medián 146–323 m², LS 52 % výseku; kompas 9×). Bez `shapely` (není v `.venv`) → **dissolve přes rastrovou masku
+      `contourpy`** (reuse `rock_relief._contour_rings`/`_group_holes`). `_generate_real_surfaces`: 520 → 2 masky (celá
+      olivová → bloky `_draw_surface_area`; RÚIAN-privát → plot). LS 19762→2023, HS 2066→448; kompas 520 9×→**1,3×**.
+- [x] **Plot 516 Fence** (pseudo fáze 2, ZABAGED nevede Sez. 57 → věrohodná dekorace kolem zástavby; vypne `--only-real`):
+      (a) **práh 0,5 ha** `FENCE_MIN_AREA_M2` (measure-first `temp/measure_fence.py`: gen 160→21≈orig 24; HS 621→61);
+      (b) **RDP narovnání** `_rdp` eps 5 m (contourpy schody → přímé spojnice vrcholů); (c) **ticky DOVNITŘ**
+      `_draw_fence_line` per-tick `_point_in_ring` test (ISOM 516 spec „tags inside"). Helpery `_fill_mask_rings`/
+      `_dissolve_mask_to_polys`/`_draw_fence_line`; konstanty ISOM_FENCE/FENCE_*. `omap_export` USED_CODES +516, `stats.py` SYMBOLS +516.
+- [x] **Regrese: noise proc baseline byte-identický** (git-stash before/after diff = 0). py_compile čisté. 5 DEV regen.
+- [x] Propsáno: diář + DIARY index + DONE + TODO + README/GLOSSARY/architecture/generator-procedural/generator-README/katalog.
+
 ## Sezení 97 (2026-06-07) — Handoff HAL3000 → ntbhej (bez práce, jen %BEGIN + zarámování fokusu)
 - [x] **Krátké handoff sezení** — uživatel po %BEGIN „na tomto stroji končíme, přechod na ntbhej + %END".
       Žádná kódová ani docs-featurová práce; generátor i měřicí nástroje NETKNUTÉ, proc baseline drží.

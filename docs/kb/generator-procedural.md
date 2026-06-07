@@ -381,6 +381,18 @@ HS 16 / NV 44.
     zákazem vstupu → 520. **NE 201 Impassable cliff:** 201 je LINIE (hrana stěny s ticky), ZABAGED dává PLOCHU →
     plocha→plocha je věrná, stěnu nedotahujeme (KISS, Σ1 marginální). Kamenné útvary (206 ad.) zůstávají v z-orderu
     NAD olivovou (skály se kreslí po surfaces). `druhtez_p` (kámen/…) ISOM nerozlišuje.
+
+**§4.9j′ Olivová 520 dissolve do bloků + plot 516 — Sez. 98 (measure-first).** RÚIAN katastr fragmentuje
+zástavbu na tisíce DROBNÝCH parcel (`temp/measure_520.py`: 91–96 % objektů 520 z RÚIAN privát, medián
+146–323 m²; LS 52 % výseku → kompas přestřel 520 gen/orig **9×**). Kartograf kreslí jeden souvislý olivový
+blok, ne mozaiku → **dissolve**: všechny zdroje 520 → sběrná maska → contourpy vektorizace
+(`_dissolve_mask_to_polys`, reuse `rock_relief._contour_rings`/`_group_holes` §4.9l — **bez `shapely`**, není
+v `.venv`) → souvislé bloky. RÚIAN-privát má vlastní pod-masku (zdroj plotu). Kompas 520 9×→**1,3×**.
+**Plot 516 Fence (pseudo fáze 2):** ZABAGED plot nevede (§4.9m, Sez. 57) → linii dokreslujeme věrohodně po
+obvodu RÚIAN-privát bloků ≥ `FENCE_MIN_AREA_M2` 0,5 ha (kalibr. measure-first `temp/measure_fence.py`: gen
+160→21 ≈ orig 24). Obvod narovnán `_rdp` (contourpy schody → přímé spojnice vrcholů); ticky DOVNITŘ pozemku
+(`_draw_fence_line` per-tick `_point_in_ring`, ISOM 516 spec „If the fence forms an enclosed area, tags inside").
+Vypne `--only-real`. Jen `.omap` (USED_CODES +516) + rgb; vlastní GT maska zatím ne (linie mimo plošné Png2Area Y).
 - **Asfaltové dopravní areály → ISOM 501** (přes paved kanál): `Areál účelové zástavby` typu `408 autobusové
   nádraží` / `409 čerpací stanice` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Kolejiště → 501
   (s obrysem, vymezený prostor). **Parkoviště (`Parkoviště, odpočívka` 123) → 501.1 BEZ obrysu (Sez. 57)** —
