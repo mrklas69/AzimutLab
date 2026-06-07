@@ -97,6 +97,41 @@ def symbol_geometry(template: str | None = None) -> dict:
     return geom
 
 
+def used_geometry(path: str) -> dict:
+    """Mapuje ISOM integer kód → geometrie REÁLNĚ POUŽITÉHO symbolu v dané mapě (z OOM `type`).
+
+    Na rozdíl od `symbol_geometry()` (template, primary-wins) čte geometrii přímo z mapy podle
+    symbolu, který objekty SKUTEČNĚ nesou — ground truth kartografovy reprezentace. Klíčové pro
+    analytický cut (Sez. 96): 210 má v template primary 'area' ('Stony ground, slow running'),
+    ale VŠECHNY reálné mapy kreslí variantu 210.0/210.1 = 'point' ('individual dot') → strop plošné
+    fáze ho nesmí počítat jako plochu (jinak nadhodnocení). Stejná past u dalších kódů s point/area
+    variantou (104 Earth bank line + 104.1 point, …). Měř geometrii z reálné mapy, ne z template.
+
+    Kolize variant (210 area + 210.1 point → oba ci=210): vyhrává geometrie varianty s NEJVÍCE
+    objekty (majoritní reprezentace v mapě), počítáno přes počet objektů."""
+    root = ET.parse(path).getroot()
+    id2geom, id2code = {}, {}
+    for el in root.iter():
+        if _local(el.tag) == "symbol":
+            id2geom[el.get("id")] = _TYPE_GEOM.get(int(el.get("type", "0")), "?")
+            id2code[el.get("id")] = el.get("code", "")
+    tally: dict[int, Counter] = {}        # ci → Counter(geom → počet objektů) pro majoritní volbu
+    for el in root.iter():
+        if _local(el.tag) != "object":
+            continue
+        sid = el.get("symbol")
+        if sid is None:
+            continue
+        try:
+            ci = int(float(id2code.get(sid, "")))
+        except ValueError:
+            continue
+        if ci < 100 or ci >= 600:
+            continue
+        tally.setdefault(ci, Counter())[id2geom.get(sid, "?")] += 1
+    return {ci: c.most_common(1)[0][0] for ci, c in tally.items()}
+
+
 def _load_crosswalk() -> tuple[dict, set, set]:
     """Načte ISOM 2000→2017-2 crosswalk z `.crt` (Kai Pastor, OOM, GPL). Formát: `<2017-2>  <2000>`.
 
@@ -201,7 +236,8 @@ def coverage(real_path: str, gen_path: str) -> dict:
     denom = len(covered) + len(missing)
     pct = 100 * len(covered) / denom if denom else 0
     return {"version": ver, "covered": covered, "covered_t": covered_t, "missing": missing,
-            "custom": custom, "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames}
+            "custom": custom, "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames,
+            "used_geom": used_geometry(real_path)}   # geom reálně použitých symbolů (Sez. 96 cut)
 
 
 def main() -> None:
