@@ -88,6 +88,7 @@ SYMBOLS = [
     ("104",   "Earth bank"),
     ("107",   "Erosion gully"),
     ("513",   "Wall"),
+    ("516",   "Fence"),     # plot po obvodu RÚIAN-privát bloků (pseudo fáze 2, Sez. 98)
     # Prostupy (Sez. 52): zábrana na zdi → Crossing point
     ("519",   "Crossing point"),
 ]

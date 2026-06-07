@@ -491,6 +491,26 @@ LINEFEAT_STYLE = {
 EARTHBANK_TICK_SPACING_PX = max(3, round(0.8 * PX_PER_MM))   # rozestup ticků sráz 104 (~0,8 mm)
 EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jednostranná, ~0,35 mm)
 
+# ---------- Plot 516 Fence (Sez. 98, FÁZE 2 pseudorealistic) ----------
+# OB kartograf kreslí oplocenou zástavbu jako jeden souvislý olivový blok 520 + plot po obvodu.
+# ZABAGED plot NEVEDE (doloženo Sez. 57) → linii dokreslujeme VĚROHODNĚ kolem RÚIAN-privát bloků
+# (= zástavba; volba uživatele Sez. 98). Pseudo dekorace = fáze 2 (vypne ji --only-real), izomorf
+# s příčkami vedení. Liniový symbol 516 Fence (template id 131, type 2). Render 1px černá jako 513
+# (na rozlišení rastru je 1px minimum; .omap dostane věrný symbol 516 z definice). Vlastní GT maska
+# zatím NE — linie nejsou v plošném Png2Area Y a Png2Line neexistuje (generalizuj jen s důkazem).
+ISOM_FENCE = 516
+FENCE_NAME = "Fence"
+FENCE_WIDTH_PX = 1
+# Plot jen kolem SOUVISLÉ zástavby ≥ 0,5 ha (measure-first Sez. 98): bez prahu plot přestřeloval
+# 6,7× (kompas gen 160 / orig 24) — kreslil se kolem každého domku se zahradou (medián bloku ~190 m²).
+# Práh 5000 m² → Bedřichovka 159→21 ≈ orig 24. Kartograf plotuje jen větší souvislé oplocené areály.
+FENCE_MIN_AREA_M2 = 5000
+# Obvod z contourpy masky je pixelově členitý → RDP narovná na přímé spojnice vrcholů (Sez. 98).
+FENCE_SIMPLIFY_M = 5.0
+# ISOM 516 „tags inside" (spec template): krátké ticky kolmo DOVNITŘ ohraničeného pozemku.
+FENCE_TICK_SPACING_PX = max(4, round(3.0 * PX_PER_MM))   # rozestup ticků (~3 mm, ISOM 516 segment)
+FENCE_TICK_LEN_PX = max(2, round(0.5 * PX_PER_MM))        # délka ticku dovnitř (~0,5 mm)
+
 
 # ---------- Stromořadí jako „lineární les" (Sez. 45, real-půlka, liniová data → plošná reprezentace) ----------
 # `Liniová vegetace` (id 15) = stromořadí. ISOM 416 (hranice porostů) je sémanticky špatně pro řadu
@@ -2260,8 +2280,65 @@ def _generate_real_paved(draw: ImageDraw.ImageDraw, adraw: ImageDraw.ImageDraw,
     return area_features, paved_info
 
 
+def _fill_mask_rings(mdraw: ImageDraw.ImageDraw, px_rings: list) -> None:
+    """Vyplní polygon [outer, díra…] do sběrné L-masky (255) — even-odd přes díry (Sez. 98).
+
+    Sběrná maska pro dissolve olivové 520: parcely, které se v katastru DOTÝKAJÍ, splynou v rastru
+    do souvislého bloku; mezery (cesta/pole mezi shluky) zůstanou → oddělené bloky (záměr)."""
+    rings = [px_rings[0], *(h for h in px_rings[1:] if len(h) >= 3)]
+    if len(rings) > 1:
+        _fill_rings_scanline(mdraw, rings, 255)
+    else:
+        mdraw.polygon(px_rings[0], fill=255)
+
+
+def _dissolve_mask_to_polys(mask: np.ndarray) -> list:
+    """Bool maska → list polygonů [outer, díra…] v px plátna (Sez. 98).
+
+    Reuse `rock_relief` (contourpy marching squares + _group_holes na vnoření) — týž nástroj jako
+    skály 206 a separace vegetace (izomorfismus maska→polygon, KISS, bez nové závislosti shapely).
+    Souřadnice contourpy = (col, row) = (px x, px y)."""
+    from rock_relief import _contour_rings, _group_holes
+    out: list = []
+    for poly in _group_holes(_contour_rings(mask)):
+        out.append([[(float(x), float(y)) for x, y in ring] for ring in poly])
+    return out
+
+
+def _draw_fence_line(draw: ImageDraw.ImageDraw, ring_px) -> None:
+    """Plot 516 po obvodu bloku zástavby: tenká černá linie + ticky DOVNITŘ pozemku (Sez. 98).
+
+    ISOM 516 „tags inside" (spec template). Strana ticku se určuje per-tick testem `_point_in_ring`
+    (robustní, nezávislé na orientaci ringu): z bodu na lince zkusíme krok podél normály — která
+    strana padne dovnitř ringu, tam tick míří. Ring má být už narovnaný (RDP) a uzavřený."""
+    from rock_relief import _point_in_ring
+    pts = [(float(x), float(y)) for x, y in ring_px]
+    if pts and pts[0] != pts[-1]:
+        pts.append(pts[0])
+    if len(pts) < 3:
+        return
+    draw.line(pts, fill=C_BLACK, width=FENCE_WIDTH_PX, joint="curve")
+    ring = np.asarray(pts)
+    acc = 0.0                                            # ujetá délka podél obvodu → rovnoměrné ticky
+    for (ax, ay), (bx, by) in zip(pts[:-1], pts[1:]):
+        seg = math.hypot(bx - ax, by - ay)
+        if seg == 0:
+            continue
+        ux, uy = (bx - ax) / seg, (by - ay) / seg       # jednotkový směr segmentu
+        nx, ny = -uy, ux                                 # kolmice (jedna strana; druhá = záporná)
+        d = FENCE_TICK_SPACING_PX - acc                 # vzdálenost k prvnímu ticku v tomto segmentu
+        while d < seg:
+            tx, ty = ax + ux * d, ay + uy * d            # bod ticku na lince
+            sgn = 1.0 if _point_in_ring((tx + nx, ty + ny), ring) else -1.0   # která normála míří dovnitř
+            draw.line([(tx, ty), (tx + sgn * nx * FENCE_TICK_LEN_PX,
+                                  ty + sgn * ny * FENCE_TICK_LEN_PX)], fill=C_BLACK, width=1)
+            d += FENCE_TICK_SPACING_PX
+        acc = (acc + seg) % FENCE_TICK_SPACING_PX        # přenos zbytku délky do dalšího segmentu
+
+
 def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDraw,
-                            lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
+                            lat: float, lon: float, geo_bbox: tuple,
+                            pseudorealistic: bool) -> tuple[list, list, list]:
     """Reálný plošný pokryv (real-půlka, Sez. 41-53): open land louka → 401 žlutá; park/okrasná zahrada
     → 402 (žlutá + bílé tečky scattered trees), ostatní udržovaná zeleň → 402.1 (žlutá + zelené tečky
     scattered bushes, Sez. 53); pole → 412 (žlutá + černý tečkový pattern); olivová 520 „zákaz vstupu"
@@ -2271,26 +2348,37 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
 
     Mirror _generate_real_paved (RAW S-JTSK → grid → px → polygon, bez generalizace). Kultura 412
     pod ISOM min. plochou (SURFACE_MIN_AREA_PX2) → spadne na 401 (volba uživatele Sez. 47).
+
+    OLIVOVÁ 520 = DISSOLVE DO BLOKŮ (Sez. 98, měření přestřelu + volba uživatele „zástavba = blok"):
+    RÚIAN katastr fragmentuje zástavbu na tisíce drobných parcel (LS 18884 obj = 52 % výseku olivové,
+    91-96 % z RÚIAN privát) → kartograf kreslí jeden souvislý olivový blok, ne mozaiku. Všechny zdroje
+    520 → sběrná maska → contourpy dissolve (_dissolve_mask_to_polys) → souvislé bloky. RÚIAN-privát
+    má vlastní pod-masku → její obvod = PLOT 516 (pseudo fáze 2, „kde má zástavba plot"; jen když
+    `pseudorealistic`). Ne-520 (401/412/402/402.1) jdou dál per-feature (beze změny).
+
     Z-ORDER (Sez. 42, téma 2): olivová se kreslí PO žluté/kultuře → privátní zahrada (RÚIAN 520)
-    přemaže žluté/pole na témže místě. Vrací (area_features [(grid, code)], surfaces_info)
-    v souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém/lesním výseku bez pokryvu = 0 prvků (žádný šum)."""
+    přemaže žluté/pole na témže místě. Vrací (area_features [(grid, code)], surfaces_info, fence_features
+    [(grid_line, 516)]) v souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém/lesním výseku = 0 prvků."""
     from zabaged import (fetch_open_land, fetch_cemeteries, fetch_utility_areas, fetch_quarries,
                          map_open_land_to_isom, map_cemetery_to_isom, map_utility_area_to_isom,
                          map_quarry_to_isom)
     from ruian import fetch_private_land, map_private_land_to_isom
     area_features: list[tuple] = []
     surfaces_info: list[dict] = []
+    fence_features: list[tuple] = []
+    olive_img = Image.new("L", (W, H), 0)            # celá olivová 520 (všechny zdroje) → dissolve bloky
+    olive_ruian_img = Image.new("L", (W, H), 0)      # jen RÚIAN privát (zástavba) → obvod = plot 516
+    odraw = ImageDraw.Draw(olive_img)
+    ordraw = ImageDraw.Draw(olive_ruian_img)
     # Skupiny jdou stejnou plošnou cestou (RAW ring → výplň), liší se mapperem/barvou/patternem.
-    # Pořadí = pořadí kreslení: open land + kultura (401/412) VESPOD, pak olivová 520 (privátní
-    # pozemek RÚIAN + hřbitov ZABAGED + sad/zahrada + areály účelové zástavby + kamenolom) NAD ní
-    # (z-order téma 2, Sez. 42). Kamenné/zemní útvary (skály 206 atd.) jdou v celkovém z-orderu NAD
-    # surfaces → olivová lomu je nepřekryje (Sez. 56, A1). Areály účelové zástavby (114) mapují i na
-    # 501 (asfaltové dopravní plochy) — ty sem NEpatří (paved kanál), proto filtr `code in SURFACE_FILL`.
-    for feats, mapper in ((fetch_open_land(lat, lon, GW, GH, TILE_M), map_open_land_to_isom),
-                          (fetch_private_land(lat, lon, GW, GH, TILE_M), map_private_land_to_isom),
-                          (fetch_cemeteries(lat, lon, GW, GH, TILE_M), map_cemetery_to_isom),
-                          (fetch_utility_areas(lat, lon, GW, GH, TILE_M), map_utility_area_to_isom),
-                          (fetch_quarries(lat, lon, GW, GH, TILE_M), map_quarry_to_isom)):
+    # `is_ruian` = privátní katastr (zdroj plotu 516). Areály účelové zástavby (114) mapují i na 501
+    # (asfaltové dopravní plochy) — ty sem NEpatří (paved kanál), proto filtr `code in SURFACE_FILL`.
+    for feats, mapper, is_ruian in (
+            (fetch_open_land(lat, lon, GW, GH, TILE_M), map_open_land_to_isom, False),
+            (fetch_private_land(lat, lon, GW, GH, TILE_M), map_private_land_to_isom, True),
+            (fetch_cemeteries(lat, lon, GW, GH, TILE_M), map_cemetery_to_isom, False),
+            (fetch_utility_areas(lat, lon, GW, GH, TILE_M), map_utility_area_to_isom, False),
+            (fetch_quarries(lat, lon, GW, GH, TILE_M), map_quarry_to_isom, False)):
         for f in feats:
             code = mapper(f["layer"], f["props"])
             if code not in SURFACE_FILL:    # 501 (asfaltové areály 114) patří do paved kanálu, ne sem
@@ -2298,6 +2386,11 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
             for poly in f["rings"]:
                 grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
                 if len(px_rings[0]) < 3:
+                    continue
+                if code == ISOM_OUT_OF_BOUNDS:      # 520 → sběrná maska (dissolve níž), NE per-parcela
+                    _fill_mask_rings(odraw, px_rings)
+                    if is_ruian:
+                        _fill_mask_rings(ordraw, px_rings)
                     continue
                 # kultura pod ISOM min. plochou → degraduj na 401 open land (Sez. 47; filtr na vnějším prstenu)
                 draw_code = code
@@ -2310,7 +2403,32 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
                 area_features.append((grid_rings, draw_code))
                 surfaces_info.append({"symbol": draw_code, "symbol_name": SURFACE_NAME[draw_code],
                                       "kind": "area", "layer": f["layer"]})
-    return area_features, surfaces_info
+    # --- olivová 520: dissolve sběrné masky → souvislé bloky (jeden blok = zástavba, Sez. 98) ---
+    for poly_px in _dissolve_mask_to_polys(np.asarray(olive_img) > 0):
+        if len(poly_px[0]) < 3:
+            continue
+        _draw_surface_area(draw, sdraw, poly_px, ISOM_OUT_OF_BOUNDS)
+        grid_rings = [[(px / W * (GW - 1), py / H * (GH - 1)) for px, py in ring] for ring in poly_px]
+        area_features.append((grid_rings, ISOM_OUT_OF_BOUNDS))
+        surfaces_info.append({"symbol": ISOM_OUT_OF_BOUNDS, "symbol_name": SURFACE_NAME[ISOM_OUT_OF_BOUNDS],
+                              "kind": "area", "layer": "olivová (dissolve)"})
+    # --- plot 516 po obvodu RÚIAN-privát bloků (pseudo fáze 2: ZABAGED plot nevede, Sez. 57/98) ---
+    # Jen kolem SOUVISLÉ zástavby ≥ FENCE_MIN_AREA_M2 (měření Sez. 98: bez prahu 6,7× přestřel).
+    if pseudorealistic:
+        from rock_relief import _rdp
+        m_per_px2 = (WORLD_W_M / W) * (TILE_M / H)    # plocha 1 px [m²] (W px = WORLD_W_M, H px = TILE_M)
+        eps_px = FENCE_SIMPLIFY_M / (WORLD_W_M / W)   # RDP tolerance: m terénu → px plátna
+        for poly_px in _dissolve_mask_to_polys(np.asarray(olive_ruian_img) > 0):
+            outer = poly_px[0]
+            if len(outer) < 3:
+                continue
+            if _polygon_area_px(outer) * m_per_px2 < FENCE_MIN_AREA_M2:   # malý blok (domek+zahrada) → neplotovat
+                continue
+            simp = _rdp(np.asarray(outer, float), eps_px)    # pixelové schody → přímé spojnice vrcholů
+            _draw_fence_line(draw, simp)
+            grid = [(px / W * (GW - 1), py / H * (GH - 1)) for px, py in simp]
+            fence_features.append((grid, ISOM_FENCE))
+    return area_features, surfaces_info, fence_features
 
 
 def _generate_real_marsh(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -3117,14 +3235,16 @@ def generate_map(
     # pozadí, nekreslí se — vegetace gate). Reálná půlka ze ZABAGED + RÚIAN REST, jedna multi-class maska.
     surface_area_features: list[tuple] = []
     surfaces_info: list[dict] = []
+    fence_features: list[tuple] = []                      # plot 516 (obvod RÚIAN-privát bloků, Sez. 98)
     surface_mask_img: Image.Image | None = None
     if surfaces == "real":
         surface_mask_img = Image.new("L", (W, H), 0)     # GT maska pokryvu (§8.1), multi-class
         sfdraw = ImageDraw.Draw(surface_mask_img)
-        surface_area_features, surfaces_info = _try_layer(
-            "surfaces", lambda: _generate_real_surfaces(draw, sfdraw, lat, lon, geo_bbox),
-            ([], []), tolerant, layer_errors)
-        _log.info("  plošný pokryv: %d (open land + zákaz vstupu)", len(surfaces_info))
+        surface_area_features, surfaces_info, fence_features = _try_layer(
+            "surfaces", lambda: _generate_real_surfaces(draw, sfdraw, lat, lon, geo_bbox, pseudorealistic),
+            ([], [], []), tolerant, layer_errors)
+        _log.info("  plošný pokryv: %d (520 dissolve bloky + open land) + plot 516: %d",
+                  len(surfaces_info), len(fence_features))
 
     # --- věk porostu → zeleň (ISOM 406/408/410, PROXY Sez. 62): AOPK porostní skupiny ---
     # Z-order: NAD plošným pokryvem (401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi.
@@ -3641,7 +3761,8 @@ def generate_map(
     landmark_omap_features = [(gx, gy, str(c)) for gx, gy, c in landmark_features]
     # liniové orientační prvky (Sez. 43): 104/513 = liniový objekt (otevřený path); OOM
     # vykreslí symbol z definice (104 ticky, 513 plná). Stromořadí 406 plošně (výš, Sez. 45).
-    linefeat_omap_features = [(g, str(c)) for g, c in linefeat_features]
+    linefeat_omap_features = ([(g, str(c)) for g, c in linefeat_features]
+                              + [(g, str(c)) for g, c in fence_features])   # plot 516 (pseudo, Sez. 98)
     # zábrany → 519 Crossing point = point_object s ROTACÍ (rotatable, jako lávka 512.2; Sez. 52).
     # rot v radiánech (px konvence) = orientace „brány" podél nosné zdi.
     barrier_omap_features = [(gx, gy, "519", rot) for gx, gy, rot, _ in barrier_features]
