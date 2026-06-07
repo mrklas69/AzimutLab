@@ -425,7 +425,8 @@ ISOM 2017 knihovnu** (40x–41x všechny), generátor jich dnes většinu **slé
 **Dva typy rozlišení (NEPLÉST — jiný nástroj):**
 - **ODSTÍN** (401 sytá vs 403 bledá žlutá) — nearest-color (per-pixel) ho UMÍ; měřeno separabilní
   106 v RGB (401=Yellow100% `(255,186,54)`, 403=Yellow50% `(255,221,154)` z template). Rozšíření
-  separace = přidat referenční barvu do `map_gt._classify`.
+  separace = přidat referenční barvu. **→ 403 Rough open HOTOVO Sez. 92** (vlastní split žluté
+  v `generator/separate.py` `_is_pale_yellow`, ne v `map_gt`; reference z rastru k-means; detail DONE Sez. 92).
 - **PATTERN** (mřížka/tečky/diagonály/směrové čárky) — nearest-color je PRINCIPIÁLNĚ slepý (kouká na
   1 px). Pattern vidí jen model s receptive fieldem — **Png2Area CNN** (argument PRO reconstructor,
   PROTI mechanickému filtru; ladí s reframe Sez. 79). Separace by potřebovala pattern-aware metodu.

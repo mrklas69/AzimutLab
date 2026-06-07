@@ -100,27 +100,20 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   podkladu → světlé lemy = „dva bílé kruhy". Pro Png2Area nevadí (417=bod, není v Y), ale pro **Png2Point** musí
   tenké symboly po degradaci zůstat čitelné → zmírnit posun nebo škálovat misregistraci dle tloušťky prvku.
 - [~] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
-  `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`). Dekompozice podle typu geometrie ISOM (tři CV
-  úlohy). GT zdarma z `.omap` (typ symbolu). Pořadí: Area první (reuse U-Net Sez. 78, vstup mapa ne ortofoto),
-  Point druhý (generátor má přesné polohy bodů = „bodová větev" posed/pramen/vývrat, ISOM kódy ověřit ze spec),
-  Line poslední (nejtěžší, segmentace+skeletonizace). Detail IDEAS. **Png2Area Y-pipeline HOTOVÁ Sez. 87**
-  (`generator/omap_raster.py`): rasterizace plošných ISOM symbolů z `.omap` → label rastr (per-ISOM-kód, 15 area
-  kódů + pozadí, statický z-order, díry per-objekt); paper µm→px triviální z meta. Integrováno do `pairs.build_pair`
-  (`labels=True` → `area_labels.png` = Y). Vizuál SV+LS pixel-přesný. **Png2Area loader/tile/train HOTOVO Sez. 88**
-  (`model/png2area/{tile,dataset,train}.py`): tile 512/stride256 BEZ rejection (pozadí=legitimní třída), 16 tříd ze
-  `omap_raster` (SSoT), median-freq váhy, D4+ImageNet loader, U-Net 16 tříd bez ignore_index. Archiv (runnability)
-  `git mv` → `model/runnability/` (symetrie). Smoke Soví vrch 70 dlaždic OK (ntbhej, dev-fallback `build_tiles_dev`).
-  **Overfit gate HOTOVO Sez. 90 — PROŠEL** (10-map vzorek, `build_tiles` 162 dlaždic; 2-mapový overfit bez vah:
-  80 ep mIoU 0,518 nedotrénováno → **200 ep 0,665**, 11/13 tříd 0,73–0,99, `308` mokřad naskočil 0→0,73 ~ep 190).
-  Nález: **tvar > velikost** — budovy `521` (tenké) → 0,00 vs `410` (kompaktní, podobný podíl) → 0,64; U-Net
-  downsampling rozpustí tenké třídy (doložený limit, reálné číslo až plný trénink s vahami). **PLNÝ TRÉNINK
-  HOTOVO Sez. 90 — PRVNÍ funkční reconstructor:** `build_pairs`+resume 196/207 párů → `build_tiles` train 137/
-  val 30/test 29 → 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs baseline 0,25). **Budovy 521 zachráněny
-  0,00→0,68** (váhy+data). `unet_best.pt`. **ZLEPŠENÍ:** (a) **HOTOVO Sez. 91** — `cap vah @10` (`WEIGHT_CAP`
-  v train.py, ne `_tiles.json`=SSoT) `+ cosine LR` (obě páky naráz, volba uživatele) → **test 0,621→0,640, val
-  0,654, loss-spiky ZMIZELY**; `208` test 0,00 = cap vzal váhu → datový strop potvrzen; (b) *(odsunuto za
-  pokrytí generátoru)* **class-balanced expansion** — model=detektor vzácných 208/501/301.1 → cílený Livelox
-  download → přetrénovat.
+  `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`; dekompozice podle typu geometrie ISOM = tři CV
+  úlohy, GT zdarma z `.omap`). Pořadí (foundations): Area → Point → Line. Detail IDEAS „Tři fáze I/II/III".
+  - [x] **`Png2Area` HOTOVO Sez. 87-91 — PRVNÍ funkční reconstructor** (plný detail DONE Sez. 87/88/90/91):
+    Y-pipeline `omap_raster.py` (**16 area kódů + pozadí**, statický z-order, díry per-objekt) → loader/tile/train
+    `model/png2area/{tile,dataset,train}.py` (512/stride256 BEZ rejection, U-Net bez ignore_index, median-freq váhy)
+    → overfit gate (nález **tvar > velikost**: tenké třídy se downsamplingem rozpustí) → **plný trénink test mIoU
+    0,621→0,640, val 0,654** (cap vah @10 v train.py + cosine LR, loss-spiky zmizely); budovy 521 zachráněny
+    0,00→0,68 (váhy+data); `unet_best.pt`. Archiv `git mv` → `model/runnability/`.
+  - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
+    (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
+    corpus expansion").
+  - [ ] **`Png2Point`** (druhý) — bodové ISOM → lokalizace+klasifikace; generátor má přesné polohy = GT zdarma
+    + libovolně instancí; ISOM kódy ověřit ze spec.
+  - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)
@@ -139,11 +132,11 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (X i Y z téže gen.omap), mapování X→Y validní. Dvě kategorie: (a) watermark uvnitř pole = zeleň na lese, neškodí;
   (b) logo/titulek MIMO pole = „papír jako les", soustavný šum kdyby přes hodně map. **Reálné riziko = ROZSAH** →
   po 1. tréninku změřit, kolik párů nese layout (near-near vs `_detect_map_area` zlepšit / agresivnější crop).
-- [ ] *(úklid, conceptual integrity, nález Sez. 90)* **Legacy „forest_age" názvosloví v predict cestě** —
-  v predict režimu (`predict_areas_sjtsk`) generate_map recykluje jména z archivované forest-age éry:
-  `mask_forest_age.png` / `forest_age_mask_img` / `forest_age_info` / `real_sections["forest_age"]`, ač obsah je
-  SEPARACE zeleně (Sez. 83). Zmátlo (vypadá jako by se generoval archiv. AOPK věk — NEgeneruje, `_generate_real_forest_age`
-  se nevolá, ověřeno). Přejmenovat na neutrální (`predict_veg`/`areas`/`green`). Kosmetika, ne blokátor; do `%AUDIT:CODE`.
+- [x] *(úklid, conceptual integrity — HOTOVO Sez. 93)* **Legacy „forest_age" názvosloví v predict cestě
+  přejmenováno na neutrální `veg_area`** — sdílené nosiče predict separace i archiv věku (proměnné
+  `veg_area_*` / soubor `mask_veg_area.png` / meta klíč `real_sections["veg_area"]` / `omap_export`
+  kwarg+counter) napříč generator/omap_export/separate/stats. Zůstaly legit `FOREST_AGE_*` konstanty
+  (archiv-zeleň), `--forest-age` flag, `forest.py` konektor. Behavior-preserving (noise proc 63=63). Detail DONE.
 - [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
   (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
   prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit

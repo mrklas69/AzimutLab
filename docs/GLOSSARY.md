@@ -271,7 +271,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak). **Dva
   konzumenti (Sez. 88):** (a) archiv `model/runnability/tile.py` (Sez. 77, ortofoto→runnability) — Y=runnability,
   dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu/layout) → `resources/tiles/`; (b) Png2Area
-  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png` 16 tříd, **BEZ rejection** (scan.png je plný render,
+  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png` 16 area kódů + pozadí, **BEZ rejection** (scan.png je plný render,
   pozadí 0 = legitimní třída, ne IGNORE) → `resources/area_tiles/`. Oba gitignored + `_tiles.json` (počty/class%/váhy).
   ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
 
@@ -280,7 +280,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   jejich průměr. UC5 měří per-class (průměr by maskoval, že vzácná 410 fight je ignorována). Počítá se
   z confusion matice, [[IGNORE]] (255) px se vynechá. `model/{runnability,png2area}/train.py`. Archiv runnability
   baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90, první funkční
-  model — val≈test = bez leaku; budovy 521 zachráněny vahami 0,00→0,68 proti overfitu).
+  model — val≈test = bez leaku; budovy 521 zachráněny vahami 0,00→0,68 proti overfitu) → **stabilizace Sez. 91 test
+  0,640 / val 0,654** (cap vah @10 + cosine LR).
 
 - **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
   (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,
@@ -346,7 +347,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   plošných (Area) ISOM symbolů z `.omap` → **label rastr** (`area_labels.png` = **Y** pro [[reconstructor|`Png2Area`]]).
   **Y odvozeno z `.omap`, NE z render masek `mask_*.png`** — reconstructor se učí na páru [scan, `.omap`], Y z téže
   `.omap` → pár **self-konzistentní** (nezávisí na render artefaktech). **Per-ISOM-kód** (volba Sez. 87): `CODE_TO_LABEL`
-  15 area kódů → label 0..15 (0=pozadí); **statický** (konzistence napříč korpusem), seskupení tříd = modelové
+  16 area kódů → label 0..16 (0=pozadí; +403 Sez. 92); **statický** (konzistence napříč korpusem), seskupení tříd = modelové
   rozhodnutí NAD rasterizací (DRY, izomorf s [[degradér|`tile.py`]] labely). **Z-order statický ISOM** zdola nahoru
   (501.1/520 base … 521 budovy), **díry per-objekt** (vyříznuté jen v rámci objektu → odhalí nižší vrstvu).
   Transformace paper µm→px triviální z `meta.json`: `px=(paper/pw+0.5)·W`, `pw=world_m·1e6/scale` (měřeno Sez. 87,
@@ -362,7 +363,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
   **`Png2Area` model HOTOVO Sez. 88** (`model/png2area/{tile,dataset,train}.py`, izomorf s archivem
   `model/runnability/`): dlaždice [scan.png, area_labels.png] → `AreaTileDataset` (D4+ImageNet) → U-Net/ResNet34
-  **16 area tříd** (0 pozadí + 15 ISOM kódů ze [[omap_raster]], bez ignore_index — Y je celé validní). Trénink = mrkla.
+  **16 ISOM area kódů + pozadí** (label 0..16 ze [[omap_raster]], bez ignore_index — Y je celé validní). **Plný trénink
+  Sez. 90-91:** test mIoU 0,621→**0,640** (val 0,654, cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
+  208/501/301.1 = datový strop → class-balanced expansion. Trénink = mrkla.
 - **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
   pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (zelená
   406/408/410 + **403 Rough open** ze Sez. 92 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse
@@ -398,6 +401,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Sez. 62: **`--forest-age` = první realizovaný predikční střípek** — zeleň 406/408/410 odvozená z VĚKU
   porostu (AOPK porostní skupiny, [[forest-age-proxy]]). Data tvrdá, ale věk→běhatelnost je proxy → značeno
   `proxy:true`. Není to plná UC5 predikce (žádný naučený prior), ale stojí už za hranicí projekce.
+  **Sez. 82: jako zdroj predikční vegetace NAHRAZEN separací barev z mapy** (`generator/separate.py`; forest-age
+  proxy mělo zeleň jen na 33 % korpusu, IoU 0,12, přestřel 3,3× → archivováno). `--forest-age` flag v kódu zůstal.
 - **Pseudorealistic map** — výstup prediktoru: mapa, která *vypadá* realisticky, ale není skutečné
   terénní mapování (syntéza projekce + AI predikce). Pojmenování poctivě přiznává umělost (Sez. 23).
 - **pseudorealistic (parametr) / fáze 1-2** — přepínač real-větve generátoru (Sez. 24, default

@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 93 (2026-06-07) — Úklidové sezení: %AUDIT:DOCS + pruning + rename forest_age→veg_area
+- [x] **%AUDIT:DOCS** (cadence ≥10 dosažen, vynucený): **0 kritických, 4 doporučené + 1 kosmetický**,
+      všechny jeden vzorec — README/architecture status zaostával za 3 mrkla-sezeními (90/91/92).
+      Opraveno: **D1** „16 area tříd"→„16 area kódů + pozadí" (po 403 = N_AREA 17; README ×2, architecture,
+      GLOSSARY ×3, `model/png2area/tile.py` komentář, generator/README) · **D2** mIoU 0,621→**0,640 / val
+      0,654** (stabilizace Sez. 91; README, GLOSSARY) · **D3** 403 Rough open doplněno (architecture, README) ·
+      **D4** Png2Area status dopsán (první funkční reconstructor, výsledek + DoD pokrytí; architecture, README) ·
+      **K1** forest-age pointer „nahrazen separací Sez. 82" (GLOSSARY). 4 agentí falešné poplachy **zamítnuty
+      proti zdroji** (`5122` „export selže" = posílá string „512.2"; forest-age „rozpor" = archivace doložená;
+      `[[…]]` „broken" = wiki-link konvence; `predict_areas_sjtsk` CLI = interní kwarg).
+- [x] **IDEAS/TODO pruning** (cadence ≥12 dosažen): TODO Png2Area blok 22ř. `[~]` historie → strukturované
+      pod-checkboxy (Area `[x]` pointer DONE / class-balanced expansion `[~]` / Png2Point+Png2Line `[ ]`);
+      IDEAS „Granularita area tříd" → 403 HOTOVO Sez. 92 značka. Historie zachována v DONE (Sez. 87-91).
+- [x] **Rename legacy `forest_age`→`veg_area`** (TODO úkol Sez. 90, volba uživatele „udělat teď neutrální"):
+      nález během mapování — rename je **širší** než TODO čekal (sdílené nosiče predict+archiv, ne jen predict
+      cesta). Přejmenováno napříč 4 `.py`: proměnné `veg_area_*` (generator), výstupní soubor `mask_veg_area.png`,
+      meta klíč `real_sections["veg_area"]`, `omap_export` kwarg `veg_area_features`+counter `n_veg_area`+counts
+      klíč, konzumenti `separate.py`+`stats.py`. **Ponecháno legit** (archiv forest-age éra): konstanty
+      `FOREST_AGE_*` (archiv-zeleň, superset = `PREDICT_AREA_*`), `--forest-age` flag/param, `forest.py` konektor,
+      funkce `_generate_real_forest_age`/`_draw_forest_age_area`. Komentáře zobecněny (predict separace NEBO archiv věk).
+- [x] **Ověření rename behavior-preserving:** py_compile 6/6 · grep čistý (žádný zbylý `forest_age_*` mimo
+      legit) · **noise proc baseline 63=63** (generator+omap_export hlavní cesta) · **predict E2E `build_pair`
+      (1088447 Přebor 2025, 75 s):** `mask_veg_area.png` vznikl, meta `veg_area` count 542 provenance predict
+      symboly 403/406/408/410, starý `forest_age` klíč pryč; stale `mask_forest_age.png` sirotek (z běhu Sez. 92)
+      smazán = potvrzení, že kód ho už negeneruje.
+
 ## Sezení 92 (2026-06-06) — Rozšíření pokrytí generátoru: 403 Rough open ze separace
 - [x] **Měření pokrytí přes 5 vzorových map** (`temp/coverage_union.py`, scratch): union ISOM kódů
       z reálných `.omap` vs `omap_export.USED_CODES` → **46–52 %** schopnostmi (matched 38 % Sez. 91

@@ -505,8 +505,9 @@ hospodářský les Lužických hor — nejspíš reálné), holý starý svah sp
 
 **Render** `_draw_forest_age_area` = plná zelená výplň BEZ obrysu (vegetační plošný symbol, izomorf
 s 406 stromořadím §4.9n / 401 / 520; díry zachovány přes scanline). Z-order: NAD plošným pokryvem
-(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_forest_age.png` (multi-class:
-1=fight 410, 2=walk 408, 3=slow 406); plošné objekty 406/408/410 v .omap (AREA_CODES). Vyžaduje `--terrain real`.
+(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_veg_area.png` (multi-class:
+1=fight 410, 2=walk 408, 3=slow 406; sdílený nosič predict separace i archiv věku — rename Sez. 93, dřív
+`mask_forest_age.png`); plošné objekty 406/408/410 v .omap (AREA_CODES). Vyžaduje `--terrain real`.
 **Pokrytí 3/5 DEV** (NL 341 / LS 490 / NV velký počet; **SV/HS 0** — AOPK sada sešitá z LHP různých roků,
 mirror řídkých vrstev). Probe + KSLH PDF: `temp/uhul_probe/`.
 

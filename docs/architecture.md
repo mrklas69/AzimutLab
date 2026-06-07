@@ -142,13 +142,17 @@ bodových, liniových i plošných ISOM symbolů.
   strop** (val plochá ~0,25 od ep1 → RGB-only málo, runnability = podrost pod korunami shora nevidět). → směr
   `ORTO → 4 barvy` **archivovaná odbočka** (viz reframe note výše), kód nemazán. Datová pipeline
   (páry/GT/split/dlaždice) zůstává znovupoužitelná — reálně reusována Png2Area modelem níže.
-- **Png2Area reconstructor — model HOTOVO (Sez. 88), `model/png2area/{tile,dataset,train}.py`:** první ze tří
-  CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`scan.png` (X, degradovaný render), `area_labels.png`
-  (Y, 16 area tříd ze `omap_raster`)]** vyrobeném `generator/pairs.py`. Izomorf s archivem (reuse tiling 512/256,
-  median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto** (proto vysoký strop, na
-  rozdíl od archivu), 16 tříd, **bez rejection** (pozadí = legitimní třída) a **bez IGNORE** (Y z naší `.omap` je
-  celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. Smoke ntbhej (Soví vrch
-  70 dlaždic); plný `build_tiles()` z korpusu + trénink = mrkla (torch+CUDA), po nočním `build_pairs`.
+- **Png2Area reconstructor — PRVNÍ FUNKČNÍ MODEL (Sez. 88 kód → Sez. 90-91 trénink), `model/png2area/{tile,dataset,train}.py`:**
+  první ze tří CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`scan.png` (X, degradovaný render),
+  `area_labels.png` (Y, **16 ISOM area kódů + pozadí** ze `omap_raster`)]** vyrobeném `generator/pairs.py`. Izomorf
+  s archivem (reuse tiling 512/256, median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto**
+  (proto vysoký strop, na rozdíl od archivu), **bez rejection** (pozadí = legitimní třída) a **bez IGNORE** (Y z naší
+  `.omap` je celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. **Výsledek
+  (Sez. 90):** plný trénink 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs runnability baseline 0,25); budovy
+  `521` zachráněny 0,00→0,68 (median-freq váhy + data). **Stabilizace (Sez. 91):** cap vah @10 + cosine LR →
+  **test mIoU 0,640 / val 0,654** (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop →
+  class-balanced expansion. **Pokrytí area tříd (Sez. 92):** přidána **403 Rough open** (bledá žlutá ze separace,
+  první vegetační třída nad zeleň) → 16 area kódů; další rozšiřování řídí DoD pokrytí (viz reframe note výše).
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních
