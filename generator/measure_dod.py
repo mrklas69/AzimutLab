@@ -8,10 +8,15 @@ pokrytí. DoD: fáze výroby `generator()` hotová až při ≥90 % ISOM (memory
   generate_map(lat,lon,w_km,h_km, defaulty = vše real)  → maps/<name>/<name>.omap
   compare_isom.coverage(real, gen)  → crosswalk-aware X/Y matched (2000→2017, custom vyřazeno)
 
-Dvě cesty (CLI):
-  python generator/measure_dod.py          # (a) baseline: vše real (forest_age proxy zeleň), bez separace
-  python generator/measure_dod.py --sep     # (b) separace-ze-skenu (forest_age=off): NÁLEZ Sez. 94 =
-                                            #     páka KVALITY ne pokrytí (+403 −410 = net nula vs proxy)
+BASELINE = SEPARACE (Sez. 95, volba uživatele). `pairs.build_pair` vyrábí páry separací-ze-skenu
+(`predict_areas_sjtsk`), NE forest_age proxy → DoD baseline MUSÍ měřit reálnou produkční cestu, ne
+fikci. forest_age proxy 410 byl FABRIKACE: měření Sez. 95 ukázalo, že souvislé 410 plochy v 5 mapách
+NEJSOU (1000+ komponent o max <100 px = tmavě zelený antialiasing, ne mapovatelná fight plocha) →
+separace ho poctivě nemá. 403 Rough open separace vrací věrně (odstín uvnitř open, Sez. 92).
+
+Dva režimy (CLI):
+  python generator/measure_dod.py          # BASELINE: separace-ze-skenu (forest_age=off) + analytický cut
+  python generator/measure_dod.py --proxy   # doložení: forest_age proxy NADHODNOCUJE vs separace (fiktivní 410)
 
 A3 (Sez. 94): Slovanka2016 (UTM33 — jiný transformer) + Soví vrch (domapováno ~1/4 → neúplná real
 .omap zkreslí dolů) VYNECHÁNY z DoD → měří jen Bedřichovka/Blatná/Velbloud. Až bude UTM33 cesta /
@@ -30,7 +35,7 @@ sys.path.insert(0, str(REPO / "generator"))
 
 from pyproj import Transformer            # noqa: E402
 from generator import generate_map        # noqa: E402
-from compare_isom import coverage         # noqa: E402  (crosswalk-aware, Sez. 94)
+from compare_isom import coverage, symbol_geometry   # noqa: E402  (crosswalk-aware, Sez. 94; geom Sez. 95)
 from separate import separate_areas, TARGET_MPP  # noqa: E402  (cesta b: separace-ze-skenu)
 from map_gt import segment_gt             # noqa: E402  (runnability GT z resources skenu)
 
@@ -102,49 +107,58 @@ def _separate_resources_to_sjtsk(name: str, sep_dir: pathlib.Path) -> list:
     return out
 
 
-def run_sep() -> None:
-    """Cesta (b): regeneruj 3 mapy SE separací-ze-skenu (forest_age='off') → změř lift vs baseline (a).
+def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
+    """Matched gen .omap SE SEPARACÍ-ZE-SKENU (Sez. 95 baseline = reálná produkční cesta párů).
 
-    NÁLEZ Sez. 94: separace je páka KVALITY ne pokrytí — na metrice kód-presence net-nula
-    (+403 věrné open, −410 ztracené proxy-fight, který forest_age='off' vypnul)."""
-    print(f"\n{'#' * 70}\nCESTA (b): separace-ze-skenu → lift matched DoD\n{'#' * 70}")
+    `pairs.build_pair` vyrábí páry separací (predict_areas_sjtsk), ne forest_age → DoD MUSÍ měřit
+    separaci. forest_age='off' (proxy 410 = fabrikace, Sez. 95). Skip-existing (drahá regenerace:
+    map_gt na obřím skenu + separace)."""
+    omap = out / f"{name}.omap"
+    if omap.exists():                                      # skip regeneraci (rychlé re-měření)
+        return omap
+    lat, lon, w_km, h_km = _extent_from_pgw(name)
+    print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f}) — separace ze skenu\n{'=' * 70}")
+    predict = _separate_resources_to_sjtsk(name, out / "sep")
+    print(f"  {len(predict)} predikčních ploch → generate_map (forest_age=off)")
+    generate_map(lat, lon, w_km, h_km, out_dir=str(out), ortho=False, tolerant=True,
+                 forest_age="off", predict_areas_sjtsk=predict)
+    return omap
+
+
+def run_proxy() -> None:
+    """--proxy: doloží, že forest_age proxy NADHODNOCUJE pokrytí vs separační baseline (Sez. 95).
+
+    Separace = pravdivý baseline (maps/<name>/). forest_age proxy (maps/<name>_proxy/) přidá FIKTIVNÍ
+    410 (souvislé 410 plochy v mapách nejsou — Sez. 95 měření). Ukáže, které kódy proxy „pokrývá" jen
+    fabrikací (jen proxy) vs co separace věrně přidá (jen separace). Opak orientace Sez. 94."""
+    print(f"\n{'#' * 70}\n--proxy: forest_age proxy vs separační baseline (doložení nadhodnocení)\n{'#' * 70}")
     for name in MAPS:
-        base = REPO / "maps" / name / f"{name}.omap"            # baseline (a) = bez separace
-        sep_out = REPO / "maps" / f"{name}_sep"
-        sep_omap = sep_out / f"{sep_out.name}.omap"             # generate_map jmenuje .omap dle SLOŽKY
-        if not sep_omap.exists():                               # skip-existing (drahá regenerace)
+        sep_omap = _gen_sep(name, REPO / "maps" / name)        # baseline = separace
+        proxy_out = REPO / "maps" / f"{name}_proxy"
+        proxy_omap = proxy_out / f"{proxy_out.name}.omap"      # generate_map jmenuje .omap dle SLOŽKY
+        if not proxy_omap.exists():                            # forest_age cesta (a), default vše real
             lat, lon, w_km, h_km = _extent_from_pgw(name)
-            sep_dir = sep_out / "sep"
-            print(f"\n=== {name} === separace ze skenu…")
-            predict = _separate_resources_to_sjtsk(name, sep_dir)
-            print(f"  {len(predict)} predikčních ploch → generate_map (forest_age=off)")
-            generate_map(lat, lon, w_km, h_km, out_dir=str(sep_out), ortho=False, tolerant=True,
-                         forest_age="off", predict_areas_sjtsk=predict)
-        ra = coverage(str(REPO / "resources" / f"{name}.omap"), str(base))
-        rb = coverage(str(REPO / "resources" / f"{name}.omap"), str(sep_omap))
-        new = sorted(set(rb["covered"]) - set(ra["covered"]))
-        lost = sorted(set(ra["covered"]) - set(rb["covered"]))
-        print(f">>> {name}: (a) {len(ra['covered'])}/{ra['denom']}={ra['pct']:.0f}%  →  "
-              f"(b) {len(rb['covered'])}/{rb['denom']}={rb['pct']:.0f}%   "
-              f"nové: {new or '—'}  ztracené: {lost or '—'}")
+            generate_map(lat, lon, w_km, h_km, out_dir=str(proxy_out), ortho=False, tolerant=True)
+        rs = coverage(str(REPO / "resources" / f"{name}.omap"), str(sep_omap))
+        rp = coverage(str(REPO / "resources" / f"{name}.omap"), str(proxy_omap))
+        only_proxy = sorted(set(rp["covered"]) - set(rs["covered"]))   # proxy „pokrývá" navíc = fikce
+        only_sep = sorted(set(rs["covered"]) - set(rp["covered"]))     # separace přidává navíc = věrné
+        print(f">>> {name}: separace {len(rs['covered'])}/{rs['denom']}={rs['pct']:.0f}%  "
+              f"proxy {len(rp['covered'])}/{rp['denom']}={rp['pct']:.0f}%   "
+              f"jen proxy (fikce): {only_proxy or '—'}  jen separace (věrné): {only_sep or '—'}")
 
 
 def main() -> None:
     per_map = []          # (name, coverage-dict)
     for name in MAPS:
-        out = REPO / "maps" / name
-        gen_omap = out / f"{name}.omap"
-        if not gen_omap.exists():          # skip regeneraci, je-li gen.omap hotová (rychlé re-měření)
-            lat, lon, w_km, h_km = _extent_from_pgw(name)
-            print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f})\n{'=' * 70}")
-            generate_map(lat, lon, w_km, h_km, out_dir=str(out), ortho=False, tolerant=True)
+        gen_omap = _gen_sep(name, REPO / "maps" / name)        # SEPARAČNÍ baseline (Sez. 95)
         r = coverage(str(REPO / "resources" / f"{name}.omap"), str(gen_omap))
         print(f">>> {name}: ISOM {r['version']}, {len(r['covered'])}/{r['denom']} = {r['pct']:.0f}%"
               f"  (+{len(r['custom'])} custom vyřazeno)")
         per_map.append((name, r))
 
     # --- agregát ---
-    print(f"\n{'#' * 70}\nMATCHED DoD BASELINE (crosswalk-aware, bez separace-ze-skenu)\n{'#' * 70}")
+    print(f"\n{'#' * 70}\nMATCHED DoD BASELINE (crosswalk-aware, separace-ze-skenu)\n{'#' * 70}")
     pcts = []
     for name, r in per_map:
         pcts.append(r["pct"])
@@ -169,9 +183,46 @@ def main() -> None:
     for c in sorted(miss_maps, key=lambda c: (-miss_maps[c], -miss_freq[c])):
         print(f"  {c:>5} {miss_maps[c]:>4} {miss_freq[c]:>7}  {miss_name.get(c, '')[:42]}")
 
+    # --- ANALYTICKÝ CUT (Sez. 95): rozpad DoD podle geometrie symbolu ---
+    # Cíl: kolik z 90 % DoD je dosažitelné PLOŠNÝM generátorem TEĎ (Png2Area existuje) vs co je
+    # strukturálně mimo (body→Png2Point, linie→Png2Line — ani jeden zatím neexistuje).
+    geom = symbol_geometry()                          # 2017-2 kód → 'area'/'line'/'point'/…
+    GEOM_CZ = {"area": "plocha", "line": "linie", "point": "bod",
+               "combined": "kombi", "text": "text", "?": "neznámé"}
+    RECON = {"area": "Png2Area ✓ (existuje)", "line": "Png2Line — (chybí)",
+             "point": "Png2Point — (chybí)", "combined": "kombi → liniový", "text": "popisek",
+             "?": "mimo template"}
+    GEOM_ORDER = ["area", "line", "point", "combined", "text", "?"]
+
+    # (1) Plošný strop = per-mapa pokrytí, KDYBY gen dokreslil všechny chybějící PLOCHY; pak průměr.
+    #     DoD je per-mapa průměr → strop počítám stejně (ne union), ať jsou čísla srovnatelná.
+    ceil_pcts = []
+    for name, r in per_map:
+        n_miss_area = sum(1 for _, tg, _, _ in r["missing"] if tg and geom.get(tg[0]) == "area")
+        ceil = 100 * (len(r["covered"]) + n_miss_area) / r["denom"] if r["denom"] else 0
+        ceil_pcts.append(ceil)
+    now_avg = sum(pcts) / len(pcts)
+    ceil_avg = sum(ceil_pcts) / len(ceil_pcts)
+
+    # (2) Gap podle geometrie: distinct chybějící 2017 cíle (union přes mapy) + Σobjektů.
+    gap_codes, gap_freq = Counter(), Counter()        # geometrie → #kódů / Σobjektů
+    for c in miss_maps:                               # miss_maps = union chybějících 2017 cílů
+        g = geom.get(c, "?")
+        gap_codes[g] += 1
+        gap_freq[g] += miss_freq[c]
+
+    print(f"\n{'#' * 70}\nANALYTICKÝ CUT — strop plošné fáze (Png2Area teď vs Png2Point/Line dluh)\n{'#' * 70}")
+    print(f"  DoD teď: {now_avg:.0f}%   →   plošný strop (vše plochy dokresleno): {ceil_avg:.0f}%")
+    print(f"  zbytek do 100 % = body + linie + kombi → čeká na Png2Point / Png2Line (neexistují)\n")
+    print(f"  GAP podle geometrie (distinct chybějící 2017 cíle, union přes {len(MAPS)} mapy):")
+    print(f"    {'geom':<8} {'#kódů':>5} {'obj.Σ':>7}  reconstructor")
+    for g in GEOM_ORDER:
+        if gap_codes.get(g):
+            print(f"    {GEOM_CZ[g]:<8} {gap_codes[g]:>5} {gap_freq[g]:>7}  {RECON[g]}")
+
 
 if __name__ == "__main__":
-    if "--sep" in sys.argv:
-        run_sep()
+    if "--proxy" in sys.argv:
+        run_proxy()
     else:
         main()

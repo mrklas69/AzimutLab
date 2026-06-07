@@ -29,6 +29,11 @@ except Exception:
 
 _REPO = Path(__file__).resolve().parents[1]   # generator/ je 1 pod kořenem (Sez. 39)
 _CRT = _REPO / "docs" / "kb" / "ISOM2000-ISOM2017-2.crt"   # autoritativní crosswalk (KB Sez. 37-40)
+_TEMPLATE = Path(__file__).resolve().parent / "template_classic.omap"   # plná ISOM 2017-2 knihovna
+
+# OOM `<symbol type=N>` → geometrie (doloženo distribucí v template, Sez. 95):
+# 1=Point, 2=Line, 4=Area, 8=Text, 16=Combined. Geometrie určuje, který reconstructor kód umí.
+_TYPE_GEOM = {1: "point", 2: "line", 4: "area", 8: "text", 16: "combined"}
 
 
 def _local(tag: str) -> str:
@@ -64,6 +69,32 @@ def isom_usage(path: str) -> tuple[Counter, dict]:
         codes[ci] += n
         names.setdefault(ci, id2name.get(sid, ""))
     return codes, names
+
+
+def symbol_geometry(template: str | None = None) -> dict:
+    """Mapuje ISOM integer kód → geometrie ('point'/'line'/'area'/'text'/'combined'/'?') z OOM `type`.
+
+    Zdroj = `template_classic.omap` (plná ISOM 2017-2 knihovna, z níž generátor bere symboly).
+    Geometrie říká, který reconstructor kód umí: `Png2Area` (4) existuje, `Png2Point` (1) /
+    `Png2Line` (2) zatím ne → rozpad gapu podle geometrie = strop plošné fáze (Sez. 95).
+
+    Kolize integer prefixu (104 Earth bank LINE + 104.1 minimum size POINT → oba ci=104): PRIMÁRNÍ
+    symbol (code bez suffixu nebo `.0`) vyhrává nad variantami; varianta jen doplní chybějící kód."""
+    root = ET.parse(template or _TEMPLATE).getroot()
+    geom: dict[int, str] = {}
+    for el in root.iter():
+        if _local(el.tag) != "symbol":
+            continue
+        code = el.get("code", "")
+        try:
+            ci = int(float(code))                       # integer prefix (415.0 → 415)
+        except ValueError:
+            continue
+        g = _TYPE_GEOM.get(int(el.get("type", "0")), "?")
+        primary = code in (str(ci), f"{ci}.0")          # čistý integer kód = hlavní symbol skupiny
+        if primary or ci not in geom:                   # primární přepíše; varianta jen doplní chybějící
+            geom[ci] = g
+    return geom
 
 
 def _load_crosswalk() -> tuple[dict, set, set]:
@@ -147,7 +178,8 @@ def coverage(real_path: str, gen_path: str) -> dict:
     real, rnames = isom_usage(real_path)
     gen, _ = isom_usage(gen_path)
     gen_set = set(gen)
-    covered: list = []          # int real kód (pokrytý)
+    covered: list = []          # int real kód (pokrytý) — kompat (run_sep/main počítají len/set)
+    covered_t: list = []        # (real kód, tuple 2017 cílů) — pro geometrický rozpad (Sez. 95)
     missing: list = []          # (real kód, tuple 2017 cílů, freq, jméno)
     custom: list = []           # int real kód mimo ISOM crosswalk (vyřazen z jmenovatele)
     for c in real:
@@ -163,12 +195,13 @@ def coverage(real_path: str, gen_path: str) -> dict:
             targets = {c}
         if targets & gen_set:
             covered.append(c)
+            covered_t.append((c, tuple(sorted(targets))))
         else:
             missing.append((c, tuple(sorted(targets)), real[c], rnames.get(c, "")))
     denom = len(covered) + len(missing)
     pct = 100 * len(covered) / denom if denom else 0
-    return {"version": ver, "covered": covered, "missing": missing, "custom": custom,
-            "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames}
+    return {"version": ver, "covered": covered, "covered_t": covered_t, "missing": missing,
+            "custom": custom, "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames}
 
 
 def main() -> None:
