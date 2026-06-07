@@ -8,18 +8,27 @@ Měří jen POUŽITÉ symboly (≥1 objekt, ne celá template knihovna) a jen MA
 (vyloučí layout 6xxx, loga 5002/5006, control/overprint 7xx — ten se v map_gt stejně ignoruje).
 Match integer prefixem (415.0 → 415; .0/.1 jsou template variace, paměť `omap-area-code-suffix`).
 
-  python generator/compare_isom.py <reálná.omap> <naše_gen.omap>
+CROSSWALK (Sez. 94, oprava metodiky): reálné OB mapy jsou většinou v ISOM 2000, generátor v
+ISOM 2017-2. Číslování se mezi verzemi RECYKLUJE s jiným významem (526 Building 2000 → 521 2017,
+509 Narrow ride 2000 → 508 2017, …; KB `isom-issprom.md` Sez. 37-40) → naivní kód-na-kód dává
+false negativy i pozitivy. `coverage()` proto detekuje verzi reálné mapy (526/521 budova) a
+2000 kódy přemapuje přes `docs/kb/ISOM2000-ISOM2017-2.crt` (Kai Pastor, OOM) na 2017-2 PŘED
+porovnáním. Custom ne-ISOM kódy (mimo crosswalk) se vyřadí z jmenovatele (volba uživatele Sez. 94).
 
-Příklad (Sez. 91): generate_map(Bedřichovka, všechny real) vs resources/Bedřichovka.omap → 27/71 = 38 %.
+  python generator/compare_isom.py <reálná.omap> <naše_gen.omap>
 """
 import sys
 import xml.etree.ElementTree as ET
 from collections import Counter
+from pathlib import Path
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
     pass
+
+_REPO = Path(__file__).resolve().parents[1]   # generator/ je 1 pod kořenem (Sez. 39)
+_CRT = _REPO / "docs" / "kb" / "ISOM2000-ISOM2017-2.crt"   # autoritativní crosswalk (KB Sez. 37-40)
 
 
 def _local(tag: str) -> str:
@@ -57,24 +66,127 @@ def isom_usage(path: str) -> tuple[Counter, dict]:
     return codes, names
 
 
+def _load_crosswalk() -> tuple[dict, set, set]:
+    """Načte ISOM 2000→2017-2 crosswalk z `.crt` (Kai Pastor, OOM, GPL). Formát: `<2017-2>  <2000>`.
+
+    Pracuje na integer prefixu (415.0 → 415, jako isom_usage). Vrací:
+      cw:      {int 2000 → set(int 2017-2)}  — 1 kód 2000 může mít víc 2017 cílů a naopak,
+      v2000:   set(int) všech 2000 kódů v tabulce (= co JE ISOM 2000; mimo = custom → vyřadit),
+      v2017:   set(int) všech 2017-2 kódů (pro reálné mapy, co už jsou 2017-2 — identita).
+    """
+    cw: dict[int, set] = {}
+    v2000: set = set()
+    v2017: set = set()
+    for line in _CRT.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):       # přeskoč komentáře/prázdné
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        try:
+            c2017, c2000 = int(float(parts[0])), int(float(parts[1]))   # integer prefix obou
+        except ValueError:
+            continue
+        if not (100 <= c2000 < 600):                # jen mapové symboly (jako isom_usage)
+            continue
+        cw.setdefault(c2000, set()).add(c2017)
+        v2000.add(c2000)
+        v2017.add(c2017)
+    return cw, v2000, v2017
+
+
+_BUILDING_KW = ("building", "budov", "dům", "dum", "house")   # CZ i EN (Soví vrch má „Budova")
+
+
+def detect_version(path: str) -> str:
+    """Vrať '2000' nebo '2017-2' podle kódu BUDOVY (tvrdý diskriminátor, KB Sez. 37-40).
+
+    526 = Building/Budova v ISOM 2000 (v 2017-2 kód neexistuje), 521 = Building v 2017-2 (ve 2000
+    je 521 High stone wall). Budova je v každé OB mapě → robustní. Fallback (mapa bez budov):
+    průsek 509 (2000) / 508 (2017-2); jinak default 2017-2 (= generátorova verze)."""
+    root = ET.parse(path).getroot()
+    id2 = {s.get("id"): (s.get("code", ""), (s.get("name") or "").lower())
+           for s in root.iter() if _local(s.tag) == "symbol"}
+    used = {o.get("symbol") for o in root.iter() if _local(o.tag) == "object"}
+    for sid in used:                                # primární diskriminátor: budova
+        code, name = id2.get(sid, ("", ""))
+        if any(k in name for k in _BUILDING_KW):
+            try:
+                ci = int(float(code))
+            except ValueError:
+                continue
+            if ci == 526:
+                return "2000"
+            if ci == 521:
+                return "2017-2"
+    for sid in used:                                # fallback: průsek/ride
+        code, name = id2.get(sid, ("", ""))
+        if "průsek" in name or "prusek" in name or "ride" in name:
+            try:
+                ci = int(float(code))
+            except ValueError:
+                continue
+            if ci == 509:
+                return "2000"
+            if ci == 508:
+                return "2017-2"
+    return "2017-2"
+
+
+def coverage(real_path: str, gen_path: str) -> dict:
+    """Crosswalk-aware pokrytí ISOM: reálná mapa (2000 i 2017) vs generátor (2017-2).
+
+    1. detekuj verzi reálné mapy, 2. 2000 → přemapuj kódy přes crosswalk na 2017-2 (1→set cílů),
+    3. custom ne-ISOM kódy (mimo tabulku) VYŘAĎ z jmenovatele, 4. kód POKRYT, pokud generátor
+    kreslí aspoň jeden z jeho 2017-2 cílů. Vrací dict (version/covered/missing/custom/denom/pct
+    + freq/names + per-missing 2017 cíle pro prioritizaci).
+    """
+    cw, v2000, v2017 = _load_crosswalk()
+    ver = detect_version(real_path)
+    real, rnames = isom_usage(real_path)
+    gen, _ = isom_usage(gen_path)
+    gen_set = set(gen)
+    covered: list = []          # int real kód (pokrytý)
+    missing: list = []          # (real kód, tuple 2017 cílů, freq, jméno)
+    custom: list = []           # int real kód mimo ISOM crosswalk (vyřazen z jmenovatele)
+    for c in real:
+        if ver == "2000":
+            if c not in v2000:                      # ne-ISOM-2000 kód = custom kartografova značka
+                custom.append(c)
+                continue
+            targets = cw.get(c, set())
+        else:                                        # 2017-2: identita (kód = 2017 cíl)
+            if c not in v2017:
+                custom.append(c)
+                continue
+            targets = {c}
+        if targets & gen_set:
+            covered.append(c)
+        else:
+            missing.append((c, tuple(sorted(targets)), real[c], rnames.get(c, "")))
+    denom = len(covered) + len(missing)
+    pct = 100 * len(covered) / denom if denom else 0
+    return {"version": ver, "covered": covered, "missing": missing, "custom": custom,
+            "denom": denom, "pct": pct, "real_freq": real, "rnames": rnames}
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         print("použití: python generator/compare_isom.py <reálná.omap> <naše_gen.omap>")
         sys.exit(1)
-    real, rnames = isom_usage(sys.argv[1])
-    gen, _ = isom_usage(sys.argv[2])
-    rs, gs = set(real), set(gen)
-    covered, missing = rs & gs, rs - gs
-    pct = 100 * len(covered) / len(rs) if rs else 0
+    r = coverage(sys.argv[1], sys.argv[2])
+    print(f"REÁLNÁ {sys.argv[1]}: verze ISOM {r['version']}, "
+          f"{r['denom']} ISOM kódů v jmenovateli (+{len(r['custom'])} custom vyřazeno)")
+    print(f">>> POKRYTÍ: {len(r['covered'])}/{r['denom']} = {r['pct']:.0f}%  (DoD = ≥ 90 %)\n")
 
-    print(f"REÁLNÁ {sys.argv[1]}: {len(rs)} unikátních ISOM mapových kódů (100-599)")
-    print(f"NAŠE   {sys.argv[2]}: {len(gs)} unikátních")
-    print(f"\n>>> POKRYTÍ: {len(covered)}/{len(rs)} = {pct:.0f}%  (DoD = ≥ 90 %)\n")
-
-    print(f"CHYBÍ v generátoru ({len(missing)}, dle četnosti v reálné mapě):")
-    for c in sorted(missing, key=lambda c: -real[c]):
-        print(f"  {c:>4}  {real[c]:>4}×  {rnames.get(c, '')[:45]}")
-    print(f"\nPOKRÝVÁ ({len(covered)}): " + " ".join(str(c) for c in sorted(covered)))
+    print(f"CHYBÍ v generátoru ({len(r['missing'])}, dle četnosti; → 2017-2 cíl, který má kreslit):")
+    for c, targets, freq, name in sorted(r["missing"], key=lambda m: -m[2]):
+        tgt = "/".join(str(t) for t in targets) if targets else "—"
+        print(f"  2000:{c:<4} {freq:>4}×  → 2017:{tgt:<10} {name[:38]}")
+    if r["custom"]:
+        print(f"\nCUSTOM (ne-ISOM, vyřazeno z DoD): " + " ".join(str(c) for c in sorted(r["custom"])))
+    print(f"\nPOKRÝVÁ ({len(r['covered'])}): " + " ".join(str(c) for c in sorted(r["covered"])))
 
 
 if __name__ == "__main__":
