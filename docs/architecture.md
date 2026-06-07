@@ -104,8 +104,13 @@ bodových, liniových i plošných ISOM symbolů.
 >
 > **DoD generátoru (Sez. 91):** `generator()` je strop tréninku — co nenakreslí do `.omap`, to se
 > `reconstructor()` nenaučí. **Fáze výroby hotová až při ≥ 90 % pokrytí ISOM mapových symbolů 5 vzorových map
-> v `resources/`** (`generator/compare_isom.py`; Sez. 91 Bedřichovka 38 %). Větší páka = rozšiřovat pokrytí
-> generátoru, ne ladit model.
+> v `resources/`** (`generator/measure_dod.py` driver, crosswalk-aware; **separační baseline 43 %**, Sez. 94-95).
+> Větší páka = rozšiřovat pokrytí generátoru, ne ladit model.
+> **Sez. 95 — DoD ≥ 90 % je PLOŠNĚ NEDOSAŽITELNÉ.** Analytický cut (`compare_isom.symbol_geometry`, geometrie
+> z OOM `<symbol type>`): **plošný strop 58 %** (kdyby gen dokreslil všech 13 chybějících typů ploch); zbytek =
+> linie (18 typů → Png2Line) + body (17 typů → Png2Point), oba modely zatím NEEXISTUJÍ → cesta k 90 % vede přes
+> ně, ne přes leštění ploch. DoD baseline přepnut z forest_age proxy na **separaci** (reálná produkční cesta párů
+> `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
 - Přímá návaznost na Pic2Omap `color_separator.py` / detektory — kandidát na první
   reálně sdílený kód při přechodu na monorepo.

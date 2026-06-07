@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 95 (2026-06-07) — Analytický cut (plošný strop 58 %) + DoD baseline přepnut na separaci
+- [x] **Analytický cut — `compare_isom.symbol_geometry()`** (volba uživatele „změřit strop nejdřív"):
+      mapuje ISOM kód → geometrie z OOM `<symbol type>` (1=bod/2=linie/4=plocha/8=text/16=kombi,
+      doloženo distribucí v `template_classic.omap`, sedí s názvoslovím Png2Point/Line/Area). `coverage()`
+      rozšířen o `covered_t` (2017 cíle i pro pokryté kódy). py_compile OK.
+- [x] **Rozpad DoD podle geometrie v `measure_dod.main()`** — **plošný strop 58 %** (per-mapa pokrytí,
+      kdyby gen dokreslil všech 13 chybějících typů ploch; pak průměr). **DoD ≥90 % je plošně NEDOSAŽITELNÉ:**
+      zbytek = linie (18 typů, 1952 obj → Png2Line) + body (17 typů, 966 obj → Png2Point), oba modely
+      NEEXISTUJÍ. V rámci plošné cesty jsme na 43/58 = 74 % plošného stropu. Tabulka GAP podle geometrie.
+- [x] **NÁLEZ (měření před 403 opravou): souvislé 410 v 3 mapách NEJSOU.** map_gt 410 detekuje
+      (0,09–0,31 % px), ale separace vrátí **0 polygonů** (MIN_AREA_PX=120 zahodí). Velikosti 410 komponent:
+      **1000+ komponent, největší 27–92 px** = tmavě zelený antialiasing na okrajích 406/408, NE souvislá
+      fight plocha. **forest_age proxy 410 byl FABRIKACE** → `−410` (Sez. 94 net-nula) je SPRÁVNÉ; honit ho
+      zpět = míchat fikci s pravdou. Oponoval jsem zadání „403 bez −410" daty → uživatel rekalibroval.
+- [x] **DoD baseline přepnut forest_age → SEPARACE** (volba uživatele). `pairs.build_pair` vyrábí páry
+      separací (`predict_areas_sjtsk`), ne forest_age → DoD MUSÍ měřit reálnou produkční cestu, ne fikci.
+      `measure_dod`: `_gen_sep` helper (separace, forest_age='off') = výchozí baseline; `run_sep`→`run_proxy`
+      (forest_age proxy přesunut na `--proxy`, doložení nadhodnocení). **Baseline 43/37/50 = 43 %** (číselně
+      shodné = net-nula, ale POCTIVÉ): 403 covered na všech 3, fiktivní 410 missing na všech 3 (ověřeno
+      per-mapa). Plošný gap obj 3231→2126. Generátor netknutý (jen měřicí nástroje), proc baseline drží.
+- [x] **Připomenuta mapa projektu** (uživatel „ztrácím se") — UC DAG, smyčka generator()↔reconstructor(),
+      pokrytí = strop tréninku. Bez kódu, orientační.
+
 ## Sezení 94 (2026-06-07) — DoD nástroj crosswalk-aware + poctivý matched baseline 43 % + separace = páka kvality
 - [x] **NÁLEZ: `compare_isom` měřil DoD špatně** — pároval naivně integer prefixem kódu, ignoroval
       crosswalk, který repo **samo dokumentuje** (`docs/kb/isom-issprom.md` Sez. 37-40) i **veze**
