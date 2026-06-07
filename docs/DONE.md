@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 94 (2026-06-07) — DoD nástroj crosswalk-aware + poctivý matched baseline 43 % + separace = páka kvality
+- [x] **NÁLEZ: `compare_isom` měřil DoD špatně** — pároval naivně integer prefixem kódu, ignoroval
+      crosswalk, který repo **samo dokumentuje** (`docs/kb/isom-issprom.md` Sez. 37-40) i **veze**
+      (`docs/kb/ISOM2000-ISOM2017-2.crt`). Reálné mapy jsou většinou **ISOM 2000**, generátor **2017-2**,
+      číslování se RECYKLUJE (526 Building 2000 → 521 2017, 509 ride → 508, 516 vedení → 510, 518 tunel
+      → 512) → false negativy i pozitivy. **Čísla Sez. 91 „38 %" i memory byla neplatná.**
+- [x] **Oprava `compare_isom.py` na crosswalk-aware** (volba uživatele „opravit napřímo"): `_load_crosswalk()`
+      (čte `.crt`, integer-prefix), `detect_version()` (526 Budova/Building → 2000, 521 → 2017-2; fallback
+      průsek 509/508), `coverage()` (detekce verze → 2000 přemapuj přes crosswalk na 2017-2 → custom ne-ISOM
+      kódy **vyřaď z jmenovatele** [volba uživatele] → kód POKRYT, kreslí-li generátor aspoň 1 z 2017 cílů).
+      `main()` tiskne verzi + per-missing 2017 cíl. py_compile OK.
+- [x] **`generator/measure_dod.py` — DoD driver** (povýšeno ze scratch; operační půlka brány). Extent
+      z `.pgw` (4 rohy skenu → S-JTSK axis-aligned obal → WGS84 střed+rozměry), `generate_map` matched
+      na obal → `compare_isom.coverage`. Cesta (a) baseline `python generator/measure_dod.py`, cesta (b)
+      separace `--sep`. A3 (volba uživatele): Slovanka (UTM33) + Soví vrch (1/4 domapováno) vynechány z DoD.
+- [x] **PRVNÍ poctivý mezimapový matched DoD baseline (crosswalk-aware):** Bedřichovka **43 %** (30/69) /
+      Blatná **37 %** (22/60, jediná 2017) / Velbloud **50 %** (38/76) → **PRŮMĚR 43 %**. Bez tichých
+      výpadků vrstev (layer_errors prázdné). Crosswalk přidal na 2000 mapách +11 (Bedř) až +13 (Velb).
+      **Pravý gap je OBSAHOVÝ ne číslovací** (přesně závěr KB Sez. 40): chybí typy 416/107/108/507 (linie),
+      418/419/525/527/531 (body), 404/407/409 (pattern plochy), 210 Stony (ZABAGED nevede), mikroformy.
+- [x] **Cesta (b) — separace-ze-skenu změřena: páka KVALITY, NE pokrytí.** `map_gt` (na downscaled skenu,
+      114 Mpx > strop) → `separate` → predict plochy v S-JTSK přes `.pgw` afinní → `generate_map(forest_age=off)`.
+      Výsledek na všech 3 mapách: **nové [403], ztracené [410] → matched DoD net-nula** (43/37/50 beze změny).
+      `predict_areas_sjtsk` forest_age **úplně nahradí** (generator.py:3140 `if/elif`, ověřeno) → proxy-410
+      zmizí, separace vrátí věrné 403. Závěr: coverage páka = **kreslit nové typy**, ne leštit separaci zeleně.
+
 ## Sezení 93 (2026-06-07) — Úklidové sezení: %AUDIT:DOCS + pruning + rename forest_age→veg_area
 - [x] **%AUDIT:DOCS** (cadence ≥10 dosažen, vynucený): **0 kritických, 4 doporučené + 1 kosmetický**,
       všechny jeden vzorec — README/architecture status zaostával za 3 mrkla-sezeními (90/91/92).
