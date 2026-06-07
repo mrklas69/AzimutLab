@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 97 (2026-06-07) — Handoff HAL3000 → ntbhej (bez práce, jen %BEGIN + zarámování fokusu)
+- [x] **Krátké handoff sezení** — uživatel po %BEGIN „na tomto stroji končíme, přechod na ntbhej + %END".
+      Žádná kódová ani docs-featurová práce; generátor i měřicí nástroje NETKNUTÉ, proc baseline drží.
+- [x] **Zjištění pro přechod — coverage measure-work je mrkla-blokovaná** (prevence pasti Sez. 86 C-1):
+      `resources/` (5 vzor. `.omap`) + `resources/livelox/` korpus jsou gitignored → na ntbhej nejsou.
+      Příště bod 1 (310/413 measure-first v `resources/*.omap`) i bod 2 (kompas `--table` z párů korpusu)
+      = mrkla-only; body 3/4 (Png2Line/Png2Point trénink, expansion) = CUDA/korpus → taky mrkla-only.
+- [x] **ntbhej fokus zarámován = %AUDIT:CODE** — cadence-zralý nejen počtem (Sez. 89 → 8 zpět, práh ≥8),
+      ale i **LOC ≥500 PŘEKROČEN**: měřicí nástroje od Sez. 89 přidaly ~700 LOC (`compare_isom.py`
+      +144/+39/+38, `measure_dod.py` +177/+123/+90 přes Sez. 94/95/96), nový kód `symbol_geometry`/
+      `used_geometry`/`_load_crosswalk`/`--table` nikdy neauditován. Audit = čisté čtení → běží bez korpusu/CUDA.
+- [x] Propsáno: diář Sez. 97 + DIARY.md index + DONE (tento záznam). Commit `docs(session)` + push → ntbhej ff-sync.
+
 ## Sezení 96 (2026-06-07) — 210 Stony = bodový gap (ne plošný) + kompas tabulka orig/gen
 - [x] **A1 measure-first nad 210 Stony ground (fokus bod 1 Příště) → VYVRÁCENO plošné zařazení.**
       Změřena reálná geometrie 210 v 5 mapách: **VŠECHNY objekty jsou `type=point`** (210.0/210.1
