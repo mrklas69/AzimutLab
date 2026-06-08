@@ -131,8 +131,8 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Bažina, močál` | plocha | 308 Marsh | ✓ | **Sez. 44** (`--marsh`, modrá vodorovná šrafa; KISS vždy crossable 308, NE 307 — data nenesou překonatelnost). NV 15 / HS 10 / NL 9 / SV 5 |
-| `Rašeliniště (plocha)` | plocha | 308 Marsh | ✓ | **Sez. 44** (`--marsh`, spolu s bažinou — mokřad téhož symbolu) |
+| `Bažina, močál` | plocha | 308 Marsh / 310 Indistinct | ✓ | **Sez. 44** (`--marsh`, modrá vodorovná šrafa; projekce vždy crossable 308, NE 307 — data nenesou překonatelnost). **Sez. 99: generator pseudo split ~55 % → 310 Indistinct** (přerušovaná šrafa; ZABAGED zřetelnost nenese, jen `pseudorealistic`). NV 15 / HS 10 / NL 9 / SV 5 |
+| `Rašeliniště (plocha)` | plocha | 308 Marsh / 310 Indistinct | ✓ | **Sez. 44** (`--marsh`, spolu s bažinou — mokřad téhož symbolu; pseudo 310 split Sez. 99) |
 | `Rašeliniště__bod_` | bod | 308 Marsh | ○ | bodová varianta — odloženo (plošná pokrývá) |
 
 ## 7. Terénní tvary, skály a balvany (ISOM 1xx, 2xx)

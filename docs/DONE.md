@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 99 (2026-06-08) — 310 Indistinct marsh (pseudo fáze 2) + oprava kompas cache (ntbhej)
+- [x] **Measure-first 310/313** (5 `resources/*.omap`, `temp/measure_marsh*.py`) — rozbil zadání bodu 1:
+      **313 „vodopád" = mýtus** (v datech 313 = Spring BOD / 2017-2 313 0× ve všech 5; vyřazeno jako 210 Sez. 96);
+      **310 Indistinct = plošný+hojný** (area všude, Slov 89× > 308) ALE z ČÚZK neodvoditelný — ZABAGED nerozlišuje
+      zřetelnost (crosswalk `.crt`: 2017-2 310 ← 2000:311; 308 Marsh = 2000:310). Kritérium splitu: rašeliniště/bažina
+      **geograficky binární** (NL 100 %/HS,NV 0 %) i velikost **nediskriminuje** (překryté distribuce) → obě vyvráceno.
+- [x] **310 split náhodou ~55 %** (volba uživatele: trénovací mapy nemusí být reálné, reframe Sez. 79). `generator.py`:
+      `_marsh_indistinct(cx,cy)` deterministický spatial-hash (jen `pseudorealistic`; `--only-real` = vše 308 = projekce,
+      izomorf fence 516). `_draw_marsh_area` rozliší 308 (plné čáry) / 310 (2× řidší PŘERUŠOVANÁ staggered šrafa, věrné
+      template `type=2` line_spacing 900 + point_distance 1725). Konzistentní trojice (paměť Sez. 90): generátor +
+      `omap_export` USED_CODES/AREA_CODES +310 + `omap_raster` AREA_ZORDER +310 (**N_AREA 17→18** → Png2Area přetrénovat).
+      `stats.py` +310. Verify: **noise byte-identický** (241 obj + md5), NL E2E `.omap` 308=2/310=7 + vizuál.
+- [x] **Bod 3 „meta bug real_sections []" = NEEXISTUJE** (paměť stale-todo-verify-rationale): `veg_area` se zapisuje
+      správně (224 položek, provenance predict, doloženo `maps/Blatná/meta.json`). Sez. 98 viděl STALE `meta.json` přes
+      skip-existing `_gen_sep` (.omap existoval → regenerace přeskočena). Drop.
+- [x] **fix kompas cache** — skip-existing `_gen_sep` dělal **kompas slepým ke změnám generátoru** (vracel cached `.omap`
+      → `measure_dod` měřil starý stav, klamal napříč sezeními). `_code_mtime()`: cached `.omap` starší než nejnovější
+      `generator/`+`connectors/` `.py` = stale → přegeneruj. Ověřeno (mtime logika). 2 commity (feat/fix).
+- [x] **KOMPAS přínos 310 ~0** (poctivé přiznání, Censure sobě): ZABAGED mokřady na DoD mapách řídké (Bedř gen 0,
+      Blatná gen 1) → DoD se nehnul. Hodnota v Livelox párech, ne na 3 resources mapách. Lekce: měř „vede ZABAGED vrstvu
+      na DoD mapách?" PRVNÍ (paměť measure-coverage-source-on-dod-first).
+
 ## Sezení 98 (2026-06-07) — %AUDIT:CODE měřicího kódu + dissolve olivové 520 + plot 516 (ntbhej)
 - [x] **Sync 16 commitů pozadu → ff-pull** na `d9152be` (sezení 90–97 z mrkla) PŘED prací (paměť stale-clone-fetch-first).
 - [x] **Nález struktury:** `resources/` na ntbhej lokálně JE (proti předpokladu Sez. 97), jen neúplné (chybí `Velbloud.pgw`).

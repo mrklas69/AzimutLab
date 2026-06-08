@@ -433,6 +433,16 @@ opačný předpoklad zrcadlil cave/spring → paměť `omap-symbol-y-axis-down`.
 (`zabaged.map_marsh_to_isom`, KISS vždy crossable 308 — data nenesou atribut překonatelnosti, NE 307 uncrossable).
 Render `_draw_marsh_area` = MODRÁ vodorovná šrafa (scanline, rozestup 0,45 mm dle template patternu) ořezaná na
 polygon; `.omap` = area_object 308 (OOM nakreslí pattern). Z-order nad plošným pokryvem (401/520), pod liniemi.
+
+**✅ 310 Indistinct marsh (pseudo fáze 2, Sez. 99)** — ZABAGED nerozlišuje zřetelnou (308) vs nezřetelnou (310)
+bažinu (measure-first: atribut rašeliniště/bažina geograficky binární, velikost nediskriminuje; „indistinct" =
+kartografická interpretace okraje, ne katastrální fakt). Reálné mapy mají 308+310 PROMÍCHANÉ v mapě (medián ~59 %
+na 310). → `_marsh_indistinct(cx,cy)` deterministická pseudonáhoda ~55 % (spatial-hash z centroidu, stabilní mezi
+běhy) reklasifikuje část mokřadů na 310, JEN když `pseudorealistic` (`--only-real` = vše 308 = čistá projekce;
+izomorf plotu 516). Render 310 = 2× řidší (0,90 mm) PŘERUŠOVANÁ staggered šrafa (`_draw_dashed_hline`, věrné
+template `type=2` line_spacing 900 + point_distance 1725). `.omap` area_object 310; Y-pipeline `omap_raster`
+AREA_ZORDER +310 (N_AREA 17→18). **Pozn.: coverage páka na DoD ~0** — ZABAGED mokřady na resources mapách řídké;
+hodnota v Livelox párech mokřadnatých lokalit.
 `mask_marsh.png`. Výskyt: NV 15 / HS 10 / NL 9 / SV 5 / LS 0 (sedí na probe Sez. 43).
 
 ### 4.9m Liniové orientační prvky (real-půlka, Sez. 43)

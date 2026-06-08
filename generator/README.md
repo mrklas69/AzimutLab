@@ -81,7 +81,7 @@ Realizuje **MVP řez** specifikace
   **Sez. 44**: pramen→**312** (modré „U" ústím nahoru), jeskyně+šachta→**203.2 Cave** (černá „Λ" stříška hrotem
   nahoru), nádrž→**311** (modrý čtverec, z centroidu),
 - **mokřady** — `--marsh real` (Sez. 44): bažina/močál + rašeliniště→**308 Marsh** (modrá vodorovná šrafa;
-  KISS vždy crossable, NE 307),
+  projekce vždy crossable, NE 307) + **310 Indistinct** (pseudo fáze 2 Sez. 99: ~55 % náhodou, 2× řidší přerušovaná šrafa),
 - **liniové orient. prvky** — `--linefeatures real` (Sez. 43): sráz→**104 Earth bank** (HNĚDÁ plná + jednostranné ticky),
   zeď/hradba→**513 Wall**, rokle/výmol→**107 Erosion gully** (Sez. 58; HNĚDÁ plná bez ticků, mirror 104; v ČR řídká, Σ0 na DEV),
 - **stromořadí** — `--treerows real` (Sez. 45): `Liniová vegetace`→**406 Vegetation: slow running** („lineární les":
@@ -164,7 +164,7 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 | `mask_buildings.png` | maska budov (1=521; jen `--buildings real`) |
 | `mask_symbols.png` | multi-class maska bodových symbolů extrémů (1=109 / 2=110 / 3=111) |
 | `mask_formlines.png` | maska pomocných vrstevnic (103; jen `--terrain real`) |
-| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` / `mask_landmarks.png` / `mask_linefeatures.png` / `mask_marsh.png` / `mask_treerows.png` | masky reálných vrstev 508 / 510 / 509 / 501·501.1 / 204·206·207 / 512·512.2 / 401·402·402.1·412·520 / bodové orient. (524·526·530·417·312·311·203.2) / liniové orient. (104·513) / 308 Marsh / 406 stromořadí / `mask_veg_area.png` 406·408·410·403 plošná predikční zeleň/open (separace nebo věk porostu PROXY; rename Sez. 93) (každá jen při své `--…real`; multi-class kde víc tříd) |
+| `mask_rides.png` / `mask_powerlines.png` / `mask_railways.png` / `mask_paved.png` / `mask_rocks.png` / `mask_bridges.png` / `mask_surfaces.png` / `mask_landmarks.png` / `mask_linefeatures.png` / `mask_marsh.png` / `mask_treerows.png` | masky reálných vrstev 508 / 510 / 509 / 501·501.1 / 204·206·207 / 512·512.2 / 401·402·402.1·412·520 / bodové orient. (524·526·530·417·312·311·203.2) / liniové orient. (104·513) / 308·310 Marsh/Indistinct (class 1/2) / 406 stromořadí / `mask_veg_area.png` 406·408·410·403 plošná predikční zeleň/open (separace nebo věk porostu PROXY; rename Sez. 93) (každá jen při své `--…real`; multi-class kde víc tříd) |
 | `contours.geojson` | **vektor** vrstevnic + form lines (LineString + ISOM symbol 101/102/103; CRS S-JTSK pro real) |
 | `<lokalita>.omap` | OpenOrienteering Mapper mapa (vždy; název = výstupní složka, Sez. 42; template-based: vrstevnice 101/102 + form lines 103 + cesty 502-506 + lesní průseky 508 + voda 301/304-306 + budovy 521 + vedení 510 + železnice 509 + kolejiště 501 + ostatní plocha v sídlech 501.1 (base, s děrami, Sez. 54) + skály 204/206/207 + mosty/tunely 512 + lávky 512.2 + plošný pokryv 401/520 (olivová: hřbitov + RÚIAN privátní + areály 114) + stromořadí 406 lineární les + řopíky + body 109/110/111, plná ISOM knihovna) |
 | `meta.json` | seed, parametry, legenda tříd, info o vektor/omap exportu + blok `georef` (S-JTSK bbox, pixel_size_m, world_file, north, grivation_deg) |

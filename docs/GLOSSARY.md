@@ -72,7 +72,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   + `Pozemní_nádrž` (umělé nádrže vč. **koupališť/bazénů** `podtypob_k='BA'` → 301, Sez. 27 — Lesní
   koupaliště LS chybělo, je nádrž ne `Vodní_plocha`); podzemní toky (`typtoku_k=004`) se nekreslí.
 - **Mokřad / jeskyně / pramen / nádrž** (dávka 4, Sez. 44) — **308 Marsh** (crossable bažina/močál +
-  rašeliniště, modrá vodorovná šrafa; `--marsh`), **312 Spring** (pramen, modré „U" ústím nahoru),
+  rašeliniště, modrá vodorovná šrafa; `--marsh`) + **310 Indistinct marsh** (nezřetelná bažina, 2× řidší
+  PŘERUŠOVANÁ šrafa; pseudo fáze 2 Sez. 99 — ZABAGED zřetelnost nenese → ~55 % mokřadů náhodou na 310, izomorf
+  plotu 516; jen `pseudorealistic`, `--only-real` = vše 308 = projekce), **312 Spring** (pramen, modré „U" ústím nahoru),
   **203.2 Cave or rocky pit** (vstup do jeskyně/šachty, černá „Λ" stříška hrotem nahoru = „with a distinct
   entrance"; **203.1** je naopak **V** hrotem dolů = „without entrance"), **311 Well/fountain/water tank**
   (nadzemní nádrž, modrý čtverec z centroidu). Pramen/jeskyně/nádrž jdou přes `--landmarks` (bodové).

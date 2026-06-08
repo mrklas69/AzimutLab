@@ -52,7 +52,9 @@ recurring "it's missing / we don't map that" anti-pattern, fixed for good by dat
 across the 5 dev locations) — castles/chateaux → 521, **ruins** → 523 (Milštejn et al., dashed outline),
 towers/water-towers/silos/… → 524, cairns/memorials → 526, crosses/wayside shrines → 530, prominent trees → 417
 (`--landmarks`), and earth banks → 104, walls/ramparts → 513, erosion gullies → 107 (`--linefeatures`, session 58; rare on the dev locations);
-since session 44 (catalogue batch 4: water/wetland) marshes+peat bogs → 308 Marsh (`--marsh`, blue horizontal hatch),
+since session 44 (catalogue batch 4: water/wetland) marshes+peat bogs → 308 Marsh (`--marsh`, blue horizontal hatch;
+since session 99 a pseudo phase-2 split reclassifies ~55 % to **310 Indistinct marsh** — dashed sparser hatch — as ČÚZK
+carries no distinctness attribute, the same random-to-statistical-rate device as the 516 fence),
 springs → 312, cave/mineshaft entrances → 203.2, water tanks → 311 (`--landmarks`); since session 45 tree rows
 (`Liniová vegetace`) → 406 Vegetation: slow running (`--treerows`, "linear forest": axis→buffer→strip; corrects the
 earlier 416 = vegetation *boundary*, which was semantically wrong for a row of trees);
