@@ -61,10 +61,11 @@ earlier 416 = vegetation *boundary*, which was semantically wrong for a row of t
 since session 52 factory chimneys → 524 (`--landmarks`) and barriers (`Zábrana`) → 519 Crossing point (`--barriers`,
 only points lying on a 513 wall = actual gate through a fence; the wall is broken under the gate) — among the last simple
 candidates, but the catalogue is **not** exhausted (session 55 re-probed: boulder field 208, underpass/ford 519, weir 528 still remain).
-Since session 62 **forest age → green** (`--forest-age`, `forest.py`): AOPK stand polygons, attribute `BARVA` = ordinal age →
-ISOM 406/408/410 (youngest→410 fight, …, old/non-forest→white). This is a **PROXY / prediction** (age ≠ true runnability —
-the open-LiDAR vegetation gate is closed, session 59), marked `proxy:true`; the first prediction step toward UC5 vegetation.
-`zabaged.py`, `ruian.py` and `forest.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines) + paths + rides + water + paved + buildings + powerlines + railways + rocks + bridges + surfaces + landmarks + linefeatures + marsh + treerows + forest age + barriers + points
+Predictive vegetation (green 406/408/410 + 403 rough open) comes **only from colour separation of a real OB map**
+(`predict_areas_sjtsk`, sessions 82/83) — the AOPK forest-age proxy (sessions 62–91) was **archived in session 102** as a
+documented dead end (33 % corpus coverage, IoU 0.12, 3.3× over-prediction); pseudorealistic vegetation for scan-less
+locations is a future direction. DEV `--location` maps therefore draw a white forest (no separation source).
+`zabaged.py` and `ruian.py` (siblings of `dmr.py`, sharing `arcgis.py` REST transport) are the real UC2 connectors. Exports contours (incl. form lines) + paths + rides + water + paved + buildings + powerlines + railways + rocks + bridges + surfaces + landmarks + linefeatures + marsh + treerows + barriers + points
 to `.omap` (contours also to GeoJSON) — template-based on a
 clean self-made ISOM 2017-2 template (session 14), inheriting faithful point geometry (110 ellipse,
 111 arc) + the full symbol library. Since session 23 the map extent is parametric (`--width-km`/`--height-km`,
@@ -169,8 +170,7 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
   zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks/tree rows/chimneys/barriers (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real
   ruian.py             #   ČÚZK RÚIAN cadastre parcels by land-use → private land → olive 520 (session 42)
-  forest.py            #   AOPK "Les_Mapy" stand polygons; BARVA = age → ISOM 406/408/410 green PROXY/prediction; --forest-age (session 62)
-  arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian+forest, session 42/62)
+  arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian, session 42)
   livelox.py           #   UC5 corpus: real OB maps from Livelox → map.png + meta.json (georef, epsg from data) + blend.png (session 68)
   map_gt.py            #   UC5 corpus: runnability ground-truth (gt_labels/gt_vis) from real map via ISOM colour segmentation (session 68; olive 520 → label 0, session 71; purple course overprint → label 255 ignore, session 72; off-map layout — legend/table/title/paper — → label 255 ignore via colour detector, session 73 part B)
   curate.py            #   UC5 corpus: curation taxonomy + manifest (_curation.json) → keep set for training (session 71: 268 → 216 keep classic)

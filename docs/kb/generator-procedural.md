@@ -119,7 +119,7 @@ Pořadí níže je zároveň pořadím vykreslování (z-order, odspodu nahoru).
 > řezu Sez. 11 dělal jen **§4.5 vrstevnice + §4.9 cesty + §4.10 bodové symboly extrémů**
 > (+ vektor §9). Od Sez. 16 přibyla celá **real-půlka §4.9a-p** (voda, budovy, vedení/lanovka,
 > železnice, kolejiště, skály, mosty/tunely, landmarks, plošný pokryv, lineární prvky, stromořadí,
-> věk porostu — viz podsekce §4.9*) a skalní plochy 206 z DMR (`rock_relief.py`, Sez. 63).
+> predikční vegetace ze separace — viz podsekce §4.9*) a skalní plochy 206 z DMR (`rock_relief.py`, Sez. 63).
 > Plošné vrstvy §4.2-4.4 (vegetace, paseky, bažiny) a §4.11 (balvany) z noise-půlky byly Sez. 11
 > **zahozeny** — vypadaly uměle a kazily by domain gap feederu pro UC5. Metodika níže zůstává
 > platná pro přestavbu „znovu a lépe" (vrstvu po vrstvě, s důrazem na vizuální věrnost); historie
@@ -481,14 +481,18 @@ počet zdí v meta beze změny. Jediná orientovaná bodová vrstva vedle řopí
 bodový objekt 519 s rotací v .omap (mirror lávky 512.2, OOM Test OK Sez. 52). Vyžaduje `--terrain real`. Výskyt: LS 2,
 ostatní 0 (řídké). (Pozn.: „katalog vyčerpán" prohlášené zde v Sez. 52 **korigováno Sez. 55** — viz `zabaged-isom-catalog.md`; po měření zbývají kandidáti 208/519/528.)
 
-### 4.9p Věk porostu → zeleň (real-data, PROXY/predikce, Sez. 62) — ⟲ ARCHIVOVÁNO Sez. 82
-> **A1 measure-first (Sez. 82) ho vyřadil jako zdroj predikční vegetace:** pokrytí jen 33 % korpusu, IoU
-> s kresbou kartografa 0,12, přestřel zelené 3,3×. Nahrazeno **separací z reálné mapy** (`generator/separate.py`,
-> [[separate_areas]]; **integrováno Sez. 83** do `generate_map` přes kwarg `predict_areas_sjtsk` + orchestrátor
-> `generator/pairs.py`). Kód i `--forest-age` ZŮSTÁVAJÍ funkční (doložená cesta jako Orto2Colors). Detail: DONE Sez. 82/83.
+### 4.9p Predikční vegetace → zeleň + 403 (Sez. 82/83/92)
+> **Forest-age proxy (AOPK věk porostu, Sez. 62) — ⟲ ARCHIVOVÁNO Sez. 82, kód SMAZÁN Sez. 102.**
+> A1 measure-first (Sez. 82) ho vyřadil jako zdroj predikční vegetace: pokrytí jen 33 % korpusu, IoU
+> s kresbou kartografa 0,12, přestřel zelené 3,3×. JEDINÝ zdroj predikční vegetace je nyní **separace
+> z reálné mapy** (`generator/separate.py`, [[separate_areas]]; integrováno Sez. 83 do `generate_map`
+> přes kwarg `predict_areas_sjtsk` + orchestrátor `generator/pairs.py`). `connectors/forest.py`, `--forest-age`
+> flag, funkce `_generate_real_forest_age`/`_draw_forest_age_area` SMAZÁNY (doložená slepá ulička, git/diář ji
+> drží — jako Orto2Colors). DEV `--location` mapy proto kreslí bílý les; pseudorealistic vegetace pro lokality
+> bez skenu = budoucí směr (TODO). Detail archivu: DONE Sez. 82/102.
 
 #### 4.9p-predict — Predikční plochy ze SEPARACE reálné mapy (Sez. 82/83/92, ŽIVÁ cesta)
-Zdroj predikční vegetace (náhrada archiv forest-age): **separace barev z Livelox mapy** (`generator/separate.py`,
+Zdroj predikční vegetace: **separace barev z Livelox mapy** (`generator/separate.py`,
 [[separate_areas]]). map_gt segmentace mapy → per-ISOM-kód maska → contourpy vektorizace → polygony v S-JTSK
 (přes Livelox quad) → `generate_map(predict_areas_sjtsk=…)` (provenance `predict`, render `_draw_predict_areas`).
 **Třídy (registr `AREA_CLASSES` v separate.py + `PREDICT_AREA_*` v generator.py):**
@@ -516,36 +520,11 @@ template, **0 změna omap_export**); `mask_boundaries.png`. **LINIE → bez Y-ar
 MEZITŘÍDNÍ je doménově věrná. **KPI 46,1 → 49,3 %** (+3,2 pb; sub-linie 47,7 → 58,3). Zásada „neleštit": gen 416
 je 0,24× reálného (per-mapa plató), nedoháníme na 1,0× (přestřel by KPI snižoval přes `min`).
 
-**✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
-`connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server
-`gis.nature.cz`, `maxRecordCount=1000` → paging po 1000) → ISOM zeleň **406/408/410** dle věku.
-**Liší se od ostatních §4.9 vrstev charakterem:** je to **PREDIKCE, ne projekce** — data tvrdá (reálné
-porostní skupiny LHP/LHO), ale interpretace VĚK → běhatelnost je proxy (vegetace gate pro open-LiDAR
-zavřená, Sez. 59; tohle je náhradní osa = stáří). Patří do **2. půlky generátoru** („realisticky
-vyhlížející mapa, mimo real jistoty", rozhodnutí uživatele Sez. 62). Značeno `proxy:true` v meta +
-GLOSSARY [[forest-age-proxy]].
-
-**Atribut a mapování (verify-against-source):** `BARVA` (Integer) = ordinální kódování věku, směr
-nízká=mladá — DOLOŽENO standardem KSLH `KSLH021114.pdf` (NLI), Tab. 4 `Min((A+19),179) div 20`;
-`ZNACKA` (zakmenění) je ve službě vždy 1 = nepoužitelné; **`BARVA 15` = bezlesí** (KSLH Tab. 5 „Obraz BZL").
-Číselník `BARVA`→přesný rok AOPK nezveřejňuje → řezy jsou **laditelné konstanty** v `forest.py`
-(`BARVA_FIGHT_MAX/WALK_MAX/SLOW_MAX`; kalibrace proxy, ne věrnost — ověřeno vizuálně). `map_forest_age_to_isom`:
-mlazina (nejmladší, nejhustší) → **410 fight** (C_GREEN3 tmavá) / tyčkovina → **408 walk** (C_GREEN2 střední) /
-mladší kmenovina → **406 slow** (C_GREEN1 světlá) / staré + bezlesí → **None = bílá** (běhatelný les, default pozadí).
-
-**Řezy ABSOLUTNÍ, ne per-mapové** (rozhodnutí Sez. 62): stejné pro všechny mapy → 410 fight = stejná obtížnost
-všude (ISOM absolutní význam + konzistence pro UC5 feeder). Per-mapová kvantilová normalizace zvážena a
-ZAVRŽENA — vynutila by plný rozsah včetně 410 i na holé staré svahy (fabrikace kontrastu) a rozbila by
-cross-map význam. Variace mezi mapami je tím **věrná**: NL/LS zeleň menšina, NV plošně zelená (mladý
-hospodářský les Lužických hor — nejspíš reálné), holý starý svah správně bílý.
-
-**Render** `_draw_forest_age_area` = plná zelená výplň BEZ obrysu (vegetační plošný symbol, izomorf
-s 406 stromořadím §4.9n / 401 / 520; díry zachovány přes scanline). Z-order: NAD plošným pokryvem
-(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_veg_area.png` (multi-class:
-1=fight 410, 2=walk 408, 3=slow 406; sdílený nosič predict separace i archiv věku — rename Sez. 93, dřív
-`mask_forest_age.png`); plošné objekty 406/408/410 v .omap (AREA_CODES). Vyžaduje `--terrain real`.
-**Pokrytí 3/5 DEV** (NL 341 / LS 490 / NV velký počet; **SV/HS 0** — AOPK sada sešitá z LHP různých roků,
-mirror řídkých vrstev). Probe + KSLH PDF: `temp/uhul_probe/`.
+**Render** `_draw_predict_areas` = plná zelená/bledožlutá výplň BEZ obrysu (vegetační/open plošný symbol,
+izomorf s 406 stromořadím §4.9n / 401 / 520; díry zachovány přes scanline). Z-order: NAD plošným pokryvem
+(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_veg_area.png` (multi-class: 1=fight
+410, 2=walk 408, 3=slow 406, 4=403). Plošné objekty v .omap (`AREA_CODES`). Provenance `predict` v meta
+(`proxy:true`, `source:separace_realne_mapy`). Bez `predict_areas_sjtsk` (DEV `--location`) = bílý les.
 
 ### 4.10 Bodové značky (`det`)
 Vzorkování buněk rejection samplingem podle predikátu:

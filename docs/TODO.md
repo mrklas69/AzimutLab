@@ -9,7 +9,7 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## UC2 — Data konektory (enabler, průzkum)
 - [~] **Doplnit CHYBĚJÍCÍ relevantní vrstvy ZABAGED** (Sez. 23, uživatel „stojíme o všechna data z geoportálu, ne jen vybraná"). **Katalog VŠECH 149 vrstev + stav každé: `docs/kb/zabaged-isom-catalog.md`** (SSoT). Hotové dávky (Sez. 24–56: vedení/lanovka/železnice/kolejiště/skály/mosty/průseky/land-cover/RÚIAN/areály/landmarky/mokřady/stromořadí/kultura/komín/zábrana/kamenolom) jsou v DONE + katalogu. **„KATALOG VYČERPÁN Sez. 52" KOREKCE Sez. 55:** ○ kandidáti lanovka/lom/brod/podjezd/hráz nebyli změřeni jako Sez. 43 → probe ukázal nenulový výskyt; lanovka/vlek→510 HOTOVO Sez. 55, kamenolom→520 HOTOVO Sez. 56. **Zbývají ZMĚŘENÉ ◐/○:** podjezd 519 (Σ12, LS 11, verify spec), brod 519 (Σ6), hráz 528 (Σ13, blokátor legenda), vodopád 313 (Σ2), suť 210 (Σ1). **HOTOVO Sez. 57: balvany-linie → 208 Boulder field** (buffer pás, mirror 406). **Plot 516–518 = doložený SKIP Sez. 57** (ZABAGED plot nevede). Detail + čísla v katalogu „Akční seznam".
-- [ ] *(idea Sez. 24, fáze 2)* **Vegetace jako pseudorealistická vrstva** — `pseudorealistic=True` (fáze 2) je dnes jen příčky vedení; hlavní budoucí konzument = vegetace (zelená/žlutá průchodnost, v datech není kvůli vegetace gate). To už je **predikce** (UC5, blokováno korpusem+licencí), ne jen dekorace. Až bude UC5 model. Spec §0b, GLOSSARY „pseudorealistic".
+- [~] *(idea Sez. 24, fáze 2; POVÝŠENO na aktivní směr Sez. 102)* **Vegetace jako pseudorealistická vrstva** — `pseudorealistic=True` (fáze 2). Hlavní konzument = vegetace (zelená/žlutá průchodnost, v datech není kvůli vegetace gate). **Sez. 102: forest_age proxy smazán → DEV `--location` mapy a syntetické páry bez Livelox skenu kreslí BÍLÝ LES.** Predikční vegetace dnes jde JEN ze separace reálné mapy (cesta párů) — lokality bez skenu zelený generátor nemají. Pseudorealistic = náhrada: **vymyslet věrohodnou zeleň procedurálně** (clustery v lese / perlin / hranice z terénu?). Reframe Sez. 79 ji posvětil („vegetace pro trénink nemusí být pravdivá — reconstructor ji čte ze skenu, generátor generuje procedurálně-věrohodně"). **Příště: %THINK jak generovat.** Spec §0b, GLOSSARY „pseudorealistic"/[[forest-age-proxy]].
 - [ ] LiDAR pipeline LAZ → DMR → vrstevnice (zbylá point-cloud větev; za MVP-deštník, až bude konzument). Pozn.: výškopis `dmr.py` (DMR 5G, ImageServer) i cesty `zabaged.py` (ZABAGED ArcGIS REST) už jako konektory žijí v `connectors/` — tohle je plné mračno bodů (naráží na vegetace gate, viz `data-sources.md`). **Sez. 59: stažení DMP 1G mračna automatizováno** (klad SM5 REST + ATOM `openzu.cuzk.cz` + `laspy[lazrs]`) — cesta ověřena, i kdyby jen pro CHM/vrstevnice.
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
@@ -23,9 +23,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
 > (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
 > (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
-> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 101: KPI 49,3 %** (z baseline 46,1 Sez. 100;
-> +3,2 pb 416 Distinct veg boundary; Bedř+Blatná; plocha 60,9 / **linie 47,7→58,3** / **bod 29,0** = Png2Point dluh;
-> Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit, Sez. 101): 210/204/403/508/**416** (už jen 2,7 pb)/417/409.
+> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 102: KPI 49,3 %** (beze změny od Sez. 101;
+> 508 měřením vyvráceno → generátor netknutý; Bedř+Blatná; plocha 60,9 / linie 58,3 / **bod 29,0** = Png2Point dluh;
+> Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit): **210/204** (body → Png2Point) /403 (granularita, vyvr.)/
+> **508** (vyvr. Sez. 102)/416 (hotovo)/**417/419** (body)/409 (gate). **Vrchol je téměř celý bodový/gate → další skok = reconstructory.**
+> **Sez. 102 — 508 Narrow ride NENÍ páka** (jako 403): smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK řídké /
+> Blatná počet 0,15× = GRANULARITA gen 4,7× delší kusy), KPI simulace i pokrytí STROP gen=orig jen **+0,34 pb**,
+> granularita +0,59 = gaming (mění jen #objektů) → nepáka. **4. potvrzení vyčerpání ČÚZK plošné+liniové páky.**
 > Co generátor nenakreslí, reconstructor se NIKDY nenaučí → pokrytí = strop tréninku (memory
 > `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = přiblížit distribuci symbolů realitě.**
 > **Sez. 101 — 403 NENÍ páka (granularitní propast), 416 ANO (+3,2 pb).** 403 podstřel (673/152) měřením: NE slévání
@@ -83,13 +87,17 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   měřením potvrzená SILNÁ páka. **Mezitřídní hranice** predikčních veg ploch (403↔406↔408↔410, volba uživatele) +
   **délkový práh 50 m** (mezi-veg samo přestřeluje 147/596 %, reálné medián 45-90 m). `_predict_veg_boundaries` +
   `_draw_boundary` (černá tečkovaná, izomorf 508) + linefeature (0 změna omap_export). LINIE → bez Y dluhu. KPI 46,1→49,3.
+- [x] *(VYVRÁCENO Sez. 102 — nepáka, detail DONE)* **508 Narrow ride podstřel NENÍ páka** (+0,34 strop / +0,59 gaming).
+  Measure-first: smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK `Lesní průsek` řídké / Blatná počet 0,15× =
+  GRANULARITA gen 4,7× delší kusy; medián úseku orig 50-67 m). KPI simulace: i pokrytí STROP gen=orig jen +0,34 pb,
+  rozsekání na úseky +0,59 = gaming (mění jen #objektů, ne vizuál; práh arbitrary). 508 = ~4 % hmoty. Generátor netknutý.
 - [x] *(VYŘEŠENO Sez. 99 — bug neexistuje)* meta.json „real_sections []" u predict cesty: `veg_area` se ZAPISUJE
   správně (224 položek, provenance predict). Sez. 98 viděl STALE `meta.json` přes skip-existing `_gen_sep` → odhalena
   cache past (níž), opravena.
 - [x] *(fix HOTOVO Sez. 99)* **kompas cache invalidace** — skip-existing `_gen_sep` dělal kompas slepým ke změnám
   generátoru (měřil cached `.omap`) → `_code_mtime()` invalidace (cached < kód = stale → přegeneruj).
-- [ ] *(drobnost, follow-up Sez. 99)* stejná **skip-existing past i v `run_proxy`** (`--proxy` cesta, `proxy_omap`) —
-  doplnit `_code_mtime()` invalidaci i tam (dnes opraveno jen `_gen_sep`).
+- [x] *(VYŘEŠENO Sez. 102 — bezpředmětné)* skip-existing past v `run_proxy` (`--proxy` cesta) — `run_proxy` celý
+  SMAZÁN při archivaci forest_age proxy (Sez. 102), bod zaniká.
 - [ ] *(model, carry mrkla — nález Sez. 99)* **Png2Area přetrénovat na N_AREA 18** (310 přidán do AREA_ZORDER) —
   spojit s class-balanced expansion (208/501/301.1).
 - [ ] *(doladění, Sez. 98)* plot 516 `FENCE_SIMPLIFY_M` 5→8–10 m, kdyby přímost obvodu nestačila (riziko zkomolení malých bloků).

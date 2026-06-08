@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 102 (2026-06-08) — 508 measure-first (VYVRÁCENO) + forest_age proxy ARCHIVOVÁN (kód smazán) (ntbhej)
+- [x] **508 Narrow ride měřením VYVRÁCENO jako páka** (+0,34 strop / +0,59 gaming) — fokus bod 3 Příště Sez. 101.
+      Measure-first (`temp/measure_508.py`+`sim_508_kpi.py`): **smíšený podstřel, jiný faktor každá mapa.** Bedř
+      (ISOM 2000) orig 185/15,8 km vs gen 13/3,5 km → **délka 0,22× = POKRYTÍ** (ČÚZK `Lesní průsek` = řídká
+      administrativní vrstva, kartograf vidí průhledy v terénu navíc → data-bound jako 310/416); medián úseku
+      orig 67 m / gen 233 m. Blatná (ISOM 2017-2) orig 125/8,4 km vs gen 19/6 km → **počet 0,15× / délka 0,72× =
+      GRANULARITA** (gen kreslí 4,7× delší kusy). **Crosswalk past doložena ze zdroje:** Bedř má `509.1 Narrow ride
+      - short line` (dedikovaný symbol pro krátké úseky) → 2000:509→2017:508; první skript hledal v Blatné prefix
+      509 (=0), opraven na 508. **KPI simulace** (`_counts_for_map`+`_intersection`): i pokrytí STROP (gen=orig) jen
+      +0,34 pb, granularita (rozsekat na ~67 m) +0,59 pb = **gaming** (mění jen #`<object>`, ne vizuál/obsah; práh
+      arbitrary — odmítnuto u 403 Sez. 101). 508 = ~4 % hmoty. **Závěr: nepáka** = 4. potvrzení vyčerpání ČÚZK
+      plošné+liniové páky; vrchol žebříčku = body (204/210/417/419 → Png2Point/mrkla) + pattern vegetace (gate).
+      Generátor NETKNUTÝ (ušetřena implementace).
+- [x] **forest_age proxy (AOPK věk → zeleň) ARCHIVOVÁN — kód SMAZÁN** (volby uživatele: archivovat teď + forest.py
+      smazat). Spouštěč: regen 5 DEV map odhalil přesycenou proxy zeleň (NV skoro celá zelená). Verify-against-source:
+      forest_age = **DEV-only kosmetika** (`elif` fallback za separací; `predict_areas_sjtsk` má přednost,
+      `measure_dod`/`batch` volaly `"off"`) → do KPI/párů NEvstupuje. **Smazáno:** `connectors/forest.py` (git rm),
+      `_generate_real_forest_age`, `_draw_forest_age_area`, větev `elif forest_age=="real"`, `--forest-age` flag/param,
+      validační řádek, meta-větev, `measure_dod --proxy` režim (`run_proxy` — bezpředmětný; vyřešil i carry Příště
+      bod 2 Sez. 99-101), volání v `batch.py`/`pairs.py`. **Přejmenováno** (separace dědí): `FOREST_AGE_FILL/CLASS/
+      NAME` → rozpuštěno do `PREDICT_AREA_*` (identické hodnoty) + ~6 drift komentářů. **Verify PROŠEL:** py_compile
+      7/7; **KPI 49,3 % IDENTICKÉ** (separační produkční cesta byte-zachována); NL `--location` **bílý les** (1716
+      obj, −341 = bývalá proxy zeleň). Behavior-preserving konstrukcí. **8 živých docs** propagováno (CLAUDE/README×3/
+      architecture/GLOSSARY/data-sources/generator-procedural §4.9p → archiv-pointer). DEV mapy bílý les; pseudo-
+      realistic vegetace pro lokality bez skenu = nový směr (TODO/Příště).
+
 ## Sezení 101 (2026-06-08) — 416 Distinct vegetation boundary z mezitřídních hranic (KPI 46,1 → 49,3 %) (ntbhej)
 - [x] **403 měřením VYVRÁCEN jako páka** (+0,1 pb) — measure-first roztřídil podstřel (orig 673/gen 152):
       slévání vyvráceno (gen 39 %/12 % PLOCHY), práh ubírá objekty ne plochu, **systémová příčina** = reálné

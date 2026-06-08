@@ -76,19 +76,19 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 57 pole balvanů `Skupina_balvanů__linie_` 13 → 208 Boulder field (`--rocks`, osa→buffer pás 1,5 mm →
   náhodné trojúhelníky, mirror stromořadí 406; plot 516–518 = doložený SKIP, ZABAGED plot nevede)**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
-  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), **`forest.py`** (AOPK „Les_Mapy" porostní skupiny,
-  **Sez. 62 — třetí datový zdroj, JINÝ server `gis.nature.cz`**: atribut `BARVA`=věk → zeleň 406/408/410, **PROXY/predikce**),
-  `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
-  paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`+`forest`). Generátor (UC4-I) je první konzument
+  paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/
-  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--forest-age/--barriers real`; form lines **i skalní
+  --surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real`; form lines **i skalní
   plochy 206 z DMR** (rock-relief sklon, Sez. 63 — derivace z výškopisu, ne ZABAGED); olivová z RÚIAN i ZABAGED 114 jde do `--surfaces`).
-  **Most UC2→UC5:** `--forest-age` byl první **predikční** vrstva (věk porostu ≠ věrná runnability, `proxy:true`) —
-  ⟲ **ARCHIVOVÁN Sez. 82** (A1 measure-first: pokrytí jen 33 % korpusu, IoU 0,12 s kresbou kartografa, přestřel zelené
-  3,3×; kód zůstává funkční, doložená cesta). Predikční vegetaci nahrazuje **separace z reálné mapy** (`generator/separate.py`,
-  `separate_areas`). **Integrace Sez. 83:** orchestrátor `generator/pairs.py` (`build_pair(cid)`) spojí real ČÚZK vrstvy
-  + separovanou vegetaci do JEDNÉ georeferencované `.omap` per Livelox classId (provenance real/predict) — UC5 továrna párů.
+  **Most UC2→UC5:** první **predikční** vrstva byl `--forest-age` (AOPK věk porostu → zeleň, `forest.py`/`gis.nature.cz`)
+  — ⟲ **ARCHIVOVÁN Sez. 82, kód SMAZÁN Sez. 102** (A1 measure-first: pokrytí jen 33 % korpusu, IoU 0,12 s kresbou
+  kartografa, přestřel zelené 3,3×; doložená slepá ulička, git/diář ji drží). JEDINÝ zdroj predikční vegetace je
+  **separace z reálné mapy** (`generator/separate.py`, `separate_areas`); pseudorealistic vegetace pro lokality bez
+  skenu = budoucí směr (DEV `--location` mapy proto kreslí bílý les). **Integrace Sez. 83:** orchestrátor
+  `generator/pairs.py` (`build_pair(cid)`) spojí real ČÚZK vrstvy + separovanou vegetaci do JEDNÉ georeferencované
+  `.omap` per Livelox classId (provenance real/predict) — UC5 továrna párů.
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
 Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace
