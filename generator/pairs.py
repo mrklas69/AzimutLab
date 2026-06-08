@@ -91,8 +91,8 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     """Vyrobí pár [sken scan.png (X), area_labels.png (Y)] pro Livelox classId: real ČÚZK + separace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
-    vegetaci z mapy do S-JTSK a předá ji generate_map jako `predict_areas_sjtsk` (forest_age="off",
-    nahrazeno separací). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`.
+    vegetaci z mapy do S-JTSK a předá ji generate_map jako `predict_areas_sjtsk` (jediný zdroj
+    predikční zeleně). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`.
 
     `degrade` (Sez. 86): po renderu degraduje rgb.png → scan.png (= X v páru, fáze II). Seed = cid →
     per-mapa reprodukovatelný sken. Čistý rgb.png zůstává (debug / Y-vizuál). False = jen čistý render.
@@ -123,7 +123,7 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     out = out_dir or str(cid_dir / "gen")
     print(f"{cid} \"{meta.get('name', '?')}\"  výsek {w_km:.2f}×{h_km:.2f} km @ "
           f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")
-    res = generate_map(lat, lon, w_km, h_km, forest_age="off",
+    res = generate_map(lat, lon, w_km, h_km,
                        predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
     if degrade:                                              # fáze II: čistý render → „sken" (X)
         degrade_file(pathlib.Path(out) / "rgb.png", seed=int(cid) & 0xFFFFFFFF)

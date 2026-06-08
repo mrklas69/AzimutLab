@@ -287,7 +287,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             objs.append(o); n_treerows += 1
     # plošná predikční zeleň/open → 406 slow / 408 walk / 410 fight / 403 rough open = plošný objekt
     # (uzavřený path s close flagem; OOM vyplní barvu z definice symbolu). Zdroj = separace reálné mapy
-    # (predict, Sez. 82/92) NEBO věk porostu (archiv forest-age, Sez. 62 PROXY) — značeno v meta provenance.
+    # (predict, Sez. 82/92; forest-age proxy archiv Sez. 102) — značeno v meta provenance.
     for ring, code in (veg_area_features or []):
         o = area_object(ring, str(code))
         if o:

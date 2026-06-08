@@ -118,7 +118,7 @@ def main() -> None:
             # ortho=False: ortofoto je vizuální verify-podklad pro člověka, ne data pro UC5
             # feeder (ten se učí číst generovanou mapu) → dataset jím nezatěžujeme (Sez. 27).
             # Všechny dev-map vrstvy KROMĚ paths/water/buildings batch zatím nedělá (rides/paved/
-            # powerlines/railways/ropiky/rocks/bridges/surfaces/landmarks/linefeatures/marsh/treerows/forest_age —
+            # powerlines/railways/ropiky/rocks/bridges/surfaces/landmarks/linefeatures/marsh/treerows —
             # v lesních CZ_LOCATIONS vzácné/0 prvků). Vše explicitně "off": mají default "real" → bez
             # vypnutí by noise větev padla na validaci (terrain="noise") a real větev by je zbytečně
             # stahovala (lekce B1 Sez. 35; výčet MUSÍ pokrýt validační smyčku v generator.generate_map).
@@ -127,7 +127,7 @@ def main() -> None:
                 seed=seed, rug=0.0, det=0.0, terrain="real",
                 paths="real", rides="off", water="real", paved="off", buildings="real", powerlines="off",
                 railways="off", ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off", marsh="off", treerows="off", forest_age="off", barriers="off",
+                linefeatures="off", marsh="off", treerows="off", barriers="off",
                 tolerant=True, ortho=False)
             # počty skutečně nakreslených vrstev (+ případné chyby) čteme z meta.json
             # = SSoT výsledku; rozliší prázdnou vrstvu (0 v datech) od selhání REST.
@@ -156,7 +156,7 @@ def main() -> None:
                 seed=seed, rug=rug, det=det, terrain="noise", paths="proc", rides="off",
                 water="off", paved="off", buildings="off", powerlines="off", railways="off",
                 ropiky="off", rocks="off", bridges="off", surfaces="off", landmarks="off",
-                linefeatures="off", marsh="off", treerows="off", forest_age="off", barriers="off")
+                linefeatures="off", marsh="off", treerows="off", barriers="off")
             manifest.append({
                 "id": i, "dir": f"{i:03d}", "seed": seed,
                 "rug": round(rug, 3), "det": round(det, 3),

@@ -542,37 +542,29 @@ TREEROW_WAVE_AMP = 0.35                                  # amplituda „špageta
 TREEROW_WAVE_LAMBDA_PX = 3.0 * PX_PER_MM                 # vlnová délka perturbace podél osy (~3 mm)
 
 
-# ---------- Věk porostu → zeleň (ISOM 406/408/410, Sez. 62, PROXY = první UC5 predikční střípek) ----------
-# Zdroj: AOPK „Les_Mapy" porostní skupiny (`connectors/forest.py`). Data jsou tvrdá (reálné porostní
-# skupiny LHP/LHO), ale interpretace VĚK → běhatelnost (zelená) je PROXY — patří do druhé,
-# pseudorealistické půlky generátoru („realisticky vyhlížející mapa, mimo real jistoty", rozhodnutí
-# Sez. 62). NEvydávat za věrnou runnability (vegetace gate Sez. 59, paměť pseudorealistic-phases) —
-# vrstva se všude značí jako proxy (meta `proxy: true`, spec §, GLOSSARY). Mladý porost = nejhustší →
-# nejtmavší zelená; řezy `BARVA`→ISOM jsou v forest.py (laditelné, číselník doložen standardem KSLH).
-# Plná výplň BEZ obrysu (vegetační plošný symbol, jako 406 stromořadí / 401 / 520). Barvy z palety:
-# 406 = C_GREEN1 (světlá, pomalý běh), 408 = C_GREEN2 (střední, chůze), 410 = C_GREEN3 (tmavá, fight).
-ISOM_VEG_SLOW = 406                 # mladší kmenovina (řidší) → světle zelená
-ISOM_VEG_WALK = 408                 # tyčkovina (mladý zapojený porost) → středně zelená
-ISOM_VEG_FIGHT = 410               # mlazina (nejmladší, nejhustší) → tmavě zelená
-FOREST_AGE_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running",
-                   ISOM_VEG_WALK: "Vegetation: walk",
-                   ISOM_VEG_FIGHT: "Vegetation: fight"}
-FOREST_AGE_FILL = {ISOM_VEG_SLOW: C_GREEN1, ISOM_VEG_WALK: C_GREEN2, ISOM_VEG_FIGHT: C_GREEN3}
-# ISOM kód → třída v mask_veg_area.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3.
-FOREST_AGE_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3}
+# ---------- Predikční vegetační/open kódy (ISOM 406/408/410 + 403) ----------
+# Zeleň dle hustoty: 406 = C_GREEN1 (světlá, pomalý běh), 408 = C_GREEN2 (chůze), 410 = C_GREEN3
+# (tmavá, fight). Plná výplň BEZ obrysu (vegetační plošný symbol, jako 406 stromořadí / 401 / 520).
+ISOM_VEG_SLOW = 406                 # řidší porost → světle zelená
+ISOM_VEG_WALK = 408                 # zapojený porost → středně zelená
+ISOM_VEG_FIGHT = 410               # nejhustší → tmavě zelená
 
 
 # ---------- Predikční plochy ze SEPARACE reálné mapy (Sez. 83/92) ----------
 # Obecný registr plošných predikčních symbolů, které kreslí _draw_predict_areas (geometrie zvenčí,
-# ze separace Livelox mapy přes pairs.py). Zeleň 406/408/410 sdílí render i GT class s forest-age
-# (archiv); 403 Rough open (Sez. 92) = bledá žlutá (C_YELLOW_PALE), separovaná rozštěpem žluté uvnitř
-# open (sytá 401 je real část, neseparuje se). Oddělené od FOREST_AGE_* záměrně: ty drží jen archiv-zeleň
-# 406/408/410, PREDICT_AREA_* je superset o 403. (Plošnou predikční zeleň nese neutrální `veg_area_*`
-# proměnná / `mask_veg_area.png` / `real_sections["veg_area"]` — rename Sez. 93, dřív matoucí „forest_age".)
+# ze separace Livelox mapy přes pairs.py). Zeleň 406/408/410 + 403 Rough open (Sez. 92) = bledá žlutá
+# (C_YELLOW_PALE), separovaná rozštěpem žluté uvnitř open (sytá 401 je real část, neseparuje se).
+# Plošnou predikční zeleň nese neutrální `veg_area_*` proměnná / `mask_veg_area.png` /
+# `real_sections["veg_area"]` (rename Sez. 93). Jediný zdroj predikční vegetace = SEPARACE.
+# (Archiv Sez. 102: forest_age proxy AOPK věk→zeleň smazán jako doložená slepá ulička — 33 % pokrytí
+#  korpusu, IoU 0,12, přestřel 3,3× /Sez. 82, 91/; pseudorealistic vegetace = budoucí směr, TODO.)
 ISOM_ROUGH_OPEN = 403
-PREDICT_AREA_FILL = {**FOREST_AGE_FILL, ISOM_ROUGH_OPEN: C_YELLOW_PALE}
-PREDICT_AREA_CLASS = {**FOREST_AGE_CLASS, ISOM_ROUGH_OPEN: 4}      # mask_veg_area.png class (debug GT)
-PREDICT_AREA_NAME = {**FOREST_AGE_NAME, ISOM_ROUGH_OPEN: "Rough open land"}
+PREDICT_AREA_FILL = {ISOM_VEG_SLOW: C_GREEN1, ISOM_VEG_WALK: C_GREEN2, ISOM_VEG_FIGHT: C_GREEN3,
+                     ISOM_ROUGH_OPEN: C_YELLOW_PALE}
+# ISOM kód → třída v mask_veg_area.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3 → 403 4.
+PREDICT_AREA_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3, ISOM_ROUGH_OPEN: 4}
+PREDICT_AREA_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running", ISOM_VEG_WALK: "Vegetation: walk",
+                     ISOM_VEG_FIGHT: "Vegetation: fight", ISOM_ROUGH_OPEN: "Rough open land"}
 
 # --- 416 Distinct vegetation boundary (Sez. 101): mezitřídní hranice predikčních veg ploch ---
 # Měření Sez. 101: 416 = NEJVĚTŠÍ proporční díra KPI (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ
@@ -1398,15 +1390,6 @@ def _draw_treerow_area(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDraw,
     (izomorfní s _draw_surface_area; 406 je plošný vegetační symbol, hranici nemá). Buffrovaný
     pás je JEDEN prsten bez děr → předáno _draw_area_symbol jako [ring_px] (tvar list-ringů, Sez. 54)."""
     _draw_area_symbol(draw, tdraw, [ring_px], C_GREEN1, None, TREEROW_CLASS[ISOM_TREE_ROW])
-
-
-def _draw_forest_age_area(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
-                          rings_px: list[list[tuple[float, float]]], code: int) -> None:
-    """Plocha věku porostu (ISOM 406/408/410 zeleň, PROXY Sez. 62): plná ZELENÁ výplň BEZ obrysu
-    + GT maska — wrapper nad _draw_area_symbol (izomorfní s _draw_surface_area/_draw_treerow_area;
-    vegetační plošný symbol hranici nemá; barva dle FOREST_AGE_FILL, třída dle FOREST_AGE_CLASS).
-    `rings_px` = [vnější, díra1, …] (Sez. 54) → _draw_area_symbol vyřízne díry scanline."""
-    _draw_area_symbol(draw, fdraw, rings_px, FOREST_AGE_FILL[code], None, FOREST_AGE_CLASS[code])
 
 
 def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -2556,44 +2539,15 @@ def _generate_real_tree_rows(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDr
     return area_features, treerows_info
 
 
-def _generate_real_forest_age(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
-                              lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Věk porostu → zeleň (PROXY, Sez. 62): AOPK porostní skupiny → ISOM 406/408/410 dle `BARVA`.
-
-    PRVNÍ UC5 PREDIKČNÍ vrstva: data tvrdá (reálné porostní skupiny), interpretace věk→běhatelnost
-    proxy (mladý=hustý drží těsně, starší nejisté — vědomě přijato, vegetace gate Sez. 59). Mirror
-    _generate_real_surfaces (RAW S-JTSK → grid → px → plná výplň, bez generalizace, díry zachovány).
-    Mapper forest.map_forest_age_to_isom vrací 410/408/406 nebo None — None (běhatelný les / bezlesí)
-    se NEkreslí (bílá = default pozadí, izomorf s lesem). Vrací (area_features [(grid, code)],
-    veg_area_info) v souřadnicích MŘÍŽKY (zdroj pro .omap). Mimo pokrytí AOPK (SV/HS) = 0 prvků."""
-    from forest import fetch_forest_age, map_forest_age_to_isom
-    area_features: list[tuple] = []
-    veg_area_info: list[dict] = []
-    for f in fetch_forest_age(lat, lon, GW, GH, TILE_M):
-        code = map_forest_age_to_isom(f["props"])
-        if code is None:                      # běhatelný les / bezlesí → bílá (žádný symbol)
-            continue
-        for poly in f["rings"]:
-            grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
-            if len(px_rings[0]) < 3:
-                continue
-            _draw_forest_age_area(draw, fdraw, px_rings, code)
-            area_features.append((grid_rings, code))
-            veg_area_info.append({"symbol": code, "symbol_name": FOREST_AGE_NAME[code],
-                                    "kind": "area", "layer": f["layer"]})
-    return area_features, veg_area_info
-
-
 def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
                         areas_sjtsk: list, geo_bbox: tuple) -> tuple[list, list]:
-    """Predikční plochy ze SEPARACE reálné mapy (Sez. 83) → ISOM 406/408/410.
+    """Predikční plochy ze SEPARACE reálné mapy (Sez. 83) → ISOM 406/408/410 + 403.
 
-    Reframe (Sez. 79/82): zdroj predikční vegetace = separace barev z Livelox mapy (mapař =
-    GT), NE forest-age (archiv). Mirror _generate_real_forest_age, ale geometrie přichází
-    zvenčí v S-JTSK (orchestrátor `pairs.py` ji vyrobil ze separace přes Livelox quad) — žádný
-    fetch. Predikční plochy: zeleň 406/408/410 (stejná výplň jako forest-age) + 403 Rough open
-    (bledá žlutá, Sez. 92) — render/class/název z PREDICT_AREA_* (obecný registr). Liší se od
-    forest-age jen PROVENIENCÍ (predict vs real ČÚZK). `areas_sjtsk` = [(poly [vnější,díra…] v
+    Reframe (Sez. 79/82): JEDINÝ zdroj predikční vegetace = separace barev z Livelox mapy
+    (mapař = GT). Geometrie přichází zvenčí v S-JTSK (orchestrátor `pairs.py` ji vyrobil ze
+    separace přes Livelox quad) — žádný fetch. Predikční plochy: zeleň 406/408/410 + 403 Rough
+    open (bledá žlutá, Sez. 92) — render/class/název z PREDICT_AREA_*. Provenance = predict
+    (ne tvrdá ČÚZK projekce; meta `proxy: true`). `areas_sjtsk` = [(poly [vnější,díra…] v
     S-JTSK, code:int)]. Vrací (area_features [(grid, code)], info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
     area_features: list[tuple] = []
     info: list[dict] = []
@@ -3223,7 +3177,7 @@ def generate_map(
         railways: str = "real", ropiky: str = "real", rocks: str = "real",
         bridges: str = "real", surfaces: str = "real", landmarks: str = "real",
         linefeatures: str = "real", marsh: str = "real", treerows: str = "real",
-        forest_age: str = "real", barriers: str = "real",
+        barriers: str = "real",
         predict_areas_sjtsk: list | None = None,
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
@@ -3263,7 +3217,7 @@ def generate_map(
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
     Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 zákaz vstupu, ÚPLNĚ
-    VESPOD = podklad) → věk porostu (406/408/410 zeleň, PROXY Sez. 62) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
+    VESPOD = podklad) → predikční vegetace (406/408/410 zeleň + 403, ze separace) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
     (508) → el. vedení (510) → železnice (509) → budovy (521) → řopíky → skály/balvany (204/207/206/208) →
     bodové orient. prvky (524/526/530/417/312/311/203.2) → liniové orient. prvky (104 sráz / 107 rokle / 513 zeď) →
@@ -3305,7 +3259,6 @@ def generate_map(
                               ("--linefeatures", linefeatures, "reálné liniové orient. prvky"),
                               ("--marsh", marsh, "reálné mokřady"),
                               ("--treerows", treerows, "reálná stromořadí"),
-                              ("--forest-age", forest_age, "věk porostu (zeleň proxy)"),
                               ("--barriers", barriers, "reálné prostupy (zábrany na zdi)")):
         if mode == "real" and terrain != "real":
             raise ValueError(f"{flag} real vyžaduje --terrain real ({popis} potřebují S-JTSK "
@@ -3379,14 +3332,13 @@ def generate_map(
         _log.info("  plošný pokryv: %d (520 dissolve bloky + open land) + plot 516: %d",
                   len(surfaces_info), len(fence_features))
 
-    # --- věk porostu → zeleň (ISOM 406/408/410, PROXY Sez. 62): AOPK porostní skupiny ---
+    # --- predikční vegetace → zeleň + 403 (ISOM 406/408/410/403): SEPARACE reálné mapy ---
     # Z-order: NAD plošným pokryvem (401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi.
     # Zelená vegetace nad žlutou open land i nad bílým lesem; tenká stromořadí (alej) a hnědá kostra
-    # zůstanou viditelné navrchu. PRVNÍ predikční vrstva (data tvrdá, věk→běhatelnost je proxy).
-    # Jen --forest-age real. Mimo pokrytí AOPK (SV/HS) = 0 prvků (mirror řídkých vrstev Sez. 43).
-    # `predict_areas_sjtsk` (Sez. 83, orchestrátor pairs.py) MÁ PŘEDNOST: zeleň ze separace reálné
-    # mapy nahrazuje forest-age (archiv Sez. 82) jako zdroj predikční vegetace. Když přijde, kreslí se
-    # stejnou cestou (406/408/410), jen geometrie je z páru, ne z AOPK; provenance = predict (viz meta).
+    # zůstanou viditelné navrchu. JEDINÝ zdroj = `predict_areas_sjtsk` (Sez. 83, orchestrátor pairs.py
+    # ze separace Livelox mapy); provenance = predict (viz meta). Bez něj (DEV `--location`, bez páru)
+    # = bez zeleně (bílý les). Archiv Sez. 102: forest_age proxy AOPK smazán (slepá ulička, viz
+    # PREDICT_AREA_* komentář); pseudorealistic vegetace = budoucí náhrada pro lokality bez skenu (TODO).
     veg_area_features: list[tuple] = []
     veg_area_info: list[dict] = []
     veg_area_mask_img: Image.Image | None = None
@@ -3405,13 +3357,6 @@ def generate_map(
         bdraw = ImageDraw.Draw(boundary_mask_img)
         boundary_features = _predict_veg_boundaries(veg_area_mask_img, draw, bdraw)
         _log.info("  hranice vegetace: %d (416 mezitřídní)", len(boundary_features))
-    elif forest_age == "real":
-        veg_area_mask_img = Image.new("L", (W, H), 0)  # GT maska věku porostu (§8.1), multi-class
-        fadraw = ImageDraw.Draw(veg_area_mask_img)
-        veg_area_features, veg_area_info = _try_layer(
-            "forest_age", lambda: _generate_real_forest_age(draw, fadraw, lat, lon, geo_bbox),
-            ([], []), tolerant, layer_errors)
-        _log.info("  věk porostu: %d (406/408/410 zeleň PROXY)", len(veg_area_info))
 
     # --- stromořadí / lineární les (ISOM 406): `Liniová vegetace` → úzký zelený pás (Sez. 45) ---
     # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body — světle
@@ -3852,7 +3797,7 @@ def generate_map(
     if treerow_mask_img is not None:
         treerow_mask_img.save(out / "mask_treerows.png")                    # stromořadí (GT, 1=lineární les 406)
     if veg_area_mask_img is not None:
-        veg_area_mask_img.save(out / "mask_veg_area.png")              # věk porostu (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406 — PROXY Sez. 62)
+        veg_area_mask_img.save(out / "mask_veg_area.png")              # predikční vegetace (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406, 4=403 — ze separace)
     if boundary_mask_img is not None:
         boundary_mask_img.save(out / "mask_boundaries.png")           # 416 mezitřídní hranice veg ploch (Sez. 101)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
@@ -3892,8 +3837,8 @@ def generate_map(
     # stromořadí → 406 Vegetation: slow running = plošný symbol (area, uzavřený path s close flagem;
     # OOM vyplní světle zelenou z definice). Prstenec už je buffrovaný pás (Sez. 45).
     treerow_omap_features = [(g, str(c)) for g, c in treerow_area_features]
-    # věk porostu → 406/408/410 zeleň = plošný symbol (area, uzavřený path s close flagem; OOM
-    # vyplní příslušnou zelenou z definice). PROXY (věk→běhatelnost), Sez. 62. Code z featur.
+    # predikční vegetace → 406/408/410 zeleň + 403 = plošný symbol (area, uzavřený path s close
+    # flagem; OOM vyplní z definice). Ze separace reálné mapy (predict, Sez. 83). Code z featur.
     veg_area_omap_features = [(g, str(c)) for g, c in veg_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
@@ -3981,31 +3926,19 @@ def generate_map(
             "items": bridges_info,
             "licence": "CC BY 4.0 (ČÚZK ZABAGED)",
         }
-    # věk porostu: VLASTNÍ sekce (ne _layer_meta_section) — jiný zdroj (AOPK, ne ČÚZK ZABAGED),
-    # jiná licence a hlavně FLAG `proxy: true` + `note` (věk ≠ věrná runnability) — to helper neumí.
-    # Predikční vrstva (Sez. 62): meta to musí přiznat, ať konzument (UC5/compare) nevezme zeleň jako
-    # tvrdou projekci. Symboly/třídy ze SKUTEČNĚ použitých kódů (mirror _layer_meta_section).
-    if predict_veg or forest_age == "real":
+    # predikční vegetace: VLASTNÍ sekce (ne _layer_meta_section) — FLAG `provenance: predict` +
+    # `note` (zeleň ze separace, ne tvrdá projekce) — to helper neumí. Meta to musí přiznat, ať
+    # konzument (UC5/compare/reconstructor) nevezme zeleň jako real. Symboly/třídy ze SKUTEČNĚ
+    # použitých kódů (mirror _layer_meta_section). JEDINÝ zdroj = separace (forest_age proxy archiv Sez. 102).
+    if predict_veg:
         used = sorted({it["symbol"] for it in veg_area_info}, key=str)
-        # A3 provenience (Sez. 83): zeleň je PREDIKČNÍ (ne tvrdá projekce), ať ze separace (Sez. 82)
-        # nebo z věku porostu (forest-age, archiv). `provenance:"predict"` to přiznává konzumentovi
-        # (UC5/compare/reconstructor), aby zeleň nevzal jako real. Zdroj/note/licence se liší.
-        if predict_veg:
-            prov = {"source": "separace_realne_mapy", "provenance": "predict",
-                    "note": ("PREDICT: zeleň SEPAROVANÁ z barev reálné OB mapy (mapař = GT, Sez. 82/83), "
-                             "ne z tvrdých dat. GT-feeder pro Png2Area — věrnost ~90 %, dotáhne model."),
-                    "licence": "odvozeno z reálné OB mapy (kartograf/pořadatel; TDM režim)"}
-        else:
-            prov = {"source": "aopk_les_mapy", "provenance": "predict",
-                    "note": ("PROXY: zeleň odvozená z VĚKU porostu (AOPK porostní skupiny, atribut BARVA), "
-                             "NE z terénní běhatelnosti. Predikční vrstva (Sez. 62, ARCHIV Sez. 82)."),
-                    "proxy": True,
-                    "licence": "otevřená data dle zák. 106/1999 Sb. (AOPK ČR, LHP/LHO Lesy ČR + ÚHÚL)"}
         real_sections["veg_area"] = {
             "count": len(veg_area_info),
             "mask": "mask_veg_area.png",
-            **prov,
-            # PREDICT_AREA_* (superset FOREST_AGE_*): predict cesta nese i 403 (Sez. 92), archiv jen zeleň
+            "source": "separace_realne_mapy", "provenance": "predict", "proxy": True,
+            "note": ("PREDICT: zeleň 406/408/410 + 403 SEPAROVANÁ z barev reálné OB mapy (mapař = GT, "
+                     "Sez. 82/83), ne z tvrdých dat. GT-feeder pro Png2Area — věrnost ~90 %, dotáhne model."),
+            "licence": "odvozeno z reálné OB mapy (kartograf/pořadatel; TDM režim)",
             "symbols": {str(c): PREDICT_AREA_NAME[c] for c in used},
             "classes": {"0": "pozadí",
                         **{str(PREDICT_AREA_CLASS[c]): f"{c} {PREDICT_AREA_NAME[c]}" for c in used}},
@@ -4097,10 +4030,6 @@ def main() -> None:
     p.add_argument("--treerows", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Liniová vegetace (stromořadí) → ISOM 406 lineární les "
                         "(světle zelený pás, default), off = bez nich (real vyžaduje --terrain real)")
-    p.add_argument("--forest-age", choices=["off", "real"], default="real", dest="forest_age",
-                   help="real = AOPK porostní skupiny (věk) → ISOM 406/408/410 zeleň PROXY (default; "
-                        "mlazina→410 fight / tyčkovina→408 walk / mladší→406 slow / starší→bílá; věk ≠ "
-                        "věrná runnability!), off = bez ní (real vyžaduje --terrain real; pokrytí 3/5 DEV)")
     p.add_argument("--barriers", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED Zábrana ležící na zdi 513 → ISOM 519 Crossing point "
                         "(průchod plotem; default), off = bez nich (real vyžaduje --terrain real; "
@@ -4142,7 +4071,7 @@ def main() -> None:
         powerlines=args.powerlines, railways=args.railways, ropiky=args.ropiky,
         rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
         linefeatures=args.linefeatures, marsh=args.marsh, treerows=args.treerows,
-        forest_age=args.forest_age, barriers=args.barriers,
+        barriers=args.barriers,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp)
     _log.info("výstup: %s", out.resolve())
 

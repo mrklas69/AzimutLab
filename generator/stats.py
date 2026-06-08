@@ -59,8 +59,8 @@ SYMBOLS = [
     ("402",   "Open land with scattered trees"),
     ("402.1", "Open land with scattered bushes"),
     ("406",   "Vegetation: slow running"),
-    ("408",   "Vegetation: walk"),       # věk porostu PROXY (Sez. 62, --forest-age)
-    ("410",   "Vegetation: fight"),      # věk porostu PROXY (Sez. 62, --forest-age)
+    ("408",   "Vegetation: walk"),       # predikční zeleň ze separace (Sez. 83)
+    ("410",   "Vegetation: fight"),      # predikční zeleň ze separace (Sez. 83)
     ("416",   "Distinct vegetation boundary"),   # mezitřídní hranice predikčních veg ploch (Sez. 101)
     ("412",   "Cultivated land"),
     ("520",   "Area that shall not be entered"),

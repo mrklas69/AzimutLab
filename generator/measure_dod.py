@@ -9,10 +9,9 @@ pokrytí. DoD: fáze výroby `generator()` hotová až při ≥90 % ISOM (memory
   compare_isom.coverage(real, gen)  → crosswalk-aware X/Y matched (2000→2017, custom vyřazeno)
 
 BASELINE = SEPARACE (Sez. 95, volba uživatele). `pairs.build_pair` vyrábí páry separací-ze-skenu
-(`predict_areas_sjtsk`), NE forest_age proxy → DoD baseline MUSÍ měřit reálnou produkční cestu, ne
-fikci. forest_age proxy 410 byl FABRIKACE: měření Sez. 95 ukázalo, že souvislé 410 plochy v 5 mapách
-NEJSOU (1000+ komponent o max <100 px = tmavě zelený antialiasing, ne mapovatelná fight plocha) →
-separace ho poctivě nemá. 403 Rough open separace vrací věrně (odstín uvnitř open, Sez. 92).
+(`predict_areas_sjtsk`) → DoD baseline MUSÍ měřit reálnou produkční cestu párů. Zdroj predikční
+vegetace je JEN separace (forest_age proxy archivován Sez. 102 jako slepá ulička). 403 Rough open
+separace vrací věrně (odstín uvnitř open, Sez. 92).
 
 KPI fáze generator() (Sez. 100, volba uživatele): PRIMÁRNÍ kvantifikátor = proporční podobnost
 distribuce ISOM symbolů gen vs reálná mapa (histogram intersection Σ min(orig_share, gen_share)).
@@ -21,11 +20,10 @@ binární DoD ≥90 % (archiv `--dod`): ten byl nedosažitelný (strop 54 %) a n
 práci (dissolve 520, marsh 310 ho nehnuly). Proporce ruší obal-artefakt (gen grid-north obal >
 natočený výsek → 521 6× přestřel); penalizuje chybějící typ (gen=0) i přestřel (min ukrojí přebytek).
 
-Čtyři režimy (CLI):
+Tři režimy (CLI):
   python generator/measure_dod.py          # PRIMÁRNÍ KPI: proporční podobnost distribuce + 3 sub + žebříček děr
   python generator/measure_dod.py --table  # KOMPAS: orig vs gen Σ objektů per ISOM kód, 3 kapitoly geom (Sez. 96)
   python generator/measure_dod.py --dod    # ARCHIV: binární DoD pokrytí typů + analytický cut (strop plošné fáze)
-  python generator/measure_dod.py --proxy  # doložení: forest_age proxy NADHODNOCUJE vs separace (fiktivní 410)
 
 A3 (Sez. 94): Slovanka2016 (UTM33 — jiný transformer) + Soví vrch (domapováno ~1/4 → neúplná real
 .omap zkreslí dolů) VYNECHÁNY z DoD → měří jen Bedřichovka/Blatná/Velbloud. Až bude UTM33 cesta /
@@ -137,43 +135,20 @@ def _code_mtime() -> float:
 def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     """Matched gen .omap SE SEPARACÍ-ZE-SKENU (Sez. 95 baseline = reálná produkční cesta párů).
 
-    `pairs.build_pair` vyrábí páry separací (predict_areas_sjtsk), ne forest_age → DoD MUSÍ měřit
-    separaci. forest_age='off' (proxy 410 = fabrikace, Sez. 95). Cache: skip JEN když je .omap
-    novější než zdrojový kód (jinak by kompas měřil stale geometrii — Sez. 99). Drahá regenerace
-    (map_gt na obřím skenu + separace) → cache se ruší jen při reálné změně kódu, ne při re-měření."""
+    `pairs.build_pair` vyrábí páry separací (predict_areas_sjtsk) → DoD MUSÍ měřit separaci.
+    Cache: skip JEN když je .omap novější než zdrojový kód (jinak by kompas měřil stale geometrii —
+    Sez. 99). Drahá regenerace (map_gt na obřím skenu + separace) → cache se ruší jen při reálné
+    změně kódu, ne při re-měření."""
     omap = out / f"{name}.omap"
     if omap.exists() and omap.stat().st_mtime >= _code_mtime():   # cache platná: novější než kód
         return omap
     lat, lon, w_km, h_km = _extent_from_pgw(name)
     print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f}) — separace ze skenu\n{'=' * 70}")
     predict = _separate_resources_to_sjtsk(name, out / "sep")
-    print(f"  {len(predict)} predikčních ploch → generate_map (forest_age=off)")
+    print(f"  {len(predict)} predikčních ploch → generate_map (predict_areas_sjtsk)")
     generate_map(lat, lon, w_km, h_km, out_dir=str(out), ortho=False, tolerant=True,
-                 forest_age="off", predict_areas_sjtsk=predict)
+                 predict_areas_sjtsk=predict)
     return omap
-
-
-def run_proxy() -> None:
-    """--proxy: doloží, že forest_age proxy NADHODNOCUJE pokrytí vs separační baseline (Sez. 95).
-
-    Separace = pravdivý baseline (maps/<name>/). forest_age proxy (maps/<name>_proxy/) přidá FIKTIVNÍ
-    410 (souvislé 410 plochy v mapách nejsou — Sez. 95 měření). Ukáže, které kódy proxy „pokrývá" jen
-    fabrikací (jen proxy) vs co separace věrně přidá (jen separace). Opak orientace Sez. 94."""
-    print(f"\n{'#' * 70}\n--proxy: forest_age proxy vs separační baseline (doložení nadhodnocení)\n{'#' * 70}")
-    for name in MAPS:
-        sep_omap = _gen_sep(name, REPO / "maps" / name)        # baseline = separace
-        proxy_out = REPO / "maps" / f"{name}_proxy"
-        proxy_omap = proxy_out / f"{proxy_out.name}.omap"      # generate_map jmenuje .omap dle SLOŽKY
-        if not proxy_omap.exists():                            # forest_age cesta (a), default vše real
-            lat, lon, w_km, h_km = _extent_from_pgw(name)
-            generate_map(lat, lon, w_km, h_km, out_dir=str(proxy_out), ortho=False, tolerant=True)
-        rs = coverage(str(REPO / "resources" / f"{name}.omap"), str(sep_omap))
-        rp = coverage(str(REPO / "resources" / f"{name}.omap"), str(proxy_omap))
-        only_proxy = sorted(set(rp["covered"]) - set(rs["covered"]))   # proxy „pokrývá" navíc = fikce
-        only_sep = sorted(set(rs["covered"]) - set(rp["covered"]))     # separace přidává navíc = věrné
-        print(f">>> {name}: separace {len(rs['covered'])}/{rs['denom']}={rs['pct']:.0f}%  "
-              f"proxy {len(rp['covered'])}/{rp['denom']}={rp['pct']:.0f}%   "
-              f"jen proxy (fikce): {only_proxy or '—'}  jen separace (věrné): {only_sep or '—'}")
 
 
 def _counts_for_map(name, cw, v2000, v2017):
@@ -393,9 +368,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if "--proxy" in sys.argv:
-        run_proxy()
-    elif "--table" in sys.argv:
+    if "--table" in sys.argv:
         run_table()
     elif "--dod" in sys.argv:        # ARCHIV: binární DoD pokrytí typů + analytický cut (Sez. 100)
         main()
