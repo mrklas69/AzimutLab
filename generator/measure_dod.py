@@ -14,9 +14,17 @@ fikci. forest_age proxy 410 byl FABRIKACE: měření Sez. 95 ukázalo, že souvi
 NEJSOU (1000+ komponent o max <100 px = tmavě zelený antialiasing, ne mapovatelná fight plocha) →
 separace ho poctivě nemá. 403 Rough open separace vrací věrně (odstín uvnitř open, Sez. 92).
 
-Tři režimy (CLI):
-  python generator/measure_dod.py          # BASELINE: separace-ze-skenu (forest_age=off) + analytický cut
+KPI fáze generator() (Sez. 100, volba uživatele): PRIMÁRNÍ kvantifikátor = proporční podobnost
+distribuce ISOM symbolů gen vs reálná mapa (histogram intersection Σ min(orig_share, gen_share)).
+Jedno číslo 0–100 % = „kolik % symbolové hmoty gen mapy se proporčně překrývá s reálnou". Nahrazuje
+binární DoD ≥90 % (archiv `--dod`): ten byl nedosažitelný (strop 54 %) a nezachytil inkrementální
+práci (dissolve 520, marsh 310 ho nehnuly). Proporce ruší obal-artefakt (gen grid-north obal >
+natočený výsek → 521 6× přestřel); penalizuje chybějící typ (gen=0) i přestřel (min ukrojí přebytek).
+
+Čtyři režimy (CLI):
+  python generator/measure_dod.py          # PRIMÁRNÍ KPI: proporční podobnost distribuce + 3 sub + žebříček děr
   python generator/measure_dod.py --table  # KOMPAS: orig vs gen Σ objektů per ISOM kód, 3 kapitoly geom (Sez. 96)
+  python generator/measure_dod.py --dod    # ARCHIV: binární DoD pokrytí typů + analytický cut (strop plošné fáze)
   python generator/measure_dod.py --proxy  # doložení: forest_age proxy NADHODNOCUJE vs separace (fiktivní 410)
 
 A3 (Sez. 94): Slovanka2016 (UTM33 — jiný transformer) + Soví vrch (domapováno ~1/4 → neúplná real
@@ -50,6 +58,13 @@ Image.MAX_IMAGE_PIXELS = None
 _SJTSK_TO_WGS84 = Transformer.from_crs("EPSG:5514", "EPSG:4326", always_xy=True)
 
 MAPS = ["Bedřichovka", "Blatná", "Velbloud"]   # A3: Slovanka(UTM33)+Soví vrch(1/4) vynechány
+# resources/ je gitignored a mezi stroji se liší (memory gitignored-availability-verify-not-assume):
+# na ntbhej chybí Velbloud.pgw → DoD driver ho nezměří. Filtruj na mapy s dostupným .pgw + varuj
+# (behavior-preserving na mrkla, kde je kompletní; jinde graceful degrade místo FileNotFoundError).
+_missing_pgw = [m for m in MAPS if not (REPO / "resources" / f"{m}.pgw").exists()]
+if _missing_pgw:
+    print(f"⚠ chybí .pgw → vynecháno z měření: {_missing_pgw}", file=sys.stderr)
+    MAPS = [m for m in MAPS if m not in _missing_pgw]
 
 
 def _extent_from_pgw(name: str):
@@ -161,36 +176,65 @@ def run_proxy() -> None:
               f"jen proxy (fikce): {only_proxy or '—'}  jen separace (věrné): {only_sep or '—'}")
 
 
+def _counts_for_map(name, cw, v2000, v2017):
+    """Σ objektů per 2017-2 ISOM kód pro JEDNU mapu: (orig, gen, geom_cnt, names).
+
+    Sdílený sběr pro kompas (`--table`) i KPI (default). orig = reálná `.omap` crosswalkem na 2017-2
+    cíl (custom/bez cíle vyřazen); gen = separační baseline (identita 2017-2); geom_cnt[kód] =
+    Counter(geom REÁLNĚ POUŽITÉ varianty z `used_geometry`, vážená objekty); names[kód] = jméno z reálné."""
+    gen_omap = _gen_sep(name, REPO / "maps" / name)            # separační baseline (cache dle mtime kódu)
+    real_path = str(REPO / "resources" / f"{name}.omap")
+    ver = detect_version(real_path)
+    real, rnames = isom_usage(real_path)
+    ug = used_geometry(real_path)                              # reálný kód → geom (point/area/line…)
+    g, _ = isom_usage(str(gen_omap))                           # gen kódy = 2017-2 (identita)
+    orig, gen, geom_cnt, names = Counter(), Counter(), {}, {}
+    for c, n in g.items():
+        gen[c] += n
+    for c, n in real.items():                                  # reálné kódy → 2017-2 cíl crosswalkem
+        targets = _resolve_targets(c, ver, cw, v2000, v2017)
+        if not targets:                                        # custom (None) nebo bez cíle → vyřaď
+            continue
+        key = sorted(targets)[0]                               # primární 2017 cíl
+        orig[key] += n
+        geom_cnt.setdefault(key, Counter())[ug.get(c, "?")] += n
+        names.setdefault(key, rnames.get(c, ""))
+    return orig, gen, geom_cnt, names
+
+
+def _intersection(orig, gen) -> float:
+    """Histogram intersection proporcí: Σ min(orig_share, gen_share) × 100 (KPI jádro, Sez. 100).
+
+    Každý vektor normalizován na vlastní Σ → proporce ruší rozdíl plochy (obal-artefakt). Chybějící
+    typ (gen=0) → člen 0; přestřel (gen_share > orig_share) → min ukrojí přebytek (okrade ostatní).
+    Gen-only kódy (v gen, ne v orig) zvětší Σgen → naředí gen_share → penalizace falešných typů. 0 když prázdné."""
+    so, sg = sum(orig.values()), sum(gen.values())
+    if not so or not sg:
+        return 0.0
+    return 100.0 * sum(min(orig[c] / so, gen[c] / sg) for c in set(orig) | set(gen))
+
+
 def run_table() -> None:
     """--table: KOMPAS pokrytí (Sez. 96). Tři kapitoly (Png2Area/Png2Line/Png2Point), řádky = ISOM
     2017-2 kódy, sloupce = Σ objektů ORIG (reálné `.omap`) vs GEN (separační gen `.omap`) přes MAPS.
 
-    Proč nad rámec DoD %: DoD je binární (kreslí ≥1 objekt = pokryto), ale poměr orig:gen ukazuje
-    PROPORCE — přibližujeme se k cíli ve správné četnosti, nebo přestřelujeme/podstřelujeme? Nálezy
-    Sez. 96: gen PŘESTŘELUJE 520/521/cesty (hustá ČÚZK projekce na obal výseku) a PODSTŘELUJE
-    vegetaci (403/406/408 — pattern třídy 402/404 splývají do base odstínů, separace pattern-slepá).
-    Cíl generátoru = přiblížit gen k orig; symboly co data nedají → generovat věrohodně do statistické
-    míry četnosti z této tabulky (volba uživatele Sez. 96). Geometrie z reálné mapy (`used_geom`)."""
+    Diagnostický doplněk KPI: poměr orig:gen ukazuje PROPORCE — přibližujeme se k cíli ve správné
+    četnosti, nebo přestřelujeme/podstřelujeme? Nálezy Sez. 96: gen PŘESTŘELUJE 520/521/cesty (hustá
+    ČÚZK projekce na obal výseku) a PODSTŘELUJE vegetaci (403/406/408 — pattern třídy 402/404 splývají
+    do base odstínů, separace pattern-slepá). Cíl generátoru = přiblížit gen k orig; symboly co data
+    nedají → generovat věrohodně do statistické míry četnosti (volba uživatele Sez. 96). Geometrie z
+    reálné mapy (`used_geom`)."""
     cw, v2000, v2017 = _load_crosswalk()
     orig, gen = Counter(), Counter()      # 2017 kód → Σ objektů (reálné / gen)
     geom_t, names = {}, {}                # 2017 kód → Counter(geom) z reálné mapy / jméno
     for name in MAPS:
-        gen_omap = _gen_sep(name, REPO / "maps" / name)        # separační baseline (skip-existing)
-        real_path = str(REPO / "resources" / f"{name}.omap")
-        ver = detect_version(real_path)
-        real, rnames = isom_usage(real_path)
-        ug = used_geometry(real_path)                          # reálný kód → geom (point/area/line…)
-        g, _ = isom_usage(str(gen_omap))                       # gen kódy = 2017-2 (identita)
-        for c, n in g.items():
-            gen[c] += n
-        for c, n in real.items():                              # reálné kódy → 2017-2 cíl crosswalkem
-            targets = _resolve_targets(c, ver, cw, v2000, v2017)
-            if not targets:                                    # custom (None) nebo bez cíle → vyřaď
-                continue
-            key = sorted(targets)[0]                           # primární 2017 cíl (jako measure_dod main)
-            orig[key] += n
-            geom_t.setdefault(key, Counter())[ug.get(c, "?")] += n
-            names.setdefault(key, rnames.get(c, ""))
+        o, g, gc, nm = _counts_for_map(name, cw, v2000, v2017)
+        orig.update(o)
+        gen.update(g)
+        for c, cnt in gc.items():
+            geom_t.setdefault(c, Counter()).update(cnt)
+        for c, v in nm.items():
+            names.setdefault(c, v)
 
     all_codes = set(orig) | set(gen)
     # geom: majorita z reálné mapy; kódy jen-v-gen (v reálných mapách nejsou) → '?'
@@ -216,6 +260,55 @@ def run_table() -> None:
     if other:
         print(f"\n{'-' * 60}\nostatní (kombi/text/jen-gen): " +
               " ".join(f"{c}(o{orig[c]}/g{gen[c]})" for c in other))
+
+
+def run_kpi() -> None:
+    """PRIMÁRNÍ KPI fáze generator() (Sez. 100, volba uživatele): proporční podobnost distribuce
+    ISOM symbolů gen vs reálná mapa. Jedno číslo 0–100 % = histogram intersection Σ min(orig_share,
+    gen_share), per-mapa pak průměr (jako DoD). Tři sub-skóre per geometrická kapitola (plocha/linie/
+    bod, lokální normalizace) = diagnostika, NEsčítá se na headline. + žebříček největších proporčních
+    děr (agregát) = kam směřovat práci.
+
+    Proč nahrazuje DoD ≥90 %: binární pokrytí typů bylo nedosažitelné (strop 54 %) a slepé k
+    inkrementálnímu progresu (dissolve 520 9×→1,3×, marsh 310 ho nehnuly). KPI dává partial credit
+    za přibližování proporcí + je robustní vůči obal-artefaktu (proporce ruší rozdíl plochy)."""
+    cw, v2000, v2017 = _load_crosswalk()
+    GEOM_CZ = {"area": "plocha", "line": "linie", "point": "bod"}
+    per_map = []                                              # (name, kpi, sub{geom: kpi})
+    agg_orig, agg_gen, agg_names = Counter(), Counter(), {}   # agregát pro žebříček děr
+    for name in MAPS:
+        orig, gen, geom_cnt, names = _counts_for_map(name, cw, v2000, v2017)
+        geom = {c: cnt.most_common(1)[0][0] for c, cnt in geom_cnt.items()}   # majoritní geom reálné varianty
+        sub = {}                                             # sub-skóre per kapitola (lokální normalizace)
+        for gk in ("area", "line", "point"):
+            o = Counter({c: v for c, v in orig.items() if geom.get(c) == gk})
+            g = Counter({c: v for c, v in gen.items() if geom.get(c) == gk})
+            sub[gk] = _intersection(o, g)
+        per_map.append((name, _intersection(orig, gen), sub))
+        agg_orig.update(orig)
+        agg_gen.update(gen)
+        for c, v in names.items():
+            agg_names.setdefault(c, v)
+
+    print(f"{'#' * 70}\nKPI generator() — proporční podobnost distribuce ISOM symbolů (Sez. 100)\n{'#' * 70}")
+    print(f"  {'mapa':<14} {'KPI':>5}   {'plocha':>6} {'linie':>6} {'bod':>6}")
+    for name, kpi, sub in per_map:
+        print(f"  {name:<14} {kpi:>4.1f}%   {sub['area']:>5.1f}% {sub['line']:>5.1f}% {sub['point']:>5.1f}%")
+    avg = sum(k for _, k, _ in per_map) / len(per_map)
+    sub_avg = {gk: sum(s[gk] for _, _, s in per_map) / len(per_map) for gk in ("area", "line", "point")}
+    print(f"  {'PRŮMĚR (KPI)':<14} {avg:>4.1f}%   {sub_avg['area']:>5.1f}% {sub_avg['line']:>5.1f}% {sub_avg['point']:>5.1f}%")
+    print("  (headline = sloupec KPI; sub-skóre plocha/linie/bod = diagnostika, lokální normalizace, nesčítá se)")
+
+    # žebříček největších proporčních děr (agregát): ztráta p.b. = orig_share − min(orig_share, gen_share)
+    so, sg = sum(agg_orig.values()), sum(agg_gen.values())
+    gaps = sorted(((agg_orig[c] / so - min(agg_orig[c] / so, agg_gen[c] / sg), c)
+                   for c in set(agg_orig) | set(agg_gen)), reverse=True)
+    print(f"\n  největší proporční díry (agregát, kam směřovat práci):")
+    print(f"    {'kód':>5} {'orig':>6} {'gen':>6} {'ztráta':>7}  jméno")
+    for loss, c in gaps[:10]:
+        if loss <= 0:
+            break
+        print(f"    {c:>5} {agg_orig[c]:>6} {agg_gen[c]:>6} {loss * 100:>5.1f}pb  {agg_names.get(c, '')[:34]}")
 
 
 def main() -> None:
@@ -304,5 +397,7 @@ if __name__ == "__main__":
         run_proxy()
     elif "--table" in sys.argv:
         run_table()
-    else:
+    elif "--dod" in sys.argv:        # ARCHIV: binární DoD pokrytí typů + analytický cut (Sez. 100)
         main()
+    else:
+        run_kpi()                    # PRIMÁRNÍ KPI (Sez. 100, volba uživatele)
