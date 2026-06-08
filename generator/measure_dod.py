@@ -109,14 +109,25 @@ def _separate_resources_to_sjtsk(name: str, sep_dir: pathlib.Path) -> list:
     return out
 
 
+def _code_mtime() -> float:
+    """Nejnovější mtime zdrojového kódu (generator/ + connectors/), který ovlivňuje gen .omap.
+
+    Klíč k invalidaci cache _gen_sep: cached matched .omap STARŠÍ než kód = stale → přegeneruj.
+    Bez toho je kompas SLEPÝ ke změnám generátoru (měří cached geometrii a tvrdí „beze změny";
+    past Sez. 99: skip-existing nechal kompas neviditelný k 310 mokřadům i 520 dissolve ze Sez. 98)."""
+    return max(p.stat().st_mtime for d in ("generator", "connectors")
+               for p in (REPO / d).glob("*.py"))
+
+
 def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     """Matched gen .omap SE SEPARACÍ-ZE-SKENU (Sez. 95 baseline = reálná produkční cesta párů).
 
     `pairs.build_pair` vyrábí páry separací (predict_areas_sjtsk), ne forest_age → DoD MUSÍ měřit
-    separaci. forest_age='off' (proxy 410 = fabrikace, Sez. 95). Skip-existing (drahá regenerace:
-    map_gt na obřím skenu + separace)."""
+    separaci. forest_age='off' (proxy 410 = fabrikace, Sez. 95). Cache: skip JEN když je .omap
+    novější než zdrojový kód (jinak by kompas měřil stale geometrii — Sez. 99). Drahá regenerace
+    (map_gt na obřím skenu + separace) → cache se ruší jen při reálné změně kódu, ne při re-měření."""
     omap = out / f"{name}.omap"
-    if omap.exists():                                      # skip regeneraci (rychlé re-měření)
+    if omap.exists() and omap.stat().st_mtime >= _code_mtime():   # cache platná: novější než kód
         return omap
     lat, lon, w_km, h_km = _extent_from_pgw(name)
     print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f}) — separace ze skenu\n{'=' * 70}")
