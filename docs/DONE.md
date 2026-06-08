@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 100 (2026-06-08) — KPI fáze generator() (proporční podobnost distribuce ISOM symbolů) (ntbhej)
+- [x] **KPI definován + zaveden** (přání uživatele „chci JEDEN kvantifikátor, projekt se utápí v metodologii").
+      `generator/measure_dod.py` DEFAULT režim = **proporční podobnost distribuce ISOM symbolů**: histogram
+      intersection `Σ min(orig_share, gen_share)` (každý vektor norm. na vlastní Σ → ruší obal-artefakt), per-mapa
+      pak průměr. Jedno číslo 0–100 %. Penalizuje chybějící typ (gen=0) i přestřel (`min` ukrojí přebytek).
+      4 volby uživatele: proporční / KPI primární (DoD→`--dod` archiv) / 1 agregát + 3 sub (plocha/linie/bod) /
+      **cíl 55 % plošná + ≥ 85 % s Png2Point/Line**. Nahrazuje binární DoD ≥ 90 % (nedosažitelný strop 54 %,
+      slepý k inkrementální práci — dissolve 520/marsh 310 ho nehnuly).
+- [x] **Implementace + DRY**: `_counts_for_map` (sdílený sběr orig/gen Σ per kód, reuse kompasu i KPI) +
+      `_intersection` (jádro) + `run_kpi` (default). `main` (binární DoD + analytický cut) → `--dod`; `--table`
+      kompas zůstal. Robustnost: `MAPS` filtr na dostupné `.pgw` + warning (Velbloud.pgw chybí na ntbhej →
+      graceful místo `FileNotFoundError`; memory `gitignored-availability-verify-not-assume`).
+- [x] **Baseline KPI 46,1 %** (Bedř+Blatná; plocha 60,9 / linie 47,7 / **bod 29,0** = Png2Point dluh). Žebříček
+      proporčních děr (kam mířit): 416 (633/0, −8,4 pb) / 210 / 204 / 403 / 508 / 417. **Kvantifikace stropu:**
+      linie+body = 61 % symbolové hmoty (Σ 4639/7572) → bez reconstructorů strop ~50 %, dnešní 46 % je NA plošném
+      stropu (tvrdá potvrzení censure Sez. 99 — plošná coverage páka z ČÚZK vyčerpaná).
+- [x] **Verify**: `--table` po DRY refaktoru byte-identický (403/521/416/204 + Σ shodné = regrese 0); `--dod` jede.
+      Generátor NETKNUTÝ (KPI nemění gen výstup).
+- [x] **%BEGIN +bod 6** (`PROMPTS.md`): KPI + headline kompasu vždy v rekapitulaci (zdroj = poslední z diáře;
+      přeměřit jen po změně generátoru → trend). DoD definice v `TODO.md` nahrazena KPI definicí (SSoT).
+
 ## Sezení 99 (2026-06-08) — 310 Indistinct marsh (pseudo fáze 2) + oprava kompas cache (ntbhej)
 - [x] **Measure-first 310/313** (5 `resources/*.omap`, `temp/measure_marsh*.py`) — rozbil zadání bodu 1:
       **313 „vodopád" = mýtus** (v datech 313 = Spring BOD / 2017-2 313 0× ve všech 5; vyřazeno jako 210 Sez. 96);

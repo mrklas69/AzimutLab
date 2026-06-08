@@ -14,12 +14,19 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 
-> **[!] DEFINITION OF DONE generátoru (Sez. 91, kritérium uživatele):** fáze výroby `generator()` **NENÍ
-> dokončena, dokud `generate_map` nepokryje ≥ 90 % ISOM mapových symbolů z 5 vzorových map** v `resources/`
-> (Bedřichovka/Blatná/Slovanka2016/Soví vrch/Velbloud; SampleMap=USA vyřazena). Měř **`generator/measure_dod.py`**
-> (driver: matched gen.omap na obal z `.pgw` → `compare_isom.coverage`, crosswalk-aware). Co generátor
-> nenakreslí do `.omap`, to se reconstructor NIKDY nenaučí → pokrytí = strop tréninku (memory
-> `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = rozšiřovat pokrytí.**
+> **[!] KPI generátoru — PRIMÁRNÍ KVANTIFIKÁTOR (Sez. 100, nahrazuje binární DoD ≥ 90 %):** „jak moc se
+> blížíme generování **reálně vyhlížejících** O-map" = **proporční podobnost distribuce ISOM symbolů** gen vs
+> vzorové mapy = **histogram intersection** `Σ min(orig_share, gen_share)`, per-mapa pak průměr. Jedno číslo
+> 0–100 % („kolik % symbolové hmoty gen mapy se proporčně překrývá s reálnou"). Měř **`generator/measure_dod.py`**
+> (DEFAULT režim bez flagu; `--table` kompas diagnostika / `--dod` archiv binární DoD + analytický cut / `--proxy`).
+> Proč ne binární DoD ≥ 90 %: byl nedosažitelný (strop 54 %) a slepý k inkrementální práci (dissolve 520 9×→1,3×,
+> marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
+> (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
+> (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
+> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Baseline Sez. 100: KPI 46,1 %** (Bedř+Blatná; plocha
+> 60,9 / linie 47,7 / **bod 29,0** = Png2Point dluh; Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit):
+> 416/210/204/403/508/417. Co generátor nenakreslí, reconstructor se NIKDY nenaučí → pokrytí = strop tréninku
+> (memory `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = přiblížit distribuci symbolů realitě.**
 > **Stav Sez. 94 (POCTIVÝ baseline):** `compare_isom` opraven na **crosswalk-aware** — Sez. 91 „38 %" bylo
 > NEPLATNÉ (naivní integer-prefix ignoroval `.crt`; reálné mapy ISOM 2000 vs gen 2017-2, číslování recykluje).
 > Matched přes 3 mapy (A3: Slovanka UTM33 + Soví vrch 1/4 vynechány): Bedř **43 %** / Blatná **37 %** (jediná
@@ -56,9 +63,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   vodopád = mýtus** (bod Spring/0×, vyřazeno), **310 z ČÚZK neodvoditelný** (ZABAGED nerozlišuje zřetelnost) →
   **pseudo split náhodou ~55 %** (`_marsh_indistinct`, jen pseudorealistic; N_AREA 17→18). **POZOR: KOMPAS přínos ~0**
   (ZABAGED mokřady na DoD mapách řídké — Bedř gen 0/Blatná 1); hodnota jen v Livelox párech. Lekce → bod níž.
-- [ ] *(coverage, PRVNÍ krok příště — lekce Sez. 99)* **vybrat typ, co kompas REÁLNĚ zvedne** — z `measure_dod --table`
-  najít plošný kód kde gen=0 ALE orig>0 na Bedř/Blatná A má zdroj v ČÚZK (NE mokřad — ZABAGED nevede). Až POTOM kreslit
-  (paměť [[measure-coverage-source-on-dod-first]] — dnešní 310 měl coverage páku 0, odhaleno až po implementaci).
+- [x] *(coverage — ZMĚŘENO Sez. 100, lekce Sez. 99)* **vybrat plošný typ, co kompas REÁLNĚ zvedne** → MĚŘENÍ: plošné
+  gen=0 díry jsou **404/407/409** (Undergrowth + Rough open w/ scattered trees = vegetace gate, ZABAGED NEVEDE — stejná
+  past jako 310) + 515 (neznámé). **Závěr: plošná coverage páka z ČÚZK je téměř vyčerpaná** (kvantifikováno KPI: sub
+  plocha 60,9 % vs bod 29,0 %; 61 % hmoty = linie+body). Další skok = Png2Point/Line, ne nové plošné typy.
+- [ ] *(KPI → 55 %, PRVNÍ krok Sez. 101)* **zvednout proporci PODSTŘELENÝCH hojných ploch, co MÁME zdroj** — z KPI
+  žebříčku: **403** Rough open (orig 673 / gen 152, podstřel 4×, separace ho vrací bledě), 408/406 les, 508 průseky.
+  Measure-first: PROČ separace/generátor podstřeluje (práh / pattern-slepost)? → zvednout, ne kreslit nový typ.
 - [ ] *(linie, největší díra)* **416 Distinct vegetation boundary** (orig 633 / gen 0, kompas)
   z hranic separovaných ploch 403/406/408, do statistické míry (reálné hranice vegetace většinou nejasné, IDEAS C Sez. 96).
 - [x] *(VYŘEŠENO Sez. 99 — bug neexistuje)* meta.json „real_sections []" u predict cesty: `veg_area` se ZAPISUJE

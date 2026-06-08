@@ -29,6 +29,12 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    ntbhej padl hlavní tah Branžež `build_pair` na chybějící korpus). Cross-stroj práce = carry na mrkla.
 5. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
+6. **KPI + KOMPAS rekapitulace (Sez. 100, přání uživatele).** Vždy uveď aktuální stav primárního
+   kvantifikátoru fáze `generator()` — **KPI** (proporční podobnost distribuce ISOM symbolů,
+   `measure_dod.py` default; cíl 55 % plošná / ≥ 85 % s reconstructory) + **headline KOMPASu**
+   (`--table`, největší proporční díry). Zdroj: poslední zaznamenaná hodnota z diáře/DIARY indexu
+   (levné, vždy dostupné). **Přeměř** (na stroji s `resources/*.pgw`), jen pokud se od posledního
+   měření měnil generátor (`connectors/`+`generator/` `.py`) → ukaž TREND vůči minulému sezení.
 
 ## %END — konec sezení
 = globální %DOCS + commit pravidla. Projektová specifika:
