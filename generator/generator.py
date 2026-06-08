@@ -574,6 +574,23 @@ PREDICT_AREA_FILL = {**FOREST_AGE_FILL, ISOM_ROUGH_OPEN: C_YELLOW_PALE}
 PREDICT_AREA_CLASS = {**FOREST_AGE_CLASS, ISOM_ROUGH_OPEN: 4}      # mask_veg_area.png class (debug GT)
 PREDICT_AREA_NAME = {**FOREST_AGE_NAME, ISOM_ROUGH_OPEN: "Rough open land"}
 
+# --- 416 Distinct vegetation boundary (Sez. 101): mezitřídní hranice predikčních veg ploch ---
+# Měření Sez. 101: 416 = NEJVĚTŠÍ proporční díra KPI (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ
+# hranice mezi oblastmi různé runnability (403↔406↔408↔410) tečkovanou linií. Data (separace) nemají
+# info o „zřetelnosti" → bereme MEZITŘÍDNÍ hranice (kde se stýkají různé veg třídy) + DÉLKOVÝ práh
+# (krátké šumové fragmenty separace odpadnou; reálné 416 medián 45-90 m). Měřením laděno na práh 50 m
+# → KPI 46,1 → ~50 % (+3,8 pb; prototyp temp/proto_416). Stejný typ problému jako marsh 310 (data
+# nediskriminují), ale heuristika MEZITŘÍDNÍ je doménově věrná (ISOM 416 = hranice různé runnability).
+# Render = černá tečkovaná (template 416 = Black 100% dotted, type 2). LINIE → bez Y-area dluhu
+# (Png2Line neexistuje); jde do .omap (KPI/kompas to měří) + render. Izomorf s průsekem 508 (RIDE_STYLE).
+ISOM_VEG_BOUNDARY = 416
+BOUNDARY_NAME = {ISOM_VEG_BOUNDARY: "Distinct vegetation boundary"}
+BOUNDARY_CLASS = {ISOM_VEG_BOUNDARY: 1}     # mask_boundaries.png třída (jediná)
+# tečkovaná černá: krátký dot + mezera (aproximace OOM dotted; věrný symbol nese .omap z template)
+BOUNDARY_STYLE = {ISOM_VEG_BOUNDARY: ("dashed", 1, (0.2 * PX_PER_MM, 0.45 * PX_PER_MM))}
+BOUNDARY_MIN_LEN_M = 50      # délkový práh úseku [m terénu] (měření Sez. 101: optimum KPI ~50 %)
+BOUNDARY_SAMPLE_M = 3.0      # poloměr okolí pro detekci sousední veg třídy [m terénu]
+
 
 # ---------- Mosty / tunely / lávky (ISOM 512 + 512.2, Sez. 32 spec-driven) ----------
 # Verify Sez. 32: foto reálné OB mapy (uživatel) + ISOM 2017-2 PDF str. 32. Most a tunel
@@ -1020,6 +1037,14 @@ def _draw_ride(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
     (izomorfní s _draw_path / _draw_railway). Bez runnability pozadí (vegetace = UC5)."""
     mode, width, dash = RIDE_STYLE[code]
     _draw_line_symbol(draw, ridraw, curve_px, C_BLACK, mode, width, dash, RIDE_CLASS[code])
+
+
+def _draw_boundary(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
+                   curve_px: list[tuple[float, float]], code: int) -> None:
+    """Hranice vegetace (černá tečkovaná, ISOM 416) dle BOUNDARY_STYLE — wrapper nad _draw_line_symbol
+    (izomorfní s _draw_ride). Mezitřídní hranice predikčních veg ploch (Sez. 101)."""
+    mode, width, dash = BOUNDARY_STYLE[code]
+    _draw_line_symbol(draw, bdraw, curve_px, C_BLACK, mode, width, dash, BOUNDARY_CLASS[code])
 
 
 def _offset_polyline_px(pts: list[tuple[float, float]], offset: float) -> list[tuple[float, float]]:
@@ -2584,6 +2609,67 @@ def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
     return area_features, info
 
 
+def _predict_veg_boundaries(class_mask: Image.Image,
+                            draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw) -> list:
+    """Mezitřídní hranice predikčních veg ploch → ISOM 416 Distinct vegetation boundary (Sez. 101).
+
+    416 = NEJVĚTŠÍ proporční díra KPI (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ hranice mezi
+    oblastmi RŮZNÉ runnability (403↔406↔408↔410) tečkovanou linií. `class_mask` = PREDICT_AREA_CLASS
+    rastr (1=410 fight … 4=403, 0=pozadí). Algoritmus (prototyp temp/proto_416, měřeno Sez. 101):
+    contour každé třídy (rock_relief) → per-bod prstenu klasifikuj, je-li v okolí JINÁ veg vyšší
+    třídy (dedup B>A, ať se hrana A↔B bere jen jednou) → souvislé mezitřídní úseky → DÉLKOVÝ práh
+    BOUNDARY_MIN_LEN_M (krátké šumové fragmenty separace odpadnou) → RDP → polyline. Render tečkovaně
+    do draw + bdraw maska; vrací [(grid, 416)] pro .omap (linefeature). Bez predikční zeleně = []."""
+    from rock_relief import _contour_rings, _rdp
+    L = np.asarray(class_mask)
+    mpp = WORLD_W_M / W                                  # metry na px (render rozlišení)
+    min_px = BOUNDARY_MIN_LEN_M / mpp
+    rad = max(1, round(BOUNDARY_SAMPLE_M / mpp))
+    features: list = []
+    for A in sorted(int(v) for v in np.unique(L) if v):
+        for ring in _contour_rings(L == A):
+            n = len(ring)
+            if n < 4:
+                continue
+            # per-bod prstenu: má okolí JINOU veg vyšší třídy? (dedup B>A → hrana jen jednou)
+            flag = np.zeros(n, bool)
+            for i, (col, row) in enumerate(ring):
+                c0, c1 = max(0, int(col) - rad), min(W, int(col) + rad + 1)
+                r0, r1 = max(0, int(row) - rad), min(H, int(row) + rad + 1)
+                nb = L[r0:r1, c0:c1]
+                if ((nb > A) & (nb != 0)).any():
+                    flag[i] = True
+            if not flag.any():
+                continue
+            # souvislé úseky flag=True (cyklicky podél uzavřeného prstenu)
+            idx = np.where(flag)[0]
+            groups, cur = [], [idx[0]]
+            for k in range(1, len(idx)):
+                if idx[k] == idx[k - 1] + 1:
+                    cur.append(idx[k])
+                else:
+                    groups.append(cur); cur = [idx[k]]
+            groups.append(cur)
+            if len(groups) > 1 and idx[0] == 0 and idx[-1] == n - 1:   # cyklický spoj konce a začátku
+                groups[0] = groups.pop() + groups[0]
+            for g in groups:
+                if len(g) < 2:
+                    continue
+                pts = [ring[j] for j in g]
+                ln = sum(((pts[k + 1][0] - pts[k][0]) ** 2 + (pts[k + 1][1] - pts[k][1]) ** 2) ** 0.5
+                         for k in range(len(pts) - 1))
+                if ln < min_px:                          # krátký šumový fragment → zahoď
+                    continue
+                simp = _rdp(np.asarray(pts, float), 1.5)
+                if len(simp) < 2:
+                    continue
+                px = [(float(x), float(y)) for x, y in simp]
+                _draw_boundary(draw, bdraw, px, ISOM_VEG_BOUNDARY)
+                grid = [(x / W * (GW - 1), y / H * (GH - 1)) for x, y in simp]
+                features.append((grid, ISOM_VEG_BOUNDARY))
+    return features
+
+
 def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
                          lat: float, lon: float,
                          geo_bbox: tuple) -> tuple[list, list, list]:
@@ -3304,6 +3390,8 @@ def generate_map(
     veg_area_features: list[tuple] = []
     veg_area_info: list[dict] = []
     veg_area_mask_img: Image.Image | None = None
+    boundary_features: list[tuple] = []           # 416 mezitřídní hranice (Sez. 101)
+    boundary_mask_img: Image.Image | None = None
     predict_veg = predict_areas_sjtsk is not None
     if predict_veg:
         veg_area_mask_img = Image.new("L", (W, H), 0)  # GT maska zeleně (§8.1), multi-class
@@ -3311,6 +3399,12 @@ def generate_map(
         veg_area_features, veg_area_info = _draw_predict_areas(
             draw, fadraw, predict_areas_sjtsk, geo_bbox)
         _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(veg_area_info))
+        # 416 Distinct vegetation boundary: mezitřídní hranice predikčních veg ploch (Sez. 101,
+        # největší KPI díra). Z-order: NAD plošnou zelení (kterou ohraničuje), pod liniemi/body.
+        boundary_mask_img = Image.new("L", (W, H), 0)
+        bdraw = ImageDraw.Draw(boundary_mask_img)
+        boundary_features = _predict_veg_boundaries(veg_area_mask_img, draw, bdraw)
+        _log.info("  hranice vegetace: %d (416 mezitřídní)", len(boundary_features))
     elif forest_age == "real":
         veg_area_mask_img = Image.new("L", (W, H), 0)  # GT maska věku porostu (§8.1), multi-class
         fadraw = ImageDraw.Draw(veg_area_mask_img)
@@ -3759,6 +3853,8 @@ def generate_map(
         treerow_mask_img.save(out / "mask_treerows.png")                    # stromořadí (GT, 1=lineární les 406)
     if veg_area_mask_img is not None:
         veg_area_mask_img.save(out / "mask_veg_area.png")              # věk porostu (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406 — PROXY Sez. 62)
+    if boundary_mask_img is not None:
+        boundary_mask_img.save(out / "mask_boundaries.png")           # 416 mezitřídní hranice veg ploch (Sez. 101)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
     # Form line je taky vrstevnice (liniový objekt) → do téhož contours.geojson.
     n_contours = _write_contours_geojson(contour_features + formline_features, geo_bbox, crs_epsg,
@@ -3811,7 +3907,8 @@ def generate_map(
     # liniové orientační prvky (Sez. 43): 104/513 = liniový objekt (otevřený path); OOM
     # vykreslí symbol z definice (104 ticky, 513 plná). Stromořadí 406 plošně (výš, Sez. 45).
     linefeat_omap_features = ([(g, str(c)) for g, c in linefeat_features]
-                              + [(g, str(c)) for g, c in fence_features])   # plot 516 (pseudo, Sez. 98)
+                              + [(g, str(c)) for g, c in fence_features]   # plot 516 (pseudo, Sez. 98)
+                              + [(g, str(c)) for g, c in boundary_features])   # 416 veg boundary (Sez. 101)
     # zábrany → 519 Crossing point = point_object s ROTACÍ (rotatable, jako lávka 512.2; Sez. 52).
     # rot v radiánech (px konvence) = orientace „brány" podél nosné zdi.
     barrier_omap_features = [(gx, gy, "519", rot) for gx, gy, rot, _ in barrier_features]

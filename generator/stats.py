@@ -61,6 +61,7 @@ SYMBOLS = [
     ("406",   "Vegetation: slow running"),
     ("408",   "Vegetation: walk"),       # věk porostu PROXY (Sez. 62, --forest-age)
     ("410",   "Vegetation: fight"),      # věk porostu PROXY (Sez. 62, --forest-age)
+    ("416",   "Distinct vegetation boundary"),   # mezitřídní hranice predikčních veg ploch (Sez. 101)
     ("412",   "Cultivated land"),
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
