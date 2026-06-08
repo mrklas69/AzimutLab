@@ -65,7 +65,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "104", "107", "513", "516",  # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď) + plot 516 (Sez. 98)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
-              "308", "406",              # mokřady Sez. 44 (308 Marsh) + stromořadí Sez. 45 (406 lineární les)
+              "308", "310", "406",       # mokřady Sez. 44 (308 Marsh) + 310 Indistinct (pseudo Sez. 99) + stromořadí Sez. 45 (406)
               "408", "410")              # věk porostu Sez. 62 (406/408/410 zeleň z AOPK porostních skupin, PROXY)
 # 523 Ruin (Sez. 43): zřícenina jde v building_features jako uzavřený area_object se symbolem 523
 # (line_symbol dashed v template) → OOM nakreslí čárkovaný obrys po obvodu (bez výplně; 523 nemá
@@ -82,7 +82,7 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder + 208 Boulder field = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "403", "402", "402.1", "520", "308", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY); 403 rough open Sez. 92 (separace)
+AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "403", "402", "402.1", "520", "308", "310", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44 + 310 Indistinct pseudo Sez. 99; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY); 403 rough open Sez. 92 (separace)
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
@@ -273,8 +273,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
             o = area_object(ring, c)
             if o:
                 objs.append(o); n_surfaces += 1
-    # mokřady (Sez. 44): 308 Marsh = plošný objekt (uzavřený path s close flagem; OOM vykreslí
-    # modrý vodorovný pattern z definice symbolu — area_symbol type 4 patterns=1).
+    # mokřady (Sez. 44): 308 Marsh / 310 Indistinct (pseudo Sez. 99) = plošný objekt (uzavřený path
+    # s close flagem; OOM vykreslí modrý pattern z definice symbolu — 308 plné čáry, 310 tečkovaný).
     for ring, code in (marsh_features or []):
         o = area_object(ring, str(code))
         if o:

@@ -48,6 +48,7 @@ AREA_ZORDER = [
     "412.1",  # Cultivated land (pole) — combined složka 401+412.1
     "301.1",  # Vodní plocha
     "308",    # Marsh (mokřad)
+    "310",    # Indistinct marsh (nezřetelná bažina, pseudo Sez. 99)
     "406",    # Forest: slow running (světlá zeleň)
     "408",    # Forest: walk (střední zeleň)
     "410",    # Forest: fight (tmavá zeleň)
@@ -68,6 +69,7 @@ LABEL_VIS = {
     CODE_TO_LABEL["402"]: (250, 235, 160),
     CODE_TO_LABEL["402.1"]: (210, 225, 130), CODE_TO_LABEL["412.1"]: (245, 215, 140),
     CODE_TO_LABEL["301.1"]: (50, 162, 222), CODE_TO_LABEL["308"]: (120, 200, 230),
+    CODE_TO_LABEL["310"]: (165, 215, 235),   # Indistinct marsh — světlejší modrá (řidší pattern)
     CODE_TO_LABEL["406"]: (181, 230, 181), CODE_TO_LABEL["408"]: (120, 200, 140),
     CODE_TO_LABEL["410"]: (40, 160, 90), CODE_TO_LABEL["206"]: (120, 120, 120),
     CODE_TO_LABEL["208"]: (150, 150, 150), CODE_TO_LABEL["501"]: (180, 140, 110),

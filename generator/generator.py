@@ -354,12 +354,24 @@ SURFACE_MIN_AREA_PX2 = {ISOM_CULTIVATED: round(9.0 * PX_PER_MM ** 2),
 # `Bažina, močál` + `Rašeliniště (plocha)` → ISOM 308 Marsh (crossable). Template 308 = area_symbol
 # s patternem: MODRÉ vodorovné čáry (color Blue 100%, line_spacing 0,45 mm, line_width 0,15 mm).
 # Rastr to napodobí scanline šrafou (vodorovné modré čáry ořezané na polygon); .omap věrný ze symbolu.
-# KISS vrstva → jeden symbol (vždy 308, NE 307 uncrossable — viz zabaged.map_marsh_to_isom). Z-order:
-# nad plošným pokryvem (401/520), pod liniemi/body. Mapování viz zabaged.map_marsh_to_isom.
+# Projekce (ZABAGED→ISOM) = vždy 308 Marsh (NE 307 uncrossable — data nenesou překonatelnost; viz
+# zabaged.map_marsh_to_isom). Z-order: nad plošným pokryvem (401/520), pod liniemi/body.
+# PSEUDO FÁZE 2 (Sez. 99): ZABAGED nerozlišuje zřetelnou (308) vs nezřetelnou (310 Indistinct) bažinu —
+# „indistinct" je kartografická interpretace okraje, ne katastrální fakt (measure-first: atribut
+# rašeliniště/bažina geograficky binární, velikost nediskriminuje). Reálné mapy mají 308 i 310
+# PROMÍCHANÉ v rámci mapy (medián ~59 % na 310) → ~MARSH_INDISTINCT_PCT % mokřadů reklasifikujeme na
+# 310 deterministickou pseudonáhodou z polohy (jen pseudorealistic; --only-real = vše 308 = čistá projekce).
 ISOM_MARSH = 308
-MARSH_NAME = {ISOM_MARSH: "Marsh"}
-MARSH_CLASS = {ISOM_MARSH: 1}                          # mask_marsh.png (0 = pozadí, 1 = marsh)
-MARSH_HATCH_SPACING_PX = max(2, round(0.45 * PX_PER_MM))  # rozestup vodorovných čar (template 0,45 mm)
+ISOM_MARSH_INDISTINCT = 310                           # pseudo fáze 2: nezřetelná bažina (Sez. 99)
+MARSH_NAME = {ISOM_MARSH: "Marsh", ISOM_MARSH_INDISTINCT: "Indistinct marsh"}
+MARSH_CLASS = {ISOM_MARSH: 1, ISOM_MARSH_INDISTINCT: 2}   # mask_marsh.png (0 = pozadí, 1 = 308, 2 = 310)
+MARSH_HATCH_SPACING_PX = max(2, round(0.45 * PX_PER_MM))  # 308: plné vodorovné čáry (template 0,45 mm)
+# 310 Indistinct (template pattern type=2: line_spacing 0,90 mm = 2× řidší + tečkový point_distance
+# 1,725 mm) → rastr napodobí 2× řidší PŘERUŠOVANOU šrafou (staggered ob řádek), vizuálně odliší od 308.
+MARSH_INDISTINCT_SPACING_PX = max(3, round(0.90 * PX_PER_MM))   # rozestup řádků (template 0,90 mm)
+MARSH_INDISTINCT_DASH_PX = max(2, round(0.60 * PX_PER_MM))      # délka dashe (~0,60 mm)
+MARSH_INDISTINCT_GAP_PX = max(2, round(1.15 * PX_PER_MM))       # mezera mezi dashi (~point_distance)
+MARSH_INDISTINCT_PCT = 55                             # pseudo: ~55 % mokřadů → 310 (medián reálných map ~59 %)
 
 
 # ---------- Skály a balvany (Sez. 30 + 57, real-půlka §8.5) ----------
@@ -1237,14 +1249,24 @@ def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageD
         y += sp                                         # další řádek mřížky (Sez. 49 fix: chyběl → nekonečná smyčka)
 
 
+def _draw_dashed_hline(draw: ImageDraw.ImageDraw, xa: float, xb: float, y: int, row: int) -> None:
+    """Přerušovaná vodorovná modrá čára pro 310 Indistinct marsh (template tečkový pattern type=2).
+    Dashe periody DASH+GAP, staggered o půl periody ob řádek (template offset_along_line)."""
+    period = MARSH_INDISTINCT_DASH_PX + MARSH_INDISTINCT_GAP_PX
+    x = xa + (period // 2 if row % 2 else 0)            # liché řádky posunuté → staggered tečky
+    while x < xb:
+        draw.line([(x, y), (min(x + MARSH_INDISTINCT_DASH_PX, xb), y)], fill=C_BLUE, width=1)
+        x += period
+
+
 def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                      rings_px: list[list[tuple[float, float]]], code: int) -> None:
-    """Mokřad (ISOM 308 Marsh): MODRÁ vodorovná šrafa ořezaná na polygon + plná třída do GT masky.
+    """Mokřad (308 Marsh / 310 Indistinct): MODRÁ vodorovná šrafa ořezaná na polygon + plná třída do masky.
 
-    Pattern napodobuje template 308 (modré vodorovné čáry, rozestup MARSH_HATCH_SPACING_PX); .omap
-    dostane věrný 308 area symbol. `rings_px` = [vnější, díra1, …] (Sez. 54). Scanline: pro každou
-    vodorovnou linii najdi průsečíky s hranami VŠECH prstenů (even-odd), seřaď x a vyplň modře mezi
-    sudými páry (díry vynechány). GT maska = PLNÁ výplň třídou (plošná pravda, ne jen šrafa)."""
+    308 = plné čáry (rozestup MARSH_HATCH_SPACING_PX, template 0,45 mm); 310 = 2× řidší PŘERUŠOVANÁ
+    šrafa (pseudo fáze 2, Sez. 99). .omap dostane věrný area symbol dle `code`. `rings_px` = [vnější,
+    díra1, …] (Sez. 54). Scanline: pro každou vodorovnou linii najdi průsečíky s hranami VŠECH prstenů
+    (even-odd), seřaď x a vyplň modře mezi sudými páry (díry vynechány). GT maska = PLNÁ výplň třídou."""
     outer = rings_px[0]
     if len(outer) < 3:
         return
@@ -1254,9 +1276,11 @@ def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         _fill_rings_scanline(mdraw, rings, cls)
     else:
         mdraw.polygon(outer, fill=cls)                  # bez děr: rychlá PIL cesta (plná plocha)
+    indistinct = (code == ISOM_MARSH_INDISTINCT)
+    spacing = MARSH_INDISTINCT_SPACING_PX if indistinct else MARSH_HATCH_SPACING_PX
     ys = [p[1] for ring in rings for p in ring]
     y0, y1 = int(math.floor(min(ys))), int(math.ceil(max(ys)))
-    for y in range(y0, y1 + 1, MARSH_HATCH_SPACING_PX):
+    for row, y in enumerate(range(y0, y1 + 1, spacing)):
         xs: list[float] = []
         for ring in rings:                              # průsečíky scanline s hranami (per prsten → díry vynechány)
             n = len(ring)
@@ -1268,7 +1292,10 @@ def _draw_marsh_area(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                     xs.append(ax + t * (bx - ax))
         xs.sort()
         for j in range(0, len(xs) - 1, 2):              # vyplň mezi sudými páry (uvnitř polygonu)
-            draw.line([(xs[j], y), (xs[j + 1], y)], fill=C_BLUE, width=1)
+            if indistinct:
+                _draw_dashed_hline(draw, xs[j], xs[j + 1], y, row)   # 310: přerušovaně, staggered
+            else:
+                draw.line([(xs[j], y), (xs[j + 1], y)], fill=C_BLUE, width=1)   # 308: plná čára
 
 
 def _polygon_area_px(ring: list[tuple[float, float]]) -> float:
@@ -2431,22 +2458,42 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
     return area_features, surfaces_info, fence_features
 
 
+def _marsh_indistinct(cx: float, cy: float) -> bool:
+    """Pseudo (fáze 2, Sez. 99): má mokřad s centroidem (cx, cy) v MŘÍŽCE být 310 Indistinct místo 308?
+
+    Deterministická pseudonáhoda ~MARSH_INDISTINCT_PCT % z polohy — spatial hash (prvočísla),
+    stabilní MEZI BĚHY (ne `hash()` s PYTHONHASHSEED) a nezávislá na pořadí. ZABAGED zřetelnost
+    mokřadu nenese (measure-first Sez. 99: rašeliniště/bažina geograficky binární, velikost
+    nediskriminuje) → náhoda do statistické míry reálných map (medián ~59 % na 310)."""
+    h = (int(round(cx)) * 73856093) ^ (int(round(cy)) * 19349663)
+    return (h % 100) < MARSH_INDISTINCT_PCT
+
+
 def _generate_real_marsh(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                         lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálné mokřady (real-půlka, Sez. 44): bažina/močál + rašeliniště → 308 Marsh (modrá šrafa).
+                         lat: float, lon: float, geo_bbox: tuple,
+                         pseudorealistic: bool) -> tuple[list, list]:
+    """Reálné mokřady (real-půlka, Sez. 44): bažina/močál + rašeliniště → 308 Marsh / 310 Indistinct.
 
     Mirror _generate_real_surfaces (RAW S-JTSK → grid → px → šrafovaný polygon, bez generalizace).
-    Vrací (area_features [(grid, code)], marsh_info) v souřadnicích MŘÍŽKY (zdroj pro .omap).
-    V suchém výseku bez mokřadů = 0 prvků (žádný šum)."""
+    Projekce = vždy 308; pseudo fáze 2 (pseudorealistic) reklasifikuje ~55 % mokřadů na 310 Indistinct
+    deterministickou pseudonáhodou z centroidu (data zřetelnost nenesou, Sez. 99). Vrací (area_features
+    [(grid, code)], marsh_info) v souřadnicích MŘÍŽKY (zdroj pro .omap). V suchém výseku = 0 prvků."""
     from zabaged import fetch_marsh, map_marsh_to_isom
     area_features: list[tuple] = []
     marsh_info: list[dict] = []
     for f in fetch_marsh(lat, lon, GW, GH, TILE_M):
-        code = map_marsh_to_isom(f["layer"], f["props"])
+        base_code = map_marsh_to_isom(f["layer"], f["props"])   # projekce ZABAGED→ISOM = 308
         for poly in f["rings"]:
             grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
             if len(px_rings[0]) < 3:
                 continue
+            code = base_code
+            if pseudorealistic and base_code == ISOM_MARSH:      # fáze 2: část → 310 Indistinct
+                ring = grid_rings[0]
+                cx = sum(p[0] for p in ring) / len(ring)
+                cy = sum(p[1] for p in ring) / len(ring)
+                if _marsh_indistinct(cx, cy):
+                    code = ISOM_MARSH_INDISTINCT
             _draw_marsh_area(draw, mdraw, px_rings, code)
             area_features.append((grid_rings, code))
             marsh_info.append({"symbol": code, "symbol_name": MARSH_NAME[code],
@@ -3297,9 +3344,11 @@ def generate_map(
         marsh_mask_img = Image.new("L", (W, H), 0)       # GT maska mokřadů (§8.1)
         mhdraw = ImageDraw.Draw(marsh_mask_img)
         marsh_area_features, marsh_info = _try_layer(
-            "marsh", lambda: _generate_real_marsh(draw, mhdraw, lat, lon, geo_bbox),
+            "marsh", lambda: _generate_real_marsh(draw, mhdraw, lat, lon, geo_bbox, pseudorealistic),
             ([], []), tolerant, layer_errors)
-        _log.info("  mokřady: %d (308 Marsh)", len(marsh_info))
+        n_ind = sum(1 for m in marsh_info if m["symbol"] == ISOM_MARSH_INDISTINCT)
+        _log.info("  mokřady: %d (308 Marsh %d / 310 Indistinct %d)",
+                  len(marsh_info), len(marsh_info) - n_ind, n_ind)
 
     # --- vrstevnice (§4.5): izolinie pole `elev` přes contourpy (marching squares) ---
     cmask_img = Image.new("L", (W, H), 0)           # samostatná GT maska vrstevnic

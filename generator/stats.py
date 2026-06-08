@@ -49,6 +49,7 @@ SYMBOLS = [
     ("305",   "Small crossable watercourse"),
     ("306",   "Minor seasonal water channel"),
     ("308",   "Marsh"),
+    ("310",   "Indistinct marsh"),
     ("311",   "Well, fountain or water tank"),
     ("312",   "Spring"),
     # Skalní bodové (§4.11, Sez. 44)
