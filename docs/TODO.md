@@ -23,10 +23,18 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
 > (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
 > (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
-> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Baseline Sez. 100: KPI 46,1 %** (Bedř+Blatná; plocha
-> 60,9 / linie 47,7 / **bod 29,0** = Png2Point dluh; Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit):
-> 416/210/204/403/508/417. Co generátor nenakreslí, reconstructor se NIKDY nenaučí → pokrytí = strop tréninku
-> (memory `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = přiblížit distribuci symbolů realitě.**
+> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 101: KPI 49,3 %** (z baseline 46,1 Sez. 100;
+> +3,2 pb 416 Distinct veg boundary; Bedř+Blatná; plocha 60,9 / **linie 47,7→58,3** / **bod 29,0** = Png2Point dluh;
+> Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit, Sez. 101): 210/204/403/508/**416** (už jen 2,7 pb)/417/409.
+> Co generátor nenakreslí, reconstructor se NIKDY nenaučí → pokrytí = strop tréninku (memory
+> `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = přiblížit distribuci symbolů realitě.**
+> **Sez. 101 — 403 NENÍ páka (granularitní propast), 416 ANO (+3,2 pb).** 403 podstřel (673/152) měřením: NE slévání
+> (gen 39 %/12 % plochy), systémově reálné mapy kreslí 403 jako dominantní open (Bedř 9× nad 401) ale ČÚZK vrací TTP
+> **hrubě** (1 multipolygon 139,5 ha → ~46 gen obj vs kartograf 356 plošek) → simulace přesunu 401→403 = +0,1 pb
+> (KPI počítá objekty, granularitu plošné mapování neopraví — strop i UVNITŘ ploch). Bedř scan-odstín 403 = artefakt
+> Livelox-kalibrace (separace měří resources) → dokumentovat-neladit. **416 = silná páka** (633/0 největší díra):
+> mezitřídní hranice predikčních veg ploch + délkový práh 50 m (reálné medián 45-90 m, mezi-veg samo přestřeluje
+> 147/596 %) → KPI +3,2 pb. **Plošná páka z ČÚZK definitivně vyčerpaná** (potvrzeno 3× Sez. 99-101); další skok = reconstructory.
 > **Stav Sez. 94 (POCTIVÝ baseline):** `compare_isom` opraven na **crosswalk-aware** — Sez. 91 „38 %" bylo
 > NEPLATNÉ (naivní integer-prefix ignoroval `.crt`; reálné mapy ISOM 2000 vs gen 2017-2, číslování recykluje).
 > Matched přes 3 mapy (A3: Slovanka UTM33 + Soví vrch 1/4 vynechány): Bedř **43 %** / Blatná **37 %** (jediná
@@ -67,11 +75,14 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   gen=0 díry jsou **404/407/409** (Undergrowth + Rough open w/ scattered trees = vegetace gate, ZABAGED NEVEDE — stejná
   past jako 310) + 515 (neznámé). **Závěr: plošná coverage páka z ČÚZK je téměř vyčerpaná** (kvantifikováno KPI: sub
   plocha 60,9 % vs bod 29,0 %; 61 % hmoty = linie+body). Další skok = Png2Point/Line, ne nové plošné typy.
-- [ ] *(KPI → 55 %, PRVNÍ krok Sez. 101)* **zvednout proporci PODSTŘELENÝCH hojných ploch, co MÁME zdroj** — z KPI
-  žebříčku: **403** Rough open (orig 673 / gen 152, podstřel 4×, separace ho vrací bledě), 408/406 les, 508 průseky.
-  Measure-first: PROČ separace/generátor podstřeluje (práh / pattern-slepost)? → zvednout, ne kreslit nový typ.
-- [ ] *(linie, největší díra)* **416 Distinct vegetation boundary** (orig 633 / gen 0, kompas)
-  z hranic separovaných ploch 403/406/408, do statistické míry (reálné hranice vegetace většinou nejasné, IDEAS C Sez. 96).
+- [x] *(VYVRÁCENO Sez. 101 — granularitní propast, detail DONE)* **403 podstřel NENÍ páka** (+0,1 pb). Measure-first:
+  ne slévání (gen 39 %/12 % plochy), systémově reálné mapy kreslí 403 jako dominantní open (Bedř 9× nad 401) ALE ČÚZK
+  vrací TTP hrubě (1 multipolygon → ~46 gen obj vs kartograf 356 plošek) → KPI počítá objekty, přemapování 401→403 = +0,1.
+  Bedř scan-odstín = artefakt Livelox-kalibrace → dokumentovat-neladit. Generátor netknutý (ušetřen refaktor).
+- [x] *(HOTOVO Sez. 101 — +3,2 pb, detail DONE)* **416 Distinct vegetation boundary** (orig 633 / gen 0 → gen 154) —
+  měřením potvrzená SILNÁ páka. **Mezitřídní hranice** predikčních veg ploch (403↔406↔408↔410, volba uživatele) +
+  **délkový práh 50 m** (mezi-veg samo přestřeluje 147/596 %, reálné medián 45-90 m). `_predict_veg_boundaries` +
+  `_draw_boundary` (černá tečkovaná, izomorf 508) + linefeature (0 změna omap_export). LINIE → bez Y dluhu. KPI 46,1→49,3.
 - [x] *(VYŘEŠENO Sez. 99 — bug neexistuje)* meta.json „real_sections []" u predict cesty: `veg_area` se ZAPISUJE
   správně (224 položek, provenance predict). Sez. 98 viděl STALE `meta.json` přes skip-existing `_gen_sep` → odhalena
   cache past (níž), opravena.

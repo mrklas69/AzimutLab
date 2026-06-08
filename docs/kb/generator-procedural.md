@@ -502,6 +502,20 @@ Zdroj predikční vegetace (náhrada archiv forest-age): **separace barev z Live
 Zásada: separace = GT-feeder (~90 %, NEleštit práh; kvalitu dotáhne `Png2Area` model). Y rastr = `omap_raster`
 (403 v `AREA_ZORDER` + `omap_export.AREA_CODES`/`USED_CODES`).
 
+**416 Distinct vegetation boundary (LINIE, Sez. 101)** — odvozenina z predikčních veg ploch, NE samostatná
+vrstva. Měření Sez. 101: 416 = **největší proporční díra KPI** (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ
+hranice mezi oblastmi různé runnability (403↔406↔408↔410) tečkovanou linií; data (separace) nemají info o
+„zřetelnosti" → bereme **mezitřídní** hranice (kde se stýkají různé veg třídy) + **délkový práh
+`BOUNDARY_MIN_LEN_M`=50 m** (krátké šumové fragmenty separace odpadnou; reálné 416 medián 45-90 m, mezi-veg
+samo přestřeluje 147/596 % obvodu). Algoritmus `_predict_veg_boundaries` (generator.py): contour každé veg
+třídy z `veg_area_mask_img` (`PREDICT_AREA_CLASS` rastr) → per-bod prstenu klasifikuj, je-li v okolí JINÁ veg
+vyšší třídy (dedup B>A, ať hrana A↔B jen jednou) → souvislé mezitřídní úseky → práh → RDP → polyline. Render
+`_draw_boundary` (černá tečkovaná, izomorf `_draw_ride` 508); .omap přes `linefeature_features` (sym 416 z
+template, **0 změna omap_export**); `mask_boundaries.png`. **LINIE → bez Y-area dluhu** (Png2Line neexistuje;
+.omap stačí pro KPI/kompas). Stejný typ problému jako marsh 310 (data nediskriminují), ale heuristika
+MEZITŘÍDNÍ je doménově věrná. **KPI 46,1 → 49,3 %** (+3,2 pb; sub-linie 47,7 → 58,3). Zásada „neleštit": gen 416
+je 0,24× reálného (per-mapa plató), nedoháníme na 1,0× (přestřel by KPI snižoval přes `min`).
+
 **✅ `--forest-age real`** vezme z **AOPK** „Les_Mapy" (NE ČÚZK) porostní skupiny (vrstva 19) přes
 `connectors/forest.py` (mirror ZABAGED REST přes sdílený `arcgis.fetch_geojson_layer`; jiný server
 `gis.nature.cz`, `maxRecordCount=1000` → paging po 1000) → ISOM zeleň **406/408/410** dle věku.

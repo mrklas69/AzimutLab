@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 101 (2026-06-08) — 416 Distinct vegetation boundary z mezitřídních hranic (KPI 46,1 → 49,3 %) (ntbhej)
+- [x] **403 měřením VYVRÁCEN jako páka** (+0,1 pb) — measure-first roztřídil podstřel (orig 673/gen 152):
+      slévání vyvráceno (gen 39 %/12 % PLOCHY), práh ubírá objekty ne plochu, **systémová příčina** = reálné
+      mapy kreslí 403 jako dominantní open (Bedř 356 vs 401 38 = 9×), gen mapuje ČÚZK open→401. Volba uživatele
+      „TTP→403" **měřením vyvrácena: granularitní propast** (ČÚZK 1 multipolygon 139,5 ha → ~46 gen obj vs
+      kartograf 356 plošek; KPI počítá objekty → simulace přesunu 401→403 = +0,1 pb). Generátor NETKNUTÝ (ušetřen
+      zbytečný refaktor). Bedř scan-odstín 403 (sytě žluté B=64 → `_is_pale_yellow` 401) = artefakt Livelox-
+      kalibrace (KPI měří resources) → volba **dokumentovat-neladit** (zásada Sez. 82 „neleštit separaci").
+- [x] **416 Distinct vegetation boundary** (`generator.py`, **největší KPI díra 633/0**) — measure-first potvrdil
+      SILNOU páku (KPI simulace 0,6× = +5,4 pb). Mezitřídní hranice predikčních veg ploch (volba uživatele, ISOM
+      416 = hranice různé runnability 403↔406↔408↔410). `_predict_veg_boundaries`: contour každé veg třídy
+      (rock_relief) → per-bod prstenu klasifikuj vnější souseda (jiná veg vyšší třídy, dedup B>A) → souvislé
+      mezitřídní úseky → **délkový práh `BOUNDARY_MIN_LEN_M`=50 m** (krátké šumové fragmenty separace odpadnou;
+      reálné 416 medián 45-90 m) → RDP → polyline. `_draw_boundary` černá tečkovaná (template 416 = Black 100%
+      dotted, izomorf `_draw_ride` 508). Hook v predict bloku (z `veg_area_mask_img`), 416 → `linefeature_features`
+      (**0 změna omap_export** — sym["416"] z template), `mask_boundaries.png`, `stats.py` +416. **LINIE → bez
+      Y-area dluhu** (Png2Line neexistuje; .omap stačí pro KPI/kompas).
+- [x] **KPI 46,1 → 49,3 % (+3,2 pb)**; sub-linie 47,7 → **58,3 % (+10,6)**; oba mapy + (Bedř 44,1 / Blatná 54,6);
+      416 z headline díry na 5. místo (gen 154/orig 633). Práh laděn měřením (prototyp `temp/proto_416` 50 m =
+      optimum; render rozlišení dává gen 416 0,24× reálného, per-mapa plató 38=50=49,3).
+- [x] **Verify**: noise byte-identický (proc 65, md5 shodný git-stash — 416 striktně v predict bloku, noise cesta
+      nedotčena); vizuál Bedř (416 tečkovaně sleduje okraje zřetelných veg ploch, věrné OB stylu); py_compile OK.
+
 ## Sezení 100 (2026-06-08) — KPI fáze generator() (proporční podobnost distribuce ISOM symbolů) (ntbhej)
 - [x] **KPI definován + zaveden** (přání uživatele „chci JEDEN kvantifikátor, projekt se utápí v metodologii").
       `generator/measure_dod.py` DEFAULT režim = **proporční podobnost distribuce ISOM symbolů**: histogram
