@@ -355,12 +355,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   modelu na párech z II. Degradér patří do II, ne do I. Pravé veřejné `.omap`/`.ocd` vektory neexistují
   (průzkum Sez. 80) → `.omap` tvoří generátor. Provenience **real/predict** flag v `.omap` říká, co model bere
   z dat vs ze skenu. Detail: IDEAS „Tři fáze I/II/III".
-- **degradér / `degrade()`** (Sez. 86, `generator/degrade.py`) — fáze II krok, který z čistého renderu
-  (`rgb.png`) vyrobí realistický „sken" (`scan.png` = **X** v páru). **Čistě fotometrický** (CMYK misregistrace,
-  blur, papír+zažloutnutí, senzorový šum, JPEG) → **Y (`.omap`) se nemění**, pár zůstává konzistentní. Geometrii
-  (rotace/warp) NEdělá — ta patří na úroveň páru (transformuje X i Y zároveň, loader D4 Sez. 78), ne sem (DRY/SLAP).
-  Deterministický přes `seed` (= cid v `pairs`) → z jednoho renderu libovolně variant = augmentace. Zužuje
-  [[domain-gap]] render→sken (reconstructor trénovaný na hladkém rastru by na reálné mapě selhal). **omap2png** =
+- **degradér / `degrade()`** (Sez. 86, `generator/degrade.py`) — z čistého renderu vyrobí realistický „sken".
+  **Čistě fotometrický** (CMYK misregistrace, blur, papír+zažloutnutí, senzorový šum, JPEG) → **Y se nemění**.
+  **Sez. 103: aplikuje se jako AUGMENTACE on-the-fly v `model/png2area/dataset.py._augment` (fáze II/III
+  dekonstruktor), NE v `build_pair`** — degradace nepatří do generator() fáze I (ta drží render věrný/čistý,
+  X páru = `rgb.png`); zapečení do `scan.png` (Sez. 86) bylo chyba, opravená Sez. 103, viz
+  [[no-degradation-in-generator-phase]]. Geometrii (rotace/warp) NEdělá — patří k D4 na úroveň dlaždice (Sez. 78).
+  Variabilní seed → jiná realizace každou epochu. Zužuje [[domain-gap]] render→sken (reconstructor trénovaný na
+  hladkém rastru by na reálné mapě selhal). **omap2png** =
   „render `.omap` → PNG"; náš rastr to dělá zdarma (`generate_map` produkuje `rgb.png`, Sez. 82 volba C), C++
   headless OOM až s důkazem gapu.
 - **`omap_raster` / `area_labels.png`** (Sez. 87, `generator/omap_raster.py`) — Y-pipeline páru: rasterizace

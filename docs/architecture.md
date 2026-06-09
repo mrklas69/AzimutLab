@@ -149,8 +149,10 @@ bodových, liniových i plošných ISOM symbolů.
   `ORTO → 4 barvy` **archivovaná odbočka** (viz reframe note výše), kód nemazán. Datová pipeline
   (páry/GT/split/dlaždice) zůstává znovupoužitelná — reálně reusována Png2Area modelem níže.
 - **Png2Area reconstructor — PRVNÍ FUNKČNÍ MODEL (Sez. 88 kód → Sez. 90-91 trénink), `model/png2area/{tile,dataset,train}.py`:**
-  první ze tří CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`scan.png` (X, degradovaný render),
-  `area_labels.png` (Y, **16 ISOM area kódů + pozadí** ze `omap_raster`)]** vyrobeném `generator/pairs.py`. Izomorf
+  první ze tří CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`rgb.png` (X, ČISTÝ gen render),
+  `area_labels.png` (Y, **18 ISOM area kódů + pozadí** ze `omap_raster`, +403 Sez. 92 / +310 Sez. 99)]** vyrobeném
+  `generator/pairs.py`. Fotometrická degradace (sken-vady) NENÍ v páru — aplikuje se on-the-fly jako augmentace
+  v `dataset.py` (Sez. 103, degradace patří do tréninkové fáze II/III, ne do generator() výroby párů). Izomorf
   s archivem (reuse tiling 512/256, median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto**
   (proto vysoký strop, na rozdíl od archivu), **bez rejection** (pozadí = legitimní třída) a **bez IGNORE** (Y z naší
   `.omap` je celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. **Výsledek

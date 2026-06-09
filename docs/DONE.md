@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 103 (2026-06-09) — Png2Area přetrénován N_AREA 18 + degradér do augmentace + KPI přesah prototyp (HAL3000, CUDA+korpus)
+- [x] **Png2Area přetrénován na N_AREA 18 — celá pipeline.** Vše bylo stale 16-class (páry 06-05/Sez.90, tiles/model)
+      → 310 vložen doprostřed AREA_ZORDER posunul labely → **regen nutný**. `temp/regen_pairs.py` (skip_existing=False)
+      → **205/207 párů** (2 fail: DMR noData mimo ČR + síť timeout; ~11 s/mapa, batch 121 min). build_tiles (smazán
+      starý set) train 144/3398 dlaždic, val 31/701, test 30/558. Overfit gate (80 ep) pipeline OK. **Plný 40 ep:
+      test mIoU 0,568 ≈ val 0,571 (best ep33, bez leaku)**, plató od ep16. Hlavní plochy 0,70-0,92 (401 0,92/308
+      marsh 0,71/521 budovy 0,66/406 0,74/403 0,70), 310 nový 0,46; vzácné strop (501 0,16/402 0,04/208 0,00/301.1
+      NaN = 0 % dat). Pokles vs Sez. 91 (0,640) = 18 tříd (víc vzácných nul) + degradace-augmentace. **Vizuál
+      `1024666` predikce ≈ GT** → mIoU podhodnocuje (sráží vzácné nuly), model funkční. `unet_best.pt`. **⚠ 3 h/40 ep**
+      (degradace per dlaždice v num_workers=0 = bottleneck) → optimalizovat před expansion.
+- [x] **Degradér z generator() → tréninková augmentace** (oprava směru, uživatel; návrat k záměru Sez. 80, opakovaný
+      lapsus Sez. 80→86→103). `build_pair`/`build_pairs` `degrade` param + `scan.png` ODSTRANĚN → X páru = čistý
+      `rgb.png`. `tile.py` X z rgb. **`dataset.py._augment` volá `degrade()` on-the-fly** (variabilní seed/epocha,
+      import z generator/). 205 mrtvých scan.png smazáno. Regen NEopakován. Paměť `no-degradation-in-generator-phase`.
+      Propagace: TODO/GLOSSARY/architecture/spec. py_compile 3/3 + smoke OK.
+- [x] **Pravidlo „No silent fallback" → projektový CLAUDE.md** (Doménové zásady) — selži nahlas/zarytě varuj, nikdy
+      tiše náhradní cesta; lekce cache skip-existing Sez. 99, `_missing_pgw` vzor.
+- [~] **KPI/KOMPAS přesah-artefakt — nález uživatele + měřicí prototyp** (integrace ZBÝVÁ, Příště). gen obdélníkový
+      výsek vs nepravidelná mapa → ČÚZK objekty přesahují → nerovnoměrný přestřel zkresluje KPI (proporce neruší).
+      `temp/proto_clip.py` (maska = non-white sken → convex hull; gen objekty → S-JTSK přes rgb.pgw+sken.pgw → ořez):
+      **+4,4 pb Bedř/Velb** (přestřel 520/521), **Blatná -4,8** (tam gen podstřeluje, přesah maskoval → poctivěji) =
+      ořez obousměrné ZPŘESNĚNÍ. Past „bílá=nemapováno" neplatí uvnitř (401 open forest). Vizuál masky lícuje (georef OK).
+
 ## Sezení 102 (2026-06-08) — 508 measure-first (VYVRÁCENO) + forest_age proxy ARCHIVOVÁN (kód smazán) (ntbhej)
 - [x] **508 Narrow ride měřením VYVRÁCENO jako páka** (+0,34 strop / +0,59 gaming) — fokus bod 3 Příště Sez. 101.
       Measure-first (`temp/measure_508.py`+`sim_508_kpi.py`): **smíšený podstřel, jiný faktor každá mapa.** Bedř

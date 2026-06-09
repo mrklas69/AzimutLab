@@ -669,7 +669,9 @@ funkce generate(seed, params):
    (čistý render, vrstvy fyzikálně vázané na terén — „fyzikální gate"), stupeň 2 = věrnost
    skenu (augmentace §8.3 jako samostatná vrstva). **Fotometrická půlka stupně 2 implementována
    Sez. 86** (`generator/degrade.py`: CMYK misregistrace, blur, papír+zažloutnutí, šum, JPEG —
-   čistě fotometrické, Y se nemění; integrace `pairs.build_pair degrade=True` → `scan.png`). Geometrická
+   čistě fotometrické, Y se nemění). **Aplikuje se jako AUGMENTACE on-the-fly v tréninku
+   `model/png2area/dataset.py` (Sez. 103), NE v `build_pair`** — degradace nepatří do generator() fáze I
+   (ta drží render věrný, X páru = `rgb.png`); zapečení do `scan.png` bylo chyba opravená Sez. 103. Geometrická
    půlka (rotace/deformace) patří na úroveň páru/dlaždice (X+Y zároveň), ne sem. Roadmapa a pořadí vrstev:
    `IDEAS.md`. (Názvosloví bez A/B — ta patří vztahu k Pic2Omap.)
 5. **Náhrada šumu reálným terénem.** ✅ **Implementováno (Sez. 5)** — `--terrain real`

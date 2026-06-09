@@ -71,6 +71,22 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > (pseudo fáze 2, ZABAGED nevede): práh 0,5 ha (gen 160→21≈orig 24) + RDP narovnání + ticky DOVNITŘ
 > (ISOM „tags inside") — HOTOVO. Kompas potvrdil **521 budovy + cesty 503/504 přestřel je OBAL-ARTEFAKT**
 > (gen grid-north obal vs natočený menší výsek) — NEŘEŠIT dissolvem (budovy se kreslí jednotlivě).
+- [~] *(KPI přesnost, nález uživatele Sez. 103 — prototyp HOTOV, INTEGRACE zbývá)* **Přesah-artefakt: ořez gen na
+  mapovanou oblast orig při KPI/KOMPAS.** gen kreslí OBDÉLNÍKOVÝ výsek, reálná OB mapa je NEPRAVIDELNÝ blob (bílé
+  okraje = nemapováno) → ČÚZK objekty (město/železnice/open) PŘESAHUJÍ mimo mapovanou oblast → **nerovnoměrný
+  přestřel zkresluje KPI** (proporční normalizace ho NEruší, je disproporční). `measure_dod._counts_for_map` dnes
+  počítá VŠECHNY gen objekty, žádný ořez. **Past:** „bílá=nemapováno" NEPLATÍ uvnitř (401 open forest = bílá protkaná
+  vrstevnicemi) → maska = OBAL objektů, ne non-white sken (volba uživatele), realizace přes sken+`.pgw` (ne `.omap`
+  Local grivation). **Prototyp `temp/proto_clip.py`** (maska = non-white → convex hull; gen objekty → S-JTSK přes
+  `rgb.pgw`+sken `.pgw` → ořez na masku): **+4,4 pb Bedř/Velb** (ořez přestřelu 520/521), **Blatná -4,8** (tam gen
+  PODSTŘELUJE 101/401/204, přesah maskoval → ořez poctivěji) = **obousměrné ZPŘESNĚNÍ** (ne „vždy zvedne"). Vizuál
+  masky lícuje (georef OK). **ZBÝVÁ: integrovat do `measure_dod._counts_for_map`** (hull maska + gen objekty s
+  polohami + ořez) → oficiální KPI před/po (baseline 49,8 %). Týká KPI i KOMPAS (sdílí `_counts_for_map`).
+- [ ] *(vizuál pomůcka, zadáno uživatelem Sez. 103)* **Podklady do korpusového `gen.omap` jako přepínatelný OOM
+  background** — warpnout **Livelox sken (`map.png`) + ortofoto (`ortho.png`) + GT runnability (`gt_grid_vis`)** do
+  gen crop gridu (přes `rgb.pgw` + `_map_affine`) → přidat jako background templates (gen.omap má dnes `count=0`).
+  Pro vizuální srovnání gen kresby s realitou v OOM. Netréninkové. Build_pair pro budoucí + post-process na hotové
+  205 párů (bez re-fetch). Volby uživatele: sken+ortho+GT (NE degradovaný scan — ten už neexistuje, Sez. 103).
 - [x] *(HOTOVO Sez. 99, detail DONE)* **310 Indistinct marsh** na `--marsh` — measure-first rozbil zadání: **313
   vodopád = mýtus** (bod Spring/0×, vyřazeno), **310 z ČÚZK neodvoditelný** (ZABAGED nerozlišuje zřetelnost) →
   **pseudo split náhodou ~55 %** (`_marsh_indistinct`, jen pseudorealistic; N_AREA 17→18). **POZOR: KOMPAS přínos ~0**
@@ -167,9 +183,11 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   vedle `.omap` (verify `pairs.py:7`, Sez. 82 volba C „náš rastr"). C++ headless OOM až měřený doménový gap
   dokáže potřebu (reconstructor selže na reálných OOM/tištěných mapách). „omap2png" v doslovném smyslu (parsovat
   libovolnou `.omap`) jen pro OOM věrnost = cesta A, neakutní.
-- [~] **Fáze II degradér `generator/degrade.py` — MVP HOTOVO Sez. 86.** `degrade(rgb, seed)` 4 fotometrické
-  sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), čistě fotometrické (Y se nemění),
-  DRY proti loaderu D4 (geometrie tam, ne tady). Integrace `pairs.build_pair degrade=True` → `scan.png` (X páru).
+- [~] **Fáze II/III degradér `generator/degrade.py` — MVP HOTOVO Sez. 86, PŘESUNUT do augmentace Sez. 103.**
+  `degrade(rgb, seed)` 4 fotometrické sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG),
+  čistě fotometrické (Y se nemění). **Sez. 103: odstraněn z `build_pair` (zapékal `scan.png` do páru = chyba,
+  degradace nepatří do generator() fáze I) → volá se on-the-fly v `model/png2area/dataset.py._augment` jako
+  augmentace (jiná realizace každou epochu).** X páru = ČISTÝ `rgb.png`. Paměť [[no-degradation-in-generator-phase]].
   **ZBÝVÁ:** porovnat s reálnou Livelox mapou (cílová doména, mrkla) + **doladit misregistraci ±0,7 px (DŮKAZ
   Sez. 90):** ±1,1 px rozdvojuje tenké symboly — zelený kroužek **417** (Prominent large tree) na zeleném
   podkladu → světlé lemy = „dva bílé kruhy". Pro Png2Area nevadí (417=bod, není v Y), ale pro **Png2Point** musí
@@ -183,6 +201,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     → overfit gate (nález **tvar > velikost**: tenké třídy se downsamplingem rozpustí) → **plný trénink test mIoU
     0,621→0,640, val 0,654** (cap vah @10 v train.py + cosine LR, loss-spiky zmizely); budovy 521 zachráněny
     0,00→0,68 (váhy+data); `unet_best.pt`. Archiv `git mv` → `model/runnability/`.
+    **PŘETRÉNOVÁN N_AREA 18 Sez. 103** (310 přidán Sez. 99): regen 205 párů → tiles 144/31/30 → **test mIoU 0,568 ≈
+    val 0,571** (pokles vs 0,640 = 18 tříd víc vzácných nul + degradace-augmentace; hlavní plochy 0,70-0,92, 308
+    marsh 0,71/521 0,66/310 0,46; vizuál `1024666` predikce≈GT → mIoU podhodnocuje). **⚠ 3 h/40 ep** = degradace per
+    dlaždice v `num_workers=0` → optimalizovat (lehčí/pravděpodobnostní degradace / num_workers Win) PŘED expansion.
   - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
     (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
     corpus expansion").
@@ -258,10 +280,11 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [ ] *(rozšíření cest/vody)* věrná dvojitá linie 502 Wide road (teď PoC casing), ladění 505/506, ořez reálných linií na bbox; (voda) „hranatý" malý rybník, věrný kombinovaný 301 s břehovou linií v OMAP (teď 301.1).
 - [ ] *(drobnost, nález %AUDIT:CODE Sez. 19 — P2)* OMAP export 110 Small elongated knoll: rastr respektuje orientaci `horiz`, ale `.omap` exportuje vždy `rotation="0"`. Předat orientaci protáhlosti do exportu (rastr↔omap konzistence).
 - [ ] *(anotace, až bude vstup)* čtečka čísel kontrol **ISOM 704** ze separátního anotačního `.omap` (kanál uživatel → AI: označí místo v OOM, generátor nepřepíše; já přečtu polohu/číslo). Workflow rozhodnut Sez. 18.
-- [~] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken". **Fotometrická půlka HOTOVO Sez. 86**
-  (`degrade.py`: CMYK misregistration, papír+zažloutnutí, JPEG, šum, blur). **ZBÝVÁ geometrická půlka** (deformace
-  sklad/sken, rotace warp) — patří na úroveň páru/dlaždice (transformuje X i Y zároveň), ne do fotometrického
-  degradéru; nejspíš do loaderu vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
+- [~] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken". **Fotometrická půlka HOTOVO Sez. 86,
+  zapojena jako AUGMENTACE Sez. 103** (`degrade.py` volán v `model/png2area/dataset.py._augment` on-the-fly, ne
+  v build_pair — degradace patří do tréninkové pipeline, ne do generator() výroby párů, viz
+  [[no-degradation-in-generator-phase]]). **ZBÝVÁ geometrická půlka** (deformace sklad/sken, rotace warp) —
+  patří na úroveň dlaždice (transformuje X i Y zároveň) vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
 - [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu. **Sez. 16: `connectors/` = první sdílená kódová složka mimo sandbox (drobný krok B→A); spouštěč „balík" stále otevřen — až 2. konzument konektorů. Sez. 39: generátor opustil sandbox (`generator/`), sandbox zrušen — krok B→A, ale pořád sys.path skripty, ne balík.**
