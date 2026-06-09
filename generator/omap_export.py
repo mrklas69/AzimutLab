@@ -101,6 +101,55 @@ def _parse_symbol_ids(template_xml: str) -> dict[str, int]:
     return ids
 
 
+def _image_template_element(name: str, sx: float, sy: float) -> str:
+    """Jeden OOM <template type="TemplateImage"> element (definice v <map>).
+
+    Obraz vycentrovaný na origin (x=y=0, jako objekty paper()), scale_x/y = map-mm na pixel obrazu →
+    img_w×img_h přesně pokryje výsek. Formát ověřen proti reálnému OOM 0.9.6 (uživatel připnul ručně →
+    odečten XML, Sez. 26). Sdílí ortho_template (write_omap) i podkladové backgrounds (gen_backgrounds.py,
+    Sez. 104) — DRY, 2. konzument = důkaz pro extrakci."""
+    return (
+        f'<template type="TemplateImage" open="true" name="{name}" '
+        f'path="{name}" relpath="{name}">'
+        f'<transformations adjustment_dirty="true" passpoints="0">'
+        f'<transformation role="active" x="0" y="0" '
+        f'scale_x="{sx:.7g}" scale_y="{sy:.7g}" rotation="0"/>'
+        f'<transformation role="other" x="0" y="0" scale_x="1" scale_y="1" rotation="0"/>'
+        f'<matrix role="map_to_template" n="3" m="3">'
+        f'<element value="{1.0 / sx:.7g}"/><element value="0"/><element value="0"/>'
+        f'<element value="0"/><element value="{1.0 / sy:.7g}"/><element value="0"/>'
+        f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
+        f'<matrix role="template_to_map" n="3" m="3">'
+        f'<element value="{sx:.7g}"/><element value="0"/><element value="0"/>'
+        f'<element value="0"/><element value="{sy:.7g}"/><element value="0"/>'
+        f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
+        f'<matrix role="template_to_map_other" n="0" m="0"/></transformations></template>'
+    )
+
+
+def inject_image_templates(doc: str, templates: list[dict]) -> str:
+    """Vloží N PODKLADOVÝCH (background) image templates do .omap s prázdnými <templates count="0"> bloky.
+
+    templates = [{name, sx, sy, opacity}] (pořadí = z-order definice; všechny POD mapou). Dva prázdné
+    bloky čistého template / gen .omap: (a) definice v <map> (count + first_front_template = N → všechny
+    pod mapou), (b) ref ve <view> (count + N <ref> s opacitou). Vrací upravený doc; [] = beze změny.
+    Raise když bloky nesedí (ochrana proti tichému no-op). Formát viz `_image_template_element`."""
+    if not templates:
+        return doc
+    n = len(templates)
+    defs = "".join(_image_template_element(t["name"], t["sx"], t["sy"]) for t in templates)
+    refs = "".join(f'<ref template="{i}" visible="true" opacity="{t.get("opacity", 0.5):g}"/>'
+                   for i, t in enumerate(templates))
+    doc, n_def = re.subn(r'<templates count="0" first_front_template="0">',
+                         f'<templates count="{n}" first_front_template="{n}">{defs}', doc, count=1)
+    doc, n_ref = re.subn(r'<templates count="0"/>',
+                         f'<templates count="{n}">{refs}</templates>', doc, count=1)
+    if n_def != 1 or n_ref != 1:
+        raise ValueError(f"Template nemá očekávané prázdné <templates> bloky "
+                         f"(definice={n_def}, view ref={n_ref})")
+    return doc
+
+
 def write_omap(contour_features: list[tuple], path_features: list[tuple],
                point_symbols: list[dict], water_features: list[tuple],
                building_features: list[tuple], powerline_features: list[tuple],
@@ -449,37 +498,11 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     # (paper() centruje na (0,0)) → sedne bez translace. first_front_template="1" = pod mapou.
     if ortho_template is not None:
         iw, ih = ortho_template["img_w"], ortho_template["img_h"]
-        name = ortho_template.get("name", "ortofoto.png")
-        opacity = ortho_template.get("opacity", 0.5)
         sx = pw / 1000.0 / iw                       # map mm na pixel obrazu (E-W)
         sy = ph / 1000.0 / ih                       # map mm na pixel obrazu (S-J)
-        tmpl = (
-            f'<template type="TemplateImage" open="true" name="{name}" '
-            f'path="{name}" relpath="{name}">'
-            f'<transformations adjustment_dirty="true" passpoints="0">'
-            f'<transformation role="active" x="0" y="0" '
-            f'scale_x="{sx:.7g}" scale_y="{sy:.7g}" rotation="0"/>'
-            f'<transformation role="other" x="0" y="0" scale_x="1" scale_y="1" rotation="0"/>'
-            f'<matrix role="map_to_template" n="3" m="3">'
-            f'<element value="{1.0 / sx:.7g}"/><element value="0"/><element value="0"/>'
-            f'<element value="0"/><element value="{1.0 / sy:.7g}"/><element value="0"/>'
-            f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
-            f'<matrix role="template_to_map" n="3" m="3">'
-            f'<element value="{sx:.7g}"/><element value="0"/><element value="0"/>'
-            f'<element value="0"/><element value="{sy:.7g}"/><element value="0"/>'
-            f'<element value="0"/><element value="0"/><element value="1"/></matrix>'
-            f'<matrix role="template_to_map_other" n="0" m="0"/></transformations></template>'
-        )
-        doc, n_def = re.subn(r'<templates count="0" first_front_template="0">',
-                             f'<templates count="1" first_front_template="1">{tmpl}',
-                             doc, count=1)
-        doc, n_ref = re.subn(
-            r'<templates count="0"/>',
-            f'<templates count="1"><ref template="0" visible="true" opacity="{opacity:g}"/>'
-            f'</templates>', doc, count=1)
-        if n_def != 1 or n_ref != 1:
-            raise ValueError(f"Template nemá očekávané prázdné <templates> bloky "
-                             f"(definice={n_def}, view ref={n_ref})")
+        doc = inject_image_templates(doc, [{                # sdílený helper (Sez. 104 extrakce)
+            "name": ortho_template.get("name", "ortofoto.png"),
+            "sx": sx, "sy": sy, "opacity": ortho_template.get("opacity", 0.5)}])
 
     out_path.write_text(doc, encoding="utf-8")
     return {"contours": n_contours, "formlines": n_formlines, "paths": n_paths, "rides": n_rides,

@@ -17,8 +17,16 @@ KPI fáze generator() (Sez. 100, volba uživatele): PRIMÁRNÍ kvantifikátor = 
 distribuce ISOM symbolů gen vs reálná mapa (histogram intersection Σ min(orig_share, gen_share)).
 Jedno číslo 0–100 % = „kolik % symbolové hmoty gen mapy se proporčně překrývá s reálnou". Nahrazuje
 binární DoD ≥90 % (archiv `--dod`): ten byl nedosažitelný (strop 54 %) a nezachytil inkrementální
-práci (dissolve 520, marsh 310 ho nehnuly). Proporce ruší obal-artefakt (gen grid-north obal >
-natočený výsek → 521 6× přestřel); penalizuje chybějící typ (gen=0) i přestřel (min ukrojí přebytek).
+práci (dissolve 520, marsh 310 ho nehnuly). Proporce ruší rozdíl plochy; penalizuje chybějící typ
+(gen=0) i přestřel (min ukrojí přebytek).
+
+PŘESAH-OŘEZ (Sez. 104, volba uživatele): gen kreslí OBDÉLNÍKOVÝ S-JTSK výsek, reálná OB mapa je
+NEPRAVIDELNÝ blob → ČÚZK objekty (město/železnice/open) přesahují mimo mapovanou oblast →
+NEROVNOMĚRNÝ přestřel, který proporční normalizace NEruší (je disproporční — proto KPI dřív
+„obal-artefakt" jen ředilo, nemazalo). `_counts_for_map` proto gen objekty OŘEZÁVÁ na obal
+nakreslených objektů reálné mapy (centroid → S-JTSK → sken px → maska, `_clipped_gen_counts`).
+Dopad = obousměrné ZPŘESNĚNÍ (Bedř/Velb + ořez přestřelu, Blatná − odhalí maskovaný podstřel),
+ne „vždy zvedne". Týká se KPI i KOMPASu (sdílí `_counts_for_map`).
 
 Tři režimy (CLI):
   python generator/measure_dod.py          # PRIMÁRNÍ KPI: proporční podobnost distribuce + 3 sub + žebříček děr
@@ -30,11 +38,15 @@ A3 (Sez. 94): Slovanka2016 (UTM33 — jiný transformer) + Soví vrch (domapová
 Soví vrch domapováno, doplnit do MAPS. Spouštět z kořene přes .venv (sys.path skript, fáze B).
 """
 import sys
+import json
 import pathlib
 from collections import Counter
+from xml.etree import ElementTree as ET
 
 import numpy as np
-from PIL import Image
+import scipy.ndimage as ndi
+from scipy.spatial import ConvexHull
+from PIL import Image, ImageDraw
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "connectors"))
@@ -46,6 +58,7 @@ from compare_isom import (coverage, _load_crosswalk, _resolve_targets, detect_ve
                           isom_usage, used_geometry)   # crosswalk-aware Sez. 94; used_geom + tabulka Sez. 96
 from separate import separate_areas, TARGET_MPP  # noqa: E402  (cesta b: separace-ze-skenu)
 from map_gt import segment_gt             # noqa: E402  (runnability GT z resources skenu)
+from omap_raster import _paper_to_px, _strip  # noqa: E402  (paper µm→gen px + strip namespace; ořez Sez. 104)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")   # Windows cp1250 vs Unicode
@@ -151,18 +164,135 @@ def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     return omap
 
 
+# --- OŘEZ na mapovanou oblast reálné mapy (Sez. 104, přesah-artefakt) ---
+# generate_map kreslí OBDÉLNÍKOVÝ S-JTSK výsek; reálná OB mapa je NEPRAVIDELNÝ blob (bílé okraje =
+# nemapováno) → ČÚZK objekty (město/železnice/open) PŘESAHUJÍ mimo mapovanou oblast → nerovnoměrný
+# přestřel ZKRESLUJE KPI (proporční normalizace ho neruší, je disproporční). Řešení: ořez gen objektů
+# na obal nakreslených objektů reálné mapy (volba uživatele Sez. 103/104). Prototyp temp/proto_clip.py.
+_CLIP_DS = 8       # downscale skenu pro masku (rychlost; maska je hrubá silueta, jemnost netřeba)
+_CLIP_CLOSE = 6    # iterace binary_closing (spojí roztroušené objekty do souvislé siluety)
+
+
+def _pgw(path: pathlib.Path):
+    """.pgw 6 parametrů (world-file pořadí A,D,B,E,C,F) → afinní (col,row)→svět: x=A·col+B·row+C, y=D·col+E·row+F."""
+    A, D, B, E, C, F = [float(x) for x in path.read_text().split()]
+    return A, B, C, D, E, F
+
+
+def _mapped_area_mask(name: str) -> np.ndarray:
+    """Maska mapované oblasti reálné mapy ze skenu (resources/<name>.png + .pgw), downscaled ×_CLIP_DS.
+
+    non-white = nakreslený objekt (vrstevnice/zeleň/cesty); skoro-bílá = papír/bílý les. close spojí
+    roztroušené objekty → největší komponenta zahodí loga/text MIMO mapu → CONVEX HULL = vnější silueta
+    (pokryje světlé open / bílý les 401 uvnitř protkaný řídkými vrstevnicemi, nezávisle na řídkosti).
+    Volba uživatele Sez. 103/104: pro ~konvexní DoD mapy věrné (konkávní by hull přestřelil)."""
+    with Image.open(REPO / "resources" / f"{name}.png") as im:
+        im = im.convert("RGB")
+        Wf, Hf = im.size
+        sm = np.asarray(im.resize((Wf // _CLIP_DS, Hf // _CLIP_DS), Image.BILINEAR))
+    hs, ws = sm.shape[:2]
+    nonwhite = ~((sm[:, :, 0] > 245) & (sm[:, :, 1] > 245) & (sm[:, :, 2] > 245))
+    mask = ndi.binary_fill_holes(ndi.binary_closing(nonwhite, iterations=_CLIP_CLOSE))
+    lbl, nlab = ndi.label(mask)                       # největší souvislá komponenta = mapová silueta
+    if nlab > 1:
+        sizes = ndi.sum(mask, lbl, range(1, nlab + 1))
+        mask = lbl == (int(np.argmax(sizes)) + 1)
+    ys, xs = np.nonzero(mask)
+    hull = ConvexHull(np.column_stack([xs, ys]))      # vrcholy obalu → PIL polygon fill (bez skimage)
+    verts = [(float(xs[v]), float(ys[v])) for v in hull.vertices]
+    himg = Image.new("L", (ws, hs), 0)
+    ImageDraw.Draw(himg).polygon(verts, fill=1)
+    return np.asarray(himg, dtype=bool)
+
+
+def _gen_centroids(omap_path: pathlib.Path):
+    """[(ci:int, cx_paper, cy_paper)] pro mapové objekty (kód 100-599) gen .omap + paper-µm centroid.
+
+    Centroid = průměr coords bodů (reprezentativní poloha plochy/linie/bodu pro test do/ven masky).
+    object symbol = pořadový index do <symbols> (gen export, id==index ověřeno Sez. 87). Bez ořezu
+    reprodukuje isom_usage byte-přesně (Q1 verify Sez. 104) → „před ořezem" = dnešní baseline."""
+    root = ET.parse(omap_path).getroot()
+    sp = next(e for e in root.iter() if _strip(e.tag) == "symbols")
+    codes = [s.get("code") for s in sp if _strip(s.tag) == "symbol"]
+    op = next(e for e in root.iter() if _strip(e.tag) == "objects")
+    out = []
+    for o in op.iter():
+        if _strip(o.tag) != "object":
+            continue
+        si = int(o.get("symbol", -1))
+        if not (0 <= si < len(codes)):
+            continue
+        try:
+            cc = int(float(codes[si]))                # integer prefix (415.0 → 415)
+        except (ValueError, TypeError):
+            continue
+        if cc < 100 or cc >= 600:                     # jen mapové symboly (vyluč layout/control/overprint)
+            continue
+        c = next((x for x in o if _strip(x.tag) == "coords"), None)
+        if c is None or not c.text:
+            continue
+        xs, ys = [], []
+        for tok in c.text.strip().split(";"):
+            nums = tok.split()
+            if len(nums) >= 2:
+                try:
+                    xs.append(int(nums[0])); ys.append(int(nums[1]))
+                except ValueError:
+                    pass
+        if xs:
+            out.append((cc, sum(xs) / len(xs), sum(ys) / len(ys)))
+    return out
+
+
+def _clipped_gen_counts(name: str, gen_omap: pathlib.Path) -> Counter:
+    """Gen counts (int kód → #objektů) OŘEZANÉ na mapovanou oblast reálné mapy (Sez. 104).
+
+    Centroid každého gen objektu: paper µm → gen px (_paper_to_px) → S-JTSK (rgb.pgw) → sken px
+    (inverz sken .pgw) → test proti masce. Objekty mimo masku (přesah obdélníkového výseku přes
+    nepravidelný blob mapy) se NEpočítají. No silent fallback (CLAUDE.md): chybí-li sken/pgw/meta,
+    VARUJ a vrať NEOŘEZANÉ isom_usage counts pro tu mapu (graceful jako _missing_pgw vzor)."""
+    png = REPO / "resources" / f"{name}.png"
+    spgw = REPO / "resources" / f"{name}.pgw"
+    rpgw = REPO / "maps" / name / "rgb.pgw"
+    meta_p = REPO / "maps" / name / "meta.json"
+    if not (png.exists() and spgw.exists() and rpgw.exists() and meta_p.exists()):
+        print(f"⚠ {name}: chybí sken/pgw/meta pro ořez → KPI BEZ ořezu pro tuto mapu "
+              f"(přesah-artefakt nezohledněn)", file=sys.stderr)
+        usage, _ = isom_usage(str(gen_omap))
+        return usage
+    mask = _mapped_area_mask(name)
+    hs, ws = mask.shape
+    sA, sB, sC, sD, sE, sF = _pgw(spgw)               # sken px → S-JTSK
+    gA, gB, gC, gD, gE, gF = _pgw(rpgw)               # gen px → S-JTSK
+    det = sA * sE - sB * sD                            # pro inverz sken afinní (S-JTSK → sken px)
+    meta = json.load(open(meta_p, encoding="utf-8"))
+    to_px, _, _ = _paper_to_px(meta)                  # paper µm → gen px
+    clip = Counter()
+    for cc, px, py in _gen_centroids(gen_omap):
+        col, row = to_px(px, py)
+        x = gA * col + gB * row + gC                  # gen px → S-JTSK
+        y = gD * col + gE * row + gF
+        scol = (sE * (x - sC) - sB * (y - sF)) / det  # S-JTSK → sken full-res px
+        srow = (-sD * (x - sC) + sA * (y - sF)) / det
+        mc, mr = int(scol / _CLIP_DS), int(srow / _CLIP_DS)   # → downscaled maska px
+        if 0 <= mr < hs and 0 <= mc < ws and mask[mr, mc]:
+            clip[cc] += 1
+    return clip
+
+
 def _counts_for_map(name, cw, v2000, v2017):
     """Σ objektů per 2017-2 ISOM kód pro JEDNU mapu: (orig, gen, geom_cnt, names).
 
     Sdílený sběr pro kompas (`--table`) i KPI (default). orig = reálná `.omap` crosswalkem na 2017-2
-    cíl (custom/bez cíle vyřazen); gen = separační baseline (identita 2017-2); geom_cnt[kód] =
+    cíl (custom/bez cíle vyřazen); gen = separační baseline (identita 2017-2) OŘEZANÁ na mapovanou
+    oblast reálné mapy (Sez. 104 přesah-artefakt, `_clipped_gen_counts`); geom_cnt[kód] =
     Counter(geom REÁLNĚ POUŽITÉ varianty z `used_geometry`, vážená objekty); names[kód] = jméno z reálné."""
     gen_omap = _gen_sep(name, REPO / "maps" / name)            # separační baseline (cache dle mtime kódu)
     real_path = str(REPO / "resources" / f"{name}.omap")
     ver = detect_version(real_path)
     real, rnames = isom_usage(real_path)
     ug = used_geometry(real_path)                              # reálný kód → geom (point/area/line…)
-    g, _ = isom_usage(str(gen_omap))                           # gen kódy = 2017-2 (identita)
+    g = _clipped_gen_counts(name, gen_omap)                    # gen kódy 2017-2, OŘEZANÉ na mapovanou oblast (Sez. 104)
     orig, gen, geom_cnt, names = Counter(), Counter(), {}, {}
     for c, n in g.items():
         gen[c] += n
