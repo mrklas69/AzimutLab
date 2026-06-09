@@ -201,8 +201,16 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
     (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
     corpus expansion").
-  - [ ] **`Png2Point`** (druhý) — bodové ISOM → lokalizace+klasifikace; generátor má přesné polohy = GT zdarma
-    + libovolně instancí; ISOM kódy ověřit ze spec.
+  - [~] **`Png2Point`** (druhý) — bodové ISOM → lokalizace+klasifikace. **MVP pipeline POSTAVENA Sez. 105**
+    (`model/png2point/{inject,dataset,train}.py`, izomorf png2area): A1 **injekce symbolů** (GT, ne gen body —
+    kompas Sez. 96 gen ≈ 4 %) + A2 **heatmap regrese** (CenterNet focal loss α2/β4, peak NMS→F1) + A3 scope
+    **204+210** (verify ze spec: 204 plný kruh r 0,4 mm / 210 = pole teček 210.1, registr rozšiřitelný). **Pipeline
+    ověřena na čistém podkladu** (overfit memorizuje 204+210 perfektně, loss 0,09). **2 nálezy diagnostiky:**
+    (a) sigma 1px nejde naučit → **2,5-4 + LR 1e-3** (do inject.py Příště); (b) **gen render podklad MÁ vlastní
+    body bez GT → nejednoznačné** → potřeba **čistý podklad bez bodů**. **ZBÝVÁ (Sez. 106, mrkla):** (1) režim
+    renderu bez bodů (`rocks/landmarks/barriers=off` + extrémy 109/110/111) → `point_base.png`; (2) ~40 map
+    napříč splity (measure-first podmnožina, volba uživatele); (3) dataset → `point_base` + random-crop 512;
+    (4) sigma + overfit gate + plný trénink → F1 204/210.
   - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení

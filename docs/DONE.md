@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 105 (2026-06-09) — Png2Point pipeline (inject/dataset/train) + diagnostika podkladu (HAL3000, CUDA+korpus)
+- [x] **Png2Point = druhý reconstructor, MVP pipeline POSTAVENA** (`model/png2point/{inject,dataset,train}.py`,
+      izomorf s Png2Area). Volba uživatele (%BEGIN fokus): využít vzácné HAL3000 okno na největší doloženou KPI
+      páku (bod sub-KPI 18,4 %, díry 204 7,8 / 210 7,3 pb). Přístup (A1/A2/A3, schváleno): **injekce symbolů**
+      (zdroj GT) · **heatmap regrese** (architektura) · **204+210 první** (po verify ze spec).
+- [x] **Verify bodových ISOM kódů** (`isom-2000-spec.pdf` + `template_classic.omap`): 204 Boulder = point, plný
+      černý kruh r 0,4 mm; **210 Stony = pole jednotlivých teček 210.1** r 0,15 mm rozestup ~1,2 mm (potvrzuje
+      Sez. 96 — kartograf kreslí kamenitou zem polem teček). Plná bodová knihovna v template (109/110/111, 203.x,
+      204/205/207, 210.1, 311/312, 417/418/419, 524-527, 530/531) = rezervoár pro rozšíření registru.
+- [x] **`inject.py`** — registr `POINT_CLASSES` (rozšiřitelný), stamp ikonek (plný kruh) + GT **Gaussian heatmapa**
+      (CenterNet splat, element-wise max), sampler (204 rozeseté body / 210 jittered pole teček); PX_PER_MM 7,52
+      @ 1,33 mpp / 1:10000 + size-jitter. Self-test vizuál OK (zarovnání heat↔ikonka sedí).
+- [x] **`dataset.py`** — čte podklad, injekce on-the-fly (jiný seed/epocha = nekonečná augmentace, řeší vzácnost),
+      D4 + degradace (reuse `degrade.py`); vrací (X rgb ImageNet-norm, Y heatmaps[N_POINT,512,512]). Val/test/overfit
+      deterministická injekce (seed=idx).
+- [x] **`train.py`** — smp U-Net `classes=N_POINT` + sigmoid, **penalty-reduced focal loss** (CenterNet α2/β4),
+      metrika = peak NMS (3×3 max-pool) → greedy match v TOL_PX → **F1 per třída**, BF16, checkpoint best, křivka.
+- [x] **Diagnostika (overfit gate SELHAL → root cause)** — gate F1≈0.01 (recall vys./precision ~0). `temp/diag_point.py`
+      izoloval: (1) **úzká sigma (1px peak na full-res) nejde naučit** (protichůdný gradient) → sigma 2,5-4 + LR 1e-3
+      konverguje (loss→0,09); (2) **PODKLAD: gen render obsahuje vlastní bodové symboly** (gen 204/207/208, landmarks)
+      identické s injektovanými, ale bez GT → nejednoznačná funkce → na čistém/bílém podkladu model memorizuje 204 i
+      210 perfektně, na gen podkladu selhává i na 1 dlaždici. **Rozhodnutí uživatele:** čistý podklad bez bodů,
+      podmnožina (measure-first) → Příště Sez. 106.
+
 ## Sezení 104 (2026-06-09) — KPI přesah-ořez integrován (49,8 → 50,3 %) + podklady do gen.omap (HAL3000, CUDA+korpus)
 - [x] **Přesah-ořez integrován do `measure_dod._counts_for_map` (KPI + KOMPAS SSoT)** — z prototypu Sez. 103.
       **Q1 verify** (`temp/verify_parse_consistency.py`): `parse_objects_with_centroid` (bez ořezu) = `isom_usage`

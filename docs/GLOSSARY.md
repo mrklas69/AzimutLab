@@ -391,6 +391,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **16 ISOM area kódů + pozadí** (label 0..16 ze [[omap_raster]], bez ignore_index — Y je celé validní). **Plný trénink
   Sez. 90-91:** test mIoU 0,621→**0,640** (val 0,654, cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
   208/501/301.1 = datový strop → class-balanced expansion. Trénink = mrkla.
+  **`Png2Point` MVP pipeline Sez. 105** (`model/png2point/{inject,dataset,train}.py`): jiná úloha než Png2Area —
+  **lokalizace+klasifikace bodů** = HEATMAP regrese (CenterNet). **A1 GT = INJEKCE** (ne gen body — kompas Sez. 96
+  gen ≈ 4 % reality): na podklad se vkreslí kanonická ikonka na náhodnou ZNÁMOU pozici → GT heatmapa zdarma +
+  libovolně instancí. **A2** smp U-Net `classes=N_POINT`+sigmoid, **penalty-reduced focal loss** (α2/β4), peak
+  NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
+  Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
+  má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
 - **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
   pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (zelená
   406/408/410 + **403 Rough open** ze Sez. 92 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse
