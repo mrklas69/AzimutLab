@@ -7,13 +7,14 @@ a vrací tensory pro `model/png2area/train.py`. Izomorfní s archivovaným model
 liší se: X=sken (ne ortho), Y=16 area tříd (ne 5 runnability), BEZ IGNORE (Y z naší .omap je čisté,
 žádný přetisk → každý px je validní třída včetně pozadí 0).
 
-Augmentace = jen D4 (8 dihedrálních symetrií: hflip + rot90×k) + mírný jas/kontrast na X.
-- D4 je bezpečná: flip a rotace o násobky 90° NEinterpolují → area labely zůstanou přesně 0..15
+Augmentace (jen train split): D4 (8 dihedrálních symetrií) + fotometrická degradace skenu.
+- D4 je bezpečná: flip a rotace o násobky 90° NEinterpolují → area labely zůstanou přesně 0..N_AREA-1
   (rotace o obecný úhel by mezi třídami vyrobila smíšené pixely → poškodí GT).
 - OB mapy nemají preferovanou orientaci (grivace každé mapy jiná, Sez. 37) → rotace dává smysl.
-- Jas/kontrast jen na vstup X (sken): simuluje variabilitu skenu/tisku; na label Y se NEsmí sáhnout.
-  (Degradér fáze II už dělá fotometrické sken-vady deterministicky per-mapa, Sez. 86 — tohle je
-  navíc levná za-běhu variabilita mezi epochami, DRY: geometrii dělá D4 tady, ne degradér.)
+- Fotometrická degradace (generator/degrade.py: CMYK misregistrace/blur/papír/šum/JPEG) se aplikuje
+  ON-THE-FLY na vstup X — čistý gen render → realistický sken, JINÁ realizace každou epochu (variabilní
+  seed) → bohatší trénink z téhož páru. Sem patří (fáze II/III dekonstruktor), NE do build_pair:
+  generator() drží render věrný/čistý (Sez. 103, návrat k záměru Sez. 80). Na label Y se NEsahá.
 
 Normalizace: ImageNet mean/std — encoder (ResNet34) je ImageNet-pretrained (smp), musí dostat vstup
 ve stejné statistice. (Vstup je teď mapový sken, ne ortofoto, ale pořád RGB 3 kanály → ImageNet
@@ -32,6 +33,10 @@ from torch.utils.data import Dataset
 _REPO_ROOT = Path(__file__).resolve().parents[2]   # model/png2area/ → o dvě úrovně hloub
 _TILES_DIR = _REPO_ROOT / "resources" / "area_tiles"
 
+# generator/ na path kvůli degrade.py (fotometrická augmentace skenu, přesun z build_pair Sez. 103)
+sys.path.insert(0, str(_REPO_ROOT / "generator"))
+from degrade import degrade   # noqa: E402
+
 Image.MAX_IMAGE_PIXELS = None
 
 # ImageNet statistika (RGB, rozsah 0-1) — encoder ResNet34 je na ní pretrained.
@@ -43,7 +48,7 @@ class AreaTileDataset(Dataset):
     """Dlaždice jednoho splitu (train/val/test) jako (x, y) tensory pro Png2Area.
 
     x = float32 (3, 512, 512), ImageNet-normalizovaný sken RGB.
-    y = int64  (512, 512), area labely 0..15 (0 = pozadí, 1..15 ISOM kódy; BEZ IGNORE).
+    y = int64  (512, 512), area labely 0..N_AREA-1 (0 = pozadí, 1.. ISOM kódy; BEZ IGNORE).
 
     Parametry:
       split   : 'train' | 'val' | 'test' — který podadresář resources/area_tiles/ číst.
@@ -71,7 +76,7 @@ class AreaTileDataset(Dataset):
         return len(self.xpaths)
 
     def _augment(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """D4 (flip + rot90×k) na OBĚ + jas/kontrast jen na X. Vrací nové (x, y).
+        """D4 (flip + rot90×k) na OBĚ + fotometrická degradace skenu jen na X. Vrací nové (x, y).
 
         x je (H,W,3) uint8, y je (H,W) uint8. Random stav z torch (sdílí seed s loaderem)."""
         # --- D4: náhodný horizontální flip + rotace o k×90° (geometrie beze ztráty) ---
@@ -83,14 +88,14 @@ class AreaTileDataset(Dataset):
             x = np.rot90(x, k)
             y = np.rot90(y, k)
 
-        # --- jas + kontrast jen na X (sken), label Y se nedotýká ---
-        x = x.astype(np.float32)
-        bright = 0.85 + 0.30 * torch.rand(1).item()
-        contrast = 0.85 + 0.30 * torch.rand(1).item()
-        x = (x * bright - 127.5) * contrast + 127.5
-        x = np.clip(x, 0, 255).astype(np.uint8)
-        # .copy() = rozbije negativní stride z [::-1]/rot90 (torch.from_numpy je nemá rád)
-        return np.ascontiguousarray(x), np.ascontiguousarray(y)
+        # --- fotometrická degradace jen na X (čistý gen render → sken), label Y se nedotýká ---
+        # degrade() = CMYK misregistrace/blur/papír/šum/JPEG (generator/degrade.py). Variabilní seed
+        # → jiná sken-realizace každou epochu (Sez. 103: degradace = augmentace tady, ne v build_pair).
+        x = np.ascontiguousarray(x)                          # rozbij negativní stride z D4 před degrade
+        seed = int(torch.randint(0, 2 ** 31 - 1, (1,)).item())
+        x = degrade(x, seed=seed)                            # (H,W,3) uint8 → uint8
+        # .copy() y: rozbije negativní stride z [::-1]/rot90 (torch.from_numpy je nemá rád)
+        return x, np.ascontiguousarray(y)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         xp = self.xpaths[idx]
@@ -105,7 +110,7 @@ class AreaTileDataset(Dataset):
         xf = x.astype(np.float32) / 255.0
         xf = (xf - _IMAGENET_MEAN) / _IMAGENET_STD
         xt = torch.from_numpy(xf.transpose(2, 0, 1)).contiguous()   # (3,H,W)
-        yt = torch.from_numpy(y.astype(np.int64))                   # (H,W), 0..15
+        yt = torch.from_numpy(y.astype(np.int64))                   # (H,W), 0..N_AREA-1
         return xt, yt
 
 

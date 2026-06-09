@@ -1,17 +1,19 @@
 """
 tile.py — příprava tréninkových dlaždic reconstructor modelu Png2Area (Sez. 88).
 
-Role v pipeline (reframe Sez. 79/80): reconstructor() se učí z páru [scan.png, area_labels.png]
-(X = degradovaný render, Sez. 86; Y = label rastr plošných ISOM symbolů, omap_raster Sez. 87).
+Role v pipeline (reframe Sez. 79/80): reconstructor() se učí z páru [rgb.png, area_labels.png]
+(X = ČISTÝ gen render; Y = label rastr plošných ISOM symbolů, omap_raster Sez. 87). Fotometrická
+degradace (sken-vady) NENÍ v páru — generator() drží podklady věrné (Sez. 103); degradace je
+augmentace on-the-fly v dataset.py loaderu (fáze II/III dekonstruktor, návrat k záměru Sez. 80).
 Tohle je první ze tří CV úloh dekompozice podle OOM geometrie: Png2Area (plochy) | Png2Point | Png2Line.
 Páry vyrábí generator/pairs.py build_pair (korpus → resources/livelox/<cid>/gen/, dev → maps/<lokalita>/).
 
 Páry jsou různě velké (~800–4000 px korpus, ~4500 px dev) a U-Net jede na fixní dlaždici. Tenhle skript
 nakrájí každý pár na 512×512 dlaždice s 50% překryvem (stride 256) a uloží je jako PNG dvojice do
 resources/area_tiles/<split>/. Izomorfní s archivovaným model/runnability/tile.py (runnability směr) —
-liší se: X=scan místo ortho, Y=area_labels místo gt_grid, 16 area tříd místo 5, BEZ rejection (níže).
+liší se: X=gen render místo ortho, Y=area_labels místo gt_grid, 18 area tříd místo 5, BEZ rejection (níže).
 
-Proč BEZ rejection dlaždic (na rozdíl od archivu): scan.png je plný obdélníkový render — žádné IGNORE,
+Proč BEZ rejection dlaždic (na rozdíl od archivu): rgb.png je plný obdélníkový render — žádné IGNORE,
 žádné prázdné rohy quadu. Pozadí (label 0) je LEGITIMNÍ třída „tady žádná plocha" (bílý les), kterou se
 model MUSÍ naučit — zahodit lesní dlaždice by ukrojilo právě tenhle signál. Nevyváženost (pozadí 60–90 %)
 řeší median-freq váhy, ne rejection (volba Sez. 88).
@@ -22,7 +24,7 @@ smoke-testuje přes dev mapy z maps/ (build_tiles_dev), které korpus nepotřebu
 
 Výstup:
   resources/area_tiles/<split>/<cid>/<r>_<c>_x.png   = X (sken RGB 512×512)
-  resources/area_tiles/<split>/<cid>/<r>_<c>_y.png   = Y (area label 0..15, mode L)
+  resources/area_tiles/<split>/<cid>/<r>_<c>_y.png   = Y (area label 0..N_AREA-1, mode L)
   resources/area_tiles/_tiles.json                   = počty + class distribuce + median-freq váhy
   resources/area_tiles/_preview.png                  = vizuální verify (mozaika X|Y vzorků)
 
@@ -53,7 +55,7 @@ Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL 
 
 TILE = 512          # strana dlaždice (px) — vstup U-Netu
 STRIDE = 256        # posun okna (px) → 50% překryv (volba Sez. 77, sdíleno s archivem)
-# N_AREA (= 17: pozadí + 16 area kódů, +403 Sez. 92) se importuje z omap_raster (SSoT label schématu, Sez. 87).
+# N_AREA (= 18: pozadí + 17 area kódů, +403 Sez. 92, +310 Sez. 99) se importuje z omap_raster (SSoT label schématu, Sez. 87).
 # BEZ MIN_VALID rejection (viz hlavička) — všechny dlaždice plného renderu jsou validní.
 
 
@@ -88,12 +90,12 @@ def _crop(arr: np.ndarray, y0: int, x0: int) -> np.ndarray:
 
 
 def _resolve_pair_dir(name: str) -> Path | None:
-    """název (cid / lokalita) → adresář s párem scan.png + area_labels.png, nebo None.
+    """název (cid / lokalita) → adresář s párem rgb.png + area_labels.png, nebo None.
 
     Korpus (mrkla): resources/livelox/<cid>/gen/. Dev (ntbhej smoke): maps/<lokalita>/.
-    Vrací první existující; None když pár chybí (build_pair ještě neproběhl / není scan)."""
+    Vrací první existující; None když pár chybí (build_pair ještě neproběhl / není render)."""
     for cand in (_CORPUS / name / "gen", _MAPS / name):
-        if (cand / "area_labels.png").exists() and (cand / "scan.png").exists():
+        if (cand / "area_labels.png").exists() and (cand / "rgb.png").exists():
             return cand
     return None
 
@@ -102,7 +104,7 @@ def tile_one(pair_dir: Path, split_name: str, cid: str) -> Counter:
     """Nakrájí jeden pár (pair_dir) → PNG dlaždice do resources/area_tiles/<split>/<cid>/.
 
     Vrací Counter area labelů přes VŠECHNY dlaždice téhle mapy (pro statistiku/váhy)."""
-    x = np.asarray(Image.open(pair_dir / "scan.png").convert("RGB"), dtype=np.uint8)
+    x = np.asarray(Image.open(pair_dir / "rgb.png").convert("RGB"), dtype=np.uint8)
     y = np.asarray(Image.open(pair_dir / "area_labels.png"), dtype=np.uint8)
     if y.shape != x.shape[:2]:
         raise RuntimeError(f"area_labels {y.shape} != scan {x.shape[:2]} v {pair_dir}")
@@ -202,7 +204,7 @@ def build_tiles_dev(names: list[str], split_name: str = "train") -> dict:
     for name in names:
         pd = _resolve_pair_dir(name)
         if pd is None:
-            log.warning("dev mapa %r nemá pár [scan.png, area_labels.png] — přeskakuji", name)
+            log.warning("dev mapa %r nemá pár [rgb.png, area_labels.png] — přeskakuji", name)
             continue
         c = tile_one(pd, split_name, name)
         n = len(list((_TILES_DIR / split_name / name).glob("*_y.png")))
@@ -211,7 +213,7 @@ def build_tiles_dev(names: list[str], split_name: str = "train") -> dict:
         agg.update(c)
         log.info("[dev] %s -> %d dlaždic", name, n)
     if not used:
-        raise RuntimeError(f"žádná z dev map {names} nemá pár (scan.png + area_labels.png)")
+        raise RuntimeError(f"žádná z dev map {names} nemá pár (rgb.png + area_labels.png)")
     # smoke: jediný split nese statistiku i váhy (val/test prázdné placeholder)
     per_split = {split_name: {"counts": agg, "n_tiles": n_tiles, "n_maps": used}}
     for s in ("train", "val", "test"):

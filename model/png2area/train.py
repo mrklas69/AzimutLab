@@ -195,7 +195,7 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool,
         if clipped:
             print("cap vah @ {:.0f}: ".format(weight_cap)
                   + "  ".join(f"{n} {r:.1f}->{cv:.0f}" for n, r, cv in clipped))
-    criterion = nn.CrossEntropyLoss(weight=w)   # BEZ ignore_index — Y je celé validní (0..15)
+    criterion = nn.CrossEntropyLoss(weight=w)   # BEZ ignore_index — Y je celé validní (0..N_AREA-1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     # Cosine LR decay (Sez. 91): LR plynule k ~0 ke konci tréninku → uhladí finální oscilace
     # vah/loss. Jen plný trénink (overfit chce čistou memorizaci s fixním LR = baseline).

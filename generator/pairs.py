@@ -32,7 +32,6 @@ from pyproj import Transformer            # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
 from separate import separate_areas  # noqa: E402
 from generator import generate_map        # noqa: E402
-from degrade import degrade_file          # noqa: E402
 from omap_raster import rasterize_map_dir  # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
@@ -87,15 +86,16 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
 
 
 def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0,
-               degrade: bool = True, labels: bool = True):
-    """Vyrobí pár [sken scan.png (X), area_labels.png (Y)] pro Livelox classId: real ČÚZK + separace.
+               labels: bool = True):
+    """Vyrobí pár [čistý render rgb.png (X), area_labels.png (Y)] pro Livelox classId: real ČÚZK + separace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
     vegetaci z mapy do S-JTSK a předá ji generate_map jako `predict_areas_sjtsk` (jediný zdroj
     predikční zeleně). Vrací cestu k výstupní složce. `out_dir` None → `resources/livelox/<cid>/gen`.
 
-    `degrade` (Sez. 86): po renderu degraduje rgb.png → scan.png (= X v páru, fáze II). Seed = cid →
-    per-mapa reprodukovatelný sken. Čistý rgb.png zůstává (debug / Y-vizuál). False = jen čistý render.
+    X páru = ČISTÝ gen render `rgb.png` (generate_map). Fotometrická degradace (sken-vady) se NEzapéká
+    do páru — generator() fáze I drží podklady věrné (Sez. 103, návrat k záměru Sez. 80); degradace je
+    AUGMENTACE a aplikuje se on-the-fly v tréninkové pipeline dekonstruktoru (`model/png2area/dataset.py`).
 
     `labels` (Sez. 87): po renderu rasterizuje plošné ISOM symboly z .omap → area_labels.png (= Y v
     páru, reconstructor Png2Area). Odvozeno z .omap (NE z render masek) → pár self-konzistentní.
@@ -125,8 +125,6 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
           f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")
     res = generate_map(lat, lon, w_km, h_km,
                        predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
-    if degrade:                                              # fáze II: čistý render → „sken" (X)
-        degrade_file(pathlib.Path(out) / "rgb.png", seed=int(cid) & 0xFFFFFFFF)
     if labels:                                               # Y páru: plošné symboly z .omap → label rastr
         lab = rasterize_map_dir(pathlib.Path(out))
         Image.fromarray(lab, mode="L").save(pathlib.Path(out) / "area_labels.png")
@@ -145,7 +143,7 @@ def _cr_keep_cids() -> list:
 
 
 def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
-                max_km: float = 5.0, degrade: bool = True, labels: bool = True) -> dict:
+                max_km: float = 5.0, labels: bool = True) -> dict:
     """Hromadně vyrobí páry-zdroje [render, .omap] pro seznam Livelox classId (UC5 trénink, Sez. 84).
 
     Volá build_pair na každý cid. Vlastnosti dávky (mirror livelox.build_pairs):
@@ -160,15 +158,15 @@ def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
     for i, cid in enumerate(cids, 1):
         cid = str(cid)
         # finální artefakt dávky = POSLEDNÍ zapsaný krok (crash mezi kroky → re-běh dokončí):
-        # labels (area_labels.png, Y) > degrade (scan.png, X) > čistý render (rgb.png)
-        final = "area_labels.png" if labels else ("scan.png" if degrade else "rgb.png")
+        # labels (area_labels.png, Y) > čistý render (rgb.png, X). Degradace NENÍ součást páru (Sez. 103).
+        final = "area_labels.png" if labels else "rgb.png"
         gen_out = _CORPUS / cid / "gen" / final
         if skip_existing and gen_out.exists():
             summary["skipped"].append(cid)
             print(f"[{i}/{total}] {cid} SKIP (gen/{final} hotovo)")
             continue
         try:
-            build_pair(cid, ortho=ortho, max_km=max_km, degrade=degrade, labels=labels)
+            build_pair(cid, ortho=ortho, max_km=max_km, labels=labels)
             summary["ok"].append(cid)
             print(f"[{i}/{total}] {cid} OK  (ok={len(summary['ok'])} "
                   f"skip={len(summary['skipped'])} fail={len(summary['failed'])})")

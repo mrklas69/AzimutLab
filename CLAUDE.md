@@ -26,6 +26,11 @@ viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.
   displacement) způsobila víc problémů než užitku (komolení tvaru, lichoběžníky, špatná
   orientace malých, neškálovatelný O(n²)) → **zavrženo, návrat k raw kresbě jako voda** (voda
   byla od začátku dokonalá právě proto, že raw). Lekce: „nejdřív raw, generalizuj až s důkazem".
+- **No silent fallback.** Když chybí vstup/data/závislost nebo selže předpoklad, **selži nahlas
+  nebo zarytě varuj** — nikdy tiše nespadni do náhradní cesty. Tichý fallback maskuje bugy a tváří
+  se jako úspěch. Lekce: cache skip-existing dělal kompas slepým ke změnám generátoru (Sez. 99);
+  `gitignored` korpus → ověř dostupnost, nepředpokládej (paměť `gitignored-availability-verify-not-assume`).
+  Dobrý vzor: `measure_dod._missing_pgw` chybějící `.pgw` hlásí a vynechané mapy vypíše, nemlčí.
 
 ## %THINK — doménové rozšíření
 U map/CV/generování zvaž: ISOM↔ISSprOM spec rozdíly, paper-space vs world georef,
