@@ -1,0 +1,284 @@
+"""
+train.py — trénink reconstructor modelu Png2Point (Sez. 105).
+
+Druhý ze tří CV úloh dekompozice OOM podle geometrie (Sez. 80): Png2Area (plochy, hotovo) → **Png2Point
+(body)** → Png2Line (linie). Úloha: mapový sken RGB → lokalizace + klasifikace bodových ISOM symbolů.
+GT = injekce (inject.py): na čistý gen render se vkreslí kanonický symbol na náhodné místo → heatmapa peaků
+zdarma (proč injekce místo gen bodů: kompas Sez. 96, gen body ≈ 4 % reality). Loader = dataset.py.
+
+Architektura = HEATMAP REGRESE (CenterNet, Zhou 2019), ne segmentace ani bbox detektor:
+- U-Net (ResNet34 ImageNet encoder, smp) → N_POINT kanálů logitů → sigmoid = heatmapa „tady je střed".
+- Detekce = peak (3×3 max-pool NMS + práh). Husté symboly (210 stony pole) heatmapa zvládá líp než bbox.
+
+Loss = penalty-reduced focal loss (CornerNet/CenterNet) — řeší extrémní nevyváženost peak-vs-pozadí
+(drtivá většina px = 0): pozitiva váží (1-p)², negativa kolem peaku tlumí (1-gt)⁴ → soused peaku netrestá
+jako čisté pozadí. Analog median-freq vah z Png2Area, ale standard pro heatmapy.
+
+Metrika = peak F1 per třída (ne IoU): NMS peaky predikce ↔ GT centra, greedy match v toleranci TOL_PX →
+precision/recall/F1. accuracy/IoU by u bodů neměřily lokalizaci.
+
+Trénink jen na `mrkla`/HAL3000 (RTX 5070, BF16 autocast). Dva režimy:
+  python model/png2point/train.py --overfit   # sanity gate: 1-2 mapy, fixní injekce, F1→~1
+  python model/png2point/train.py             # plný trénink na train splitu, eval val + test
+Checkpoint best (dle val F1) → resources/point_model/ (gitignored).
+"""
+import argparse
+import csv
+import sys
+import time
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt   # noqa: E402
+import numpy as np   # noqa: E402
+import torch   # noqa: E402
+import torch.nn.functional as F   # noqa: E402
+from torch.utils.data import DataLoader   # noqa: E402
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT / "model" / "png2point"))
+
+import segmentation_models_pytorch as smp   # noqa: E402
+from dataset import PointTileDataset   # noqa: E402
+from inject import N_POINT, POINT_CLASSES   # noqa: E402
+
+_CKPT_DIR = _REPO_ROOT / "resources" / "point_model"
+ENCODER = "resnet34"
+TOL_PX = 3           # tolerance matchingu peak↔GT (px) — 204 r≈3, stony rozestup ≈9 → 3 nehrne sousedy
+PEAK_THR = 0.3       # práh detekce peaku v predikované heatmapě (laditelný, --peak-thr)
+_CODES = [pc.code for pc in POINT_CLASSES]
+
+
+# ----------------------------------------------------------------------------- model
+def build_model() -> torch.nn.Module:
+    """U-Net + ResNet34 (ImageNet pretrained), 3 vstupní kanály → N_POINT heatmap kanálů (logity)."""
+    return smp.Unet(encoder_name=ENCODER, encoder_weights="imagenet",
+                    in_channels=3, classes=N_POINT)
+
+
+# ------------------------------------------------------------------------- focal loss
+def focal_loss(logits: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    """Penalty-reduced focal loss (CenterNet). logits/gt = (B,N_POINT,H,W); gt ∈ [0,1] heatmapa.
+
+    pos (gt==1): -(1-p)² log p  → tlačí peak nahoru.
+    neg (gt<1):  -(1-gt)⁴ p² log(1-p) → tlumí trest blízko peaku (gt→1 ⇒ váha→0), plný trest daleko.
+    Normalizace počtem pozitiv (N peaků). Bez pozitiv (prázdná dlaždice) = jen neg člen."""
+    p = torch.sigmoid(logits).clamp(1e-6, 1 - 1e-6)   # do (0,1) kvůli log
+    pos = gt.eq(1.0).float()
+    neg = 1.0 - pos
+    neg_w = torch.pow(1.0 - gt, 4)                     # beta=4 — tlumení kolem peaku
+
+    pos_loss = torch.log(p) * torch.pow(1 - p, 2) * pos          # alpha=2
+    neg_loss = torch.log(1 - p) * torch.pow(p, 2) * neg_w * neg
+    n_pos = pos.sum()
+    pos_sum, neg_sum = pos_loss.sum(), neg_loss.sum()
+    if n_pos == 0:
+        return -neg_sum
+    return -(pos_sum + neg_sum) / n_pos
+
+
+# --------------------------------------------------------------------- peak detekce
+def _nms(heat: torch.Tensor, kernel: int = 3) -> torch.Tensor:
+    """Peak NMS přes 3×3 max-pool: ponech jen px, které jsou lokální maximum. heat (B,C,H,W)."""
+    pad = (kernel - 1) // 2
+    hmax = F.max_pool2d(heat, kernel, stride=1, padding=pad)
+    return heat * (hmax == heat).float()
+
+
+def _peaks_xy(heat2d: np.ndarray, thr: float) -> np.ndarray:
+    """Souřadnice peaků (po NMS) nad prahem v jedné heatmapě → (K,2) array [x,y]."""
+    ys, xs = np.where(heat2d > thr)
+    return np.stack([xs, ys], axis=1).astype(np.float32) if len(xs) else np.zeros((0, 2), np.float32)
+
+
+def _match_counts(pred_xy: np.ndarray, gt_xy: np.ndarray, tol: float) -> tuple[int, int, int]:
+    """Greedy match predikovaných peaků na GT v toleranci tol (px). Vrací (TP, FP, FN).
+
+    Pro každý GT bod vezmi nejbližší dosud nespárovaný pred v tol → TP. Zbylé pred = FP, zbylé GT = FN."""
+    if len(gt_xy) == 0:
+        return 0, len(pred_xy), 0
+    if len(pred_xy) == 0:
+        return 0, 0, len(gt_xy)
+    used = np.zeros(len(pred_xy), dtype=bool)
+    tp = 0
+    for g in gt_xy:
+        d = np.hypot(pred_xy[:, 0] - g[0], pred_xy[:, 1] - g[1])
+        d[used] = np.inf
+        j = int(np.argmin(d))
+        if d[j] <= tol:
+            used[j] = True
+            tp += 1
+    fn = len(gt_xy) - tp
+    fp = len(pred_xy) - used.sum()
+    return tp, int(fp), int(fn)
+
+
+# ------------------------------------------------------------------------- metriky
+@torch.no_grad()
+def evaluate(model, loader, device, thr: float = PEAK_THR) -> tuple[list[dict], float]:
+    """Projde loader, vrátí (per-class {tp,fp,fn,precision,recall,f1}, mean F1). BF16 autocast.
+
+    GT centra = NMS peaky GT heatmapy (gt==1). Pred peaky = NMS sigmoid(logits) > thr."""
+    model.eval()
+    tp = np.zeros(N_POINT, np.int64)
+    fp = np.zeros(N_POINT, np.int64)
+    fn = np.zeros(N_POINT, np.int64)
+    for x, gt in loader:
+        x = x.to(device)
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            logits = model(x)
+        pred = _nms(torch.sigmoid(logits.float())).cpu().numpy()       # (B,C,H,W)
+        gt_nms = _nms(gt).numpy()                                       # GT centra (gt==1 → 1)
+        B = pred.shape[0]
+        for b in range(B):
+            for c in range(N_POINT):
+                p_xy = _peaks_xy(pred[b, c], thr)
+                g_xy = _peaks_xy(gt_nms[b, c], 0.99)
+                t, f, n = _match_counts(p_xy, g_xy, TOL_PX)
+                tp[c] += t; fp[c] += f; fn[c] += n
+
+    per = []
+    f1s = []
+    for c in range(N_POINT):
+        prec = tp[c] / (tp[c] + fp[c]) if (tp[c] + fp[c]) else 0.0
+        rec = tp[c] / (tp[c] + fn[c]) if (tp[c] + fn[c]) else 0.0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+        per.append({"code": _CODES[c], "tp": int(tp[c]), "fp": int(fp[c]), "fn": int(fn[c]),
+                    "precision": round(prec, 3), "recall": round(rec, 3), "f1": round(f1, 3)})
+        f1s.append(f1)
+    return per, float(np.mean(f1s)) if f1s else 0.0
+
+
+def _fmt(per: list[dict]) -> str:
+    return "  ".join(f"{d['code']} F1={d['f1']:.2f}(P{d['precision']:.2f}/R{d['recall']:.2f})"
+                     for d in per)
+
+
+# ---------------------------------------------------------------- průběžná statistika
+def _save_history(history: list[dict], tag: str) -> None:
+    path = _CKPT_DIR / f"history_{tag}.csv"
+    cols = ["epoch", "loss", "mf1"] + [f"f1_{c}" for c in _CODES]
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        wr = csv.writer(f)
+        wr.writerow(cols)
+        for h in history:
+            wr.writerow([h["epoch"], f"{h['loss']:.4f}", f"{h['mf1']:.4f}"]
+                        + [f"{d['f1']:.4f}" for d in h["per"]])
+
+
+def _plot_curve(history: list[dict], tag: str, f1_label: str) -> None:
+    eps = [h["epoch"] for h in history]
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    ax1.plot(eps, [h["loss"] for h in history], "r-o", ms=3, label="train loss")
+    ax1.set_xlabel("epocha"); ax1.set_ylabel("train loss", color="r")
+    ax1.tick_params(axis="y", labelcolor="r"); ax1.grid(alpha=0.3)
+    axb = ax1.twinx()
+    axb.plot(eps, [h["mf1"] for h in history], "b-s", ms=3, label=f"{f1_label} mF1")
+    axb.set_ylabel(f"{f1_label} mean F1", color="b"); axb.set_ylim(0, 1)
+    axb.tick_params(axis="y", labelcolor="b")
+    ax1.set_title(f"loss + F1 (poslední: {history[-1]['mf1']:.3f})")
+    for c in range(N_POINT):
+        ax2.plot(eps, [h["per"][c]["f1"] for h in history], "-o", ms=2, label=_CODES[c])
+    ax2.set_xlabel("epocha"); ax2.set_ylabel("F1"); ax2.set_ylim(0, 1)
+    ax2.grid(alpha=0.3); ax2.legend(fontsize=8, loc="lower right")
+    ax2.set_title(f"per-class F1 ({f1_label})")
+    fig.tight_layout()
+    fig.savefig(_CKPT_DIR / f"curve_{tag}.png", dpi=90)
+    plt.close(fig)
+
+
+# -------------------------------------------------------------------------- trénink
+def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEAK_THR) -> None:
+    assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla/HAL3000, RTX 5070)"
+    device = "cuda"
+    torch.backends.cudnn.benchmark = True
+
+    if overfit:
+        from collections import Counter
+        all_x = sorted((_REPO_ROOT / "resources" / "area_tiles" / "train").glob("*/*_x.png"))
+        per_cid = Counter(p.parent.name for p in all_x)
+        cids = [c for c, _ in per_cid.most_common(2)]
+        print(f"[overfit] mapy: {cids}")
+        train_ds = PointTileDataset("train", augment=False, limit_cids=cids)
+        val_ds = train_ds
+    else:
+        train_ds = PointTileDataset("train", augment=True)
+        val_ds = PointTileDataset("val", augment=False)
+
+    train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=0,
+                          drop_last=not overfit)
+    val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=0)
+
+    model = build_model().to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    scheduler = (None if overfit
+                 else torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs))
+
+    print(f"train {len(train_ds)} dlaždic | val {len(val_ds)} | batch {batch} | lr {lr} | "
+          f"epoch {epochs} | BF16 | {ENCODER} U-Net | {N_POINT} bod. tříd {_CODES}"
+          + ("" if overfit else " | cosine LR"))
+
+    best_f1 = -1.0
+    history: list[dict] = []
+    tag = "overfit" if overfit else "full"
+    f1_label = "train" if overfit else "val"
+    _CKPT_DIR.mkdir(parents=True, exist_ok=True)
+    for ep in range(1, epochs + 1):
+        model.train()
+        t0 = time.time()
+        running = 0.0
+        for x, gt in train_dl:
+            x, gt = x.to(device), gt.to(device)
+            optimizer.zero_grad(set_to_none=True)
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                logits = model(x)
+            loss = focal_loss(logits.float(), gt)      # loss ve fp32 (log stabilita)
+            loss.backward()
+            optimizer.step()
+            running += loss.item()
+        avg = running / len(train_dl)
+        if scheduler is not None:
+            scheduler.step()
+
+        per, mf1 = evaluate(model, val_dl, device, thr)
+        dt = time.time() - t0
+        lr_now = optimizer.param_groups[0]["lr"]
+        print(f"ep {ep:>3}/{epochs}  loss {avg:.4f}  {f1_label} mF1 {mf1:.3f}  "
+              f"lr {lr_now:.2e}  [{_fmt(per)}]  {dt:.0f}s")
+
+        history.append({"epoch": ep, "loss": avg, "mf1": mf1, "per": per})
+        _save_history(history, tag)
+        _plot_curve(history, tag, f1_label)
+
+        if not overfit and mf1 > best_f1:
+            best_f1 = mf1
+            torch.save({"model": model.state_dict(), "epoch": ep, "mf1": mf1,
+                        "encoder": ENCODER, "n_point": N_POINT, "codes": _CODES},
+                       _CKPT_DIR / "unet_best.pt")
+
+    if not overfit:
+        ckpt = torch.load(_CKPT_DIR / "unet_best.pt", weights_only=False)
+        model.load_state_dict(ckpt["model"])
+        test_dl = DataLoader(PointTileDataset("test", augment=False),
+                             batch_size=batch, shuffle=False, num_workers=0)
+        per, mf1 = evaluate(model, test_dl, device, thr)
+        print(f"\n=== TEST (best ep {ckpt['epoch']}, val mF1 {ckpt['mf1']:.3f}) ===")
+        print(f"test mF1 {mf1:.3f}  [{_fmt(per)}]")
+
+
+if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    ap = argparse.ArgumentParser(description="Png2Point reconstructor U-Net trénink (Sez. 105)")
+    ap.add_argument("--overfit", action="store_true",
+                    help="sanity gate: 1-2 mapy, fixní injekce, sleduj train F1→~1")
+    ap.add_argument("--epochs", type=int, default=None, help="počet epoch (default 40 / overfit 60)")
+    ap.add_argument("--batch", type=int, default=16, help="batch size (mrkla RTX 5070 baseline 16)")
+    ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW, cosine decay)")
+    ap.add_argument("--peak-thr", type=float, default=PEAK_THR, help=f"práh detekce peaku (default {PEAK_THR})")
+    args = ap.parse_args()
+    n_ep = args.epochs if args.epochs is not None else (60 if args.overfit else 40)
+    train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit, thr=args.peak_thr)
