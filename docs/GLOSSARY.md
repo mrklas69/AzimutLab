@@ -335,7 +335,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   rozdíl plochy / **obal-artefakt**), per-mapa pak průměr. Jedno číslo 0–100 % („% symbolové hmoty gen mapy
   proporčně překryté s reálnou"). Měří `generator/measure_dod.py` (DEFAULT režim). **Cíl: 55 % plošná fáze /
   ≥ 85 % s reconstructory.** Nahradil binární **DoD ≥ 90 %** (`--dod` archiv): ten byl nedosažitelný (strop
-  54 %) a slepý k inkrementální práci. Baseline Sez. 100: **46,1 %** (plocha 60,9 / linie 47,7 / bod 29,0).
+  54 %) a slepý k inkrementální práci. **Přesah-ořez** (Sez. 104, `_clipped_gen_counts`): gen kreslí obdélníkový
+  výsek, reálná mapa je nepravidelný blob → ČÚZK objekty přesahují → DISPROPORČNÍ přestřel, který proporce
+  NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →
+  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): **50,3 %** (plocha 69,2 / linie 59,3 / bod 18,4).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).

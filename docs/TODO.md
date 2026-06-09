@@ -23,9 +23,9 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
 > (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
 > (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
-> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 102: KPI 49,3 %** (beze změny od Sez. 101;
-> 508 měřením vyvráceno → generátor netknutý; Bedř+Blatná; plocha 60,9 / linie 58,3 / **bod 29,0** = Png2Point dluh;
-> Velbloud bez `.pgw` na ntbhej). Žebříček děr (kam mířit): **210/204** (body → Png2Point) /403 (granularita, vyvr.)/
+> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 104: KPI 50,3 %** (= 49,8 % před ořezem +
+> přesah-ořez +0,5 pb; Bedř+Blatná+Velbloud na HAL3000; plocha 69,2 / linie 59,3 / **bod 18,4** = Png2Point dluh,
+> ZOSTŘEN ořezem z 29,0). Žebříček děr (kam mířit): **204** (7,8 pb) **/210** (7,3 pb, body → Png2Point) /403 (granularita, vyvr.)/
 > **508** (vyvr. Sez. 102)/416 (hotovo)/**417/419** (body)/409 (gate). **Vrchol je téměř celý bodový/gate → další skok = reconstructory.**
 > **Sez. 102 — 508 Narrow ride NENÍ páka** (jako 403): smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK řídké /
 > Blatná počet 0,15× = GRANULARITA gen 4,7× delší kusy), KPI simulace i pokrytí STROP gen=orig jen **+0,34 pb**,
@@ -71,22 +71,15 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > (pseudo fáze 2, ZABAGED nevede): práh 0,5 ha (gen 160→21≈orig 24) + RDP narovnání + ticky DOVNITŘ
 > (ISOM „tags inside") — HOTOVO. Kompas potvrdil **521 budovy + cesty 503/504 přestřel je OBAL-ARTEFAKT**
 > (gen grid-north obal vs natočený menší výsek) — NEŘEŠIT dissolvem (budovy se kreslí jednotlivě).
-- [~] *(KPI přesnost, nález uživatele Sez. 103 — prototyp HOTOV, INTEGRACE zbývá)* **Přesah-artefakt: ořez gen na
-  mapovanou oblast orig při KPI/KOMPAS.** gen kreslí OBDÉLNÍKOVÝ výsek, reálná OB mapa je NEPRAVIDELNÝ blob (bílé
-  okraje = nemapováno) → ČÚZK objekty (město/železnice/open) PŘESAHUJÍ mimo mapovanou oblast → **nerovnoměrný
-  přestřel zkresluje KPI** (proporční normalizace ho NEruší, je disproporční). `measure_dod._counts_for_map` dnes
-  počítá VŠECHNY gen objekty, žádný ořez. **Past:** „bílá=nemapováno" NEPLATÍ uvnitř (401 open forest = bílá protkaná
-  vrstevnicemi) → maska = OBAL objektů, ne non-white sken (volba uživatele), realizace přes sken+`.pgw` (ne `.omap`
-  Local grivation). **Prototyp `temp/proto_clip.py`** (maska = non-white → convex hull; gen objekty → S-JTSK přes
-  `rgb.pgw`+sken `.pgw` → ořez na masku): **+4,4 pb Bedř/Velb** (ořez přestřelu 520/521), **Blatná -4,8** (tam gen
-  PODSTŘELUJE 101/401/204, přesah maskoval → ořez poctivěji) = **obousměrné ZPŘESNĚNÍ** (ne „vždy zvedne"). Vizuál
-  masky lícuje (georef OK). **ZBÝVÁ: integrovat do `measure_dod._counts_for_map`** (hull maska + gen objekty s
-  polohami + ořez) → oficiální KPI před/po (baseline 49,8 %). Týká KPI i KOMPAS (sdílí `_counts_for_map`).
-- [ ] *(vizuál pomůcka, zadáno uživatelem Sez. 103)* **Podklady do korpusového `gen.omap` jako přepínatelný OOM
-  background** — warpnout **Livelox sken (`map.png`) + ortofoto (`ortho.png`) + GT runnability (`gt_grid_vis`)** do
-  gen crop gridu (přes `rgb.pgw` + `_map_affine`) → přidat jako background templates (gen.omap má dnes `count=0`).
-  Pro vizuální srovnání gen kresby s realitou v OOM. Netréninkové. Build_pair pro budoucí + post-process na hotové
-  205 párů (bez re-fetch). Volby uživatele: sken+ortho+GT (NE degradovaný scan — ten už neexistuje, Sez. 103).
+- [x] *(HOTOVO Sez. 104, detail DONE)* **Přesah-artefakt: ořez gen na mapovanou oblast při KPI/KOMPAS** —
+  integrován do `measure_dod._counts_for_map` (`_clipped_gen_counts`: centroid gen objektu → S-JTSK → sken px →
+  convex-hull maska skenu). Q1 verify: `parse_objects_with_centroid` = `isom_usage` byte-identicky → „před/po"
+  měří jen ořez. **Oficiální KPI 49,8 → 50,3 % (+0,5), obousměrné** (Bedř/Velb + ořez přestřelu, Blatná − odhalí
+  maskovaný podstřel). Bodový gap ZOSTŘEN sub 29,0 → 18,4 % → Png2Point jednoznačně další páka.
+- [x] *(HOTOVO Sez. 104, detail DONE)* **Podklady do korpusového `gen.omap` — přepínatelný OOM background** —
+  `generator/gen_backgrounds.py` (post-process) warpne sken/ortho/GT do gen px gridu → background templates
+  (`count=0`→3); DRY extrakce `omap_export._image_template_element`/`inject_image_templates` (refaktor
+  ortho_template behavior-preserving); GT-IGNORE magenta→bílá. Batch 205/205 OK (615 bg PNG). OOM verify ruční.
 - [x] *(HOTOVO Sez. 99, detail DONE)* **310 Indistinct marsh** na `--marsh` — measure-first rozbil zadání: **313
   vodopád = mýtus** (bod Spring/0×, vyřazeno), **310 z ČÚZK neodvoditelný** (ZABAGED nerozlišuje zřetelnost) →
   **pseudo split náhodou ~55 %** (`_marsh_indistinct`, jen pseudorealistic; N_AREA 17→18). **POZOR: KOMPAS přínos ~0**

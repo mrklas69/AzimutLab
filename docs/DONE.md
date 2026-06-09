@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 104 (2026-06-09) — KPI přesah-ořez integrován (49,8 → 50,3 %) + podklady do gen.omap (HAL3000, CUDA+korpus)
+- [x] **Přesah-ořez integrován do `measure_dod._counts_for_map` (KPI + KOMPAS SSoT)** — z prototypu Sez. 103.
+      **Q1 verify** (`temp/verify_parse_consistency.py`): `parse_objects_with_centroid` (bez ořezu) = `isom_usage`
+      byte-identicky (3/3 mapy) → „před/po" měří JEN ořez. Helpery `_mapped_area_mask` (sken non-white → close →
+      largest comp → **convex hull**, DS=8) + `_gen_centroids` + `_clipped_gen_counts` (centroid gen objektu: paper µm
+      → gen px → S-JTSK přes `rgb.pgw` → sken px přes inverz sken `.pgw` → test do/ven masky). No-silent-fallback:
+      chybí sken/pgw/meta → varuj + neořez. **KPI 49,8 → 50,3 % (+0,5), obousměrné ZPŘESNĚNÍ:** Bedř 48,4→51,2 /
+      Velb 46,4→48,7 (ořez přestřelu 520/521) / **Blatná 54,7→51,1 (−3,6)** (gen podstřeluje, přesah maskoval).
+      **Bodový gap ZOSTŘEN sub 29,0 → 18,4 %** → Png2Point jednoznačně další páka (204 7,8/210 7,3 pb). Docstringy
+      modulu+`_counts_for_map` aktualizovány. py_compile OK.
+- [x] **Podklady do korpusového gen.omap — přepínatelné OOM background templates** (zadání Sez. 103 bod 5, NETRÉNINKOVÉ).
+      **DRY extrakce** `omap_export._image_template_element` + `inject_image_templates` (N templates, `first_front_template=N`
+      = vše pod mapou) z `ortho_template` → `write_omap` ortho cesta refaktorována na helper (**behavior-preserving**,
+      single-template = identický XML, ověřeno). **Nový modul `generator/gen_backgrounds.py`** (post-process, mimo render
+      core — SLAP): `add_backgrounds(gen_dir)` warpne `map.png` sken (inverz `_map_affine` rotovaného quadu) + `ortho.png`
+      + `gt_grid_vis.png` (`_georef_grid` axis-aligned) do gen px gridu → `bg_scan/ortho/gt.png` (downscale 1500 px) →
+      vloží templates. `pw/ph` dopočítáno z `rgb.pgw` mpp×W×1e6/scale. **GT-IGNORE fix:** magenta (255,0,255)→bílá
+      (obecný `recolor` na zdroji; jinak růžová zaplní čtverec). No-silent-fallback: chybějící ortho/GT → log+skip.
+      **Verify rastr:** ortofoto overlay lícuje přesně, sken blob v mapované oblasti. **Batch 205/205 OK** (0 fail,
+      skip 1 test; 615 bg PNG). OOM verify ruční (uživatel). py_compile OK.
+
 ## Sezení 103 (2026-06-09) — Png2Area přetrénován N_AREA 18 + degradér do augmentace + KPI přesah prototyp (HAL3000, CUDA+korpus)
 - [x] **Png2Area přetrénován na N_AREA 18 — celá pipeline.** Vše bylo stale 16-class (páry 06-05/Sez.90, tiles/model)
       → 310 vložen doprostřed AREA_ZORDER posunul labely → **regen nutný**. `temp/regen_pairs.py` (skip_existing=False)
