@@ -288,10 +288,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **IoU / mIoU** — *Intersection over Union*, metrika segmentace: pro třídu c je IoU = TP / (TP+FP+FN)
   (překryv predikce s GT / jejich sjednocení). **Per-class IoU** ukáže každou třídu zvlášť, **mIoU** je
   jejich průměr. UC5 měří per-class (průměr by maskoval, že vzácná 410 fight je ignorována). Počítá se
-  z confusion matice, [[IGNORE]] (255) px se vynechá. `model/{runnability,png2area}/train.py`. Archiv runnability
-  baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90, první funkční
-  model — val≈test = bez leaku; budovy 521 zachráněny vahami 0,00→0,68 proti overfitu) → **stabilizace Sez. 91 test
-  0,640 / val 0,654** (cap vah @10 + cosine LR).
+  z confusion matice, [[IGNORE]] (255) px se vynechá. `model/{runnability,png2area,png2point}/train.py`. Archiv
+  runnability baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90,
+  první funkční model) → stabilizace Sez. 91 test 0,640 → **přetrénován N_AREA 18 (Sez. 103): test mIoU 0,568 ≈
+  val 0,571** (pokles = víc vzácných tříd + degradace-augmentace; vizuál predikce≈GT). Png2Point měří **mF1**
+  (detekce bodů, ne IoU): test mF1 0,897 (Sez. 106).
 
 - **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
   (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,
@@ -338,7 +339,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   54 %) a slepý k inkrementální práci. **Přesah-ořez** (Sez. 104, `_clipped_gen_counts`): gen kreslí obdélníkový
   výsek, reálná mapa je nepravidelný blob → ČÚZK objekty přesahují → DISPROPORČNÍ přestřel, který proporce
   NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →
-  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): **50,3 %** (plocha 69,2 / linie 59,3 / bod 18,4).
+  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; **Sez. 107: 59,1 %** (plocha
+  69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).
@@ -388,9 +390,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
   **`Png2Area` model HOTOVO Sez. 88** (`model/png2area/{tile,dataset,train}.py`, izomorf s archivem
   `model/runnability/`): dlaždice [scan.png, area_labels.png] → `AreaTileDataset` (D4+ImageNet) → U-Net/ResNet34
-  **16 ISOM area kódů + pozadí** (label 0..16 ze [[omap_raster]], bez ignore_index — Y je celé validní). **Plný trénink
-  Sez. 90-91:** test mIoU 0,621→**0,640** (val 0,654, cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
-  208/501/301.1 = datový strop → class-balanced expansion. Trénink = mrkla.
+  **18 ISOM area kódů + pozadí** (label 0..18 ze [[omap_raster]], bez ignore_index — Y je celé validní). **Plný trénink
+  Sez. 90-91:** test mIoU 0,621→0,640 (cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
+  208/501/301.1 = datový strop → class-balanced expansion. **Přetrénován N_AREA 18 (Sez. 103, +310): test mIoU
+  0,568 ≈ val 0,571.** Trénink = mrkla.
   **`Png2Point` MVP pipeline Sez. 105** (`model/png2point/{inject,dataset,train}.py`): jiná úloha než Png2Area —
   **lokalizace+klasifikace bodů** = HEATMAP regrese (CenterNet). **A1 GT = INJEKCE** (ne gen body — kompas Sez. 96
   gen ≈ 4 % reality): na podklad se vkreslí kanonická ikonka na náhodnou ZNÁMOU pozici → GT heatmapa zdarma +

@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 108 (2026-06-10) — Velký úklid: 4 audity rozsekly carry + nález pseudo body mimo meta.json (HAL3000)
+- [x] **%CALIBRATE (+23 → 0):** C-1 projektový `CLAUDE.md` „2→3 podadresáře model/" (png2point od Sez. 105) +
+      16→18 tříd; **C-2 root-cause carry** → `docs/PROMPTS.md` %BEGIN bod 4: pravidlo „úklidové audity prioritně
+      na ntbhej" (běží kdekoli → HAL3000 okno patří CUDA práci; +23 vznikl 3 sezeními odkládání na HAL3000).
+- [x] **pruning (+2 → 0):** TODO 307 → 228 ř (−26 %). KPI blockquote 58 → 14 ř (historie Sez. 94-107 → odkaz
+      DONE/diáře) + 10 hotových `[x]` (Sez. 99-104) smazáno z TODO.
+- [x] **%AUDIT:DOCS (+4 → 0):** 13 nálezů (agent, ověřeno proti DONE/`ls model/`). Kritické: `connectors/README`
+      → smazaný `forest.py` (Sez. 102); architecture/README/GLOSSARY „2 modely / Png2Point neexistuje" → existuje
+      (Sez. 106); GLOSSARY KPI 50,3 → 59,1. Doporučené: architecture UC5 zamrzlá Sez. 92/96 → +Png2Area 0,568
+      (N_AREA 18) +Png2Point +KPI éra; Python 3.12+→3.14; „PoC"→pilíř.
+- [x] **%AUDIT:CODE (+1 → 0):** 0 kritických (py_compile 16/16, forest_age mazání + focal revert čisté). D1
+      (16→18 komentáře png2area/train.py), K1 (run_proxy → caller v compare_isom), D2 (legacy poznámka
+      compare_real_vs_gen.py, volba NECHAT). **Oponoval D3** (sjednocení rozsahů elipsy `(3,12)` inject vs `(3,8)`
+      gen by rozbilo KPI kalibraci → zdokumentována záměrná divergence); K2 ponechán (ilustrativní čísla).
+- [x] **#9 STATISTICS.md regen → nález pseudo↔meta (measure-first).** Snapshot 2026-06-01 zastaralý → regen 5 DEV
+      + `stats.py`. **Odhaleno:** pseudo body 204/210 (Sez. 107) jdou do `.omap` (HS 204:5588/210:12258, `isom_usage`)
+      + KPI, ale **NE do `meta.json`** (`rocks_info` sestaven před přidáním pseudo) → STATISTICS je nevidělo, ač
+      pseudo 310 marsh ano = **porušený izomorfismus**. **Oprava:** pseudo → `rocks_info` (sdílí sekci s reálnými
+      skalami; 210.1 → ISOM 210 Stony ground) + 210 do `stats.py` SYMBOLS → re-regen. STATISTICS věrně: 204 (HS
+      5588), 210 (HS 12258). KPI nedotčeno (čte `.omap`). **Lekce → memory: pseudo vrstva MUSÍ psát do meta i .omap.**
+- [x] **Carry úklidu VYNULOVÁN** (poprvé po dlouhé době čistý cadence). 14 souborů (5 kód + 9 docs), py_compile čistý.
+      Handoff připraven na ntbhej (Příště Sez. 109).
+
 ## Sezení 107 (2026-06-10) — Png2Point body INTEGROVÁNY do generátoru: KPI 50,3 → 59,1 % (+8,8 pb) (HAL3000)
 - [x] **Pseudo injekce bodů 204 Boulder + 210 Stony ground do `gen.omap`** (`generator._generate_pseudo_boulders`
       + `_draw_stony_dot` + `omap_export` USED_CODES += `210.1`). ZABAGED tyto body nevede v reálné hustotě

@@ -27,6 +27,10 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    ČÚZK REST (fetch/`generate_map` real/separace) + docs + audity = **všude** (veřejná služba,
    cache `.dmr_/.zabaged_`). Nenavrhuj jako fokus to, co stroj neutáhne (nález Sez. 86 C-1: na
    ntbhej padl hlavní tah Branžež `build_pair` na chybějící korpus). Cross-stroj práce = carry na mrkla.
+   **Úklidové audity (%CALIBRATE/%AUDIT:DOCS/pruning/%AUDIT:CODE) prioritně na ntbhej** (běží kdekoli,
+   nepotřebují CUDA/korpus) — vzácné HAL3000/mrkla okno patří CUDA práci. Nález Sez. 108 (root-cause C-2):
+   3 sezení po sobě na HAL3000 odkládala úklid jako carry → %CALIBRATE nabobtnal na +23, protože CUDA
+   práce vždy přebila. Když jsi na mrkla a úklid je překročený, zvaž handoff na ntbhej místo dalšího carry.
 5. Návrh fokusu z posledního „Příště" + [!] priorit v TODO. Vždy přes optiku
    UC DAGu: je navržený fokus enabler, nebo záclona?
 6. **KPI + KOMPAS rekapitulace (Sez. 100, přání uživatele).** Vždy uveď aktuální stav primárního

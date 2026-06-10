@@ -109,8 +109,10 @@ bodových, liniových i plošných ISOM symbolů.
 > **Sez. 95-96 — DoD ≥ 90 % je PLOŠNĚ NEDOSAŽITELNÉ.** Analytický cut (`compare_isom.used_geometry`, geometrie
 > reálně použitého symbolu z OOM `<symbol type>`, variant-aware): **plošný strop 54 %** (kdyby gen dokreslil
 > chybějící typy ploch; Sez. 96 přeřadil 210 Stony z plochy na bod — kartografové ho kreslí polem teček); zbytek =
-> linie (→ Png2Line) + body (→ Png2Point), oba modely zatím NEEXISTUJÍ → cesta k 90 % vede přes
-> ně, ne přes leštění ploch. DoD baseline přepnut z forest_age proxy na **separaci** (reálná produkční cesta párů
+> linie (→ Png2Line) + body (→ Png2Point) → cesta k 90 % vede přes ně, ne přes leštění ploch.
+> **Png2Point HOTOVÝ Sez. 106** (test mF1 0,897), pseudo body 204/210 integrovány do generátoru Sez. 107
+> (KPI 50,3 → 59,1 %); zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
+> **separaci** (reálná produkční cesta párů
 > `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
 - Přímá návaznost na Pic2Omap `color_separator.py` / detektory — kandidát na první
@@ -140,8 +142,8 @@ bodových, liniových i plošných ISOM symbolů.
   překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`); **tréninkové dlaždice**
   (`model/runnability/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
   **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Adresář **`model/`** = UC5 model kód
-  (sourozenec `connectors/`/`generator/`, sys.path fáze B); od Sez. 88 dva podadresáře `runnability/` (archiv) +
-  `png2area/` (živý reconstructor model).
+  (sourozenec `connectors/`/`generator/`, sys.path fáze B); **tři podadresáře**: `runnability/` (archiv) +
+  `png2area/` + `png2point/` (oba živé reconstructory).
 - **Krok 4 dokončen (Sez. 78) + ARCHIVOVÁN (Sez. 79), přesun do `model/runnability/` (Sez. 88):** loader
   (`model/runnability/dataset.py`, D4 aug + ImageNet norma) + trénink (`model/runnability/train.py`, smp
   U-Net/ResNet34, BF16, per-class IoU). Baseline **val mIoU 0,259 / test 0,223**, ale křivka = **generalizační
@@ -158,9 +160,22 @@ bodových, liniových i plošných ISOM symbolů.
   `.omap` je celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. **Výsledek
   (Sez. 90):** plný trénink 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs runnability baseline 0,25); budovy
   `521` zachráněny 0,00→0,68 (median-freq váhy + data). **Stabilizace (Sez. 91):** cap vah @10 + cosine LR →
-  **test mIoU 0,640 / val 0,654** (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop →
-  class-balanced expansion. **Pokrytí area tříd (Sez. 92):** přidána **403 Rough open** (bledá žlutá ze separace,
-  první vegetační třída nad zeleň) → 16 area kódů; další rozšiřování řídí DoD pokrytí (viz reframe note výše).
+  test mIoU 0,640 (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop → class-balanced
+  expansion. **Pokrytí area tříd (Sez. 92):** přidána **403 Rough open** (bledá žlutá ze separace). **Přetrénován
+  N_AREA 18 (Sez. 103):** +310 Indistinct marsh → 18 tříd; regen 205 párů + degradace-augmentace → **test mIoU
+  0,568 ≈ val 0,571** (pokles vs 0,640 = víc vzácných nul + degradace; hlavní plochy 0,70-0,92; vizuál
+  predikce≈GT → mIoU podhodnocuje). `resources/area_model/unet_best.pt`.
+- **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
+  druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
+  (bez bodů, master flag `generate_map`) = GT zdarma + libovolně instancí (řeší vzácnost) + **heatmap regrese**
+  (CenterNet focal, peak NMS → F1). Scope **204 Boulder + 210 Stony** (210 = pole teček `210.1`, ne plocha —
+  probe Sez. 106). Root-cause 204 (Sez. 106): příčina F1 0,00 = **hustota pozitiv vs focal `n_pos` normalizace**
+  (19× imbalance 210/204), ne velikostní záměna → `n_boulder` hustě → **test mF1 0,897** (204 0,93 / 210 0,86).
+  `resources/point_model/unet_best.pt`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
+- **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
+  reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný). **Stav Sez. 107: 59,1 %**
+  (plocha 69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210). Cíl plošná ~55 % (splněn),
+  s reconstructory ≥ 85 %. Měř `generator/measure_dod.py` (default KPI, `--table` kompas děr). Detail TODO/DONE.
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

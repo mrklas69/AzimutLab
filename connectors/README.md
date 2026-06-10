@@ -18,8 +18,9 @@ UC2 v DAGu). Vedle `connectors/` dnes stojí `generator/` (povýšen ze sandboxu
 | `split.py` | — (zpracování) | **Geografický train/val/test split** (Sez. 76): ČR/DE filtr (`_cz_filter.json`, 216 keep → **207 ČR**, cizí = prázdné ČÚZK ortofoto) → clustery dle překryvu S-JTSK bboxů (union-find) → greedy 70/15/15 → `_split.json`. Bez leaku (celý cluster do 1 splitu). Reader `dirs_for('train')`/`split_of(cid)` = kontrakt loaderu. | ČÚZK ortofoto (filtr) |
 
 **Sourozenci, ne kopie:** `dmr` = rastr/výškopis, `zabaged` = vektor topografie (ZABAGED), `ruian` = vektor
-katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `forest` = vektor věku porostu (AOPK „Les_Mapy" — třetí zdroj,
-JINÝ server `gis.nature.cz`; PROXY/predikce, Sez. 62), `ortofoto` = rastr/podklad. Sdílí `dmr.build_bbox` (tentýž S-JTSK
+katastr (RÚIAN — druhý ČÚZK zdroj, Sez. 42), `ortofoto` = rastr/podklad. (Pozn.: `forest.py` = vektor věku
+porostu AOPK „Les_Mapy" byl **archivován/smazán Sez. 102** — predikční vegetace jde ze separace reálné mapy
+`generator/separate.py`, ne z proxy věku.) Sdílí `dmr.build_bbox` (tentýž S-JTSK
 výsek → data z různých zdrojů sednou na sebe bez dalšího georef) i `arcgis.fetch_geojson_layer` (společný REST
 transport pro `zabaged`+`ruian`). Vše na `ags.cuzk.gov.cz`. Mapování zdroj → ISOM (u `zabaged`/`ruian`) viz `data-sources.md`.
 

@@ -14,101 +14,22 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 ## UC4-I / UC5 — Syntetický generátor (enabler-feeder, fáze B → první kód)
 Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 
-> **[!] KPI generátoru — PRIMÁRNÍ KVANTIFIKÁTOR (Sez. 100, nahrazuje binární DoD ≥ 90 %):** „jak moc se
-> blížíme generování **reálně vyhlížejících** O-map" = **proporční podobnost distribuce ISOM symbolů** gen vs
-> vzorové mapy = **histogram intersection** `Σ min(orig_share, gen_share)`, per-mapa pak průměr. Jedno číslo
-> 0–100 % („kolik % symbolové hmoty gen mapy se proporčně překrývá s reálnou"). Měř **`generator/measure_dod.py`**
-> (DEFAULT režim bez flagu; `--table` kompas diagnostika / `--dod` archiv binární DoD + analytický cut / `--proxy`).
-> Proč ne binární DoD ≥ 90 %: byl nedosažitelný (strop 54 %) a slepý k inkrementální práci (dissolve 520 9×→1,3×,
-> marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
-> (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
-> (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
-> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 /
-> Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 → 54,3**). **Sez. 107 — Png2Point body 204/210 INTEGROVÁNY do
-> generátoru → KPI 50,3 → 59,1 % (+8,8 pb)** (pseudo injekce na masku DOLOŽENÉ skalnatosti, kalibrace na share; nález:
-> sklon ≠ skalnatost přestřelil, +0,3 pb → doložená skalnatost +8,8). 204/210 PRYČ z žebříčku. Žebříček děr (kam mířit):
-> **417/419/418** (3,1/2,8/1,3 pb, veg body → Png2Point registr, Příště Sez. 108) /**508** (2,8, linie, vyvr. jako páka)/
-> **409/404/410** (vegetace gate)/306 (linie)/109 (bod). **Vrchol = veg body + linie + gate → další skok = registr bodů + Png2Line.**
-> **Sez. 102 — 508 Narrow ride NENÍ páka** (jako 403): smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK řídké /
-> Blatná počet 0,15× = GRANULARITA gen 4,7× delší kusy), KPI simulace i pokrytí STROP gen=orig jen **+0,34 pb**,
-> granularita +0,59 = gaming (mění jen #objektů) → nepáka. **4. potvrzení vyčerpání ČÚZK plošné+liniové páky.**
-> Co generátor nenakreslí, reconstructor se NIKDY nenaučí → pokrytí = strop tréninku (memory
-> `generator-coverage-is-the-ceiling`). **Větší páka než ladit model = přiblížit distribuci symbolů realitě.**
-> **Sez. 101 — 403 NENÍ páka (granularitní propast), 416 ANO (+3,2 pb).** 403 podstřel (673/152) měřením: NE slévání
-> (gen 39 %/12 % plochy), systémově reálné mapy kreslí 403 jako dominantní open (Bedř 9× nad 401) ale ČÚZK vrací TTP
-> **hrubě** (1 multipolygon 139,5 ha → ~46 gen obj vs kartograf 356 plošek) → simulace přesunu 401→403 = +0,1 pb
-> (KPI počítá objekty, granularitu plošné mapování neopraví — strop i UVNITŘ ploch). Bedř scan-odstín 403 = artefakt
-> Livelox-kalibrace (separace měří resources) → dokumentovat-neladit. **416 = silná páka** (633/0 největší díra):
-> mezitřídní hranice predikčních veg ploch + délkový práh 50 m (reálné medián 45-90 m, mezi-veg samo přestřeluje
-> 147/596 %) → KPI +3,2 pb. **Plošná páka z ČÚZK definitivně vyčerpaná** (potvrzeno 3× Sez. 99-101); další skok = reconstructory.
-> **Stav Sez. 94 (POCTIVÝ baseline):** `compare_isom` opraven na **crosswalk-aware** — Sez. 91 „38 %" bylo
-> NEPLATNÉ (naivní integer-prefix ignoroval `.crt`; reálné mapy ISOM 2000 vs gen 2017-2, číslování recykluje).
-> Matched přes 3 mapy (A3: Slovanka UTM33 + Soví vrch 1/4 vynechány): Bedř **43 %** / Blatná **37 %** (jediná
-> 2017) / Velbloud **50 %** → **PRŮMĚR 43 %**. **Gap je OBSAHOVÝ ne číslovací:** chybí TYPY — 416/107/108/507
-> (linie → Png2Line), 418/419/525/527/531 (body → Png2Point), **404/407/409 (pattern plochy)**, 210 Stony
-> (ZABAGED nevede), mikroformy 112/113/105. **Separace ze skenu = páka KVALITY ne pokrytí** (Sez. 94 cesta b:
-> +403 −410 net-nula, `predict_areas_sjtsk` forest_age výlučně nahradí). Coverage páka = kreslit nové TYPY.
-> **Q2 carry VYŘEŠEN Sez. 94** (tvrdý DoD na resources změřen 43 %).
-> **Stav Sez. 95 — DoD ≥ 90 % je PLOŠNĚ NEDOSAŽITELNÉ + baseline přepnut na separaci.** Analytický cut
-> (`compare_isom.symbol_geometry`, geometrie z OOM `<symbol type>`): **plošný strop 58 %** (kdyby gen dokreslil
-> všech 13 chybějících typů ploch). Zbytek = **linie 18 typů/1952 obj → Png2Line** + **body 17 typů/966 obj →
-> Png2Point** (oba modely NEEXISTUJÍ). Reálný strop < 58 % (pattern vegetace 404/407/409/113 ~590 obj = dvojitá
-> mezera separace-slepá+gate). DoD baseline přepnut forest_age→**SEPARACE** (`measure_dod` výchozí = `_gen_sep`,
-> produkční cesta párů; `--proxy` = doložení nadhodnocení): 403 covered, fiktivní 410 missing (souvislé 410 v
-> mapách = ŠUM, forest_age fabrikoval). **Cesta k 90 % = Png2Line + Png2Point**, plošné nové typy jen do stropu.
-> **Stav Sez. 96 — 210 je BODOVÝ gap (ne plošný) + variant-aware strop 54 % + kompas tabulka.** A1 measure-first
-> nad 210: reálná geometrie v 5 mapách = **VŠE `type=point`** (210.0/210.1 „individual dot"; Slovanka 3473/Velbloud
-> 603/…) → kartografové kreslí kamenitou zem POLEM TEČEK → **210 patří na Png2Point, NE plošný generátor**.
-> Kořen: `symbol_geometry` bral geom z template-primary (210=area), reálná point varianta se ztratila → cut
-> nadhodnocoval. Oprava `compare_isom.used_geometry` (geom z REÁLNÉ mapy) → cut variant-aware → **pravý plošný
-> strop 54 %** (z 58); GAP plocha 9/894 · linie 19/1974 · **bod 21/2213**. Nový **`measure_dod.py --table`** =
-> KOMPAS (orig vs gen Σ obj per ISOM kód, 3 kapitoly): Png2Point gen Σ149/orig 3960 nejhorší, gen přestřeluje
-> 520/521/cesty, podstřeluje vegetaci, 416 veg boundary 1111/0. Strategie → IDEAS „Pokrytí do statistické míry
-> četnosti" (generovat věrohodně do míry + Png2Point injekce symbolů + 416 do míry). Plošné nové typy se zdrojem
-> jen 310/413 (ověřit jejich geometrii — 413 „single dot" → možná taky bod!), do ~54 % stropu.
-> **Stav Sez. 98 — přestřel olivové 520 OPRAVEN + plot 516 přidán (rychlé výhry).** Measure-first
-> (`temp/measure_520.py`): 520 = 91–96 % z RÚIAN privát drobných katastrálních parcel (LS 52 % výseku) →
-> kompas 520 gen/orig **9× přestřel**. **Dissolve do bloků** přes contourpy masku (bez `shapely`; reuse
-> `rock_relief`): LS 19762→2023, HS 2066→448, kompas 520 9×→**1,3×** (HOTOVO, DONE). **Plot 516 Fence**
-> (pseudo fáze 2, ZABAGED nevede): práh 0,5 ha (gen 160→21≈orig 24) + RDP narovnání + ticky DOVNITŘ
-> (ISOM „tags inside") — HOTOVO. Kompas potvrdil **521 budovy + cesty 503/504 přestřel je OBAL-ARTEFAKT**
-> (gen grid-north obal vs natočený menší výsek) — NEŘEŠIT dissolvem (budovy se kreslí jednotlivě).
-- [x] *(HOTOVO Sez. 104, detail DONE)* **Přesah-artefakt: ořez gen na mapovanou oblast při KPI/KOMPAS** —
-  integrován do `measure_dod._counts_for_map` (`_clipped_gen_counts`: centroid gen objektu → S-JTSK → sken px →
-  convex-hull maska skenu). Q1 verify: `parse_objects_with_centroid` = `isom_usage` byte-identicky → „před/po"
-  měří jen ořez. **Oficiální KPI 49,8 → 50,3 % (+0,5), obousměrné** (Bedř/Velb + ořez přestřelu, Blatná − odhalí
-  maskovaný podstřel). Bodový gap ZOSTŘEN sub 29,0 → 18,4 % → Png2Point jednoznačně další páka.
-- [x] *(HOTOVO Sez. 104, detail DONE)* **Podklady do korpusového `gen.omap` — přepínatelný OOM background** —
-  `generator/gen_backgrounds.py` (post-process) warpne sken/ortho/GT do gen px gridu → background templates
-  (`count=0`→3); DRY extrakce `omap_export._image_template_element`/`inject_image_templates` (refaktor
-  ortho_template behavior-preserving); GT-IGNORE magenta→bílá. Batch 205/205 OK (615 bg PNG). OOM verify ruční.
-- [x] *(HOTOVO Sez. 99, detail DONE)* **310 Indistinct marsh** na `--marsh` — measure-first rozbil zadání: **313
-  vodopád = mýtus** (bod Spring/0×, vyřazeno), **310 z ČÚZK neodvoditelný** (ZABAGED nerozlišuje zřetelnost) →
-  **pseudo split náhodou ~55 %** (`_marsh_indistinct`, jen pseudorealistic; N_AREA 17→18). **POZOR: KOMPAS přínos ~0**
-  (ZABAGED mokřady na DoD mapách řídké — Bedř gen 0/Blatná 1); hodnota jen v Livelox párech. Lekce → bod níž.
-- [x] *(coverage — ZMĚŘENO Sez. 100, lekce Sez. 99)* **vybrat plošný typ, co kompas REÁLNĚ zvedne** → MĚŘENÍ: plošné
-  gen=0 díry jsou **404/407/409** (Undergrowth + Rough open w/ scattered trees = vegetace gate, ZABAGED NEVEDE — stejná
-  past jako 310) + 515 (neznámé). **Závěr: plošná coverage páka z ČÚZK je téměř vyčerpaná** (kvantifikováno KPI: sub
-  plocha 60,9 % vs bod 29,0 %; 61 % hmoty = linie+body). Další skok = Png2Point/Line, ne nové plošné typy.
-- [x] *(VYVRÁCENO Sez. 101 — granularitní propast, detail DONE)* **403 podstřel NENÍ páka** (+0,1 pb). Measure-first:
-  ne slévání (gen 39 %/12 % plochy), systémově reálné mapy kreslí 403 jako dominantní open (Bedř 9× nad 401) ALE ČÚZK
-  vrací TTP hrubě (1 multipolygon → ~46 gen obj vs kartograf 356 plošek) → KPI počítá objekty, přemapování 401→403 = +0,1.
-  Bedř scan-odstín = artefakt Livelox-kalibrace → dokumentovat-neladit. Generátor netknutý (ušetřen refaktor).
-- [x] *(HOTOVO Sez. 101 — +3,2 pb, detail DONE)* **416 Distinct vegetation boundary** (orig 633 / gen 0 → gen 154) —
-  měřením potvrzená SILNÁ páka. **Mezitřídní hranice** predikčních veg ploch (403↔406↔408↔410, volba uživatele) +
-  **délkový práh 50 m** (mezi-veg samo přestřeluje 147/596 %, reálné medián 45-90 m). `_predict_veg_boundaries` +
-  `_draw_boundary` (černá tečkovaná, izomorf 508) + linefeature (0 změna omap_export). LINIE → bez Y dluhu. KPI 46,1→49,3.
-- [x] *(VYVRÁCENO Sez. 102 — nepáka, detail DONE)* **508 Narrow ride podstřel NENÍ páka** (+0,34 strop / +0,59 gaming).
-  Measure-first: smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK `Lesní průsek` řídké / Blatná počet 0,15× =
-  GRANULARITA gen 4,7× delší kusy; medián úseku orig 50-67 m). KPI simulace: i pokrytí STROP gen=orig jen +0,34 pb,
-  rozsekání na úseky +0,59 = gaming (mění jen #objektů, ne vizuál; práh arbitrary). 508 = ~4 % hmoty. Generátor netknutý.
-- [x] *(VYŘEŠENO Sez. 99 — bug neexistuje)* meta.json „real_sections []" u predict cesty: `veg_area` se ZAPISUJE
-  správně (224 položek, provenance predict). Sez. 98 viděl STALE `meta.json` přes skip-existing `_gen_sep` → odhalena
-  cache past (níž), opravena.
-- [x] *(fix HOTOVO Sez. 99)* **kompas cache invalidace** — skip-existing `_gen_sep` dělal kompas slepým ke změnám
-  generátoru (měřil cached `.omap`) → `_code_mtime()` invalidace (cached < kód = stale → přegeneruj).
-- [x] *(VYŘEŠENO Sez. 102 — bezpředmětné)* skip-existing past v `run_proxy` (`--proxy` cesta) — `run_proxy` celý
-  SMAZÁN při archivaci forest_age proxy (Sez. 102), bod zaniká.
+> **[!] KPI generátoru — PRIMÁRNÍ KVANTIFIKÁTOR (Sez. 100, nahradil binární DoD ≥ 90 %):** „jak blízko jsme
+> generování **reálně vyhlížejících** O-map" = **proporční podobnost distribuce ISOM symbolů** gen vs vzorové mapy
+> = **histogram intersection** `Σ min(orig_share, gen_share)`, per-mapa průměr. Jedno číslo 0–100 %. Měř
+> **`generator/measure_dod.py`** (DEFAULT režim; `--table` kompas diagnostika děr / `--dod` archiv binární DoD).
+> Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
+> **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
+>
+> **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
+> 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**
+> **417/419/418** (3,1/2,8/1,3 pb, veg body → Png2Point registr, Příště Sez. 108) / **508/306** (linie) /
+> **409/404/410** (vegetace gate, ZABAGED nevede) / 109 (bod). **Další skok = registr veg bodů + Png2Line.**
+>
+> **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
+> smíšený podstřel +0,34, 404/407/409 = vegetace gate). Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
+> pokrytí = strop tréninku (memory `generator-coverage-is-the-ceiling`). **Historie baseline (43 %→59,1 %), analytické
+> cuty (plošný strop 54 %), kompas a vyvrácené páky 403/508: DONE Sez. 94-102 + diáře.**
 - [ ] *(model, carry mrkla — nález Sez. 99)* **Png2Area přetrénovat na N_AREA 18** (310 přidán do AREA_ZORDER) —
   spojit s class-balanced expansion (208/501/301.1).
 - [ ] *(doladění, Sez. 98)* plot 516 `FENCE_SIMPLIFY_M` 5→8–10 m, kdyby přímost obvodu nestačila (riziko zkomolení malých bloků).

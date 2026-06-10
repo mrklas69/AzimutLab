@@ -57,7 +57,10 @@ Realizuje **MVP řez** specifikace
 - **skály/balvany** — `--rocks real` (Sez. 30 + 57 + 63): body `Osamělý_balvan…`→**204**, `Skupina_balvanů__bod_`→**207**
   + `Skupina_balvanů__linie_`→**208 Boulder field** (Sez. 57) ze ZABAGED; **plocha 206 Gigantic boulder = z DMR 5G
   SKLONU** (Sez. 63, `rock_relief.py`: práh sklonu 46° → morfologické scelení stěn do bloku → vektorizace) —
-  nahradila generalizovaný ZABAGED `Skalní_útvary` (jeden blob → věrná členitost věží/průchodů, ověřeno proti Mapy.com),
+  nahradila generalizovaný ZABAGED `Skalní_útvary` (jeden blob → věrná členitost věží/průchodů, ověřeno proti Mapy.com).
+  **Pseudo body 204/210 (Sez. 107, jen `pseudorealistic`):** `_generate_pseudo_boulders` injektuje 204 Boulder
+  + 210.1 Stony ground (pole teček) na masku DOLOŽENÉ skalnatosti (206 plochy + reálné 204/207 body, dilatace),
+  kalibrováno na share → KPI bodů 18,4 → 54,3 % (mirror inject geometrie Png2Point, ne model),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,
@@ -171,7 +174,7 @@ gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shod
 
 ## Stack
 
-Python 3.12+ · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK) ·
+Python 3.14 (testováno; PEP 649/749 bez `__future__`) · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK) ·
 scipy (jen `--rocks real`: morfologie + connected-components pro rock-relief z DMR, Sez. 63). Viz `requirements.txt`.
 Venv v kořeni LAB (`.venv`) — sdílený pro `generator/` i `connectors/`. Konektory reálných dat žijí
 v **`connectors/`** v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení +
