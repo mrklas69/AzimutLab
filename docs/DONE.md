@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 109 (2026-06-10) — Diagnostika KPI pák (negativní nálezy) + podklady regrese + ořez přesahu na quad (ntbhej)
+- [x] **Měření KPI pák (`temp/sim_kpi.py`) — obrat intuice:** doplnit zeleň KPI **snižuje** (406 −3,5 / 408 −2,7 pb,
+      gen globálně podstřeluje → ředění); páka = **oprava přestřelů** (521 budova +2,35 / kombo +4,98 pb). Kompas
+      areas: base 406/408 kreslíme (podstřel), 410 skoro chybí, pattern 409/407/404 = nula (separace pattern-slepá).
+- [x] **Budovy 521 diagnostika — suppression VYVRÁCENA.** Přestřel = POČET (Bedř 634 vs 19), ne velikost/tvar.
+      90 % gen budov v 520 (rasterizace), sim +2,95 pb, ALE **kartograf v 520 kreslí normálně (volba uživatele)** →
+      suppression špatný směr (dotaz PŘED kódem zabránil chybě). Z-order 520 = falešný poplach (olivová se kreslí
+      62,7 %; Censure 2× chybný barevný práh L1<55 / bucket).
+- [x] **Bodová detekce 417 ze skenu VYVRÁCENA měřením** (`temp/probe_417`). Zelený kroužek = stejná zelená jako
+      veg plochy/pattern/křížky → komponenta 1/60, matched filter 14731/60. Strukturální: bodová separace klasikou
+      patří **Png2Pointu (CNN)**, ne separaci (izomorf pattern třídy Sez. 90). Censure: „417 unikátní" před měřením.
+- [x] **Přesah Stráže n. Nisou doložen** (`temp/probe_clip`, vhled uživatele): gen kreslí axis-aligned bbox, 282/634
+      budov (44 %) mimo natočený reálný quad = okolní sídla. Měřicí hull už ořezává → ořez na quad **KPI +0,26** =
+      čistota produktu + tréninkových párů (ne KPI skok).
+- [x] **Oprava podkladů — regrese „zase vypadly".** `measure_dod --table` přepisovalo produkční gen.omap bez
+      podkladů (`_gen_sep` `ortho=False`, `templates=0`). `gen_backgrounds.add_resources_scan_background` (izomorf
+      `add_backgrounds`, resources sken + `.pgw` afinní místo Livelox quadu; helper `_affine_inverse`) + hook v
+      `_gen_sep`. Ověřeno: `templates=1`, bg_scan lícuje (verify georef).
+- [x] **Ořez přesahu na quad — `clip_quad.py` (nový).** `clip_omap_to_quad`: vynech .omap objekty s centroidem mimo
+      natočený quad + maska renderu na bílou. **String-regex, NE ET round-trip** (ET rozbil `inject_image_templates`
+      + risk OOM). Zapojeno: `measure_dod._gen_sep` (quad = rohy skenu) + `pairs.build_pair` (quad = Livelox
+      `g["quad"]`, PŘED rasterizací Y → konzistentní pár). Bedř 823 + Blatná 197 přesahů pryč, **KPI 54,9 nezměněno**,
+      render rohy bílé (vizuál), .omap validní. `pairs` e2e carry HAL3000 (ntbhej korpus syrový 0/57 gt); izolovaný
+      sanity (name=gen, idempotence) OK.
+
 ## Sezení 108 (2026-06-10) — Velký úklid: 4 audity rozsekly carry + nález pseudo body mimo meta.json (HAL3000)
 - [x] **%CALIBRATE (+23 → 0):** C-1 projektový `CLAUDE.md` „2→3 podadresáře model/" (png2point od Sez. 105) +
       16→18 tříd; **C-2 root-cause carry** → `docs/PROMPTS.md` %BEGIN bod 4: pravidlo „úklidové audity prioritně

@@ -55,6 +55,16 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `search_events`/`download_corpus`, `allEvents`→`SearchEvents` reverz, WGS84 fallback, backoff) **+ kurace
   → 216 keep classic** (`curate.py` taxonomie discipline+tagy, `_curation.json`) + olivová 520 → label 0 (čistota GT).
   Tréninkové jádro = 216 foot-O map. Legalizace (ČSOS) až pokud model funguje — do té doby privátní repo + TDM výjimka.
+- [!] *(Příště Sez. 110, přání uživatele — ntbhej slabý korpus)* **Stažení / tvorba korpusu + GT na ntbhej.**
+  NTBHEJ21 má **57 syrových** Livelox map (`resources/livelox/`, **0/57 `gt_labels.png`** / 0 hotový gen, žádný
+  `_split.json`) → `build_pair`/trénink na ntbhej NEJEDE (padá na separaci, Sez. 109). Naplánovat pipeline
+  `livelox.download_corpus` → `map_gt.segment_gt` (GT) → `curate` → `split` na ntbhej, **nebo** potvrdit, že plný
+  korpus (216 keep + GT) žije jen na HAL3000 a ntbhej zůstává docs/měřicí stroj. Pozn.: `map_gt.segment_gt` >~100 Mpx
+  nezvládne (Sez. 90, 20 GiB) → u obřích map řešit downscale.
+- [ ] *(ověření, Sez. 109)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `clip_quad.clip_omap_to_quad` přidán
+  do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
+  plný běh na ntbhej blokován syrovým korpusem (0 gt). Ověřit na HAL3000: že páry mají ořezané .omap+render (bez
+  okolních sídel) a Y label sedí na X. Pozn.: centroid (KISS, hrubé na hranici); geometrický ořez jen s důkazem vady.
 ### UC5 runnability model — kroky (Sez. 74 %THINK; architektura v IDEAS „UC5 runnability model")
 Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke test první**. Trénink jen na
 `mrkla` (RTX 5070, BF16) — `docs/kb/hardware.md`. Gaty PŘED model (pár (X,Y) = foundation).
