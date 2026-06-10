@@ -90,6 +90,20 @@ def _grid_inverse(g: dict):
     return f
 
 
+def _affine_inverse(pgw: tuple):
+    """S-JTSK → sken px (inverz .pgw afinní). pgw=(A,B,C,D,E,F): x=A·col+B·row+C, y=D·col+E·row+F.
+
+    Pro resources MĚŘICÍ mapy (sken georef = běžný world-file, NE Livelox rotovaný quad). Vektorová."""
+    A, B, C, D, E, F = pgw
+    det = A * E - B * D
+
+    def f(x, y):
+        col = (E * (x - C) - B * (y - F)) / det
+        row = (-D * (x - C) + A * (y - F)) / det
+        return col, row
+    return f
+
+
 def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | None = None,
                     opacity: float = _BG_OPACITY) -> dict:
     """Warpne dostupné podklady do gen gridu a vloží je jako background templates do gen.omap.
@@ -162,6 +176,51 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
         doc = inject_image_templates(doc, templates)
         omap.write_text(doc, encoding="utf-8")
     return result
+
+
+def add_resources_scan_background(name: str, gen_dir: str | pathlib.Path,
+                                  opacity: float = _BG_OPACITY) -> dict:
+    """Připne reálný resources sken (`resources/<name>.png` + `.pgw`) jako bg podklad do `<name>.omap`.
+
+    Izomorf `add_backgrounds`, ale pro resources MĚŘICÍ mapy (Bedřichovka/Blatná/…, ne Livelox pár):
+    omap = `<name>.omap` (ne gen.omap), sken georef = `.pgw` afinní (ne rotovaný quad). Účel: měřicí
+    cesta (`measure_dod._gen_sep`) přepisuje produkční gen.omap → bez tohoto by smazala podklad, který
+    si uživatel v OOM připnul pro verify (regrese „zase vypadly podklady", Sez. 109).
+
+    No silent fallback (CLAUDE.md): chybí-li sken/pgw/omap, zaloguj a vrať bez připnutí (ne raise)."""
+    gen_dir = pathlib.Path(gen_dir)
+    omap = gen_dir / f"{name}.omap"
+    rgb_pgw = gen_dir / "rgb.pgw"
+    meta_p = gen_dir / "meta.json"
+    scan = _REPO_ROOT / "resources" / f"{name}.png"
+    scan_pgw = _REPO_ROOT / "resources" / f"{name}.pgw"
+    for req in (omap, rgb_pgw, meta_p, gen_dir / "rgb.png", scan, scan_pgw):
+        if not req.exists():
+            print(f"⚠ {name}: chybí {req.name} → podklad sken NEpřipnut", file=sys.stderr)
+            return {"added": [], "skipped": [("bg_scan.png", f"chybí {req.name}")]}
+
+    with Image.open(gen_dir / "rgb.png") as im:
+        gW, gH = im.size
+    gpgw = _read_pgw(rgb_pgw)
+    scale = int(json.loads(meta_p.read_text(encoding="utf-8"))["scale"].split(":")[1])
+    mpp_x, mpp_y = abs(gpgw[0]), abs(gpgw[4])
+    pw = gW * mpp_x * 1e6 / scale                     # paper µm výseku (mirror add_backgrounds)
+    ph = gH * mpp_y * 1e6 / scale
+    inv = _affine_inverse(_read_pgw(scan_pgw))        # S-JTSK → sken px
+
+    with Image.open(scan) as im:
+        src = np.asarray(im.convert("RGB"), dtype=np.uint8)
+    out_w = max(1, round(gW * min(1.0, _BG_MAX_PX / max(gW, gH))))
+    out_h = max(1, round(gH * min(1.0, _BG_MAX_PX / max(gW, gH))))
+    warped = _warp_to_gen(src, inv, gpgw, gW, gH, out_w, out_h)
+    Image.fromarray(warped).save(gen_dir / "bg_scan.png")
+
+    templates = [{"name": "bg_scan.png", "sx": pw / 1000.0 / out_w,
+                  "sy": ph / 1000.0 / out_h, "opacity": opacity}]
+    doc = omap.read_text(encoding="utf-8")
+    doc = inject_image_templates(doc, templates)      # raise když .omap nemá prázdné <templates> bloky
+    omap.write_text(doc, encoding="utf-8")
+    return {"added": ["bg_scan.png"], "skipped": []}
 
 
 def add_backgrounds_batch(cids=None, skip_existing: bool = True) -> dict:

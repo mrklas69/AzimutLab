@@ -161,6 +161,22 @@ def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     print(f"  {len(predict)} predikčních ploch → generate_map (predict_areas_sjtsk)")
     generate_map(lat, lon, w_km, h_km, out_dir=str(out), ortho=False, tolerant=True,
                  predict_areas_sjtsk=predict)
+    # Ořež výslednou gen.omap + render na reálné mapové pole (natočený quad ze skenu) — odstraní přesah
+    # axis-aligned bboxu: okolní sídla mimo závodní mapu (Stráž n. Nisou u Bedřichovky; Sez. 109, zadání
+    # uživatele). Centroid (KISS). Quad = 4 rohy skenu v S-JTSK (mirror _extent_from_pgw, ale rohy ne obal).
+    from clip_quad import clip_omap_to_quad
+    sA, sB, sC, sD, sE, sF = _pgw(REPO / "resources" / f"{name}.pgw")
+    with Image.open(REPO / "resources" / f"{name}.png") as sim:
+        SW, SH = sim.size
+    quad = [(sA * c + sB * r + sC, sD * c + sE * r + sF)
+            for c, r in [(0, 0), (SW, 0), (SW, SH), (0, SH)]]
+    kept, removed = clip_omap_to_quad(out, name, quad)
+    print(f"  ořez na quad: {kept} objektů v poli, {removed} přesah odstraněn")
+    # Připni reálný sken jako bg podklad: měřicí cesta jinak přepíše produkční gen.omap BEZ podkladů
+    # (regrese „zase vypadly podklady", Sez. 109) → v OOM zmizí reálný sken pro verify gen kresby.
+    from gen_backgrounds import add_resources_scan_background   # lokální import (livelox/map_gt deps)
+    res = add_resources_scan_background(name, out)
+    print(f"  podklad: {', '.join(res['added']) or 'nepřipnut'}")
     return omap
 
 
