@@ -314,7 +314,21 @@ Sez. 65) → **plošný cap `MAX_AREA_PX=6,5 Mpx`** (clamp PLOCHY gw·gh, ne str
 přesto stranou < 4000, proto stranový strop neochránil). Velké landscape výseky tak zhrubnou na ~1,9 m/px;
 plné 1,5 m všude = tiling (budoucí). **Pozor (Sez. 65 nález): Sez. 63 regen byl tímto prahem nekompletní** —
 NL/LS/SV zůstaly na rané fázi se starou ZABAGED 206; opraveno plošným capem + regenem všech 5 DEV.
-GT `mask_rocks.png` (4-class). Z-order: úplně navrch (po budovách+řopících = OOM priorita skály > budovy).
+GT `mask_rocks.png` (5-class od Sez. 107). Z-order: úplně navrch (po budovách+řopících = OOM priorita skály > budovy).
+
+**Pseudo injekce bodů 204 + 210 (FÁZE 2 pseudorealistic, Sez. 107):** ZABAGED body 204/210 nevede v reálné
+hustotě (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975 → bodové sub-KPI 18,4 %; kartograf je v terénu kreslí
+hustě podle skalnatosti, geodata to neumí). `_generate_pseudo_boulders` (gated `pseudorealistic`, BEZ vlastního
+flagu — visí na `rocks="real"` → `point_base` i `only_real` ji vypnou; izomorf 310 marsh / 516 plot) je dosype na
+**masku DOLOŽENÉ SKALNATOSTI**: 206 plochy (z DMR sklonu) + reálné ZABAGED 204/207 body, dilatováno o 150 m
+(`PSEUDO_ROCK_DILATE_M`; suť/balvany vyzařují kolem stěn). 204 = kruh (reuse `_draw_boulder`), 210 = pole teček
+`210.1` (samostatné `type=point` objekty, `_draw_stony_dot`, mirror `inject._sample_field`). Hustota na km² masky
+(`PSEUDO_BOULDER_PER_KM2=500` / `PSEUDO_STONY_FIELD_PER_KM2=12`), kalibrovaná na **SHARE** (ne absolutní Σ — gen
+celkově podstřeluje, Σgen ≈ ⅓ Σorig → správný absolutní počet by dal nadměrný share → ředění headline). **NENÍ
+projekce dat** (poloha v rámci masky náhodná, reframe Sez. 79: detektor ikonek se učí tvar, ne kontext). **Nález
+Sez. 107:** sklon ≠ skalnatost (obecná sklon-maska přestřelila body na svažité-ale-neskalnaté Bedřichovce → +0,3
+pb), doložená skalnatost koreluje per mapa (+8,8 pb → KPI 59,1 %); věrná **per-mapa** distribuce z dat nejde
+(skalnatost není v geodatech, data-gate jako vegetace). KPI 50,3 → **59,1 %**, bod sub 18,4 → 54,3 %.
 **ZABAGED vrstvy nenesou typ/velikost/výšku (jen `jmeno`)** → per-feature rozhodování (hybridní 202/206) i
 Chaikin smoothing na NICH ZAVRŽENY (bez datového podkladu; *generalizuj jen s důkazem*, Sez. 30). Chaikin na
 DMR-206 (výš) je naopak legitimní — vyhlazuje raster masku, ne čistý vektor. Vyžaduje `--terrain real`.

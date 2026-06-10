@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 107 (2026-06-10) — Png2Point body INTEGROVÁNY do generátoru: KPI 50,3 → 59,1 % (+8,8 pb) (HAL3000)
+- [x] **Pseudo injekce bodů 204 Boulder + 210 Stony ground do `gen.omap`** (`generator._generate_pseudo_boulders`
+      + `_draw_stony_dot` + `omap_export` USED_CODES += `210.1`). ZABAGED tyto body nevede v reálné hustotě
+      (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975 → bodové sub-KPI 18,4 %). Reuse injekční geometrie z
+      `inject.py` (NE natrénovaný model — ten je pro reconstructor): 204 = kruh, 210 = pole teček `210.1` (samostatné
+      `type=point` objekty). **Gated `pseudorealistic`, BEZ vlastního flagu** — visí na `rocks="real"` → `point_base`
+      i `only_real` ji korektně vypnou (izomorf 310 marsh / 516 plot). Scope 204+210; **207 VYŘAZEN** (kompas 16/17
+      = už pokryto, přidání = přestřel).
+- [x] **Maska = DOLOŽENÁ SKALNATOST** (volba uživatele „věrná distribuce", po measure-first): 206 skalní plochy
+      (DMR sklon, `rock_relief`) + reálné ZABAGED 204/207 body, dilatováno o 150 m (suť/balvany kolem stěn).
+      **Sklon-maska ZAVRŽENA** (nález: sklon ≠ skalnatost — svažitá-ale-neskalnatá Bedřichovka dostala 50 % hmoty
+      v bodech, orig jen 3,8 % → přestřel ředil headline → jen +0,3 pb). Doložená skalnatost koreluje s reálnou
+      hustotou per mapa (Velbloud 24,3 % gen vs 22,0 % orig = skoro přesně).
+- [x] **Kalibrace na SHARE, ne absolutní Σ** (nález: gen celkově podstřeluje, Σgen ≈ ⅓ Σorig → „správný absolutní
+      počet" bodů dá nadměrný share → ředění). Hustota 500 boulderů/km² + 12 polí/km² masky.
+- [x] **VÝSLEDEK: KPI 50,3 → 59,1 % (+8,8 pb)** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1), **bod sub-KPI 18,4 →
+      54,3 %** (+35,9 pb), plocha/linie beze změny. 204/210 zmizely z žebříčku děr → vrchol teď 417/419/418 (veg
+      body, bod 2 Příště) + 508/306 (linie) + 409/404/410 (pattern vegetace gate). Vizuál: body clusterované na
+      skalnatých svazích (věrné). Censure: ukvapený závěr „headline na body necitlivé" (+0,3) byl artefakt přestřelu
+      — measure-first per-mapa ho opravil na +8,8. Zbývající přestřel Blatné (48 % vs 18,5 %) = data-gate limit
+      (skalnatost není v geodatech, věrná per-mapa distribuce nejde — jako vegetace/310).
+
 ## Sezení 106 (2026-06-10) — Png2Point DOKONČEN: point_base podklad + root-cause 204 + plný trénink test mF1 0,897 (HAL3000, CUDA+korpus)
 - [x] **Probe 210 = pole bodů (oponentura uživatele „210 je area")** — `temp/probe_210.py` 5 resources map:
       210 v `.omap` VÝHRADNĚ `type=point` (~4641 obj / **0 area**; Slovanka 3473 / Velbloud 603 / Blatná 340 /

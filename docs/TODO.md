@@ -23,10 +23,12 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > marsh 310 ho nehnuly); KPI dává partial credit za přibližování proporcí + je robustní vůči **obal-artefaktu**
 > (proporce ruší rozdíl plochy — gen grid-north obal > natočený výsek). Penalizuje chybějící typ (gen=0) i přestřel
 > (`min` ukrojí přebytek). **CÍL: plošná fáze (jen ČÚZK data) ~55 %, s Png2Point + Png2Line ≥ 85 %** (61 % symbolové
-> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 104: KPI 50,3 %** (= 49,8 % před ořezem +
-> přesah-ořez +0,5 pb; Bedř+Blatná+Velbloud na HAL3000; plocha 69,2 / linie 59,3 / **bod 18,4** = Png2Point dluh,
-> ZOSTŘEN ořezem z 29,0). Žebříček děr (kam mířit): **204** (7,8 pb) **/210** (7,3 pb, body → Png2Point) /403 (granularita, vyvr.)/
-> **508** (vyvr. Sez. 102)/416 (hotovo)/**417/419** (body)/409 (gate). **Vrchol je téměř celý bodový/gate → další skok = reconstructory.**
+> hmoty = linie + body → bez reconstructorů je strop ~50 %). **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 /
+> Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 → 54,3**). **Sez. 107 — Png2Point body 204/210 INTEGROVÁNY do
+> generátoru → KPI 50,3 → 59,1 % (+8,8 pb)** (pseudo injekce na masku DOLOŽENÉ skalnatosti, kalibrace na share; nález:
+> sklon ≠ skalnatost přestřelil, +0,3 pb → doložená skalnatost +8,8). 204/210 PRYČ z žebříčku. Žebříček děr (kam mířit):
+> **417/419/418** (3,1/2,8/1,3 pb, veg body → Png2Point registr, Příště Sez. 108) /**508** (2,8, linie, vyvr. jako páka)/
+> **409/404/410** (vegetace gate)/306 (linie)/109 (bod). **Vrchol = veg body + linie + gate → další skok = registr bodů + Png2Line.**
 > **Sez. 102 — 508 Narrow ride NENÍ páka** (jako 403): smíšený podstřel (Bedř délka 0,22× = POKRYTÍ ČÚZK řídké /
 > Blatná počet 0,15× = GRANULARITA gen 4,7× delší kusy), KPI simulace i pokrytí STROP gen=orig jen **+0,34 pb**,
 > granularita +0,59 = gaming (mění jen #objektů) → nepáka. **4. potvrzení vyčerpání ČÚZK plošné+liniové páky.**
@@ -208,11 +210,15 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     → diagnostika: příčina **hustota pozitiv vs focal `n_pos` normalizace**, ne velikostní záměna; `n_boulder`→(40,120))
     → **plný trénink TEST mF1 0,897** (204 0,93 / 210 0,86, bez leaku). `unet_best.pt` → `resources/point_model/`.
     Nález: per-kanál focal ZHORŠILA (vrátit); F1 = injekce na point_base, ne reálné skeny.
-  - [ ] *(KPI integrace — HLAVNÍ PÁKA, Příště Sez. 107)* **Integrovat Png2Point body do generátoru** — injekce
-    204/210 do `gen.omap` ve statistické míře (kompas cílové Σ) → teprve TADY naroste bodové sub-KPI (dnes 18,4 %).
-    Trénink modelu = hotový enabler; KPI dopad = integrace generátoru.
-  - [ ] *(registr rozšíření, IDEAS B1)* přidat další bodové třídy do `POINT_CLASSES` (417/419/109/111/112/115 —
-    vše point) → re-trénink; hustotu vyvážit dle nálezu Sez. 106 (řídká třída potřebuje srovnatelný počet instancí).
+  - [x] *(HOTOVO Sez. 107, detail DONE)* **Integrovat Png2Point body do generátoru → KPI 50,3 → 59,1 % (+8,8 pb).**
+    Pseudo injekce 204/210 do `gen.omap` (`_generate_pseudo_boulders` + `omap_export` `210.1`), reuse inject
+    geometrie (NE model), gated `pseudorealistic` bez flagu (visí na rocks). **Scope 204+210, 207 vyřazen** (kompas
+    16/17 pokryto). Měření vynutilo: maska z **doložené skalnatosti** (206+reálné body+dilatace, ne sklon — sklon ≠
+    skalnatost, přestřelil) + kalibrace na **share** (ne absolutní Σ). Bod sub 18,4 → 54,3 %. Zbytek = data-gate
+    (skalnatost není v geodatech → Blatná přestřel 48 %).
+  - [ ] *(registr rozšíření, IDEAS B1 — Příště Sez. 108, vrchol žebříčku po 204/210)* přidat bodové třídy
+    **417/419/418** (Special vegetation feature) do `POINT_CLASSES` (Png2Point) i pseudo injekce generátoru
+    (mirror 204/210) → re-trénink + KPI; pak 109/111/112/115. Hustotu vyvážit dle nálezů Sez. 106/107.
   - [ ] *(reálný transfer, doménový gap)* změřit detekci 204/210 na REÁLNÉM Livelox skenu (ne injekci) — analogie
     Png2Area gen-vs-realita; rozhodne, zda injekční trénink přenese na skutečné mapy.
   - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
