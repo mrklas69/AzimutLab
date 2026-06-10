@@ -398,6 +398,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
   Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
   má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
+  **`Png2Point` HOTOVO Sez. 106 — test mF1 0,897** (204 F1 0,93 / 210 0,86, bez leaku): `point_base` render +
+  random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
+  reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
+- **`point_base`** (Sez. 106) — render lokality BEZ jediného bodového symbolu (`generate_map(point_base=True)`:
+  master flag vynutí `rocks/landmarks/barriers="off"` + vynechá terénní extrémy 109/110/111). Podklad pro
+  [[reconstructor|`Png2Point`]] trénink: model detekuje INJEKTOVANÉ ikonky, takže podklad nesmí mít vlastní body
+  bez [[ground-truth-gt|GT]] (nejednoznačná funkce, diagnostika Sez. 105). Plochy/linie/vegetace zůstávají kontextem.
+  Vyrobí `pairs.build_pair(point_base=True)` → `gen_pointbase/rgb.png`.
+- **Hustota injekce vs focal normalizace** (nález Sez. 106) — CenterNet focal loss normalizuje gradient počtem
+  pozitiv (`n_pos`); **řídká bodová třída** (204 boulder ~10 instancí/dlaždice) se vedle husté (210 stony ~200
+  teček, 19×) VŮBEC nenaučí (gradient zředěn). Řešení: injektovat řídkou třídu v SROVNATELNÉ hustotě
+  (`inject.n_boulder` (2,14)→(40,120)) — reframe Sez. 79 dovoluje (detektor ikonek, počet/poloha nereálné OK).
+  **Per-kanál normalizace NEPOMÁHÁ** (dělení neg členu malým `n_pos` ho exploduje). Obecné i pro [[reconstructor|`Png2Line`]].
 - **`separate_areas` / algoritmická separace** (Sez. 82, zobecněno Sez. 83, `generator/separate.py`) — GT-feeder
   pro [[reconstructor|`Png2Area`]]: z reálné Livelox mapy separuje plošné predikční ISOM symboly (zelená
   406/408/410 + **403 Rough open** ze Sez. 92 přes registr `AREA_CLASSES`) a vektorizuje (contourpy, reuse

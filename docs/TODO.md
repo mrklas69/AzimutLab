@@ -201,16 +201,20 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
     (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
     corpus expansion").
-  - [~] **`Png2Point`** (druhý) — bodové ISOM → lokalizace+klasifikace. **MVP pipeline POSTAVENA Sez. 105**
-    (`model/png2point/{inject,dataset,train}.py`, izomorf png2area): A1 **injekce symbolů** (GT, ne gen body —
-    kompas Sez. 96 gen ≈ 4 %) + A2 **heatmap regrese** (CenterNet focal loss α2/β4, peak NMS→F1) + A3 scope
-    **204+210** (verify ze spec: 204 plný kruh r 0,4 mm / 210 = pole teček 210.1, registr rozšiřitelný). **Pipeline
-    ověřena na čistém podkladu** (overfit memorizuje 204+210 perfektně, loss 0,09). **2 nálezy diagnostiky:**
-    (a) sigma 1px nejde naučit → **2,5-4 + LR 1e-3** (do inject.py Příště); (b) **gen render podklad MÁ vlastní
-    body bez GT → nejednoznačné** → potřeba **čistý podklad bez bodů**. **ZBÝVÁ (Sez. 106, mrkla):** (1) režim
-    renderu bez bodů (`rocks/landmarks/barriers=off` + extrémy 109/110/111) → `point_base.png`; (2) ~40 map
-    napříč splity (measure-first podmnožina, volba uživatele); (3) dataset → `point_base` + random-crop 512;
-    (4) sigma + overfit gate + plný trénink → F1 204/210.
+  - [x] **`Png2Point` HOTOVO Sez. 105-106 — DRUHÝ funkční reconstructor** (detail DONE). Sez. 105 pipeline
+    (`model/png2point/{inject,dataset,train}.py`): A1 injekce symbolů + A2 heatmap regrese (CenterNet focal) + A3
+    scope 204+210. **Sez. 106 dokončeno:** `point_base` render bez bodů (master flag `generate_map`, diff verify) +
+    batch 40 map napříč splity (`pairs pointbase`) + dataset random-crop point_base + **root-cause 204** (gate selhal
+    → diagnostika: příčina **hustota pozitiv vs focal `n_pos` normalizace**, ne velikostní záměna; `n_boulder`→(40,120))
+    → **plný trénink TEST mF1 0,897** (204 0,93 / 210 0,86, bez leaku). `unet_best.pt` → `resources/point_model/`.
+    Nález: per-kanál focal ZHORŠILA (vrátit); F1 = injekce na point_base, ne reálné skeny.
+  - [ ] *(KPI integrace — HLAVNÍ PÁKA, Příště Sez. 107)* **Integrovat Png2Point body do generátoru** — injekce
+    204/210 do `gen.omap` ve statistické míře (kompas cílové Σ) → teprve TADY naroste bodové sub-KPI (dnes 18,4 %).
+    Trénink modelu = hotový enabler; KPI dopad = integrace generátoru.
+  - [ ] *(registr rozšíření, IDEAS B1)* přidat další bodové třídy do `POINT_CLASSES` (417/419/109/111/112/115 —
+    vše point) → re-trénink; hustotu vyvážit dle nálezu Sez. 106 (řídká třída potřebuje srovnatelný počet instancí).
+  - [ ] *(reálný transfer, doménový gap)* změřit detekci 204/210 na REÁLNÉM Livelox skenu (ne injekci) — analogie
+    Png2Area gen-vs-realita; rozhodne, zda injekční trénink přenese na skutečné mapy.
   - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení

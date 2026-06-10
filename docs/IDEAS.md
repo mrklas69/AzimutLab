@@ -497,6 +497,20 @@ vývraty/broken ground 113, jámy 112, 419/418 veg features, …) trénovat tak,
 instancí, vyvážené třídy. Obchází nedostatek bodů v gen i nutnost je věrně umisťovat. (Pozn.: ověřit ISOM
 kódy proti spec — „631" zmíněn uživatelem, ale 6xx je mimo mapové 100-599; doupřesnit které symboly.)
 
+**(B1) 210 dvojí sémantika + velikostní škála kamenů = klasifikační výzva (nález uživatele Sez. 106).**
+Probe 5 resources map (`temp/probe_210.py`): 210 Stony žije v `.omap` VÝHRADNĚ jako pole bodů (~4641 obj
+type=point, 0 area; Blatná má area variantu 210.0 v knihovně, použila ji 0×). `210.0` se přitom používá ve
+**dvou významech**: (a) běžně = ANONYMNÍ plocha kamenité textury (poloha teček nenese info, jen hustota); (b)
+Slovanka2016 (3473 teček) = kartograf v členitém skalním terénu odstupňoval kameny dle VELIKOSTI (největší →
+207/206.1/203, ty co nestojí za 204 → tečky 210) → každá tečka = konkrétní malý balvan. **Pro A1 injekci to
+nevadí** (poloha stejně náhodná = detektor ikonek, reframe Sez. 79) — ale **zostřuje pravou výzvu Png2Pointu:
+rozlišení podle VELIKOSTI**. 204 (plný kruh r 0,4 mm) vs 210.1 (plný kruh r 0,15 mm) jsou vizuálně týž tvar
+lišící se rozměrem → přesně záměna 204↔210 z diagnostiky Sez. 105. Tlačí na to degradace (misregistrace/blur
+±0,7 px rozmaže velikostní rozdíl). Implikace pro `inject.py`: kanonické velikosti ze spec musí být PŘESNÉ,
+sigma per-třída (204 širší / 210 užší), degradér škálovat dle tloušťky prvku (dluh už v TODO). Škála kamenů
+208→207→206.1→204→210 ilustruje proč dekompozice po geometrii nestačí sama o sobě — uvnitř bodové větve je
+ještě jemná velikostní osa, kterou musí unést klasifikátor.
+
 **(C) 416 Distinct vegetation boundary JEN do statistické míry (bod 3 uživatele).** 416 = největší missing
 linie (1111 orig/0 gen) a šla by odvodit z hranic separovaných ploch 403/406/408 (zdroj už máme). ALE
 NEPŘIDÁVAT VŠUDE — reálné hranice vegetace jsou většinou NEJASNÉ/postupné (ostrá linie 416 jen na výrazných

@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 106 (2026-06-10) — Png2Point DOKONČEN: point_base podklad + root-cause 204 + plný trénink test mF1 0,897 (HAL3000, CUDA+korpus)
+- [x] **Probe 210 = pole bodů (oponentura uživatele „210 je area")** — `temp/probe_210.py` 5 resources map:
+      210 v `.omap` VÝHRADNĚ `type=point` (~4641 obj / **0 area**; Slovanka 3473 / Velbloud 603 / Blatná 340 /
+      Soví 193 / Bedř 32). **Blatná smoking-gun:** area var `210.0` v knihovně, použita **0×** (vše point `210.1`).
+      Sémantika jevu (plošný) vs realizace (pole bodů) → reconstructor řídí realizace → 210 na Png2Point. Uživatelův
+      postřeh ke Slovance (kameny dle velikosti: 207/206.1/203 největší, 210 = registr nejmenších) → IDEAS **B1**
+      (dvojí sémantika 210 + velikostní škála = klasifikační výzva).
+- [x] **Krok 1 — `point_base` render bez bodů** (`generate_map(point_base=True)` master flag): vynutí
+      `rocks/landmarks/barriers="off"` + vynechá kreslení extrémů 109/110/111 do rgb (point_symbols zůstávají
+      v `.omap`/meta). Plochy/linie/vegetace = kontext (206 padá s rocks=off, MVP). **Verify pixelový diff**
+      (area vs point_base): 0,062 % rozdílu, rozeseté body → odstraní JEN body. Cena 73 s/mapa.
+- [x] **Krok 2 — batch 40 point_base map** (`pairs.build_pair(point_base=True)` → `gen_pointbase/rgb.png`, reuse
+      separace, bez area_labels; `build_pairs(point_base=True)` + `pointbase_subset(n)` proporční napříč splity +
+      CLI `pairs.py pointbase 40`). **40/40 OK** (28 train / 6 val / 6 test).
+- [x] **Krok 3 — dataset přepis na point_base + random-crop 512** (`png2point/dataset.py`): z předkrájených area
+      dlaždic (s body) → plné point_base rendery do paměti + random-crop za běhu (`_pointbase_paths` čte podle
+      splitu co existuje; `CROPS_PER_MAP=16`); D4 + injekce + degrade beze změny.
+- [x] **Krok 4 — sigma + ROOT-CAUSE 204 + trénink.** sigma 204 2→3 / 210 1,5→2. **Gate selhal** (210 ✓ 0,94,
+      **204 ✗ 0,00** i 150 ep). **Diagnostika `temp/diag_204.py` VYVRÁTILA mou velikostní hypotézu:** imbalance
+      **19×** (210 ~203 / 204 ~10 pozitiv); JEN 204 (bez 210) loss exploduje (n_pos malé → neg člen); **204 hustý
+      (~90) → naskočí F1 0→0,70** → příčina = **hustota pozitiv vs focal `n_pos` normalizace přes kanály**, ne
+      velikost. **Per-kanál focal ZKOUŠENA → ZHORŠILA** (neg/malé n_pos exploduje → oba 0) → vráceno + varovný
+      komentář. **Oprava:** `inject.n_boulder` (2,14)→**(40,120)** (reframe Sez. 79: detektor ikonek, hustota jen
+      pro balanc). **Gate PROŠEL train mF1 0,92.** **Plný trénink (lr 1e-3 cosine, 60 ep): TEST mF1 0,897**
+      (best ep 50, val 0,907 → bez leaku) — **204 F1 0,93** (P0,96/R0,90) / **210 F1 0,86** (P0,81/R0,92).
+      Křivka zdravá (val plató ~0,90 od ep20). `unet_best.pt` → `resources/point_model/`. **Druhý funkční
+      reconstructor po Png2Area.** POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů
+      (analogie Png2Area); KPI dopad až s integrací bodů do gen.omap (Příště).
+
 ## Sezení 105 (2026-06-09) — Png2Point pipeline (inject/dataset/train) + diagnostika podkladu (HAL3000, CUDA+korpus)
 - [x] **Png2Point = druhý reconstructor, MVP pipeline POSTAVENA** (`model/png2point/{inject,dataset,train}.py`,
       izomorf s Png2Area). Volba uživatele (%BEGIN fokus): využít vzácné HAL3000 okno na největší doloženou KPI
