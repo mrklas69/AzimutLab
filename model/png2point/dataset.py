@@ -1,15 +1,24 @@
 """
-dataset.py — PyTorch loader pro Png2Point (Sez. 105).
+dataset.py — PyTorch loader pro Png2Point (Sez. 105, přepsán na point_base + random-crop Sez. 106).
 
-Druhý reconstructor (body). Na rozdíl od Png2Area NEMÁ vlastní předkrájené Y dlaždice — bere ČISTÉ
-gen rendery `*_x.png` z `resources/area_tiles/` (sdílené s Png2Area, tile.py je už vyrobil) jako PODKLAD
-a injektuje bodové symboly + GT heatmapu ZA BĚHU (inject.py). Injekce je tím nekonečná augmentace:
-jiná realizace každou epochu → řeší vzácnost bodů v gen i nevyváženost tříd (volně instancí).
+Druhý reconstructor (body). NEMÁ vlastní předkrájené Y dlaždice — bere ČISTÝ podklad BEZ bodů
+`gen_pointbase/rgb.png` (generate_map point_base=True, Sez. 106) a injektuje bodové symboly + GT
+heatmapu ZA BĚHU (inject.py). Injekce je tím nekonečná augmentace: jiná realizace každou epochu →
+řeší vzácnost bodů v gen i nevyváženost tříd (volně instancí).
+
+PROČ point_base, ne sdílené area_tiles (změna Sez. 106): area dlaždice nesou VLASTNÍ gen body
+(204/207, landmarks, extrémy) bez GT → nejednoznačná funkce („tenhle kruh = 204, tamten identický =
+nic"), model selhal i na 1 dlaždici (diagnostika Sez. 105). point_base je render bez jediného bodu →
+jediné body na dlaždici jsou ty injektované = jednoznačné GT.
+
+PROČ random-crop, ne předkrájené dlaždice: injekce je stejně on-the-fly, takže pevné dlaždice nic
+nepřinášejí — náhodný 512 crop z plného renderu je další augmentace zdarma (jiný výřez každou epochu).
 
 Pipeline jednoho vzorku (train):
-  čistý podklad *_x.png → D4 (flip+rot90) → inject_tile (symboly + heatmapa) → degrade (sken-vady) → norm
-Val/test: bez D4, bez degradace, injekce s FIXNÍM seedem (= idx) → deterministický eval set.
-Overfit gate: augment=False → fixní injekce každou epochu → čistá memorizace (sanity).
+  plný point_base render → random-crop 512 → D4 (flip+rot90) → inject_tile (symboly + heatmapa)
+  → degrade (sken-vady) → norm
+Val/test: deterministický crop + injekce s FIXNÍM seedem (= idx) → reprodukovatelný eval set.
+Overfit gate: augment=False → fixní crop+injekce každou epochu → čistá memorizace (sanity).
 
 X = ImageNet-normalizovaný RGB sken (3,512,512). Y = GT heatmapy (N_POINT,512,512) float32 [0,1].
 Degradace (generator/degrade.py) je čistě fotometrická (Y/poloha se nemění) → heatmapa zůstává zarovnaná.
@@ -25,61 +34,91 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_TILES_DIR = _REPO_ROOT / "resources" / "area_tiles"   # sdílené podklady s Png2Area
+_CORPUS = _REPO_ROOT / "resources" / "livelox"   # point_base rendery: <cid>/gen_pointbase/rgb.png
 
 sys.path.insert(0, str(_REPO_ROOT / "model" / "png2point"))
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
+sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 from inject import inject_tile, N_POINT, TILE   # noqa: E402
 from degrade import degrade                      # noqa: E402
+from split import load_split                     # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
 
 _IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 _IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
+CROPS_PER_MAP = 16        # kolik 512 výřezů na mapu = 1 epocha (train náhodné, val/test deterministické)
+
+
+def _pointbase_paths(split: str) -> list[Path]:
+    """Cesty k point_base renderům daného splitu, které REÁLNĚ existují (gen_pointbase/rgb.png).
+
+    Split příslušnost z split.load_split ({cid: split}); bereme jen cidy, co mají hotový podklad
+    (subset ~40 z pairs.pointbase, ne celých 207) → dataset se přizpůsobí tomu, co je vyrobeno."""
+    s = load_split()
+    out = []
+    for cid, sp in sorted(s.items()):
+        if sp != split:
+            continue
+        p = _CORPUS / cid / "gen_pointbase" / "rgb.png"
+        if p.exists():
+            out.append(p)
+    return out
+
 
 class PointTileDataset(Dataset):
-    """Dlaždice jednoho splitu jako (x, heat) pro Png2Point.
+    """point_base rendery jednoho splitu jako (x, heat) pro Png2Point, random-crop 512 + injekce.
 
     x    = float32 (3,512,512), ImageNet-normalizovaný RGB sken s injektovanými body.
     heat = float32 (N_POINT,512,512), GT Gaussian heatmapy peaků per třída.
 
     Parametry:
-      split      : 'train' | 'val' | 'test' — který podadresář area_tiles/ číst (podklad).
-      augment    : D4 + degradace + variabilní injekce (jen train; val/test deterministické).
+      split      : 'train' | 'val' | 'test' — který split point_base renderů číst.
+      augment    : random-crop + D4 + degradace + variabilní injekce (jen train; val/test deterministické).
       limit_cids : volitelný seznam cid/lokalit (overfit gate: 1-3 mapy)."""
 
     def __init__(self, split: str, *, augment: bool = False,
                  limit_cids: list[str] | None = None):
         self.split = split
         self.augment = augment
-        split_dir = _TILES_DIR / split
-        if not split_dir.exists():
-            raise RuntimeError(f"chybí {split_dir} — spusť nejdřív `python model/png2area/tile.py` "
-                               f"(Png2Point sdílí podklady *_x.png s Png2Area)")
-        xpaths = sorted(split_dir.glob("*/*_x.png"))
+        paths = _pointbase_paths(split)
         if limit_cids is not None:
             keep = set(limit_cids)
-            xpaths = [p for p in xpaths if p.parent.name in keep]
-        if not xpaths:
-            raise RuntimeError(f"žádné podklady v {split_dir}"
-                               + (f" pro cid {limit_cids}" if limit_cids else ""))
-        self.xpaths = xpaths
+            paths = [p for p in paths if p.parent.parent.name in keep]
+        if not paths:
+            raise RuntimeError(
+                f"žádné point_base rendery pro split '{split}'"
+                + (f" / cid {limit_cids}" if limit_cids else "")
+                + f" v {_CORPUS}/<cid>/gen_pointbase/rgb.png — spusť `python generator/pairs.py pointbase 40`")
+        # načti plné rendery do paměti jednou (~40 map × 2293² × 3 B ≈ 0,6 GB; HAL3000 utáhne) —
+        # random-crop za běhu je pak levný (žádné re-dekódování PNG každý __getitem__).
+        self.maps = [np.asarray(Image.open(p).convert("RGB"), dtype=np.uint8) for p in paths]
+        self.cids = [p.parent.parent.name for p in paths]
 
     def __len__(self) -> int:
-        return len(self.xpaths)
+        return len(self.maps) * CROPS_PER_MAP
+
+    def _crop(self, img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+        """Vyřízne TILE×TILE výřez. Náhodná pozice (z rng) — pro train jiná každou epochu,
+        pro val/test deterministická (rng=seed idx). Menší render dopaduj bílou (nemělo by nastat)."""
+        H, W = img.shape[:2]
+        if H < TILE or W < TILE:
+            pad = np.full((max(TILE, H), max(TILE, W), 3), 255, dtype=np.uint8)
+            pad[:H, :W] = img
+            img = pad
+            H, W = img.shape[:2]
+        y0 = int(rng.integers(0, H - TILE + 1))
+        x0 = int(rng.integers(0, W - TILE + 1))
+        return img[y0:y0 + TILE, x0:x0 + TILE]
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        xp = self.xpaths[idx]
-        rgb = np.asarray(Image.open(xp).convert("RGB"), dtype=np.uint8)
-        # podklad menší než TILE (okrajová dlaždice) by rozbil inject_tile — dopaduj na TILE×TILE
-        if rgb.shape[:2] != (TILE, TILE):
-            pad = np.full((TILE, TILE, 3), 255, dtype=np.uint8)
-            h, w = min(TILE, rgb.shape[0]), min(TILE, rgb.shape[1])
-            pad[:h, :w] = rgb[:h, :w]
-            rgb = pad
+        mi = idx % len(self.maps)           # která mapa (round-robin přes CROPS_PER_MAP epoch-bloků)
+        img = self.maps[mi]
 
         if self.augment:
+            rng = np.random.default_rng(int(torch.randint(0, 2 ** 31 - 1, (1,)).item()))
+            rgb = self._crop(img, rng)
             # --- D4 na ČISTÉM podkladu (před injekcí — pak stačí transformovat jen rgb, ne heatmapu) ---
             if torch.rand(1).item() < 0.5:
                 rgb = rgb[:, ::-1]
@@ -87,10 +126,10 @@ class PointTileDataset(Dataset):
             if k:
                 rgb = np.rot90(rgb, k)
             rgb = np.ascontiguousarray(rgb)
-            # variabilní seed → jiná injekce každou epochu (nekonečná augmentace)
-            seed = int(torch.randint(0, 2 ** 31 - 1, (1,)).item())
+            seed = int(torch.randint(0, 2 ** 31 - 1, (1,)).item())   # variabilní injekce každou epochu
         else:
-            # deterministická injekce (val/test/overfit): seed = idx → fixní eval set / memorizace
+            # deterministický crop i injekce (val/test/overfit): seed = idx → fixní eval set / memorizace
+            rgb = np.ascontiguousarray(self._crop(img, np.random.default_rng(idx)))
             seed = idx
 
         x, heat = inject_tile(rgb, seed=seed)      # (TILE,TILE,3) uint8 , (N_POINT,TILE,TILE) f32
@@ -121,6 +160,6 @@ if __name__ == "__main__":
             continue
         x, h = ds[0]
         peaks = [(i, int((h[i] > 0.99).sum().item())) for i in range(N_POINT)]
-        print(f"{s:<6} {len(ds):>5} dlaždic   x{tuple(x.shape)} {x.dtype} "
+        print(f"{s:<6} {len(ds.maps):>3} map → {len(ds):>4} vzorků   x{tuple(x.shape)} {x.dtype} "
               f"[{x.min():.2f},{x.max():.2f}]   heat{tuple(h.shape)} [{h.min():.2f},{h.max():.2f}] "
               f"peaků≈{peaks}")

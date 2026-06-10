@@ -40,7 +40,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "model" / "png2point"))
 
 import segmentation_models_pytorch as smp   # noqa: E402
-from dataset import PointTileDataset   # noqa: E402
+from dataset import PointTileDataset, _pointbase_paths   # noqa: E402
 from inject import N_POINT, POINT_CLASSES   # noqa: E402
 
 _CKPT_DIR = _REPO_ROOT / "resources" / "point_model"
@@ -75,7 +75,9 @@ def focal_loss(logits: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     pos_sum, neg_sum = pos_loss.sum(), neg_loss.sum()
     if n_pos == 0:
         return -neg_sum
-    return -(pos_sum + neg_sum) / n_pos
+    return -(pos_sum + neg_sum) / n_pos                # CenterNet: pos i neg normalizováno týmž n_pos
+    # POZN. (Sez. 106): per-kanál normalizace ZKOUŠENA a ZHORŠILA (dělení neg členu malým n_pos řídké
+    # třídy ho explodovalo → oba kanály na 0). 204 mrtvý NENÍ čistě imbalance — viz diagnostika níže.
 
 
 # --------------------------------------------------------------------- peak detekce
@@ -195,10 +197,9 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
     torch.backends.cudnn.benchmark = True
 
     if overfit:
-        from collections import Counter
-        all_x = sorted((_REPO_ROOT / "resources" / "area_tiles" / "train").glob("*/*_x.png"))
-        per_cid = Counter(p.parent.name for p in all_x)
-        cids = [c for c, _ in per_cid.most_common(2)]
+        # 1-2 point_base mapy z train splitu (gate = memorizace na čistém podkladu, Sez. 105/106)
+        pb = _pointbase_paths("train")
+        cids = [p.parent.parent.name for p in pb[:2]]
         print(f"[overfit] mapy: {cids}")
         train_ds = PointTileDataset("train", augment=False, limit_cids=cids)
         val_ds = train_ds
@@ -277,7 +278,9 @@ if __name__ == "__main__":
                     help="sanity gate: 1-2 mapy, fixní injekce, sleduj train F1→~1")
     ap.add_argument("--epochs", type=int, default=None, help="počet epoch (default 40 / overfit 60)")
     ap.add_argument("--batch", type=int, default=16, help="batch size (mrkla RTX 5070 baseline 16)")
-    ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW, cosine decay)")
+    ap.add_argument("--lr", type=float, default=1e-4,
+                    help="learning rate (AdamW, cosine decay). Nález Sez. 105: heatmapa konverguje "
+                         "až s ~1e-3 (gate spouštěj --lr 1e-3); 1e-4 default pro klidnější plný trénink")
     ap.add_argument("--peak-thr", type=float, default=PEAK_THR, help=f"práh detekce peaku (default {PEAK_THR})")
     args = ap.parse_args()
     n_ep = args.epochs if args.epochs is not None else (60 if args.overfit else 40)

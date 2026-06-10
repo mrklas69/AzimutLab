@@ -3179,6 +3179,7 @@ def generate_map(
         linefeatures: str = "real", marsh: str = "real", treerows: str = "real",
         barriers: str = "real",
         predict_areas_sjtsk: list | None = None,
+        point_base: bool = False,
         tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
@@ -3216,6 +3217,10 @@ def generate_map(
     reálné vrstvy ji vynechá místo pádu celé mapy; vynechané vrstvy se zapíšou do
     `meta.json` (`layer_errors`). Default `False` = single-mapa CLI selže hlučně.
 
+    `point_base=True` (Sez. 106) = render podkladu pro Png2Point trénink: vynutí vypnutí VŠECH
+    bodových symbolů (skály 204/207, landmarks, barriers, terénní extrémy 109/110/111), aby rgb.png
+    neměl body bez GT (jinak nejednoznačná funkce, diagnostika Sez. 105). Plochy/linie/vegetace zůstávají.
+
     Rastrový z-order (pořadí kreslení do PNG): plošný pokryv (401 open land / 520 zákaz vstupu, ÚPLNĚ
     VESPOD = podklad) → predikční vegetace (406/408/410 zeleň + 403, ze separace) → stromořadí (406 lineární les) → mokřady (308) → vrstevnice (§4.5) → pomocné vrstevnice (103) →
     bodové symboly extrémů (§4.10) → zpevněné plochy (501) → voda → cesty (§4.9) → lesní průseky
@@ -3241,6 +3246,15 @@ def generate_map(
     # only_real (veřejné API/CLI) → pseudorealistic (interní doménový pojem, fáze 2 dekorace).
     # Převod na hranici drží zbytek kódu (i _generate_real_powerlines/_build_meta) beze změny.
     pseudorealistic = not only_real
+    # point_base (Sez. 106): podklad pro Png2Point trénink = render BEZ JEDINÉHO bodového symbolu.
+    # Png2Point se učí detekovat INJEKTOVANÉ ikonky (inject.py) — kdyby měl podklad vlastní body bez
+    # GT peaku (gen 204/207, landmarks, 109/110/111), funkce by byla nejednoznačná („tenhle kruh = 204,
+    # tamten identický = nic") a model selže i na 1 dlaždici (diagnostika Sez. 105). Master flag vynutí
+    # všechny bodové vrstvy off; terénní extrémy (vlastní flag nemají) se vynechají u kreslení níže.
+    # Plochy/linie/vegetace zůstávají jako realistický kontext (206 skalní plocha padá s rocks=off —
+    # drobná ztráta, akceptovaná pro MVP). Izomorf k „off", jen jedním záměrovým přepínačem.
+    if point_base:
+        rocks = landmarks = barriers = "off"
     # Všechny reálné vrstvy potřebují S-JTSK georef výseku (sdílený build_bbox) — noise terén je
     # v lokálních metrech bez georef, reálná data by se neměla na co napárovat. Jedna validace pro
     # všechny vrstvy (DRY): (CLI flag, zvolený mode, popis vrstvy do hlášky).
@@ -3458,8 +3472,11 @@ def generate_map(
     # opraveno (dřív chybně navrchu → hnědé body přes hlavní cesty).
     sym_mask_img = Image.new("L", (W, H), 0)        # GT maska bodových symbolů (§8.1)
     sdraw = ImageDraw.Draw(sym_mask_img)
-    for ps in point_symbols:
-        _draw_point_symbol(draw, sdraw, ps)
+    # point_base (Sez. 106): vynech kreslení extrémů do rgb — podklad pro Png2Point nesmí mít žádné
+    # body. (point_symbols zůstávají v .omap/meta/masce; pro point_base je nepoužíváme, jen rgb.png.)
+    if not point_base:
+        for ps in point_symbols:
+            _draw_point_symbol(draw, sdraw, ps)
 
     # --- PRE-FETCH mostů/tunelů (Sez. 32 E1+E4): jen geometrie, žádné kreslení ---
     # Mosty/tunely se vykreslí navrch (= závorky lemují, kolmé čárky vstup/výstup) AŽ NA KONCI;

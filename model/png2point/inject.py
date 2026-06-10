@@ -66,9 +66,12 @@ class PointClass:
 
 # Pořadí = index kanálu heatmapy (0..N_POINT-1). Start 204+210 (největší díry kompasu Sez. 104:
 # 204 7,8 pb / 210 7,3 pb). Registr je rozšiřitelný — přidat 417/419/109/111/… = jeden řádek + stamp.
+# sigma_px (nález Sez. 105): peak ~1 px na full-res 512 NEJDE naučit (protichůdný gradient → model
+# rozmaže globálně) → floor ~2,5. 204 řídký → 3,0 (širší peak, snadno se ostří). 210 husté POLE teček
+# (rozestup ~9 px) → 2,0: dost velký na naučení, dost malý ať se sousední peaky nesplynou (< rozestup/2).
 POINT_CLASSES: list[PointClass] = [
-    PointClass(code="204", name="Boulder",       radius_mm=0.40, sigma_px=2.0, field=False),
-    PointClass(code="210", name="Stony ground",  radius_mm=0.15, sigma_px=1.5, field=True),
+    PointClass(code="204", name="Boulder",       radius_mm=0.40, sigma_px=3.0, field=False),
+    PointClass(code="210", name="Stony ground",  radius_mm=0.15, sigma_px=2.0, field=True),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
@@ -166,14 +169,18 @@ def _sample_field(pc: PointClass, idx: int, draw: ImageDraw.ImageDraw,
 
 
 def inject_tile(rgb: np.ndarray, seed: int,
-                *, n_boulder: tuple[int, int] = (2, 14),
+                *, n_boulder: tuple[int, int] = (40, 120),
                 n_stony_fields: tuple[int, int] = (0, 2)
                 ) -> tuple[np.ndarray, np.ndarray]:
     """Injektuje bodové symboly do RGB dlaždice + vyrobí GT heatmapy. Hlavní vstup pro dataset.py.
 
-    rgb  — (TILE,TILE,3) uint8 čistý gen render (podklad z area_tiles/*_x.png).
+    rgb  — (TILE,TILE,3) uint8 čistý gen render (podklad bez bodů, point_base.png, Sez. 106).
     seed — deterministická realizace (jiný seed každou epochu → injekce = nekonečná augmentace).
     n_*  — (min,max) rozsah počtu instancí (boulder bodů / stony polí) na dlaždici; náhoda v rozsahu.
+           n_boulder ZÁMĚRNĚ vysoké (40-120, Sez. 106): focal loss normalizuje gradient počtem pozitiv,
+           a 204 řídký (~10/dlaždice) se vedle hustého 210 (~200 teček, 19×) VŮBEC nenaučil (gate+diag
+           F1 0,00). Hustota 204 srovnatelná s 210 → 204 naskočí (diag F1 0→0,70). Reframe Sez. 79 to
+           dovoluje: detektor IKONEK, počet/poloha nemusí být reálné — hustota slouží jen k balancu.
 
     Vrací:
       x_out — (TILE,TILE,3) uint8 RGB s vkreslenými symboly.

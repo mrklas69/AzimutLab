@@ -86,7 +86,7 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
 
 
 def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0,
-               labels: bool = True):
+               labels: bool = True, point_base: bool = False):
     """Vyrobí pár [čistý render rgb.png (X), area_labels.png (Y)] pro Livelox classId: real ČÚZK + separace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
@@ -99,6 +99,11 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
 
     `labels` (Sez. 87): po renderu rasterizuje plošné ISOM symboly z .omap → area_labels.png (= Y v
     páru, reconstructor Png2Area). Odvozeno z .omap (NE z render masek) → pár self-konzistentní.
+
+    `point_base=True` (Sez. 106): místo area páru vyrobí PODKLAD pro Png2Point — render BEZ bodových
+    symbolů (generate_map point_base=True) do oddělené složky `gen_pointbase/`. Vegetační kontext se
+    pořád separuje z mapy (realistický podklad), ale Y (area_labels) se NEdělá — Png2Point bere GT
+    z injekce ikonek on-the-fly (inject.py), ne z .omap. rgb.png v gen_pointbase = čistý point_base.
 
     `max_km` (Sez. 84): strop strany výseku okolo centroidu — render skal/objektů roste nadlineárně
     s plochou, obří mapy (max 106 km²) by tažily noční běh na víkend. Pro trénink rozhoduje rozmanitost
@@ -120,12 +125,14 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     crop_bbox = (cx - hw, cy - hh, cx + hw, cy + hh)
     predict_sjtsk = _separate_to_sjtsk(cid_dir, g["quad"], crop_bbox,
                                        src_mpp=meta.get("effectiveMppX"))
-    out = out_dir or str(cid_dir / "gen")
+    out = out_dir or str(cid_dir / ("gen_pointbase" if point_base else "gen"))
     print(f"{cid} \"{meta.get('name', '?')}\"  výsek {w_km:.2f}×{h_km:.2f} km @ "
-          f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch")
+          f"({lat:.5f}, {lon:.5f})  separace {len(predict_sjtsk)} ploch"
+          f"{'  [point_base]' if point_base else ''}")
     res = generate_map(lat, lon, w_km, h_km,
-                       predict_areas_sjtsk=predict_sjtsk, out_dir=out, ortho=ortho)
-    if labels:                                               # Y páru: plošné symboly z .omap → label rastr
+                       predict_areas_sjtsk=predict_sjtsk, point_base=point_base,
+                       out_dir=out, ortho=ortho)
+    if labels and not point_base:                           # Y páru: plošné symboly z .omap → label rastr
         lab = rasterize_map_dir(pathlib.Path(out))
         Image.fromarray(lab, mode="L").save(pathlib.Path(out) / "area_labels.png")
     return res
@@ -142,31 +149,56 @@ def _cr_keep_cids() -> list:
     return sorted(load_split().keys())
 
 
+def pointbase_subset(n: int = 40) -> list:
+    """Vybere ~n Livelox classId napříč splity (train/val/test) pro Png2Point podklady (Sez. 106).
+
+    Png2Point trénuje na INJEKCI ikonek do podkladu (point_base.png) — potřebuje podklady i pro
+    val/test, aby F1 eval běžel na NEVIDĚNÝCH renderech. Výběr proporcionální k velikosti splitu
+    (145/31/31) a DETERMINISTICKÝ (sorted + rovnoměrný krok) → reprodukovatelný a geograficky
+    rozmanitý (split je geo-clusterovaný, krok přes seřazené cidy nevezme jen jeden region)."""
+    sys.path.insert(0, str(_REPO_ROOT / "connectors"))
+    from split import load_split        # noqa: E402 — sys.path skript
+    s = load_split()
+    by_split: dict = {"train": [], "val": [], "test": []}
+    for cid, sp in s.items():
+        by_split.setdefault(sp, []).append(cid)
+    out: list = []
+    for sp, cids in by_split.items():
+        cids = sorted(cids)
+        k = max(1, round(n * len(cids) / len(s)))    # proporční počet z tohoto splitu
+        step = max(1, len(cids) // k)                # rovnoměrný krok přes seřazené (geo-rozptyl)
+        out += cids[::step][:k]
+    return sorted(out)
+
+
 def build_pairs(cids=None, skip_existing: bool = True, ortho: bool = False,
-                max_km: float = 5.0, labels: bool = True) -> dict:
+                max_km: float = 5.0, labels: bool = True, point_base: bool = False) -> dict:
     """Hromadně vyrobí páry-zdroje [render, .omap] pro seznam Livelox classId (UC5 trénink, Sez. 84).
 
     Volá build_pair na každý cid. Vlastnosti dávky (mirror livelox.build_pairs):
       - resumovatelné: skip_existing přeskočí mapy s hotovým gen/rgb.png (re-běh po přerušení
         nestahuje ČÚZK znovu — fetch je drahý, ~204× = hodiny),
       - tolerantní: chyba jedné mapy (síť/georef/separace) dávku NEzastaví, jen se zaznamená.
+    `point_base=True` (Sez. 106): režim podkladů pro Png2Point — render bez bodů do gen_pointbase/,
+    bez area_labels (final artefakt = gen_pointbase/rgb.png).
     cids None → ČR keep ze split (_cr_keep_cids). Vrací souhrn {ok, skipped, failed:[(cid,err)]}.
     """
     cids = list(cids) if cids is not None else _cr_keep_cids()
     summary = {"ok": [], "skipped": [], "failed": []}
     total = len(cids)
+    sub = "gen_pointbase" if point_base else "gen"
     for i, cid in enumerate(cids, 1):
         cid = str(cid)
         # finální artefakt dávky = POSLEDNÍ zapsaný krok (crash mezi kroky → re-běh dokončí):
-        # labels (area_labels.png, Y) > čistý render (rgb.png, X). Degradace NENÍ součást páru (Sez. 103).
-        final = "area_labels.png" if labels else "rgb.png"
-        gen_out = _CORPUS / cid / "gen" / final
+        # area pár labels (area_labels.png, Y) > čistý render (rgb.png, X); point_base jen rgb.png.
+        final = "rgb.png" if point_base else ("area_labels.png" if labels else "rgb.png")
+        gen_out = _CORPUS / cid / sub / final
         if skip_existing and gen_out.exists():
             summary["skipped"].append(cid)
-            print(f"[{i}/{total}] {cid} SKIP (gen/{final} hotovo)")
+            print(f"[{i}/{total}] {cid} SKIP ({sub}/{final} hotovo)")
             continue
         try:
-            build_pair(cid, ortho=ortho, max_km=max_km, labels=labels)
+            build_pair(cid, ortho=ortho, max_km=max_km, labels=labels, point_base=point_base)
             summary["ok"].append(cid)
             print(f"[{i}/{total}] {cid} OK  (ok={len(summary['ok'])} "
                   f"skip={len(summary['skipped'])} fail={len(summary['failed'])})")
@@ -192,6 +224,12 @@ if __name__ == "__main__":
         if len(sys.argv) > 2:
             cids = cids[: int(sys.argv[2])]
         build_pairs(cids)
+    elif arg == "pointbase":
+        # `pointbase [N]` = ~N podkladů pro Png2Point napříč splity (Sez. 106), default 40
+        n = int(sys.argv[2]) if len(sys.argv) > 2 else 40
+        cids = pointbase_subset(n)
+        print(f"point_base subset: {len(cids)} map napříč splity")
+        build_pairs(cids, point_base=True)
     else:
         path = build_pair(arg)
         print(f"pár → {path}")
