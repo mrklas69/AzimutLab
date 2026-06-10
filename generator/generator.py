@@ -2796,6 +2796,8 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
 
     # 210 Stony ground — POLE teček (každá tečka = samostatný bodový objekt 210.1, nález Sez. 96/106).
     # Elipsovitá oblast vyplněná tečkami na jittered gridu (rozestup spec 1,2 mm) — mirror inject._sample_field.
+    # Pozn.: poloosy užší (3–8 teček) než inject trénink (3–12) ZÁMĚRNĚ — gen pole laděna na share/KPI (Sez. 107),
+    # inject na Png2Point trénink; nejsou ve stejném páru, takže divergence je v pořádku (neslučovat naslepo, mění KPI).
     n_fields = round(area_km2 * PSEUDO_STONY_FIELD_PER_KM2)
     sp = PSEUDO_STONY_DOT_SPACING_PX
     for _ in range(n_fields):
@@ -3781,6 +3783,13 @@ def generate_map(
             rock_point_features = list(rock_point_features) + pseudo_pts
             n204 = sum(1 for *_, c in pseudo_pts if c == "204")
             n210 = sum(1 for *_, c in pseudo_pts if c == "210.1")
+            # pseudo body i do rocks_info → meta.json je vidí (stats.py/STATISTICS, KPI je čte z .omap);
+            # izomorf 310 marsh (pseudo sdílí sekci s reálnými skalami; Sez. 108 conceptual integrity).
+            # 210.1 (render varianta) agregujeme na ISOM 210 Stony ground.
+            for *_, c in pseudo_pts:
+                code_i = 210 if c == "210.1" else int(c)
+                rocks_info.append({"symbol": code_i, "symbol_name": ROCK_NAME[code_i],
+                                   "kind": "point", "layer": "pseudo (Sez. 107)"})
             if pseudo_pts:
                 _log.info("  pseudo body: 204:%d, 210.1(tečky):%d", n204, n210)
 

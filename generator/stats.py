@@ -43,6 +43,7 @@ SYMBOLS = [
     ("206",   "Gigantic boulder"),
     ("207",   "Boulder cluster"),
     ("208",   "Boulder field"),
+    ("210",   "Stony ground"),          # pseudo injekce 204/210 (Sez. 107), izomorf 310 marsh
     # Voda (§4.6)
     ("301",   "Uncrossable body of water"),
     ("304",   "Crossable watercourse"),

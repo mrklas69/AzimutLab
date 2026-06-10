@@ -21,26 +21,29 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **109** | Small knoll | 49 | 18 | 74 | 232 | 11 |
 | **110** | Small elongated knoll | 6 | 5 | 21 | 46 | 2 |
 | **111** | Small depression | 21 | 39 | 106 | 158 | 10 |
-| **204** | Boulder | 28 | 16 | 10 | 9 | 9 |
-| **206** | Gigantic boulder | 79 | 6 | 20 | 744 | 26 |
+| **204** | Boulder | 3109 | 2102 | 3419 | 5588 | 770 |
+| **206** | Gigantic boulder | 58 | 3 | 77 | 753 | 27 |
 | **207** | Boulder cluster | 146 | 178 | 132 | 171 | 9 |
 | **208** | Boulder field | 7 | · | · | 3 | 4 |
+| **210** | Stony ground | 6582 | 4590 | 7721 | 12258 | 1546 |
 | **301** | Uncrossable body of water | 14 | 11 | 58 | 41 | 12 |
 | **304** | Crossable watercourse | 70 | 90 | 124 | 28 | 43 |
 | **305** | Small crossable watercourse | 107 | 119 | 148 | 90 | 88 |
 | **306** | Minor seasonal water channel | 43 | 82 | 6 | 17 | 2 |
-| **308** | Marsh | 5 | 9 | · | 10 | 15 |
+| **308** | Marsh | 3 | 2 | · | 7 | 7 |
+| **310** | Indistinct marsh | 2 | 7 | · | 3 | 8 |
 | **311** | Well, fountain or water tank | · | · | 6 | 2 | · |
 | **312** | Spring | 10 | 6 | 16 | 23 | 10 |
 | **203.2** | Cave or rocky pit | 5 | 1 | · | · | 3 |
 | **401** | Open land | 79 | 21 | 161 | 138 | 39 |
 | **402** | Open land with scattered trees | · | · | 13 | · | · |
 | **402.1** | Open land with scattered bushes | 5 | 1 | 203 | 7 | 1 |
-| **406** | Vegetation: slow running | 83 | 236 | 275 | 121 | 315 |
-| **408** | Vegetation: walk | · | 104 | 197 | · | 353 |
-| **410** | Vegetation: fight | · | 5 | 65 | · | 46 |
+| **406** | Vegetation: slow running | 83 | 4 | 47 | 121 | 18 |
+| **408** | Vegetation: walk | · | · | · | · | · |
+| **410** | Vegetation: fight | · | · | · | · | · |
+| **416** | Distinct vegetation boundary | · | · | · | · | · |
 | **412** | Cultivated land | 16 | 7 | 21 | 57 | 11 |
-| **520** | Area that shall not be entered | 2040 | 145 | 19762 | 2066 | 552 |
+| **520** | Area that shall not be entered | 354 | 30 | 1625 | 246 | 67 |
 | **501** | Paved area | · | · | 8 | · | · |
 | **501.1** | Paved area (no bounding line) | 5 | 2 | 60 | 9 | 3 |
 | **502** | Wide road | 212 | 15 | 3192 | 170 | 29 |
@@ -62,18 +65,19 @@ Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendere
 | **104** | Earth bank | 71 | 35 | 393 | 377 | 105 |
 | **107** | Erosion gully | · | · | · | · | · |
 | **513** | Wall | 16 | 8 | 136 | 17 | 10 |
+| **516** | Fence | · | · | · | · | · |
 | **519** | Crossing point | · | · | 2 | · | · |
-| **Σ** | Celkem objektů | 5870 | 2154 | 36050 | 7775 | 2983 |
+| **Σ** | Celkem objektů | 13826 | 8371 | 28610 | 23801 | 4110 |
 
-Z 48 sledovaných ISOM symbolů reálně používáme **47** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
+Z 52 sledovaných ISOM symbolů reálně používáme **47** (zbytek = · znamená, že vrstva v dané lokalitě nemá žádný prvek; — znamená, že lokalita ještě nebyla regenerována). Legenda: · = 0 prvků, — = chybí výstup.
 
 ## Poslední aktualizace
 
-- **SV** (`Soví vrch/`): 2026-06-01 22:37:55
-- **NL** (`Nová Louka/`): 2026-06-01 22:22:49
-- **LS** (`Lidové sady/`): 2026-06-01 22:24:31
-- **HS** (`Hrubá Skála/`): 2026-06-01 23:19:32
-- **NV** (`Novina/`): 2026-06-01 23:28:05
+- **SV** (`Soví vrch/`): 2026-06-10 13:45:15
+- **NL** (`Nová Louka/`): 2026-06-10 13:45:33
+- **LS** (`Lidové sady/`): 2026-06-10 13:47:13
+- **HS** (`Hrubá Skála/`): 2026-06-10 13:47:36
+- **NV** (`Novina/`): 2026-06-10 13:48:22
 
 ---
-*Tabulka regenerována `stats.py` v 2026-06-01 23:30:52.*
+*Tabulka regenerována `stats.py` v 2026-06-10 13:48:23.*

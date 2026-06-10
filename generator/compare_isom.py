@@ -202,7 +202,7 @@ def coverage(real_path: str, gen_path: str) -> dict:
     real, rnames = isom_usage(real_path)
     gen, _ = isom_usage(gen_path)
     gen_set = set(gen)
-    covered: list = []          # int real kód (pokrytý) — main/run_proxy počítají len/set
+    covered: list = []          # int real kód (pokrytý) — caller počítá len/set
     missing: list = []          # (real kód, tuple 2017 cílů, freq, jméno)
     custom: list = []           # int real kód mimo ISOM crosswalk (vyřazen z jmenovatele)
     for c in real:

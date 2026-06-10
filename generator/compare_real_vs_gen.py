@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Strojové porovnání generátoru s živě mapovanou OB mapou (verify-against-source, Sez. 37).
 
+POZN. (Sez. 108): STAT 1 ruční crosswalk je kalibrovaný jen na „Soví vrch" — pro KPI/pokrytí přes
+více map je dnes KANONICKÁ cesta `compare_isom.py` (autoritativní `.crt` crosswalk) + `measure_dod.py`
+(KPI/kompas). Tento nástroj zůstává pro STAT 2 (prostorový overlap per ISOM barva = placement verify),
+který ostatní dva nedělají. Stale DROP Sez. 69 (nenavrhovat v Příště); ne mrtvý kód.
+
 Vstup: generátorový výstup (rgb.png + rgb.pgw + meta.json) a reálná mapa (.png + .pgw + .omap)
 z resources/. Funguje jen pro lokalitu, kde reálnou mapu máme — zatím Soví vrch (= terénně
 mapováno uživatelem, autoritativní ground-truth).
