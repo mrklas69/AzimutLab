@@ -390,11 +390,13 @@ ISOM_BOULDER = 204                 # 204 Boulder — bodový balvan, plný čern
 ISOM_GIGANTIC_BOULDER = 206        # 206 Gigantic boulder — skalní útvar v půdorysu, černá výplň
 ISOM_BOULDER_CLUSTER = 207         # 207 Boulder cluster — bodová skupina balvanů, černý trojúhelník
 ISOM_BOULDER_FIELD = 208           # 208 Boulder field — plocha s náhodnými trojúhelníky (Sez. 57)
+ISOM_STONY_GROUND = 210            # 210 Stony ground — pole jednotlivých teček (210.1, pseudo injekce Sez. 107)
 ROCK_NAME = {ISOM_BOULDER: "Boulder", ISOM_GIGANTIC_BOULDER: "Gigantic boulder",
-             ISOM_BOULDER_CLUSTER: "Boulder cluster", ISOM_BOULDER_FIELD: "Boulder field"}
-# ISOM kód → třída v mask_rocks.png (0 = pozadí). 4 třídy (jedna maska pro celou kategorii).
+             ISOM_BOULDER_CLUSTER: "Boulder cluster", ISOM_BOULDER_FIELD: "Boulder field",
+             ISOM_STONY_GROUND: "Stony ground"}
+# ISOM kód → třída v mask_rocks.png (0 = pozadí). 5 tříd (jedna maska pro celou kategorii).
 ROCK_CLASS = {ISOM_BOULDER: 1, ISOM_BOULDER_CLUSTER: 2, ISOM_GIGANTIC_BOULDER: 3,
-              ISOM_BOULDER_FIELD: 4}
+              ISOM_BOULDER_FIELD: 4, ISOM_STONY_GROUND: 5}
 
 # Render parametry (template_classic.omap autoritativní, rastr ladíme pro viditelnost — princip
 # Sez. 28/29 „render px-tuned vs .omap věrný"). Vše v µm × PX_PER_MM/1000:
@@ -414,6 +416,28 @@ BOULDER_FIELD_HALF_WIDTH_PX = 0.75 * PX_PER_MM               # ½ šířky pásu
 BOULDER_FIELD_MIN_AREA_PX2 = round(1.0 * PX_PER_MM ** 2)     # zahodit pásy pod ISOM min. plochou (1,0 mm²)
 BOULDER_FIELD_TRI_SPACING_PX = 1.0 * PX_PER_MM               # rozestup trojúhelníků (~1/mm², ISOM 0,8-1)
 BOULDER_FIELD_TRI_HALF_PX = max(2, round(0.3 * PX_PER_MM))   # polovina base trojúhelníku (~0,6 mm base)
+
+# --- Pseudo injekce bodů 204/210 (Sez. 107, FÁZE 2 pseudorealistic) ---
+# ZABAGED body 204/210 skoro nevede (kompas Sez. 96/107: 204 gen 3/orig 1064, 210 gen 0/orig 975) →
+# bodové sub-KPI jen 18,4 %. Kartograf je v terénu kreslí HUSTĚ podle skalnatosti, geodata to neumí.
+# Pseudo injekce je dosype ve statistické míře. NENÍ to projekce dat (poloha není pravdivá, reframe
+# Sez. 79), ale uživatel zvolil VĚRNOU DISTRIBUCI (Sez. 107) → kontext = DOLOŽENÁ skalnatost:
+#   maska = 206 skalní plochy (DMR sklon, rock_relief) + reálné ZABAGED 204/207 body, dilatováno o okolí.
+# DŮVOD (nález Sez. 107): obecný sklon ≠ skalnatost — svažitá-ale-neskalnatá mapa (Bedřichovka, Jizerky)
+# dostala 50 % hmoty v bodech (orig jen 3,8 %), masivní přestřel + ředění headline. Doložená skalnatost
+# koreluje s reálnou hustotou bodů per mapa (Velbloud skalnatý → velká maska, Bedř ne → malá).
+# Izomorf k pseudo vrstvám 310 marsh / 516 plot: gated `pseudorealistic`, BEZ vlastního flagu (visí na
+# rocks="real" → point_base=off i only_real=off ji korektně vypnou).
+PSEUDO_ROCK_DILATE_M = 150.0       # dilatace doložené skalnatosti o okolí [m] (suť/balvany kolem stěn;
+                                   # 206/ZABAGED body jsou řídké → větší dilatace dá souvislý skalnatý region)
+# Hustota na km² MASKY (KALIBRACE Sez. 107 na SHARE, ne absolutní Σ): gen celkově podstřeluje
+# (Σgen ≈ ⅓ Σorig), takže „správný absolutní počet" bodů by dal nadměrný share → ředění. Cíl =
+# gen_share(204+210) ≈ orig_share (~15 % průměr). Maska (doložená skalnatost) určuje KDE + hrubě korelaci,
+# hustota globální. Věrná per-mapa distribuce z dat NEJDE (skalnatost není v geodatech, data-gate Sez. 107).
+PSEUDO_BOULDER_PER_KM2 = 500.0     # hustota 204 boulderů na km² masky (KALIBRACE Sez. 107)
+PSEUDO_STONY_FIELD_PER_KM2 = 12.0  # hustota 210 polí teček na km² masky (KALIBRACE)
+PSEUDO_STONY_DOT_SPACING_PX = 1.2 * PX_PER_MM                 # rozestup teček 210 (spec point_distance 1200 µm)
+PSEUDO_STONY_DOT_RADIUS_PX = max(1, round(0.15 * PX_PER_MM))  # 210.1 tečka (inner_radius 150 µm)
 
 
 # ---------- Bodové orientační prvky (Sez. 43, real-půlka, audit katalogu) ----------
@@ -1403,6 +1427,18 @@ def _draw_boulder(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
     bbox = (cx - r, cy - r, cx + r, cy + r)
     draw.ellipse(bbox, fill=C_BLACK)
     mdraw.ellipse(bbox, fill=ROCK_CLASS[ISOM_BOULDER])
+
+
+def _draw_stony_dot(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                    cx: float, cy: float) -> None:
+    """Jedna tečka pole 210 Stony ground (ISOM 210.1 individual dot): malý černý kruh + GT maska.
+
+    Template id=43 (point, inner_radius=150 µm). Rastr clamp min 1 px ať tečka nezmizí; .omap nese
+    věrný 0,15 mm symbol (OOM renderuje autoritativně, princip render-px vs .omap, Sez. 28/29)."""
+    r = PSEUDO_STONY_DOT_RADIUS_PX
+    bbox = (cx - r, cy - r, cx + r, cy + r)
+    draw.ellipse(bbox, fill=C_BLACK)
+    mdraw.ellipse(bbox, fill=ROCK_CLASS[ISOM_STONY_GROUND])
 
 
 def _draw_boulder_cluster(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
@@ -2707,6 +2743,82 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     return rock_point_features, rock_area_features, rocks_info
 
 
+def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                              rock_point_features: list, rock_area_features: list,
+                              rng: np.random.Generator) -> list[tuple]:
+    """Pseudo injekce bodů 204 Boulder + 210 Stony ground (FÁZE 2, Sez. 107).
+
+    ZABAGED tyto body nevede v reálné hustotě (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975) →
+    bodové sub-KPI zaostává. Dosypeme je na KONTEXTOVOU MASKU = DOLOŽENÁ SKALNATOST (volba uživatele
+    „věrná distribuce" Sez. 107): 206 skalní plochy (z DMR sklonu, rock_area_features) + reálné ZABAGED
+    204/207 body (rock_point_features), dilatováno o PSEUDO_ROCK_DILATE_M (suť/balvany vyzařují z stěn).
+    Obecný sklon byl ZAVRŽEN (Sez. 107): svažitá-ale-neskalnatá mapa přestřelila body. NENÍ projekce
+    dat (poloha v rámci masky náhodná, reframe Sez. 79), ale maska koreluje s reálnou skalnatostí mapy.
+
+    rock_point_features — REÁLNÉ [(gx, gy, code)] (204/207) ze ZABAGED (před přidáním pseudo).
+    rock_area_features  — [(grid_rings, code)] (206 plochy z DMR + 208 pole) — bereme jen 206 jako seed.
+    Vrací pseudo point_features [(gx, gy, code)] (204 + 210.1); render + maska = side-effect.
+    """
+    import scipy.ndimage as ndi                          # dilatace masky (jako rock_relief)
+    # --- maska doložené skalnatosti na grid úrovni (GH,GW) ---
+    seed = Image.new("L", (GW, GH), 0)                    # 1 = skalnatý kontext
+    sdraw = ImageDraw.Draw(seed)
+    for grid_rings, code in rock_area_features:
+        if int(float(code)) == ISOM_GIGANTIC_BOULDER:     # jen 206 (ne 208 pole — to je samo bodová textura)
+            outer = grid_rings[0]
+            if len(outer) >= 3:
+                sdraw.polygon([(gx, gy) for gx, gy in outer], fill=1)
+    for gx, gy, code in rock_point_features:              # reálné 204/207 = seedy
+        sdraw.point((int(round(gx)), int(round(gy))), fill=1)
+    mask = np.asarray(seed, dtype=bool)
+    if not mask.any():
+        return []                                         # žádná doložená skalnatost → žádné body (správně)
+    # dilatace o okolí (skalnatost vyzařuje — suť pod stěnami, rozptýlené balvany)
+    r_cells = max(1, round(PSEUDO_ROCK_DILATE_M / M_PER_CELL))
+    mask = ndi.binary_dilation(mask, iterations=r_cells)
+    cand = np.argwhere(mask)                              # [(řádek=gy, sloupec=gx)] kandidátní buňky
+
+    area_km2 = len(cand) * (M_PER_CELL / 1000.0) ** 2     # plocha masky [km²]
+    pts: list[tuple[float, float, str]] = []
+
+    def _rand_cell_grid() -> tuple[float, float]:
+        """Náhodná buňka z masky + jitter uvnitř buňky → (gx, gy) v grid souřadnicích."""
+        gy_c, gx_c = cand[rng.integers(len(cand))]
+        return gx_c + rng.uniform(-0.5, 0.5), gy_c + rng.uniform(-0.5, 0.5)
+
+    # 204 Boulder — jednotlivé kruhy rozseté po masce
+    n_boulder = round(area_km2 * PSEUDO_BOULDER_PER_KM2)
+    for _ in range(n_boulder):
+        gx, gy = _rand_cell_grid()
+        px, py = _grid_to_px(gx, gy)
+        _draw_boulder(draw, mdraw, px, py)
+        pts.append((gx, gy, str(ISOM_BOULDER)))         # "204"
+
+    # 210 Stony ground — POLE teček (každá tečka = samostatný bodový objekt 210.1, nález Sez. 96/106).
+    # Elipsovitá oblast vyplněná tečkami na jittered gridu (rozestup spec 1,2 mm) — mirror inject._sample_field.
+    n_fields = round(area_km2 * PSEUDO_STONY_FIELD_PER_KM2)
+    sp = PSEUDO_STONY_DOT_SPACING_PX
+    for _ in range(n_fields):
+        gx0, gy0 = _rand_cell_grid()
+        ox, oy = _grid_to_px(gx0, gy0)                  # střed pole v px
+        rx = rng.uniform(3, 8) * sp                     # poloosa pole (3–8 teček napříč)
+        ry = rng.uniform(3, 8) * sp
+        gy_px = oy - ry
+        while gy_px <= oy + ry:
+            gx_px = ox - rx
+            while gx_px <= ox + rx:
+                jx = gx_px + rng.uniform(-0.3, 0.3) * sp
+                jy = gy_px + rng.uniform(-0.3, 0.3) * sp
+                # tečku polož jen uvnitř elipsy a uvnitř plátna
+                if ((jx - ox) / rx) ** 2 + ((jy - oy) / ry) ** 2 <= 1.0 and 0 <= jx < W and 0 <= jy < H:
+                    _draw_stony_dot(draw, mdraw, jx, jy)
+                    # px → grid pro .omap (inverze _grid_to_px, jako 208/406 Sez. 45/57)
+                    pts.append((jx / W * (GW - 1), jy / H * (GH - 1), "210.1"))
+                gx_px += sp
+            gy_px += sp
+    return pts
+
+
 # =====================================================================
 #  Mosty / tunely / lávky — fáze 1 (projekce reálných dat ZABAGED), Sez. 32 spec-driven
 # =====================================================================
@@ -3654,6 +3766,23 @@ def generate_map(
             _log.info("  skály: %d (%s)", len(rocks_info), ", ".join(parts))
         else:
             _log.info("  skály: 0")
+
+        # PSEUDO injekce bodů 204/210 (FÁZE 2, Sez. 107) — dosype body, co ZABAGED nevede v reálné
+        # hustotě (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975). Gated `pseudorealistic` (izomorf
+        # 310/516); visí na rocks="real" → point_base i only_real ji korektně vypnou. Body nesou str
+        # kódy ("204"/"210.1") — rock_point_omap_features dělá str(c) na všech, smíšení s int real kódy projde.
+        if pseudorealistic:
+            # maska z DOLOŽENÉ skalnatosti: reálné 204/207 body + 206 plochy (před přidáním pseudo)
+            pseudo_pts = _try_layer(
+                "pseudo_boulders",
+                lambda: _generate_pseudo_boulders(draw, rdraw_rocks,
+                                                  rock_point_features, rock_area_features, rng),
+                [], tolerant, layer_errors)
+            rock_point_features = list(rock_point_features) + pseudo_pts
+            n204 = sum(1 for *_, c in pseudo_pts if c == "204")
+            n210 = sum(1 for *_, c in pseudo_pts if c == "210.1")
+            if pseudo_pts:
+                _log.info("  pseudo body: 204:%d, 210.1(tečky):%d", n204, n210)
 
     # --- bodové orientační prvky (ISOM 524/526/530/417): reálné ze ZABAGED (Sez. 43, audit katalogu) ---
     # Rastr z-order: navrch (body, musí být vidět — jako skály). Jen --landmarks real. KISS vrstva →

@@ -57,6 +57,7 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "304", "305", "306", "301", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
               "204", "206", "207", "208",  # skály/balvany Sez. 30+57 (204 bod, 207 bod, 206 plocha, 208 pole)
+              "210.1",                   # Stony ground individual dot (type=1 point) — pseudo injekce bodů Sez. 107
               "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
               "401", "403", "520",       # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu) + 403 rough open (separace Sez. 92)
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
