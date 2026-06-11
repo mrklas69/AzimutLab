@@ -135,8 +135,8 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     # Ořež gen.omap + render na reálné mapové pole (Livelox quad) — odstraní přesah axis-aligned obalu
     # (okolní sídla mimo OB mapu; Sez. 109, zadání uživatele). MUSÍ být PŘED rasterizací Y: X render
     # i Y label se berou z TÉŽE ořezané .omap → konzistentní pár. Quad = 4 rohy mapy v S-JTSK (g["quad"],
-    # týž zdroj jako separace _map_affine). Centroid (KISS, viz clip_quad).
-    from clip_quad import clip_omap_to_quad
+    # týž zdroj jako separace _map_affine). Centroid (KISS, viz cut).
+    from cut import clip_omap_to_quad
     kept, removed = clip_omap_to_quad(out, pathlib.Path(out).name, g["quad"])
     print(f"  ořez na quad: {kept} objektů v poli, {removed} přesah odstraněn")
     if labels and not point_base:                           # Y páru: plošné symboly z .omap → label rastr

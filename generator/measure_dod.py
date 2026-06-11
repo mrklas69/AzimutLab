@@ -180,7 +180,7 @@ def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     # Ořež výslednou gen.omap + render na reálné mapové pole (natočený quad ze skenu) — odstraní přesah
     # axis-aligned bboxu: okolní sídla mimo závodní mapu (Stráž n. Nisou u Bedřichovky; Sez. 109, zadání
     # uživatele). Centroid (KISS). Quad = 4 rohy skenu v S-JTSK (mirror _extent_from_pgw, ale rohy ne obal).
-    from clip_quad import clip_omap_to_quad
+    from cut import clip_omap_to_quad
     sA, sB, sC, sD, sE, sF = _pgw(REPO / "resources" / f"{name}.pgw")
     with Image.open(REPO / "resources" / f"{name}.png") as sim:
         SW, SH = sim.size

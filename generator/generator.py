@@ -529,8 +529,8 @@ EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jed
 
 # ---------- Plot 516 Fence (Sez. 98, FÁZE 2 pseudorealistic) ----------
 # OB kartograf kreslí oplocenou zástavbu jako jeden souvislý olivový blok 520 + plot po obvodu.
-# ZABAGED plot NEVEDE (doloženo Sez. 57) → linii dokreslujeme VĚROHODNĚ kolem RÚIAN-privát bloků
-# (= zástavba; volba uživatele Sez. 98). Pseudo dekorace = fáze 2 (vypne ji --only-real), izomorf
+# ZABAGED plot NEVEDE (doloženo Sez. 57) → linii dokreslujeme VĚROHODNĚ kolem RÚIAN ZAHRAD (druh 5,
+# Sez. 113: ne druh 13 zastavěná plocha; volba uživatele Sez. 98). Pseudo dekorace = fáze 2 (vypne ji --only-real), izomorf
 # s příčkami vedení. Liniový symbol 516 Fence (template id 131, type 2). Render 1px černá jako 513
 # (na rozlišení rastru je 1px minimum; .omap dostane věrný symbol 516 z definice). Vlastní GT maska
 # zatím NE — linie nejsou v plošném Png2Area Y a Png2Line neexistuje (generalizuj jen s důkazem).
@@ -2427,9 +2427,10 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
     OLIVOVÁ 520 = DISSOLVE DO BLOKŮ (Sez. 98, měření přestřelu + volba uživatele „zástavba = blok"):
     RÚIAN katastr fragmentuje zástavbu na tisíce drobných parcel (LS 18884 obj = 52 % výseku olivové,
     91-96 % z RÚIAN privát) → kartograf kreslí jeden souvislý olivový blok, ne mozaiku. Všechny zdroje
-    520 → sběrná maska → contourpy dissolve (_dissolve_mask_to_polys) → souvislé bloky. RÚIAN-privát
-    má vlastní pod-masku → její obvod = PLOT 516 (pseudo fáze 2, „kde má zástavba plot"; jen když
-    `pseudorealistic`). Ne-520 (401/412/402/402.1) jdou dál per-feature (beze změny).
+    520 → sběrná maska → contourpy dissolve (_dissolve_mask_to_polys) → souvislé bloky. RÚIAN ZAHRADA
+    (druh 5) má vlastní pod-masku → její obvod = PLOT 516 (pseudo fáze 2, „kde má zástavba plot"; jen když
+    `pseudorealistic`). NE druh 13 (zastavěná plocha = otisk budovy — plot by „uvěznil" panelák místo
+    pozemku, Sez. 113). Ne-520 (401/412/402/402.1) jdou dál per-feature (beze změny).
 
     Z-ORDER (Sez. 42, téma 2): olivová se kreslí PO žluté/kultuře → privátní zahrada (RÚIAN 520)
     přemaže žluté/pole na témže místě. Vrací (area_features [(grid, code)], surfaces_info, fence_features
@@ -2442,7 +2443,7 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
     surfaces_info: list[dict] = []
     fence_features: list[tuple] = []
     olive_img = Image.new("L", (W, H), 0)            # celá olivová 520 (všechny zdroje) → dissolve bloky
-    olive_ruian_img = Image.new("L", (W, H), 0)      # jen RÚIAN privát (zástavba) → obvod = plot 516
+    olive_ruian_img = Image.new("L", (W, H), 0)      # jen RÚIAN zahrada (druh 5) → obvod = plot 516 (Sez. 113: ne druh 13)
     odraw = ImageDraw.Draw(olive_img)
     ordraw = ImageDraw.Draw(olive_ruian_img)
     # Skupiny jdou stejnou plošnou cestou (RAW ring → výplň), liší se mapperem/barvou/patternem.
@@ -2464,7 +2465,9 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
                     continue
                 if code == ISOM_OUT_OF_BOUNDS:      # 520 → sběrná maska (dissolve níž), NE per-parcela
                     _fill_mask_rings(odraw, px_rings)
-                    if is_ruian:
+                    # plot 516 jen kolem ZAHRAD (druh 5), NE zastavěné plochy (druh 13 = otisk budovy → plot
+                    # by „uvěznil" panelák místo pozemku, Sez. 113 Lidové sady). Druh 13 zůstává v 520 olivové.
+                    if is_ruian and str(f["props"].get("druhpozemkukod")) == "5":
                         _fill_mask_rings(ordraw, px_rings)
                     continue
                 # kultura pod ISOM min. plochou → degraduj na 401 open land (Sez. 47; filtr na vnějším prstenu)
@@ -2487,7 +2490,7 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
         area_features.append((grid_rings, ISOM_OUT_OF_BOUNDS))
         surfaces_info.append({"symbol": ISOM_OUT_OF_BOUNDS, "symbol_name": SURFACE_NAME[ISOM_OUT_OF_BOUNDS],
                               "kind": "area", "layer": "olivová (dissolve)"})
-    # --- plot 516 po obvodu RÚIAN-privát bloků (pseudo fáze 2: ZABAGED plot nevede, Sez. 57/98) ---
+    # --- plot 516 po obvodu RÚIAN ZAHRAD (druh 5; pseudo fáze 2: ZABAGED plot nevede, Sez. 57/98/113) ---
     # Jen kolem SOUVISLÉ zástavby ≥ FENCE_MIN_AREA_M2 (měření Sez. 98: bez prahu 6,7× přestřel).
     if pseudorealistic:
         from rock_relief import _rdp
@@ -2747,9 +2750,59 @@ def _generate_real_rocks(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDraw,
     return rock_point_features, rock_area_features, rocks_info
 
 
+def _rasterize_water_grid(water_area_features: list | None) -> "np.ndarray | None":
+    """Rasterizuj vodní plochy (301) na grid (GH,GW) → bool maska (True=voda); None když žádná voda.
+
+    Outer ring = voda; holes (ostrovy v rybníce, prvky [1:]) = souš (vyrazí se zpět na False).
+    Sdílí grid-rings formát s rock/water area features (Sez. 113)."""
+    if not water_area_features:
+        return None
+    wseed = Image.new("L", (GW, GH), 0)
+    wdraw = ImageDraw.Draw(wseed)
+    for grid_rings, _code in water_area_features:
+        if grid_rings and len(grid_rings[0]) >= 3:
+            wdraw.polygon([(gx, gy) for gx, gy in grid_rings[0]], fill=1)    # outer = voda
+        for hole in grid_rings[1:]:                                          # holes = ostrovy → souš
+            if len(hole) >= 3:
+                wdraw.polygon([(gx, gy) for gx, gy in hole], fill=0)
+    arr = np.asarray(wseed, dtype=bool)
+    return arr if arr.any() else None
+
+
+def _clip_fences_off_water(fence_features: list, water_area_features: list | None) -> list:
+    """Vyřízni úseky plotu 516 nad vodní plochou (301) — plot na hladině = nesmysl (Sez. 113 Nová Louka).
+
+    Surfaces (a tím fence) se generují PŘED vodou (z-order: pokryv vespod), takže vodní masku známe
+    až teď. Rastr je OK (voda kreslí NAD plotem → překryje ho), filtrujeme jen .omap features:
+    plot rozdělíme na souvislé úseky bodů MIMO vodu (úsek < 2 body zahodíme → plot u břehu prostě končí)."""
+    water_cell = _rasterize_water_grid(water_area_features)
+    if water_cell is None:
+        return fence_features
+    gh, gw = water_cell.shape                              # (GH, GW)
+
+    def _wet(gx: float, gy: float) -> bool:
+        c, r = int(round(gx)), int(round(gy))
+        return bool(water_cell[r, c]) if (0 <= r < gh and 0 <= c < gw) else False
+
+    out: list = []
+    for grid, code in fence_features:
+        run: list = []
+        for gx, gy in grid:
+            if _wet(gx, gy):
+                if len(run) >= 2:
+                    out.append((run, code))
+                run = []
+            else:
+                run.append((gx, gy))
+        if len(run) >= 2:
+            out.append((run, code))
+    return out
+
+
 def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                               rock_point_features: list, rock_area_features: list,
-                              rng: np.random.Generator) -> list[tuple]:
+                              rng: np.random.Generator,
+                              water_area_features: list | None = None) -> list[tuple]:
     """Pseudo injekce bodů 204 Boulder + 210 Stony ground (FÁZE 2, Sez. 107).
 
     ZABAGED tyto body nevede v reálné hustotě (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975) →
@@ -2761,6 +2814,8 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
 
     rock_point_features — REÁLNÉ [(gx, gy, code)] (204/207) ze ZABAGED (před přidáním pseudo).
     rock_area_features  — [(grid_rings, code)] (206 plochy z DMR + 208 pole) — bereme jen 206 jako seed.
+    water_area_features — [(grid_rings, code)] vodní plochy (301) — VYLOUČENY z masky i z 210 teček
+                          (balvan na hladině = nesmysl, Sez. 113 Nová Louka). Outer = voda, holes (ostrovy) = souš.
     Vrací pseudo point_features [(gx, gy, code)] (204 + 210.1); render + maska = side-effect.
     """
     import scipy.ndimage as ndi                          # dilatace masky (jako rock_relief)
@@ -2780,6 +2835,12 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
     # dilatace o okolí (skalnatost vyzařuje — suť pod stěnami, rozptýlené balvany)
     r_cells = max(1, round(PSEUDO_ROCK_DILATE_M / M_PER_CELL))
     mask = ndi.binary_dilation(mask, iterations=r_cells)
+    # voda VEN z masky (balvan na hladině = nesmysl) — rasterizuj 301 plochy na grid, outer=voda, holes=souš
+    water_cell = _rasterize_water_grid(water_area_features)
+    if water_cell is not None:
+        mask &= ~water_cell
+        if not mask.any():
+            return []                                     # celá skalnatost ležela na vodě
     cand = np.argwhere(mask)                              # [(řádek=gy, sloupec=gx)] kandidátní buňky
 
     area_km2 = len(cand) * (M_PER_CELL / 1000.0) ** 2     # plocha masky [km²]
@@ -2817,9 +2878,14 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
                 jy = gy_px + rng.uniform(-0.3, 0.3) * sp
                 # tečku polož jen uvnitř elipsy a uvnitř plátna
                 if ((jx - ox) / rx) ** 2 + ((jy - oy) / ry) ** 2 <= 1.0 and 0 <= jx < W and 0 <= jy < H:
-                    _draw_stony_dot(draw, mdraw, jx, jy)
                     # px → grid pro .omap (inverze _grid_to_px, jako 208/406 Sez. 45/57)
-                    pts.append((jx / W * (GW - 1), jy / H * (GH - 1), "210.1"))
+                    ggx, ggy = jx / W * (GW - 1), jy / H * (GH - 1)
+                    # elipsa pole může přesáhnout přes břeh — vynech tečky na vodě (Sez. 113)
+                    if water_cell is not None and water_cell[int(round(ggy)), int(round(ggx))]:
+                        gx_px += sp
+                        continue
+                    _draw_stony_dot(draw, mdraw, jx, jy)
+                    pts.append((ggx, ggy, "210.1"))
                 gx_px += sp
             gy_px += sp
     return pts
@@ -3454,7 +3520,7 @@ def generate_map(
     # pozadí, nekreslí se — vegetace gate). Reálná půlka ze ZABAGED + RÚIAN REST, jedna multi-class maska.
     surface_area_features: list[tuple] = []
     surfaces_info: list[dict] = []
-    fence_features: list[tuple] = []                      # plot 516 (obvod RÚIAN-privát bloků, Sez. 98)
+    fence_features: list[tuple] = []                      # plot 516 (obvod RÚIAN zahrad druh 5, Sez. 98/113)
     surface_mask_img: Image.Image | None = None
     if surfaces == "real":
         surface_mask_img = Image.new("L", (W, H), 0)     # GT maska pokryvu (§8.1), multi-class
@@ -3647,6 +3713,12 @@ def generate_map(
                                           bridge_cutters=bridge_grids),
             ([], [], []), tolerant, layer_errors)
         _log.info("  voda: %d (toky+plochy)", len(water_info))
+        # plot 516 se generuje PŘED vodou (pokryv vespod) → vyřízni jeho úseky nad hladinou až teď (Sez. 113)
+        if fence_features and water_area_features:
+            n_before = len(fence_features)
+            fence_features = _clip_fences_off_water(fence_features, water_area_features)
+            if len(fence_features) != n_before:
+                _log.info("  plot 516: ořez od vody %d → %d úseků", n_before, len(fence_features))
 
     # --- cesty (§4.9): procedurální (Dijkstra least-cost) nebo reálné (ZABAGED REST) ---
     # Rastr z-order: PO vodě, PŘED budovami. Obě větve sdílí render (_draw_path) i GT masku
@@ -3783,7 +3855,8 @@ def generate_map(
             pseudo_pts = _try_layer(
                 "pseudo_boulders",
                 lambda: _generate_pseudo_boulders(draw, rdraw_rocks,
-                                                  rock_point_features, rock_area_features, rng),
+                                                  rock_point_features, rock_area_features, rng,
+                                                  water_area_features),
                 [], tolerant, layer_errors)
             rock_point_features = list(rock_point_features) + pseudo_pts
             n204 = sum(1 for *_, c in pseudo_pts if c == "204")
