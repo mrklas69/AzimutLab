@@ -19,6 +19,7 @@ na úrovni 0.5 — týž nástroj jako vrstevnice; NE rasterio/shapely, ty v pro
 přes sdílený `dmr.py` (S-JTSK, ne UTM jako rockcore). Vrací polygony [outer, díra…] v S-JTSK metrech
 — TÝŽ tvar jako zabaged.geom_to_polygons → zapadne beze změny do kreslení/omapu pro ISOM 206.
 """
+import logging
 import math
 
 import numpy as np
@@ -95,7 +96,7 @@ def _contour_rings(mask: np.ndarray) -> list[np.ndarray]:
     Maska se obloží False okrajem (1 px) → i bloky u kraje výseku dají UZAVŘENOU smyčku (jinak by
     contourpy vrátil otevřenou linii podél okraje). Souřadnice contourpy = (x=sloupec, y=řádek);
     odečtením paddingu zpět na původní grid. Týž nástroj jako vrstevnice (marching squares)."""
-    padded = np.pad(mask.astype(float), 1, constant_values=0.0)
+    padded = np.pad(mask.astype(np.float32), 1, constant_values=0.0)  # f32 (level 0.5 přesný i ve f32)
     cg = contourpy.contour_generator(z=padded, line_type=contourpy.LineType.Separate)
     rings: list[np.ndarray] = []
     for line in cg.lines(0.5):
@@ -216,10 +217,17 @@ def _fetch_assembled_grid(geo_bbox: tuple, gw_hi: int, gh_hi: int,
     každou stáhne přes fetch_elevation_grid (cache/validace sdílené s dmr.py, ten netknut) a poskládá do
     seamless pole. Morfologie + kontury pak běží JEDNOU na celku → žádné per-dlaždice okrajové artefakty
     (handoff §7 řeší overlap+merge masek; assembled grid to obchází — sklon je spojitý, šev v z je < 0,5 m).
-    Bilineární převzorkování na okraji dlaždice je korektní (server vzorkuje nativní 2m grid i za bbox)."""
+    Bilineární převzorkování na okraji dlaždice je korektní (server vzorkuje nativní 2m grid i za bbox).
+
+    Border noData (Sez. 115): dlaždice u hranice ČR (SV Soví vrch) zasáhne za pokrytí DMR 5G →
+    fetch_elevation_grid raise (neúplný TIFF / podezřelé výšky). Takovou dlaždici NEpropadáme (celý
+    rock regen by spadl), ale vyplníme NaN + VAROVÁNÍ NAHLAS (no silent fallback): NaN propadne do
+    sklonu → maska `slope >= 46` = False → bez skal v té oblasti (správně — za hranicí data nejsou).
+    NEvyplňujeme konstantou (rovina): umělý skok výšky na švu s reálným terénem = falešná stěna."""
     xmin, ymin, xmax, ymax = geo_bbox
     side = int(MAX_FETCH_PX ** 0.5)                       # max strana jedné dlaždice (čtverec ≤ MAX_FETCH_PX)
     z = np.empty((gh_hi, gw_hi), dtype=np.float32)
+    n_nodata = 0
     for r0 in range(0, gh_hi, side):
         r1 = min(r0 + side, gh_hi)
         for c0 in range(0, gw_hi, side):
@@ -234,7 +242,18 @@ def _fetch_assembled_grid(geo_bbox: tuple, gw_hi: int, gh_hi: int,
             lon_c, lat_c = _TF_SJTSK_TO_WGS84.transform(cx, cy)
             tile_m_t = sy_top - sy_bot                     # N-J strana dlaždice [m]
             # fetch staví bbox z (lat,lon,tw,th,tile_m_t): E-W = tile_m_t·(tw/th) = (sx1-sx0) ✓, centrováno
-            z[r0:r1, c0:c1] = fetch_elevation_grid(lat_c, lon_c, tw, th, tile_m_t, cache_dir)
+            try:
+                z[r0:r1, c0:c1] = fetch_elevation_grid(lat_c, lon_c, tw, th, tile_m_t, cache_dir)
+            except RuntimeError as e:
+                z[r0:r1, c0:c1] = np.nan                    # mimo pokrytí (za hranicí ČR) → bez skal
+                n_nodata += 1
+                logging.getLogger("rock_relief").warning(
+                    "rock dlazdice @ (%.5f, %.5f) mimo pokryti DMR 5G → NaN (bez skal): %s",
+                    lat_c, lon_c, str(e).split(" — ")[0])
+    if n_nodata:
+        logging.getLogger("rock_relief").warning(
+            "rock_relief: %d dlazdic mimo pokryti DMR (za hranici CR) → bez skal v tech oblastech "
+            "(no silent fallback).", n_nodata)
     return z
 
 
@@ -252,7 +271,6 @@ def detect_rock_areas(lat: float, lon: float, geo_bbox: tuple,
     xmin, ymin, xmax, ymax = geo_bbox
     # hi-res grid pro TENTÝŽ bbox: gh_hi z cílového rozlišení, gw_hi z poměru gw/gh (isotropní buňka).
     # fetch_elevation_grid staví bbox z (lat,lon,gw_hi,gh_hi,tile_m) — poměr gw/gh + tile_m drží bbox.
-    import logging
     w_m, h_m = xmax - xmin, ymax - ymin
     px_m = ANALYSIS_RES                             # PEVNÉ rozlišení (práh 46° na něj kalibrovaný, handoff §4a)
     gw_hi = max(2, int(round(w_m / px_m)))
@@ -267,11 +285,17 @@ def detect_rock_areas(lat: float, lon: float, geo_bbox: tuple,
             w_m / 1000, h_m / 1000, MAX_TOTAL_PX // 1_000_000, ANALYSIS_RES, px_m, ANALYSIS_RES)
     z = _fetch_assembled_grid(geo_bbox, gw_hi, gh_hi, cache_dir)   # (gh_hi, gw_hi), sever nahoře (tiluje fetch)
 
-    # sklon (směrově nezávislý — žádné stínování, handoff chyba C)
-    zs = gaussian_filter(z.astype(float), GAUSS_SIGMA)
-    gy, gx = np.gradient(zs, px_m, px_m)
-    slope_deg = np.degrees(np.arctan(np.hypot(gx, gy)))
-    mask = _rock_mask(slope_deg, px_m)
+    # sklon (směrově nezávislý — žádné stínování, handoff chyba C). errstate: NaN dlaždice (noData za
+    # hranicí ČR, Sez. 115) → sklon NaN → `slope >= 46` = False (bez skal), bez RuntimeWarning spamu.
+    # `del` mezivýsledků PŘED contour: na zhrubeném 50 Mpx gridu drží f64 pipeline ~3,3 GB → OOM ntbhej;
+    # uvolnění zs/gy/gx/slope sráží peak na ~1,9 GB (měřeno temp/probe_rock_oom, Sez. 115). Peak je ve
+    # `_rock_mask` (label int32), ne ve sklonu → float32 sklonu nepomohl, f64 zachován (přesnost prahu 46°).
+    with np.errstate(invalid="ignore"):
+        zs = gaussian_filter(z.astype(float), GAUSS_SIGMA)
+        gy, gx = np.gradient(zs, px_m, px_m)
+        slope_deg = np.degrees(np.arctan(np.hypot(gx, gy)))
+        mask = _rock_mask(slope_deg, px_m)
+    del z, zs, gy, gx, slope_deg                                   # uvolni ~1,4 GB před _contour_rings
     if not mask.any():
         return []
 
