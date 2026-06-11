@@ -76,7 +76,9 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   **Sez. 57 pole balvanů `Skupina_balvanů__linie_` 13 → 208 Boulder field (`--rocks`, osa→buffer pás 1,5 mm →
   náhodné trojúhelníky, mirror stromořadí 406; plot 516–518 = doložený SKIP, ZABAGED plot nevede)**),
   **`ruian.py`** (RÚIAN katastr ArcGIS REST, **Sez. 42 — druhý ČÚZK datový zdroj**: parcely podle druhu pozemku;
-  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26).
+  zahrada + zastavěná plocha → 520 olivová „zákaz vstupu"), `ortofoto.py` (ORTOFOTO podklad, Sez. 26),
+  **`magnetic.py`** (Sez. 112 — grivace = deklinace `pygeomag` WMM offline + konvergence `pyproj`; orientace
+  severníku OB mapy pro `--grivation-auto`; NEní ČÚZK/ArcGIS — lokální model + projekce).
   Sourozenci, sdílí `build_bbox` (geo-výsek) i **`arcgis.py`** (Sez. 42 — sdílený ArcGIS REST transport:
   paging+cache+GeoJSON parsery, DRY pro `zabaged`+`ruian`). Generátor (UC4-I) je první konzument
   (`--terrain/--paths/--rides/--water/--buildings/--powerlines/--railways/--paved/--rocks/--bridges/--ropiky/

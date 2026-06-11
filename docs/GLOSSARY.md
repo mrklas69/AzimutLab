@@ -252,11 +252,18 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   pootočený vůči osám CRS. Generátorový `rgb.pgw` je **grid-north-up → rotace 0**; reálné OB mapy mají
   v `.pgw` rotaci o [[grivace|grivaci]] (magnetic-north-up). Sez. 37.
 - **Grivace** (grid-magnetic angle, angl. *grivation*) — úhel mezi **severem mapové sítě** (grid north)
-  a **magnetickým severem** = konvergence poledníků + magnetická deklinace. OB mapy se kreslí magnetic-
-  north-up → jejich georef do S-JTSK (Křovák) nese rotaci = grivaci (Soví vrch −11,4°; UTM u středového
-  poledníku ~ jen deklinace, Slovanka −3,8°). Reálný `.omap` ji nese atributy `declination`/`grivation`,
-  rastr `.pgw` jako rotaci — ověřeno shodné na desetinu ° (Sez. 37). Generátor grivaci zatím NEaplikuje
-  (grid-north-up) → feature `--grivation` v IDEAS.
+  a **magnetickým severem** = **deklinace + konvergence poledníků**. OB mapy se kreslí magnetic-north-up →
+  jejich georef do S-JTSK (Křovák) nese rotaci = grivaci (Soví vrch −11,4°; UTM u středového poledníku ~ jen
+  deklinace, Slovanka −3,8°). Reálný `.omap` ji nese atributy `declination`/`grivation`, rastr `.pgw` jako
+  rotaci — ověřeno shodné na desetinu ° (Sez. 37). **V ČR je grivace ~12° dominovaná KONVERGENCÍ S-JTSK
+  (~7,4°), ne deklinací (~5°)** — proto je odchylka gen grid-north od reálných map velká (Sez. 112).
+  **Generátor ji aplikuje od Sez. 112** (jen georef metadata, geometrie/rastr zůstává grid): `--grivation <deg>` /
+  `--grivation-auto` / `--grivation-date` → `.omap` `declination=grivation`. Viz [[magnetic-konektor]].
+- **Magnetic konektor** (`connectors/magnetic.py`, Sez. 112) — UC2 konektor grivace pro bod+datum:
+  `grivation(lat,lon,when) = declination + convergence`. **Deklinace** z WMM (pygeomag, offline vestavěné
+  koeficienty, platnost 2024–2029); **konvergence** z pyproj (`get_factors().meridian_convergence`, S-JTSK
+  grid−true). Znaménko `grid_convergence = −pyproj` ověřeno proti reálným skenům (`grivace=decl−pyproj_conv`,
+  Sez. 112). NOAA WMM REST API zavrženo (vyžaduje registraci+key). Konzument: generator `--grivation-auto`.
 
 - **Ortofoto podklad** — letecký snímek výseku (ČÚZK ORTOFOTO MapServer `arcgis1`, CC BY 4.0,
   `connectors/ortofoto.py`, dlaždicování nad 4096 px) připnutý do `.omap` jako podkladový template

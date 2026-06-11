@@ -2,6 +2,36 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 112 (2026-06-11) — Regen všech 7 map + grivace (3 vrstvy) + clip_quad matplotlib fix (ntbhej)
+- [x] **Přegenerovány všechny 4 mapy → všech 7 map se všemi podklady** (zadání uživatele). 5 DEV (SV/NL/LS/HS/NV):
+      `generate_map` plný režim (vše `real` default + ortofoto). 2 resources (Bedřichovka/Blatná): `_gen_sep`
+      (separace ze skenu → `predict_areas_sjtsk` → clip na natočený quad → bg_scan podklad). Vizuál všech 7 OK.
+- [x] **Bug: `clip_quad.py` táhl `matplotlib` do PRODUKČNÍ ntbhej cesty → numpy fix.** Bedř/Blatná napoprvé SELHALY
+      (`No module named 'matplotlib'`): `from matplotlib.path import Path` (point-in-polygon na quad), ale `requirements.txt`
+      řadí matplotlib jako **trénink-only (mrkla, křivky učení)** — produkční separační cesta na něm záviset neměla
+      (vada vrstvení). Nahrazeno lehkým numpy crossing-number `_point_in_quad` (žádná nová závislost). Bedř clip
+      2110 v poli / −1067 přesah (numpy ray-cast věrohodné počty).
+- [x] **Grivace — A) ruční parametr `--grivation <deg>`.** `omap_export.write_omap` +kwarg `grivation` → zapíše
+      `declination="G" grivation="G"` do `<georeferencing>` (Local georef → konvergence=0 → grivation=declination;
+      OOM vztah `grivation=declination+grid_convergence`; izomorf s historickým skenem `resources/*.omap`). `generate_map`
+      +kwarg `grivation`; `_georef_meta` `north="magnetic"` + `grivation_deg`. CLI `--grivation`. **Geometrie i rastr
+      zůstávají v S-JTSK gridu** — rotaci nese jen georef metadata (volba uživatele; rotace rastru = curtains odložena).
+      E2E ověřeno (Nová Louka 1×1 km → `.omap` + meta 10,88°).
+- [x] **Grivace — B) ze skenu pro resources (řeší původní dotaz „odchylka Bedř od skenu").** `measure_dod._gen_sep`
+      čte grivaci z `resources/<name>.omap` (`_scan_grivation`, regex `grivation="…"`) → předá do `generate_map` →
+      gen.omap orientačně lícuje s bg_scan podkladem. Bedř 10,88° / Blatná 11,90° dosedly. No-silent: chybí atribut → None.
+- [x] **Grivace — C) konektor `connectors/magnetic.py` (UC2, sourozenec dmr/zabaged).** `grivation(lat,lon,when)` =
+      deklinace (**pygeomag WMM**, offline vestavěné koef., žádný key) + konvergence (pyproj `get_factors`).
+      **Znaménko OVĚŘENO empiricky proti reálným skenům** (verify-against-source): `grivace = decl − pyproj_conv`
+      (OOM `grid_convergence = −pyproj`; `decl+conv=−2°` nesmysl). Dnešní ~12,7° vs skeny ~11° (starší, deklinace
+      roste ~0,13°/rok → trend potvrzuje znaménko). CLI `--grivation-auto` (dnešní) / `--grivation-date YYYY-MM-DD`.
+      WMM platnost 2024–2029, mimo VARUJE (no silent fallback). **NOAA WMM REST API blocker** (vyžaduje registraci+key,
+      ověřeno „Bad request") → pivot na offline lokální model; **pyIGRF zavržen** (vadná instalace bez coeff souboru)
+      → **pygeomag** (+requirements). Self-check proti skenům: ČR grivace dnes 12,6–12,9°.
+- [x] **Regen všech 7 s grivací auto** (volba uživatele) — s oponenturou. DEV 5 → `--grivation-auto` (SV 12,91/NL 12,65/
+      LS 12,69/HS 12,61/NV 12,75°). **Resources OPONOVÁNY a ponechány ze skenu** (Bedř 10,88/Blatná 11,90): auto by
+      obnovilo odchylku od historického bg_scan (~1,8°), na kterou se uživatel původně ptal → lícování > aktuálnost.
+
 ## Sezení 111 (2026-06-11) — Korpus GT 264/264 (chunked classify) + ostrý bg podklad + Velbloud .pgw dead-end (ntbhej)
 - [x] **Korpus GT 258 → 264/264 — chunked `_classify` (`connectors/map_gt.py`), byte-identický.** RAM blowup `segment_gt`
       doložen měřením JEN v `_classify` (`(N,13,3) int32` ≈ 5,5 GiB @ 35 Mpx; strop ntbhej ~30 Mpx, Sez. 110) — median_filter/

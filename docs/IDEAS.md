@@ -99,15 +99,14 @@ Funkce přejmenována `synthesize_pseudorealistic_map`→`generate_map` (Sez. 39
   verze (`meta["isom"]`) + crosswalk pro vektor (`docs/kb/ISOM2000-ISOM2017-2.crt`, GPL); NEgenerovat 2000.
   Pro UC5 je relevantní vizuál, ne čísla (kostra 101/102/103 verzně identická; dominantní rozdíl je obsahový
   = vegetace recall gap). Detail DONE Sez. 38/40 + GLOSSARY. Nezaměňovat s [[issprom]].
-- **Grivace v generátoru — `--grivation` (Sez. 37, nápad uživatele).** Generátor renderuje grid-north-up
-  (S-JTSK osy); reálné OB mapy jsou **magnetic-north-up** (georef nese rotaci o grivaci = konvergence +
-  magnetická deklinace; SV −11,4°). Kotva už v kódu (`meta.georef.north="grid"`, `grivation_deg:null`).
-  **Dvě izomorfní polohy (různí konzumenti):** (1) `.omap` jako **metadata** — nastavit georeferencing na
-  reálný Křovák (ref_point + PROJ) + atributy `declination`/`grivation` jako kartograf → OOM zobrazí mapu
-  magnetic-north-up a dokreslí čáry severu sám (conceptual-integrity správně pro vektor); (2) **rotace rastru**
-  `rgb.png` o grivaci + zapečený `.pgw` (až bude rastrový konzument — UC4-III sken / UC3 / UC5). Grivaci buď
-  zadat (`--grivation`), nebo dopočítat (konvergence z pyproj `get_factors` + deklinace z geomag. modelu).
-  Pro samotný verify-overlay NEPOTŘEBA (georef rotaci dorovná) — je to feature pro věrnost výstupu.
+- **Grivace v generátoru — `--grivation` (Sez. 37, nápad uživatele). → DONE metadata cesta Sez. 112.**
+  Generátor renderuje grid-north-up (S-JTSK osy); reálné OB mapy jsou **magnetic-north-up** (georef nese rotaci
+  o grivaci = deklinace + konvergence; SV −11,4°). **Poloha (1) `.omap` metadata HOTOVO Sez. 112:** `--grivation`/
+  `--grivation-auto`/`--grivation-date` → `declination=grivation` (Local georef) + konektor `connectors/magnetic.py`
+  (pygeomag WMM + pyproj, znaménko `decl−pyproj_conv` ověřeno proti skenům); resources `_gen_sep` berou ze skenu.
+  Detail DONE Sez. 112. **Poloha (2) rotace rastru `rgb.png` o grivaci + zapečený `.pgw` ZBÝVÁ (curtains)** — až
+  rastrový konzument (UC4-III sken / UC3 / UC5 reconstructor) potřebuje magnetic-north sken; na úrovni augmentace/
+  dlaždice (transformuje X i Y). Pro verify-overlay NEPOTŘEBA (georef rotaci dorovná).
 - **Zánik noise (Option 1) větve — predikce uživatele (Sez. 25, „sázka").** Reframe Sez. 23 udělal
   z real-prediktoru hlavní směr; noise (fraktální šum) byla úplně první PoC. Uživatel sází, že
   keyword-only ocas (`seed/rug/det/terrain/paths/…`) jednou zmizí. Pravděpodobně ano — až UC5 feeder

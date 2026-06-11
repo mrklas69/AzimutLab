@@ -69,9 +69,14 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   skupinách (per-vrstva masky gen + rasterizace real `.omap`) — rozbít „black" na cesty/stavby/skály, „shoda symbolu" ne
   jen barvy; (d) STAT 2 je barevná, tol 4 m = placement, ne přesná poloha.
   **(Stale DROP Sez. 69** — viselo 9× jako vedlejší carry; zůstává jako nález, přestane se navrhovat v Příště.)
-- [ ] *(feature, nápad uživatele Sez. 37)* **Grivace v generátoru `--grivation`** — gen je grid-north-up, reálné OB
-  mapy magnetic-north-up. Dvě polohy: `.omap` declination/grivation metadata (izomorfní s kartografem) / rotace rastru
-  (až rastrový konzument). Kotva v `meta.georef`. Detail IDEAS „Grivace v generátoru".
+- [x] *(feature, nápad uživatele Sez. 37 — METADATA CESTA HOTOVA Sez. 112)* **Grivace v generátoru.** Tři vrstvy:
+  (A) `--grivation <deg>` ruční → `.omap` georef `declination=grivation` (Local, izomorf skenu) + meta `north=magnetic`;
+  (B) `_gen_sep` čte grivaci ZE SKENU (`_scan_grivation`) → resources gen.omap lícuje s bg_scan; (C) konektor
+  `connectors/magnetic.py` (pygeomag WMM offline + pyproj konvergence; znaménko `decl−pyproj_conv` ověřeno proti skenům)
+  + CLI `--grivation-auto`/`--grivation-date`. Geometrie i rastr zůstávají v gridu (volba: jen georef metadata). Detail
+  DONE Sez. 112. **ZBÝVÁ (curtains, odloženo):** **rotace rastru `rgb.png` o grivaci** — až rastrový konzument
+  (reconstructor) potřebuje magnetic-north sken; patří na úroveň augmentace/dlaždice (transformuje X i Y zároveň), ne
+  do `generate_map` (Sez. 112 Příště).
 - [x] *(UC5 korpus — HOTOVO Sez. 70-71, detail v DONE)* **Livelox korpus 268 reálných OB map** (`livelox.py`
   `search_events`/`download_corpus`, `allEvents`→`SearchEvents` reverz, WGS84 fallback, backoff) **+ kurace
   → 216 keep classic** (`curate.py` taxonomie discipline+tagy, `_curation.json`) + olivová 520 → label 0 (čistota GT).
