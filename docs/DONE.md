@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 113 (2026-06-11) — Test výstupů: 3 bug fixy (voda, plot druh 13, GAP) + %THINK sjednocení ořezu cut.py (mrkla)
+- [x] **Balvany 204/210 + plot 516 na vodní hladině** (bod 4, Nová Louka). `_generate_pseudo_boulders` nedostával
+  vodní masku; plot se generuje před vodou (z-order). Fix: `_rasterize_water_grid` (outer=voda/holes=souš) odečte
+  vodu ze seed + per-tečka 210; `_clip_fences_off_water` vyřízne fence úseky nad hladinou. Verify: balvany 0 px po
+  erozi břehu 3 px, plot 0 bodů >3 px od břehu, vizuál nádrže čistý.
+- [x] **Plot 516 „uvězňuje" panelák** (bod 3, Lidové sady Hokejka). Fence kolem druhu 13 (zastavěná plocha = otisk
+  budovy). Fix (volba uživatele): fence seed jen druh 5 (zahrada), `str(druhpozemkukod)=="5"`; druh 13 zůstává v 520.
+- [x] **Čistý les GAP** (bod 2) — rozhodnutí: GAP necháváme bílý, predikci přenecháme UC5 (Novina = benchmark, ne
+  tiles). Termín zapsán do GLOSSARY.md. Odhad z ortofota odložen („generalizuj s důkazem").
+- [x] **`clip_quad.py` → `generator/cut.py`** (`git mv`, importy measure_dod/pairs aktualizovány) + %THINK schválená
+  DRY architektura ořezu (primitiva `cut_line`/`cut_area`/`cut_point` → orchestrátor `clip_omap` → wrappery `cut_box`
+  + `clip_omap_to_quad`). Hlavička cut.py + TODO bod 1 nesou plán. **Implementace primitiv = příští blok** (bod 1).
+
 ## Sezení 112 (2026-06-11) — Regen všech 7 map + grivace (3 vrstvy) + clip_quad matplotlib fix (ntbhej)
 - [x] **Přegenerovány všechny 4 mapy → všech 7 map se všemi podklady** (zadání uživatele). 5 DEV (SV/NL/LS/HS/NV):
       `generate_map` plný režim (vše `real` default + ortofoto). 2 resources (Bedřichovka/Blatná): `_gen_sep`

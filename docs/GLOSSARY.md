@@ -11,6 +11,16 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   fight, čím tmavší tím pomaleji), žlutá = otevřený terén. **NENÍ land-use** — polygon „les" neřekne, zda je
   běhatelný či hustník; to open geodata nemají ([[vegetace-gate]]). Cíl UC5: predikovat runnability z geo-
   podkladů, GT = co kartograf nakreslil na reálné mapě (viz **Ground-truth** níže, IDEAS „UC5 runnability korpus").
+- **Čistý les GAP** — plochy mapy, které generátor bez skenu/Livelox páru nechá **bílé** (= výchozí runnable
+  les 405), protože predikční vegetační/runnability symboly (ISOM 402–414.1: rough open, zeleň 406/408/410,
+  paseky/hustníky) **nejsou v ČÚZK datech** ([[vegetace-gate]] — ZABAGED nese jen tvrdé objekty, ne hustotu
+  podrostu). „GAP" = mezera mezi tím, co projekce geodat umí nakreslit, a tím, co kartograf doplní okem.
+  Lokalita bez reálné mapy (např. Novina) je tak celá „čistý les" tam, kde ZABAGED mlčí → **NEdá tréninkové
+  [[dlaždice|tiles]]** (chybí Y pro vegetaci), ale je **ideální benchmark pro [[reconstructor|`Png2Area`]]**,
+  který má GAP dopredikovat (jeho doménou je právě predikce, [[projekce-vs-predikce]]). Rozhodnutí (Sez. 113):
+  GAP se **nehádá v generátoru** (odhad poměrů bílá/oranžová/zelená z ortofota = nová generalizační vrstva,
+  „generalizuj jen s důkazem") — necháme bílý a predikci přenecháme UC5. Odhad z ortofota / default poměr pro
+  oblast = budoucí možnost s důkazem (IDEAS).
 - **ISOM** (International Specification for Orienteering Maps) — norma pro klasické
   lesní OB mapy (**verze 2017-2, nejnovější — Rev 6 z 2024**, příští až ISOM2030). Symboly,
   barvy, priority. Cílová sémantika projektu. Detail: `docs/kb/isom-issprom.md`. Pozor: Rev 6
@@ -169,10 +179,12 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   (LS 52 % výseku, 91–96 % objektů 520) → kartograf kreslí jeden souvislý blok. Všechny zdroje 520 → sběrná maska →
   `contourpy` vektorizace (`_dissolve_mask_to_polys`, reuse `rock_relief`, bez `shapely`) → souvislé bloky. Kompas přestřel 9×→1,3×.
 - **Plot 516 Fence** (Sez. 98) — liniový symbol oplocení. ZABAGED plot nevede (Sez. 57) → kreslen jako
-  **pseudorealistická dekorace (fáze 2, vypne `--only-real`)** po obvodu RÚIAN-privát bloků (zástavba, kde je
-  oplocení věrohodné). Práh `FENCE_MIN_AREA_M2` 0,5 ha (kalibr. proti reálným mapám gen≈orig); obvod narovnán `_rdp`
-  (přímé spojnice vrcholů); ticky DOVNITŘ pozemku (`_draw_fence_line` per-tick `_point_in_ring`, ISOM spec „tags inside").
-  Jen `.omap` + rgb (vlastní GT maska zatím ne — linie mimo plošné Png2Area Y, Png2Line neexistuje).
+  **pseudorealistická dekorace (fáze 2, vypne `--only-real`)** po obvodu RÚIAN **zahrad** ([[druh-pozemku]] 5, kde je
+  oplocení věrohodné). **NE druh 13** (zastavěná plocha = otisk budovy; Sez. 113: plot druhu 13 „uvězňoval" panelák
+  místo pozemku — Lidové sady Hokejka; druh 13 zůstává v 520 olivové). Práh `FENCE_MIN_AREA_M2` 0,5 ha (kalibr. proti
+  reálným mapám gen≈orig); obvod narovnán `_rdp` (přímé spojnice vrcholů); ticky DOVNITŘ pozemku (`_draw_fence_line`
+  per-tick `_point_in_ring`, ISOM spec „tags inside"). **Úseky nad vodní plochou 301 se vyříznou** (`_clip_fences_off_water`,
+  Sez. 113 Nová Louka — plot na hladině = nesmysl). Jen `.omap` + rgb (vlastní GT maska zatím ne — linie mimo plošné Png2Area Y, Png2Line neexistuje).
 - **Crossability (překonatelnost hranic)** — ISOM kóduje **stylem obrysu/linie, zda lze hranici překonat**:
   301 Uncrossable body of water (plný břeh = NEpřekonat, obíhat) vs 304/305/306 crossable watercourse
   (přebrodit/překročit); plný obrys nepřekonatelné plochy (301, kolejiště 501) = bariéra. Generátor to honoruje
@@ -218,7 +230,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   4 vinice · **5 zahrada** · 6 ovocný sad · 7,8 trvalý travní porost · 10 lesní pozemek · 11 vodní
   plocha · **13 zastavěná plocha a nádvoří** · 14 ostatní plocha. **Pravidlo olivové 520:** druh
   ∈ {5, 13} = privátní pozemek u domu, kam běžci nesmí (řeší ~80 % případů jako živý mapař; proximita
-  k zástavbě nesena implicitně druhem — pole/louka daleko od domů mají jiný druh). Limit: oplocené
+  k zástavbě nesena implicitně druhem — pole/louka daleko od domů mají jiný druh). **[[plot-516-fence|Plot 516]]
+  ale jen kolem druhu 5 (zahrada)** — druh 13 je otisk budovy, plot kolem něj by „uvěznil" panelák (Sez. 113). Limit: oplocené
   louky/pole u domů (druh 2/7) zůstanou žluté (TODO „oplocené volné terény").
 - **Areál účelové zástavby** — ZABAGED plošná vrstva (id 114) oplocených areálů v sídlech; atribut
   `typzast_k` rozlišuje 62 typů (škola/hřiště/sport/stadión/kasárna/průmysl/garáže/autobusové nádraží…).
