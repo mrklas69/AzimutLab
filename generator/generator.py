@@ -1780,22 +1780,26 @@ def _write_world_file(out_path: Path, bbox: tuple) -> None:
                         encoding="utf-8")
 
 
-def _georef_meta(bbox: tuple, crs_epsg: int | None) -> dict:
+def _georef_meta(bbox: tuple, crs_epsg: int | None, grivation: float | None = None) -> dict:
     """Georef blok pro meta.json: CRS, bbox výseku, world file, orientace severu.
 
     Real (crs 5514) → S-JTSK bbox + .pgw odkaz + rozlišení; noise → lokální metry, bez world
-    filu. `north="grid"` dokumentuje, že rastr NENÍ rotován na magnetický sever (grivace
-    neaplikována, Sez. 37) — reálné OB mapy jsou magnetic-north-up (rotace nesená v jejich .pgw).
+    filu. `north` dokumentuje orientaci: bez grivace `"grid"` (rastr NENÍ rotován, default Sez. 37),
+    s grivací `"magnetic"` — `.omap` georef nese grivaci jako metadata (OOM zobrazí natočené na
+    magnetický sever), GEOMETRIE i rastr zůstávají v S-JTSK gridu (rotace jen v georef, izomorf
+    s kartografem; Sez. 112). `grivation_deg` = úhel grid→magnetic [°] nebo None.
     """
+    north = "magnetic" if grivation is not None else "grid"
     if crs_epsg is None:
-        return {"crs": "local_m", "bbox": [round(v, 2) for v in bbox], "north": "grid"}
+        return {"crs": "local_m", "bbox": [round(v, 2) for v in bbox], "north": north,
+                "grivation_deg": grivation}
     return {
         "crs": f"EPSG:{crs_epsg}",
         "bbox_sjtsk": [round(v, 3) for v in bbox],
         "pixel_size_m": round((bbox[2] - bbox[0]) / W, 4),
         "world_file": "rgb.pgw",
-        "north": "grid",            # grivace neaplikována (Sez. 37) — viz _world_file_coeffs
-        "grivation_deg": None,
+        "north": north,             # grid (grivace None, Sez. 37) / magnetic (grivace v .omap, Sez. 112)
+        "grivation_deg": grivation,
     }
 
 
@@ -3294,7 +3298,8 @@ def generate_map(
         barriers: str = "real",
         predict_areas_sjtsk: list | None = None,
         point_base: bool = False,
-        tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5) -> Path:
+        tolerant: bool = False, ortho: bool = True, ortho_mpp: float = 0.5,
+        grivation: float | None = None) -> Path:
     """Vygeneruje pseudorealistickou mapu lokality (lat, lon) o rozměru w_km×h_km.
 
     Reframe Sez. 23 (real-větev je *prediktor mapy*): skládá dva zdroje (DMR výškopis +
@@ -4043,7 +4048,8 @@ def generate_map(
                              marsh_features=marsh_omap_features,
                              treerow_features=treerow_omap_features,
                              veg_area_features=veg_area_omap_features,
-                             barrier_features=barrier_omap_features)
+                             barrier_features=barrier_omap_features,
+                             grivation=grivation)
     omap_info = {"file": omap_name, **omap_counts}
     # reálné ZABAGED/RÚIAN vrstvy → meta sekce přes _layer_meta_section (A1 Sez. 50, DRY: jediná
     # struktura sekce + jediná cesta uvnitř i vně _build_meta, zrušena dřívější asymetrie). Tabulka
@@ -4105,7 +4111,7 @@ def generate_map(
     # ISOM verze + georef výseku — injektováno zde (nejsou to vrstvy, precedent Sez. 37/38).
     # `isom` = deklarace verze (ochrana proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever.
     meta["isom"] = _isom_meta()
-    meta["georef"] = _georef_meta(geo_bbox, crs_epsg)
+    meta["georef"] = _georef_meta(geo_bbox, crs_epsg, grivation)
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
     _log.info("hotovo → %s · pokryv %d · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "
@@ -4198,6 +4204,16 @@ def main() -> None:
     p.add_argument("--ortho-mpp", type=float, default=0.5,
                    help="rozlišení ortofoto podkladu [m/px] (default 0,5; menší = ostřejší, ale "
                         "větší soubor i RAM v OOM; konektor dlaždicuje nad 4096 px)")
+    p.add_argument("--grivation", type=float, default=None,
+                   help="grivace [°] = úhel grid(S-JTSK)→magnetický sever; zapíše se do .omap georef "
+                        "(declination=grivation), OOM zobrazí mapu natočenou na magnetic-north (geometrie "
+                        "i rastr zůstávají v gridu). Default None = grid-north (Sez. 37/112). Konvergence "
+                        "S-JTSK v ČR ~7°, deklinace ~5° → grivace ~12° (sken Bedřichovka 10,88°)")
+    p.add_argument("--grivation-auto", action="store_true",
+                   help="spočítat grivaci z lokality (lat/lon) přes konektor magnetic.py "
+                        "(WMM deklinace + S-JTSK konvergence) pro DNEŠNÍ datum; --grivation ji přebije")
+    p.add_argument("--grivation-date", default=None, metavar="YYYY-MM-DD",
+                   help="grivaci spočítat pro konkrétní datum (implies --grivation-auto; WMM platí 2024–2029)")
     p.add_argument("--lat", type=float, default=DEF_LAT, help="zeměpisná šířka WGS84 (jen --terrain real)")
     p.add_argument("--lon", type=float, default=DEF_LON, help="zeměpisná délka WGS84 (jen --terrain real)")
     p.add_argument("--width-km", type=float, default=DEF_WIDTH_KM,
@@ -4219,6 +4235,14 @@ def main() -> None:
             out_dir = str(MAPS_DIR / name)
     else:
         lat, lon, w_km, h_km = args.lat, args.lon, args.width_km, args.height_km
+    # grivace: ruční --grivation má přednost; jinak auto z konektoru (--grivation-auto/-date)
+    grivation = args.grivation
+    if grivation is None and (args.grivation_auto or args.grivation_date):
+        from datetime import date as _date
+        from magnetic import grivation as _calc_grivation
+        when = _date.fromisoformat(args.grivation_date) if args.grivation_date else None
+        grivation = round(_calc_grivation(lat, lon, when), 2)
+        _log.info("grivace (auto, %s) = %.2f°", args.grivation_date or "dnes", grivation)
     out = generate_map(
         lat, lon, w_km, h_km, only_real=args.only_real, out_dir=out_dir,
         seed=args.seed, rug=args.rug, det=args.det, terrain=args.terrain,
@@ -4227,7 +4251,7 @@ def main() -> None:
         rocks=args.rocks, bridges=args.bridges, surfaces=args.surfaces, landmarks=args.landmarks,
         linefeatures=args.linefeatures, marsh=args.marsh, treerows=args.treerows,
         barriers=args.barriers,
-        ortho=args.ortho, ortho_mpp=args.ortho_mpp)
+        ortho=args.ortho, ortho_mpp=args.ortho_mpp, grivation=grivation)
     _log.info("výstup: %s", out.resolve())
 
 

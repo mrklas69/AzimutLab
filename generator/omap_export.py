@@ -185,7 +185,8 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
                marsh_features: list[tuple] | None = None,
                treerow_features: list[tuple] | None = None,
                veg_area_features: list[tuple] | None = None,
-               barrier_features: list[tuple] | None = None) -> dict:
+               barrier_features: list[tuple] | None = None,
+               grivation: float | None = None) -> dict:
     """Zapíše vrstevnice + cesty + vodu + budovy + el. vedení + železnice + body do `.omap` vložením do template.
 
     `contour_features` = [(line N×2 grid, code 101/102)], `path_features` =
@@ -218,6 +219,15 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
     # i mřížku 1,5× špatně (nález Sez. 26). Přepíšeme jediný <georeferencing scale="...">.
     template_xml = re.sub(r'(<georeferencing\b[^>]*\bscale=")\d+(")',
                           rf'\g<1>{int(scale)}\g<2>', template_xml, count=1)
+    # grivace (Sez. 112): mapa natočená na magnetický sever. Náš georef je Local (jen scale, bez
+    # projected_crs) → konvergence=0 → grivation=declination (vztah OOM `grivation=declination+grid_convergence`,
+    # pro Local doc.). Zapisujeme OBĚ stejné jako historický sken (resources/*.omap: declination=grivation).
+    # Geometrie objektů zůstává v S-JTSK gridu — rotaci nese jen georef (izomorf s kartografem; data netknuta).
+    # None → nezapisuje (mapa zůstává grid-north, default Sez. 37).
+    if grivation is not None:
+        g = f"{grivation:.2f}"
+        template_xml = re.sub(r'(<georeferencing\b[^>]*\bscale="\d+")',
+                              rf'\g<1> declination="{g}" grivation="{g}"', template_xml, count=1)
     sym = _parse_symbol_ids(template_xml)
 
     # paper-space: 1 m terénu = (1e6/scale) µm papíru; výsek vycentrován na (0,0)

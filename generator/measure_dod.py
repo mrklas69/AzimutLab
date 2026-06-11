@@ -37,6 +37,7 @@ A3 (Sez. 94): Slovanka2016 (UTM33 — jiný transformer) + Soví vrch (domapová
 .omap zkreslí dolů) VYNECHÁNY z DoD → měří jen Bedřichovka/Blatná/Velbloud. Až bude UTM33 cesta /
 Soví vrch domapováno, doplnit do MAPS. Spouštět z kořene přes .venv (sys.path skript, fáze B).
 """
+import re
 import sys
 import json
 import pathlib
@@ -145,6 +146,19 @@ def _code_mtime() -> float:
                for p in (REPO / d).glob("*.py"))
 
 
+def _scan_grivation(name: str) -> float | None:
+    """Grivace [°] z georef reálného skenu `resources/<name>.omap` (atribut `grivation`), nebo None.
+
+    Reálné OB mapy jsou magnetic-north (grivace v georef); předáme ji do gen.omap, aby gen kresba
+    orientačně lícovala se skenem připnutým jako bg podklad (Sez. 112; jinak rozjezd ~11° = konvergence
+    S-JTSK ~7° + deklinace ~5°). No-silent: chybí-li atribut, vrať None (grid-north, nefabrikuj)."""
+    scan = REPO / "resources" / f"{name}.omap"
+    if not scan.exists():
+        return None
+    m = re.search(r'grivation="([^"]*)"', scan.read_text(encoding="utf-8"))
+    return float(m.group(1)) if m else None
+
+
 def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     """Matched gen .omap SE SEPARACÍ-ZE-SKENU (Sez. 95 baseline = reálná produkční cesta párů).
 
@@ -156,11 +170,13 @@ def _gen_sep(name: str, out: pathlib.Path) -> pathlib.Path:
     if omap.exists() and omap.stat().st_mtime >= _code_mtime():   # cache platná: novější než kód
         return omap
     lat, lon, w_km, h_km = _extent_from_pgw(name)
-    print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f}) — separace ze skenu\n{'=' * 70}")
+    griv = _scan_grivation(name)   # grivace ze skenu → gen.omap orientačně lícuje s reálným skenem (Sez. 112)
+    print(f"\n{'=' * 70}\n{name}  výsek {w_km:.2f}×{h_km:.2f} km @ ({lat:.5f}, {lon:.5f}) — separace ze skenu"
+          f"{f' · grivace {griv}°' if griv is not None else ''}\n{'=' * 70}")
     predict = _separate_resources_to_sjtsk(name, out / "sep")
     print(f"  {len(predict)} predikčních ploch → generate_map (predict_areas_sjtsk)")
     generate_map(lat, lon, w_km, h_km, out_dir=str(out), ortho=False, tolerant=True,
-                 predict_areas_sjtsk=predict)
+                 predict_areas_sjtsk=predict, grivation=griv)
     # Ořež výslednou gen.omap + render na reálné mapové pole (natočený quad ze skenu) — odstraní přesah
     # axis-aligned bboxu: okolní sídla mimo závodní mapu (Stráž n. Nisou u Bedřichovky; Sez. 109, zadání
     # uživatele). Centroid (KISS). Quad = 4 rohy skenu v S-JTSK (mirror _extent_from_pgw, ale rohy ne obal).

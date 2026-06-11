@@ -20,7 +20,6 @@ import pathlib
 import re
 
 import numpy as np
-from matplotlib.path import Path as MplPath
 from PIL import Image, ImageDraw
 
 from omap_raster import _paper_to_px
@@ -48,6 +47,24 @@ def _quad_to_genpx(quad_sjtsk: list, rgb_pgw: pathlib.Path) -> list:
     return out
 
 
+def _point_in_quad(x: float, y: float, poly: list) -> bool:
+    """Point-in-polygon (ray-casting / crossing number) — nahradil matplotlib.path.contains_point.
+
+    matplotlib je trénink-only závislost (requirements.txt: křivky učení, jen mrkla); clip_quad
+    běží v produkční separační cestě (ntbhej). Pro test centroidu objektu vůči 4 rohům quadu stačí
+    pár řádků numpy-free crossing-number (Sez. 112). `poly` = list (col,row); libovolný jednoduchý polygon."""
+    inside = False
+    n = len(poly)
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
 def clip_omap_to_quad(gen_dir: str | pathlib.Path, name: str, quad_sjtsk: list) -> tuple:
     """Ořež `<name>.omap` + `rgb.png` na natočený reálný quad (4 rohy S-JTSK). Vrací (kept, removed).
 
@@ -58,7 +75,6 @@ def clip_omap_to_quad(gen_dir: str | pathlib.Path, name: str, quad_sjtsk: list) 
     meta = json.load(open(gen_dir / "meta.json", encoding="utf-8"))
     to_px, W, H = _paper_to_px(meta)
     quad_px = _quad_to_genpx(quad_sjtsk, gen_dir / "rgb.pgw")
-    quad = MplPath(np.array(quad_px))
 
     # --- ořez .omap objektů dle centroidu (string regex) ---
     doc = omap_p.read_text(encoding="utf-8")
@@ -82,7 +98,7 @@ def clip_omap_to_quad(gen_dir: str | pathlib.Path, name: str, quad_sjtsk: list) 
             stats["kept"] += 1
             return block
         col, row = to_px(sum(xs) / len(xs), sum(ys) / len(ys))   # paper-µm centroid → gen px
-        if quad.contains_point((col, row)):
+        if _point_in_quad(col, row, quad_px):
             stats["kept"] += 1
             return block
         stats["removed"] += 1
