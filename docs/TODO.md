@@ -60,23 +60,19 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   masky + per-tečka check 210; `_clip_fences_off_water` (post-water) vyřízne fence úseky nad hladinou z `.omap`
   (rastr OK — voda kreslí nad). Verify měřením: balvany na vodě 0 px po erozi břehu 3 px (max shluk 16 px = okraj
   symbolu na břehu); plot 0 bodů >3 px od břehu. Vizuál nádrž čistá.
-- [ ] *(bug fix, test výstupů Sez. 113 — Q1=A, ČEKÁ)* **Ořez `.omap` na obdélník výseku bez Livelox páru** (Novina:
-  papír ~300×500 mm, ale objekty sahají ±~20 km → „Nisa do Vesce"). Root cause: ArcGIS vrací CELÉ features
-  protínající bbox, `rgb.png` ořeže canvas, `.omap` vektor NE; `clip_omap_to_quad` běží jen s párem (pairs/measure_dod).
-  **DŮKAZ vady** (dosud odkládáno „jen s důkazem", ř. 95-98/253): centroid clip nestačí — řeka se středem uvnitř
-  se ponechá CELÁ → potřeba **geometrický ořez**. **SCHVÁLENÁ ARCHITEKTURA (Sez. 113 %THINK, DRY — jedna cesta):**
-  modul `clip_quad.py` přejmenován na **`generator/cut.py`** (HOTOVO Sez. 113). Do něj doplnit:
-  - **Primitiva** (čistá geometrie, prostor-agnostická): `cut_line(pts, clip_poly)` = REUSE generator
-    `_split_by_zones_interp` (interpolovaný řez na hraně, „hezky vyřešený" z mostů/tunelů) · `cut_area(rings,
-    clip_poly)` = Sutherland-Hodgman (clip_poly konvexní: box i quad ✓) · `cut_point(pt, clip_poly)` = REUSE
-    `_point_in_quad`.
-  - **JEDEN orchestrátor** `clip_omap(.omap, clip_poly)`: parsuje objekty, dle `AREA_CODES` routuje na primitivum,
-    **PŘEPÍŠE `<coords>`** (ne jen maže bloky jako dnes — string, ne ET; pozor flagy: close 18 / hole / dash;
-    1 objekt → N kusů → znásob blok + uprav `<objects count>`).
-  - **Wrappery:** `cut_box(gen_dir, name)` = clip_poly z 4 rohů papíru (CLI `--location`) · `clip_omap_to_quad(...)`
-    = clip_poly z Livelox quadu (povýšen z centroidu → geometrický, vyřeší ř. 95-98 pairs E2E).
-  Osový box = degenerovaný quad → jeden orchestrátor pro obě. **Riziko: přepis `<coords>` se zachováním flagů =
-  netriviální → mini-verify na jednoduchém objektu.** Sjednotit s ř. 95-98 (pairs E2E) a ř. 253 (ořez linií na bbox).
+- [x] *(bug fix Sez. 113/114 — HOTOVO Sez. 114)* **Ořez `.omap` na výsek bez Livelox páru** (Novina „Nisa do Vesce",
+  ±20 km přesah). Implementována schválená DRY architektura v `generator/cut.py`: primitiva `cut_point`/`cut_line`/
+  `cut_area` (Sutherland-Hodgman) → orchestrátor `clip_omap` (přepis `<coords>`+flagy, scoped na `<objects>`) → wrappery
+  `cut_box` (papír, CLI `--location` real) + geometrický `clip_omap_to_quad`. Mini-verify 10/10 + 9/9. **Nález: reuse
+  `_split_by_zones_interp` pro `cut_line` nestačil** (ponechává konce linie → neumí in→out) → přímá konstrukce, reuse jen
+  `_interp_grid_at`. Verify: regen 5 DEV ořez 1,00× (uživatel OOM „perfektní"). Detail DONE Sez. 114.
+- [!] *(blokátor regenu se skalami, nález Sez. 114 — „zmizely kontury skal")* **`rock_relief` OOM + border noData.**
+  Plný regen DEV map SE SKALAMI spadl u 3/5: **(a) OOM** (LS/HS — `_contour_rings` `np.pad(mask.astype(float))` ~382 MiB
+  @ >50 Mpx float64 i po zhrubnutí na `MAX_TOTAL_PX`; ntbhej OOM) → `mask.astype(np.float32)` / efektivnější pad / nižší
+  cap bez ztráty 0,5 m/px detekce (NEMĚNIT ANALYSIS_RES bez golden regrese). **(b) border noData** (SV — `_fetch_assembled_grid`
+  tiluje za hranici ČR → `dmr.fetch_elevation_grid` raise na podezřelé výšky; TODO výškopis-NoData níže řeší jen hlavní grid)
+  → noData dlaždice clamp/maska na „bez skal" místo raise. **Cíl:** plný regen DEV map se skalami projde na ntbhej → regen
+  LS/HS/SV se skalami 206 (HS = skalní ukázka, teď degradovaná bez skal). Měřit golden Šulcák po fixu (regrese detekce).
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
   Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
   plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),
@@ -119,10 +115,11 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   rozpočtu (`_CLASSIFY_CHUNK_PX=4 Mpx`), **byte-identický** (per-pixel argmin nezávislý). Zvolen místo downscalu výstupu,
   protože ten by rozbil invariant `gt.shape==map.shape` (`livelox.py` guard + affine). 6 obřích map (35–97 Mpx) → GT;
   korpus na ntbhej **264/264**. Detail DONE Sez. 111.
-- [ ] *(ověření, Sez. 109)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `clip_quad.clip_omap_to_quad` přidán
-  do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
+- [ ] *(ověření, Sez. 109; ořez povýšen Sez. 114)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `cut.clip_omap_to_quad`
+  přidán do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
   plný běh na ntbhej blokován syrovým korpusem (0 gt). Ověřit na HAL3000: že páry mají ořezané .omap+render (bez
-  okolních sídel) a Y label sedí na X. Pozn.: centroid (KISS, hrubé na hranici); geometrický ořez jen s důkazem vady.
+  okolních sídel) a Y label sedí na X. Pozn.: `clip_omap_to_quad` je teď **geometrický** (Sez. 114, povýšen z centroidu →
+  řeže dlouhé linie na hraně quadu, ne celé/nic dle středu) — E2E ověřit, že geometrický řez na rotovaném quadu sedí.
 ### UC5 runnability model — kroky (Sez. 74 %THINK; architektura v IDEAS „UC5 runnability model")
 Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke test první**. Trénink jen na
 `mrkla` (RTX 5070, BF16) — `docs/kb/hardware.md`. Gaty PŘED model (pár (X,Y) = foundation).

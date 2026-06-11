@@ -54,8 +54,10 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   Fáze I `generator()`: `separate.py` (separace barev mapy → plochy, `separate_areas` + `TARGET_MPP`
   downscale, Sez. 82-85) + `pairs.py` (orchestrátor `build_pair`/`build_pairs` per-classId párů X,Y
   z Livelox korpusu, Sez. 83-85). `rock_relief.py` (skály 206 z DMR sklonu, Sez. 63). Post-process (string,
-  ne ET): `clip_quad.py` (`clip_omap_to_quad` — ořez gen.omap+render na natočený reálný quad, odstraní přesah
-  bboxu = okolní sídla, Sez. 109) + `gen_backgrounds.py` (OOM bg podklady do gen.omap: `add_backgrounds` Livelox
+  ne ET): `cut.py` (geometrický ořez `.omap`, Sez. 114 — primitiva `cut_point`/`cut_line`/`cut_area`
+  Sutherland-Hodgman → orchestrátor `clip_omap` přepíše `<coords>` se zachováním flagů, scoped na `<objects>`
+  → wrappery `cut_box` papír [CLI `--location`, real terrain] / `clip_omap_to_quad` Livelox quad; odstraní přesah
+  bboxu = okolní sídla „Nisa do Vesce", Sez. 109/113/114) + `gen_backgrounds.py` (OOM bg podklady do gen.omap: `add_backgrounds` Livelox
   pár / `add_resources_scan_background` resources měřicí mapa, Sez. 104/109).
 - `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`

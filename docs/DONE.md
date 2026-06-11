@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 114 (2026-06-11) — Implementace ořezu cut.py (primitiva + clip_omap + cut_box) + regen DEV map (ntbhej)
+- [x] **Geometrická primitiva `cut.py`** (mini-verify 10/10): `cut_point` (nad `_point_in_quad`), `cut_line`,
+  `cut_area` (Sutherland-Hodgman). **Nález:** schválený reuse `_split_by_zones_interp` pro `cut_line` NESTAČÍ
+  (stavěn na díry uvnitř linie → konce vždy ponechá → neumí in→out ořez na hranici) → přímá konstrukce úseků,
+  DRY reuse jen `_interp_grid_at`. Odchylka od architektury Sez. 113, doložena měřením.
+- [x] **Orchestrátor `clip_omap(.omap, clip_poly)`** (mini-verify 9/9, paper µm): routing point/line/area, přepis
+  `<coords>` se zachováním flagů (close 18 / hole 16), 1 objekt → N kusů (linie), scoped JEN na `<objects>` blok
+  (knihovna `<symbols>` netknuta), objekty celé uvnitř beze změny (0 drift). String/regex (ne ET). Verify formátu
+  proti Bedř `.omap`.
+- [x] **Wrappery + integrace:** `clip_omap_to_quad` povýšen centroid→**geometrický** (quad px → paper µm; zpřesní
+  pairs/measure_dod) + nový `cut_box` (papírový obdélník = degenerovaný quad) + DRY `_paper_extent`. Hook `cut_box`
+  v CLI `main` (gated real terrain), log vždy (přesah jsou většinou křížící linie → `removed=0`).
+- [x] **Verify ořezu = TODO bod 1 DOKONČEN:** Novina přesah 9,6× → 1,00× půlpapíru („Nisa do Vesce" pryč); regen
+  všech 5 DEV map ořez 1,00× napříč tvary (uživatel OOM potvrdil „perfektní").
+- [x] **Feedback → globální `AGENTS.md`** (SSoT + sync Codex, Claude/Gemini importují živě): doporučenou odpověď
+  doručovat přes `AskUserQuestion` (predikce/volba), ne text v chatu. Projektová Claude memory smazána (redundance).
+- [x] Paměť `lidove-sady-no-ortofoto` (sdělil uživatel; rozpor s generickým ČÚZK fetch → externí fakt).
+
 ## Sezení 113 (2026-06-11) — Test výstupů: 3 bug fixy (voda, plot druh 13, GAP) + %THINK sjednocení ořezu cut.py (mrkla)
 - [x] **Balvany 204/210 + plot 516 na vodní hladině** (bod 4, Nová Louka). `_generate_pseudo_boulders` nedostával
   vodní masku; plot se generuje před vodou (z-order). Fix: `_rasterize_water_grid` (outer=voda/holes=souš) odečte
