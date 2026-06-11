@@ -66,13 +66,25 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `cut_box` (papír, CLI `--location` real) + geometrický `clip_omap_to_quad`. Mini-verify 10/10 + 9/9. **Nález: reuse
   `_split_by_zones_interp` pro `cut_line` nestačil** (ponechává konce linie → neumí in→out) → přímá konstrukce, reuse jen
   `_interp_grid_at`. Verify: regen 5 DEV ořez 1,00× (uživatel OOM „perfektní"). Detail DONE Sez. 114.
-- [!] *(blokátor regenu se skalami, nález Sez. 114 — „zmizely kontury skal")* **`rock_relief` OOM + border noData.**
-  Plný regen DEV map SE SKALAMI spadl u 3/5: **(a) OOM** (LS/HS — `_contour_rings` `np.pad(mask.astype(float))` ~382 MiB
-  @ >50 Mpx float64 i po zhrubnutí na `MAX_TOTAL_PX`; ntbhej OOM) → `mask.astype(np.float32)` / efektivnější pad / nižší
-  cap bez ztráty 0,5 m/px detekce (NEMĚNIT ANALYSIS_RES bez golden regrese). **(b) border noData** (SV — `_fetch_assembled_grid`
-  tiluje za hranici ČR → `dmr.fetch_elevation_grid` raise na podezřelé výšky; TODO výškopis-NoData níže řeší jen hlavní grid)
-  → noData dlaždice clamp/maska na „bez skal" místo raise. **Cíl:** plný regen DEV map se skalami projde na ntbhej → regen
-  LS/HS/SV se skalami 206 (HS = skalní ukázka, teď degradovaná bez skal). Měřit golden Šulcák po fixu (regrese detekce).
+- [x] *(blokátor regenu se skalami, nález Sez. 114 — „zmizely kontury skal"; HOTOVO Sez. 115)* **`rock_relief` OOM + border noData.**
+  Plný regen DEV map SE SKALAMI spadl u 3/5. **Měření (`temp/probe_rock_oom`):** f64 pipeline @ 50 Mpx peak **3,3 GB**
+  (OOM @ 8,4 GB volných + běžící generátor); páka = **`del` mezivýsledků sklonu PŘED `_contour_rings`** (ne dtype — peak je
+  v `_rock_mask`/label int32, f64↔f32 stejně 1,9 GB) → zvolen **f64+del** (zachová přesnost prahu 46°, peak 3,3→1,9 GB).
+  **(a) OOM fix:** `del z,zs,gy,gx,slope_deg` + `_contour_rings` padded float32 (behavior-preserving, sdíleno se `separate.py`).
+  **(b) border fix:** `_fetch_assembled_grid` zachytí `RuntimeError` za hranicí ČR → **NaN dlaždice + hlasité warning**
+  (no silent fallback); `errstate` v sklonu → NaN propadne `slope>=46`→False (bez skal u hranice). **Verify:** golden Šulcák
+  **48/2,56 ha = match** (behavior-preserving); izolovaný HS 847 bloků/peak 2,6 GB + SV 130 bloků/2 dlaždice NaN; **plný regen
+  HS/SV/LS se skalami EXIT 0** (HS 847× 206 v .omap = skalní ukázka má zpět skály). Detail DONE Sez. 115.
+- [ ] *(KPI regrese, nález Sez. 115 — diagnostika poklesu 54,9→48,2 %)* **Pseudo body 204/210 — stale kalibrace po rock v2.**
+  Přeměření KPI po ořezu (volba uživatele) odhalilo pokles −6,7 pb. **Ořez VYVRÁCEN jako příčina** (zvedá +0,9 pb, čistá výhra),
+  **grivace VYVRÁCENA** (identické, georef-only). **Hlavní příčina: pseudo body −3,25 pb** (Bedř −5,1, `temp/diag_pseudo_kpi`):
+  rock v2 (Sez. 110) zvýšil detekci skal i na ne-skalnatých mapách (**206 g1→g14** na Bedř/Blatná) → větší skalnatost maska →
+  **210 Stony přestřel 962 vs orig 372** (2,6×). = naplněná predikce Sez. 110 („víc skal na ne-skalnatých KPI zhorší → měřit na
+  skalnaté mapě"). Sez. 107 kalibrace pseudo (na rock v1 masku) je STALE. **Volby (Sez. 115, příště):** rekalibrace hustoty na
+  rock v2 masku (správně na SKALNATÉ mapě = Velbloud `.pgw` blokátor) NEBO řešit kořen **rock v2 over-detection 206 na ne-skalním
+  strmém terénu** (Bedř/Blatná by měly mít 206 ~0, ne 14 — DMR slope nabírá strmé lesní svahy?). Zbytek poklesu ~3 pb = Sez. 113
+  fixy / HAL3000↔ntbhej baseline (neizolováno). Velbloud `.pgw` ODLOŽEN (volba uživatele Sez. 115; automatika z `.omap` nejde —
+  Local CRS bez pixel→S-JTSK, Sez. 111; nejjednodušší = solver z 2-3 ručních bodů, carry HAL3000).
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
   Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
   plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),

@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 115 (2026-06-11) — Rock_relief OOM + border fix (measure-first) + diagnostika poklesu KPI (ntbhej)
+- [x] **Rock_relief OOM fix** (`rock_relief.py`). Measure-first (`temp/probe_rock_oom`): f64 sklon pipeline @ 50 Mpx
+  peak **3,3 GB** = OOM (8,4 GB volných + běžící generátor). Nález **f64+del = f32+del = 1,9 GB** → páka je `del`
+  mezivýsledků (`z,zs,gy,gx,slope_deg`) PŘED `_contour_rings`, NE dtype (peak je v `_rock_mask`/label int32) → zvolen
+  **f64+del** (zachová přesnost prahu 46°, žádné golden riziko) + `_contour_rings` padded float32 (behavior-preserving).
+- [x] **Rock_relief border noData fix**: `_fetch_assembled_grid` zachytí `RuntimeError` za hranicí ČR → **NaN dlaždice
+  + hlasité warning** (no silent fallback); `errstate` v sklonu → NaN propadne `slope>=46`→False (bez skal u hranice).
+  Drobnost: `import logging` module-level (byly 2 lokální). Verify: golden Šulcák **48/2,56 ha = match**; izolovaný HS
+  847 bloků/peak 2,6 GB + SV 130 bloků/2 dlaždice NaN; **plný regen HS/SV/LS se skalami EXIT 0** (HS 847× 206, skály zpět).
+- [x] **Diagnostika poklesu KPI 54,9→48,2 %** (požadavek uživatele „ořez mohl ovlivnit KPI"). Tři izolační běhy:
+  **ořez (Sez. 114) VYVRÁCEN** (`temp/diag_clip_kpi`, +0,9 pb — čistá výhra), **grivace (Sez. 112) VYVRÁCENA**
+  (`temp/diag_griv_kpi`, identické — georef-only), **hlavní příčina pseudo body 204/210 −3,25 pb** (`temp/diag_pseudo_kpi`,
+  Bedř −5,1): rock v2 zvýšil 206 g1→g14 na ne-skalnatých → 210 přestřel 962/372 = naplněná predikce Sez. 110. Zbytek
+  ~3 pb = Sez. 113 / baseline. → akční TODO (rekalibrace pseudo vs rock v2 over-detection 206).
+- [x] **Velbloud.pgw analýza** (dotaz uživatele): automatika z `.omap` nejde (Local CRS bez pixel→S-JTSK, ref_point
+  −681000/−971000 + scale 15000 + grivation 11,3° = jen kotva; template = neexistující ortofoto; ne Livelox). Nejjednodušší
+  = solver z 2-3 ručních bodů (similarity transform). Volba uživatele: **ODLOŽENO** (carry HAL3000, rock KPI měřit tam).
+
 ## Sezení 114 (2026-06-11) — Implementace ořezu cut.py (primitiva + clip_omap + cut_box) + regen DEV map (ntbhej)
 - [x] **Geometrická primitiva `cut.py`** (mini-verify 10/10): `cut_point` (nad `_point_in_quad`), `cut_line`,
   `cut_area` (Sutherland-Hodgman). **Nález:** schválený reuse `_split_by_zones_interp` pro `cut_line` NESTAČÍ
