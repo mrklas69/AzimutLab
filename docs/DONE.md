@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 111 (2026-06-11) — Korpus GT 264/264 (chunked classify) + ostrý bg podklad + Velbloud .pgw dead-end (ntbhej)
+- [x] **Korpus GT 258 → 264/264 — chunked `_classify` (`connectors/map_gt.py`), byte-identický.** RAM blowup `segment_gt`
+      doložen měřením JEN v `_classify` (`(N,13,3) int32` ≈ 5,5 GiB @ 35 Mpx; strop ntbhej ~30 Mpx, Sez. 110) — median_filter/
+      `_detect_map_area` na uint8 levné. `_classify` přepsán na řez po pixelovém rozpočtu (`_CLASSIFY_CHUNK_PX = 4 Mpx/chunk`,
+      bound nezávislý na šířce), `int64→uint8` (13 < 256 referencí). **Per-pixel argmin nezávislý → byte-identický** s
+      celorázovou klasifikací. **Volba chunk vs downscale výstupu:** downscale gt by rozbil tvrdý invariant
+      `gt.shape == map.png.shape` (`livelox.py:404-406` RuntimeError + affine `separate.py`/`pairs.py`) → 5+ konzumentů;
+      chunk = plné rozlišení, nulový zásah. **Verify:** regrese byte-identická (`temp/probe_segment_mem.py` 97 Mpx prošla,
+      peak 3,4 GB); 6 obřích map (35–97 Mpx) segmentováno 29–71 s, vizuál OK (`temp/verify_*.png` — bloby izolované, vysoký
+      ignore = bílý okraj); py_compile 7 konzumentů. Korpus na ntbhej **264/264 GT**.
+- [x] **Ostrý bg podklad v OOM — `generator/gen_backgrounds.py` (dotaz uživatele „proč rozostřený").** Příčina: bg_scan
+      warpován **do gen pixelového gridu** (Bedř gen rgb.png jen 1182×1498 @ 2,18 m/px) + klauzule `min(1.0, _BG_MAX_PX/max)`
+      **zakazovala supersampling** → 135 Mpx sken (0,26 m/px) zmáčknut na ~1,72 m/px (cap 1500 ani nebyl binding). Oprava
+      (3 edity): odstraněna `min(1.0,…)` (povolen supersampling — jemné kroky vzorkují detail ze zdroje) + `_BG_MAX_PX`
+      1500 → **6000** + DRY helper `_bg_out_size` (dvě identické kopie v `add_backgrounds`/`add_resources_scan_background`).
+      Georef nedotčen (`sx = pw/out_w` škáluje úměrně). Bedř bg_scan **1182×1498 → 4734×6000** (0,43 m/px). Verify: před/po
+      (`temp/bg_sharp_cmp.png`), overlay lícování (`temp/overlay_*.png`), py_compile. Přegen Bedř+Blatná (`_gen_sep`);
+      ostatní auto při dalším `measure_dod` (úprava kódu invalidovala cache přes `_code_mtime`).
+- [x] **Velbloud `.pgw` rekonstrukce → doložený DEAD-END (measure-first, `temp/probe_pgw_recon.py`).** Cíl: odblokovat
+      rock_relief v2 KPI před/po na skalnaté mapě na ntbhej. Negativní: (1) `Velbloud.omap` nese jen minimální georef
+      (scale 1:15000 + grivation 11,3° + round-number ref_point) + ortofoto template `LIBE25.jpg` (neexistující cesta) —
+      **žádný pixel→S-JTSK transform**; (2) rekonstrukce z object-bbox SELHALA při validaci na známé pravdě (Soví vrch:
+      implikované m/px W→0,194 vs pravda 0,095 = 2× mimo; aspekt W≠H) — scan rotován grivací (magnetic-north) + okraje,
+      grid-aligned bbox ≠ pixelový obdélník. Potvrzeno: `.pgw` rotace = grivation (Bedř −10,88° = griv 10,88°), ale origin
+      a m/px neodvoditelné. **Rock KPI zůstává HAL3000 carry** (fabrikace `.pgw` = nesmyslné KPI; no silent fallback).
+- [x] **AGENTS.md commitnut** — Codex protějšek projektového `CLAUDE.md` (mirror; jiný thread, Codex/ChatGPT spolupráce Sez. 110).
+
 ## Sezení 110 (2026-06-11) — Korpus na ntbhej + deep research + rock_relief v2 + ChatGPT %AUDIT:CODE (ntbhej)
 - [x] **Livelox korpus na ntbhej 57 → 264 map (+207), GT ~258.** `livelox.py batch` (870 eventů, idempotentní, GT inline;
       ok 204/skip 38/fail 628 = staré smazané bloby). 22 map bez GT diagnostikováno (tranzient batch-time, standalone projde)

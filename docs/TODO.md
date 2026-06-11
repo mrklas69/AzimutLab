@@ -42,7 +42,9 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   velký výsek zhrubne s HLASITÝM varováním (no silent fallback). **CARRY HAL3000/Velbloud:** KPI před/po **nelze na
   ntbhej změřit** — kompas Sez. 110: Bedř/Blatná **nejsou skalnaté** (206 orig=0/gen=1, 208 orig=31/gen=0), skalnatá
   Velbloud nemá `.pgw`. Víc skal na ne-skalnatých mapách KPI jen zhorší (přestřel) → KPI dopad měřit až na skalnaté
-  mapě (Velbloud .pgw / Livelox korpus). Regen párů Y při příštím Png2Area re-trénu (skály do Y věrnější).
+  mapě. **Sez. 111: Velbloud `.pgw` na ntbhej NEODVODITELNÝ** (`.omap` nese jen minimální georef bez pixel→S-JTSK;
+  rekonstrukce z bbox vyvrácena validací — scan rotován grivací) → měřit na **HAL3000** (kartografův georef / rocky
+  korpus mapa). Regen párů Y při příštím Png2Area re-trénu (skály do Y věrnější).
 - [!] *(model, carry mrkla — nález Sez. 99 + PRECONDITION Sez. 110)* **Png2Area přetrénovat na N_AREA 18** (310 přidán
   do AREA_ZORDER) — spojit s class-balanced expansion (208/501/301). **Sez. 110 (ChatGPT %AUDIT:CODE) odhalil, že
   `omap_raster` měl od narození (2026-06-04) stale `301.1`, zatímco generátor zapisuje vodu jako `301` od 2026-06-01
@@ -74,14 +76,17 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `search_events`/`download_corpus`, `allEvents`→`SearchEvents` reverz, WGS84 fallback, backoff) **+ kurace
   → 216 keep classic** (`curate.py` taxonomie discipline+tagy, `_curation.json`) + olivová 520 → label 0 (čistota GT).
   Tréninkové jádro = 216 foot-O map. Legalizace (ČSOS) až pokud model funguje — do té doby privátní repo + TDM výjimka.
-- [~] *(Sez. 110 — stahování HOTOVO, kurace/split carry)* **Korpus + GT na ntbhej.** `livelox batch` stáhl **57 → 264 map**,
-  GT na **~258** (Sez. 110). **ZBÝVÁ:** (a) **kurace + split rozhodnout** — `_curation.json`/`_split.json` na ntbhej NEJSOU
-  (gitignored, ruční vizuální tagy Sez. 71 žijí na HAL3000) → buď **zkopírovat z HAL3000** (zachová tréninkový split, doporučeno),
-  nebo auto-`curate`+`split` tady (rozejde se s HAL3000); (b) **6 obřích map bez GT** → downscale (viz níže). Pozn.:
-  `build_pair`/trénink je stejně CUDA-vázané (HAL3000) — ntbhej korpus slouží měření / `build_pair` E2E ověření.
-- [ ] *(downscale, Sez. 110)* **`map_gt.segment_gt` downscale pro obří mapy** — nad ~30 Mpx (ntbhej) padá na RAM (alokace
-  N_px×13×3 int32 nearest-color = 5 GiB @ 35 Mpx; strop je ~30 Mpx, ne 100 jak tvrdila Sez. 90). Downscale mapy PŘED segmentací
-  (GT je plošná, 1,33 m/px stačí) → odblokuje 6 obřích map korpusu (Branžež/Bezděz/Bramberk/Bohemia 76-97 Mpx + 2× 35 Mpx).
+- [~] *(Sez. 110 stahování + Sez. 111 GT HOTOVO, kurace/split carry)* **Korpus + GT na ntbhej.** `livelox batch` stáhl
+  **57 → 264 map**, GT **264/264** (Sez. 111 chunked classify odblokoval 6 obřích). **ZBÝVÁ:** (a) **kurace + split
+  rozhodnout** — `_curation.json`/`_split.json` na ntbhej NEJSOU (gitignored, ruční vizuální tagy Sez. 71 žijí na HAL3000)
+  → buď **zkopírovat z HAL3000** (zachová tréninkový split, doporučeno), nebo auto-`curate`+`split` tady (rozejde se
+  s HAL3000). Pozn.: `build_pair`/trénink je stejně CUDA-vázané (HAL3000) — ntbhej korpus slouží měření / `build_pair`
+  E2E ověření / rozšíření tréninkového setu po přenosu na HAL3000.
+- [x] *(HOTOVO Sez. 111 — chunked classify, NE downscale)* **`map_gt.segment_gt` zvládne obří mapy.** Měřením doloženo,
+  že RAM blowup je JEN v `_classify` (`(N,13,3) int32` ~5,5 GiB @ 35 Mpx) → přepsán na **chunked** řez po pixelovém
+  rozpočtu (`_CLASSIFY_CHUNK_PX=4 Mpx`), **byte-identický** (per-pixel argmin nezávislý). Zvolen místo downscalu výstupu,
+  protože ten by rozbil invariant `gt.shape==map.shape` (`livelox.py` guard + affine). 6 obřích map (35–97 Mpx) → GT;
+  korpus na ntbhej **264/264**. Detail DONE Sez. 111.
 - [ ] *(ověření, Sez. 109)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `clip_quad.clip_omap_to_quad` přidán
   do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
   plný běh na ntbhej blokován syrovým korpusem (0 gt). Ověřit na HAL3000: že páry mají ořezané .omap+render (bez
