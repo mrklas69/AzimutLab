@@ -39,7 +39,9 @@ _GT_IGNORE_RGB = _GT_VIS[_GT_IGNORE]   # (255,0,255) magenta = oblast mimo Livel
 
 Image.MAX_IMAGE_PIXELS = None
 _CORPUS = _REPO_ROOT / "resources" / "livelox"
-_BG_MAX_PX = 1500          # downscale delší strany podkladu (vizuál nepotřebuje plné gen rozlišení)
+_BG_MAX_PX = 6000          # delší strana warpnutého podkladu. Gen grid bývá HRUBÝ (~2 m/px) → bez
+                           # nadvzorkování je sken v OOM rozmazaný (Sez. 111, stížnost uživatele);
+                           # supersamplujeme jemně ze zdroje (100+ Mpx skeny → pořád downsample).
 _BG_OPACITY = 0.6          # výchozí průhlednost ref ve <view> (uživatel doladí v OOM)
 
 
@@ -47,6 +49,14 @@ def _read_pgw(path: pathlib.Path):
     """.pgw 6 řádků (world-file pořadí A,D,B,E,C,F) → afinní (col,row)→svět: x=A·col+B·row+C, y=D·col+E·row+F."""
     A, D, B, E, C, F = [float(x) for x in path.read_text().split()]
     return A, B, C, D, E, F
+
+
+def _bg_out_size(gW: int, gH: int) -> tuple[int, int]:
+    """Rozlišení warpnutého podkladu: delší strana = _BG_MAX_PX, aspekt = gen grid (warp resampluje
+    do gen px frame). Záměrně SMÍ překročit gW×gH (supersampling) — gen grid je hrubý, jemné kroky
+    vzorkují detail ze zdrojového skenu místo zmáčknutí na gen rozlišení (Sez. 111)."""
+    f = _BG_MAX_PX / max(gW, gH, 1)
+    return max(1, round(gW * f)), max(1, round(gH * f))
 
 
 def _warp_to_gen(src: np.ndarray, sjtsk_to_src, gpgw, gW: int, gH: int, out_w: int, out_h: int) -> np.ndarray:
@@ -155,8 +165,7 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
         if missing:
             result["skipped"].append(why)
 
-    out_w = max(1, round(gW * min(1.0, _BG_MAX_PX / max(gW, gH))))   # downscale delší strany na _BG_MAX_PX
-    out_h = max(1, round(gH * min(1.0, _BG_MAX_PX / max(gW, gH))))
+    out_w, out_h = _bg_out_size(gW, gH)
     templates = []
     for bg_name, src_path, inv, recolor in sources:
         with Image.open(src_path) as im:
@@ -210,8 +219,7 @@ def add_resources_scan_background(name: str, gen_dir: str | pathlib.Path,
 
     with Image.open(scan) as im:
         src = np.asarray(im.convert("RGB"), dtype=np.uint8)
-    out_w = max(1, round(gW * min(1.0, _BG_MAX_PX / max(gW, gH))))
-    out_h = max(1, round(gH * min(1.0, _BG_MAX_PX / max(gW, gH))))
+    out_w, out_h = _bg_out_size(gW, gH)
     warped = _warp_to_gen(src, inv, gpgw, gW, gH, out_w, out_h)
     Image.fromarray(warped).save(gen_dir / "bg_scan.png")
 
