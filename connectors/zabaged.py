@@ -746,7 +746,11 @@ def map_path_to_isom(layer: str, props: dict) -> int:
     if layer == "Pěšina":
         # pozor: REST vrací atribut malými (`typuskom_k`); WFS ho měl velkými (Sez. 26)
         return 505 if props.get("typuskom_k") == "026" else 506
-    return 503   # fallback (neočekávaná vrstva) → viditelná plná čára
+    # No silent fallback (Sez. 110, ChatGPT %AUDIT:CODE): dřív neznámá vrstva tiše spadla na 503
+    # (viditelná plná cesta) → přejmenovaná/nová ZABAGED vrstva (stalo se WFS→REST Sez. 26) by se
+    # tvářila jako správná data. Selži nahlas — volající fetchuje jen známé PATH vrstvy.
+    raise ValueError(f"map_path_to_isom: neznámá ZABAGED komunikační vrstva {layer!r} "
+                     f"(props klíče: {sorted(props)[:8]}) — přidej mapování nebo oprav fetch filtr")
 
 
 def map_ride_to_isom(layer: str, props: dict) -> int:

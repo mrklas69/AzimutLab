@@ -166,19 +166,36 @@ def _write_tiles_json(per_split: dict, source: str) -> dict:
     return out
 
 
-def build_tiles() -> dict:
+def build_tiles(allow_missing: bool = False) -> dict:
     """Korpus (mrkla): projde split train/val/test, nakrájí všechny páry → _tiles.json.
 
     Zdroj = connectors/split.py (207 ČR keep, geo-split). Pár hledá v <cid>/gen/ (build_pairs).
-    Mapy bez hotového páru (gen/ chybí) se přeskočí (resume-friendly proti rozjetému batchi)."""
+
+    No silent fallback (Sez. 110, ChatGPT %AUDIT:CODE): split.load_split() vrací {} když `_split.json`
+    chybí → bez guardu by build prošel s PRÁZDNÝM datasetem a tvářil se OK. Proto:
+      - prázdný split (chybí/prázdný `_split.json`) → SELŽI nahlas;
+      - chybějící páry (gen/ není) → SELŽI se seznamem CID, ledaže allow_missing=True (vědomý resume
+        proti rozjetému build_pairs batchi — pak se jen zalogují a přeskočí)."""
     import logging
     log = logging.getLogger("area_tile")
 
+    if not split.load_split():
+        raise RuntimeError(
+            "build_tiles: split je prázdný — chybí nebo je prázdný resources/livelox/_split.json. "
+            "Spusť `python connectors/split.py` (geo-split kurovaného korpusu) PŘED tiling. "
+            "(no silent fallback — bez guardu by vznikl prázdný dataset, Sez. 110)")
+
     per_split = {}
+    missing_all: list[str] = []
     for s in ("train", "val", "test"):
         cids = [d.name for d in split.dirs_for(s)]
-        pairs = [(cid, _resolve_pair_dir(cid)) for cid in cids]
-        pairs = [(cid, pd) for cid, pd in pairs if pd is not None]
+        resolved = [(cid, _resolve_pair_dir(cid)) for cid in cids]
+        missing = [cid for cid, pd in resolved if pd is None]
+        missing_all += [f"{s}:{cid}" for cid in missing]
+        pairs = [(cid, pd) for cid, pd in resolved if pd is not None]
+        if missing:
+            log.warning("[%s] %d/%d map bez páru (gen/ chybí): %s", s, len(missing), len(cids),
+                        ", ".join(missing))
         agg: Counter = Counter()
         n_tiles = 0
         for i, (cid, pd) in enumerate(sorted(pairs), 1):
@@ -188,6 +205,11 @@ def build_tiles() -> dict:
             agg.update(c)
             log.info("[%s %d/%d] %s -> %d dlaždic", s, i, len(pairs), cid, n)
         per_split[s] = {"counts": agg, "n_tiles": n_tiles, "n_maps": len(pairs)}
+    if missing_all and not allow_missing:
+        raise RuntimeError(
+            f"build_tiles: {len(missing_all)} map ve splitu nemá hotový pár (gen/ chybí) — "
+            f"build_pairs pravděpodobně neproběhl celý. Dokonči ho, nebo spusť s allow_missing=True "
+            f"(vědomý resume). Chybí: {', '.join(missing_all)} (no silent fallback, Sez. 110)")
     return _write_tiles_json(per_split, source="corpus (split.py)")
 
 

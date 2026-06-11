@@ -1,11 +1,11 @@
 """
 dataset.py — PyTorch loader nad dlaždicemi reconstructor modelu Png2Area (Sez. 88).
 
-`model/png2area/tile.py` předkrájel páry (X=sken RGB, Y=area label 0..15) na 512×512 PNG dlaždice do
-`resources/area_tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu přidává augmentaci
+`model/png2area/tile.py` předkrájel páry (X=sken RGB, Y=area label 0..N_AREA-1) na 512×512 PNG dlaždice
+do `resources/area_tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu přidává augmentaci
 a vrací tensory pro `model/png2area/train.py`. Izomorfní s archivovaným model/runnability/dataset.py —
-liší se: X=sken (ne ortho), Y=16 area tříd (ne 5 runnability), BEZ IGNORE (Y z naší .omap je čisté,
-žádný přetisk → každý px je validní třída včetně pozadí 0).
+liší se: X=sken (ne ortho), Y=N_AREA area tříd (18 od Sez. 103: 17 ISOM kódů + pozadí; ne 5 runnability),
+BEZ IGNORE (Y z naší .omap je čisté, žádný přetisk → každý px je validní třída včetně pozadí 0).
 
 Augmentace (jen train split): D4 (8 dihedrálních symetrií) + fotometrická degradace skenu.
 - D4 je bezpečná: flip a rotace o násobky 90° NEinterpolují → area labely zůstanou přesně 0..N_AREA-1
@@ -36,6 +36,7 @@ _TILES_DIR = _REPO_ROOT / "resources" / "area_tiles"
 # generator/ na path kvůli degrade.py (fotometrická augmentace skenu, přesun z build_pair Sez. 103)
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
 from degrade import degrade   # noqa: E402
+from omap_raster import N_AREA   # noqa: E402  (SSoT počtu area tříd — guard proti stale _tiles.json, Sez. 110)
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -117,11 +118,24 @@ class AreaTileDataset(Dataset):
 def class_weights() -> list[float]:
     """Median-freq váhy spočtené v tile.py (z TRAIN dlaždic) — čteme z _tiles.json.
 
-    SSoT: váhy žijí v resources/area_tiles/_tiles.json (klíč class_weights_list, pořadí 0..15),
-    ať se nepřepočítávají na dvou místech (DRY). CrossEntropyLoss(weight=) je bere přímo."""
+    SSoT: váhy žijí v resources/area_tiles/_tiles.json (klíč class_weights_list, pořadí 0..N_AREA-1),
+    ať se nepřepočítávají na dvou místech (DRY). CrossEntropyLoss(weight=) je bere přímo.
+
+    Guard (no silent fallback, Sez. 110): _tiles.json může být STALE vůči aktuálnímu schématu
+    (změna N_AREA: 16→18 Sez. 99/103, drift 301/301.1 Sez. 110). Mismatch délky vah / n_area by
+    jinak prošel tiše do CrossEntropyLoss s nesprávnými vahami → selži nahlas s instrukcí na rebuild."""
     import json
-    data = json.loads((_TILES_DIR / "_tiles.json").read_text(encoding="utf-8"))
-    return data["class_weights_list"]
+    tpath = _TILES_DIR / "_tiles.json"
+    data = json.loads(tpath.read_text(encoding="utf-8"))
+    weights = data["class_weights_list"]
+    meta_n = data.get("_meta", {}).get("n_area")
+    if meta_n != N_AREA or len(weights) != N_AREA:
+        raise RuntimeError(
+            f"_tiles.json je STALE vůči aktuálnímu schématu: _meta.n_area={meta_n}, "
+            f"len(class_weights_list)={len(weights)}, ale omap_raster.N_AREA={N_AREA}. "
+            f"Přestav dlaždice: `python model/png2area/tile.py` (build_tiles / build_tiles_dev). "
+            f"({tpath})")
+    return weights
 
 
 if __name__ == "__main__":

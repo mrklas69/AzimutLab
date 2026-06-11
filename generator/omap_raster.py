@@ -34,10 +34,13 @@ Image.MAX_IMAGE_PIXELS = None
 
 # Z-order plošných ISOM kódů (zdola nahoru) → label index (1..N; 0 = pozadí/bez plochy). Pořadí = render
 # z-order (501.1 administrativní base DOLE … 521 budovy NAHOŘE); překryv řeší pozdější kresba (ověř vizuálně).
-# Kódy = SKUTEČNÉ kódy symbolů v generované .omap (měření Sez. 87: voda=301.1, pole=412.1, kolejiště 501 je
-# v template `combined` ale plošné). Statický (NE per-soubor): třídy MUSÍ být konzistentní napříč korpusem,
-# jinak by se modelu rozhodily. Vztah k omap_export.AREA_CODES: tam = „co se zapíše jako uzavřený path";
-# tady = „label schéma Png2Area" (jiná doména → vlastní seznam; DRY-extrakce až 3. konzument, jako ISOM_REF).
+# Kódy = SKUTEČNÉ kódy symbolů v generované .omap (pole=412.1, kolejiště 501 je v template `combined` ale plošné).
+# Voda = 301 (combined type=16, se břehovou linií; Sez. 58 změna z 301.1 — generátor `generator.py:3968` ji od
+# té doby zapisuje jako 301, NE 301.1). Drift opraven Sez. 110: AREA_ZORDER mělo stale 301.1 → omap_raster vodu
+# tiše zahazoval z Y (Lidové sady 58/0, měřeno; conceptual-integrity bug, ChatGPT %AUDIT:CODE).
+# Statický (NE per-soubor): třídy MUSÍ být konzistentní napříč korpusem, jinak by se modelu rozhodily.
+# Tohle je SSoT area schématu: omap_export.AREA_CODES (close-flag membership) se z TOHOTO seznamu odvozuje
+# (`frozenset(AREA_ZORDER)`) → nemůžou se znovu rozejít. Z-order navíc = raster-specifický (export ho nepotřebuje).
 AREA_ZORDER = [
     "501.1",  # Paved area bez obrysu (administrativní výplň sídel) — base vespod
     "520",    # Out-of-bounds (olivová: hřbitov/privátní/sad/lom)
@@ -46,7 +49,7 @@ AREA_ZORDER = [
     "402",    # Open land se stromy (park)
     "402.1",  # Open land s keři (ostatní udržovaná zeleň)
     "412.1",  # Cultivated land (pole) — combined složka 401+412.1
-    "301.1",  # Vodní plocha
+    "301",    # Vodní plocha (combined se břehovou linií, Sez. 58; BYLO 301.1 → drift Sez. 110)
     "308",    # Marsh (mokřad)
     "310",    # Indistinct marsh (nezřetelná bažina, pseudo Sez. 99)
     "406",    # Forest: slow running (světlá zeleň)
@@ -68,7 +71,7 @@ LABEL_VIS = {
     CODE_TO_LABEL["401"]: (252, 221, 118), CODE_TO_LABEL["403"]: (254, 235, 175),
     CODE_TO_LABEL["402"]: (250, 235, 160),
     CODE_TO_LABEL["402.1"]: (210, 225, 130), CODE_TO_LABEL["412.1"]: (245, 215, 140),
-    CODE_TO_LABEL["301.1"]: (50, 162, 222), CODE_TO_LABEL["308"]: (120, 200, 230),
+    CODE_TO_LABEL["301"]: (50, 162, 222), CODE_TO_LABEL["308"]: (120, 200, 230),
     CODE_TO_LABEL["310"]: (165, 215, 235),   # Indistinct marsh — světlejší modrá (řidší pattern)
     CODE_TO_LABEL["406"]: (181, 230, 181), CODE_TO_LABEL["408"]: (120, 200, 140),
     CODE_TO_LABEL["410"]: (40, 160, 90), CODE_TO_LABEL["206"]: (120, 120, 120),

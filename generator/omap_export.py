@@ -28,6 +28,12 @@ import math
 import re
 from pathlib import Path
 
+# SSoT plošných ISOM kódů: omap_raster.AREA_ZORDER je kanonický (label schéma Png2Area + z-order).
+# AREA_CODES (close-flag membership) se z něj odvozuje → export a raster se NEMŮŽOU rozejít (drift
+# 301/301.1 opraven Sez. 110, ChatGPT %AUDIT:CODE). omap_raster importuje jen stdlib/numpy/PIL →
+# žádný cyklus (omap_export → omap_raster, ne naopak; raster nikdy nepotřebuje writer).
+from omap_raster import AREA_ZORDER
+
 # Čistý ISOM 2017-2 template (vyrobil uživatel v OOM: Sez. 14, přepsán Sez. 18; color-table
 # rozšířena Sez. 54). Verzovaný vedle modulu v generator/ — je to FOUNDATION artefakt (symbol IDs,
 # color-table s PRIORITAMI, georef), na němž stojí celý .omap export. NE generovaný kódem.
@@ -83,7 +89,12 @@ ROTATABLE_CODES = frozenset({"110", "512.2", "519"})
 # otevřené. Verify-against-source (Sez. 18): OOM po otevření flagless souboru sám doplnil
 # na poslední bod ringu flag 18 → flagless plochy se nevyplnily.
 # 206 Gigantic boulder + 208 Boulder field = area_symbol (type=4 v template) → patří do AREA_CODES.
-AREA_CODES = frozenset({"301", "521", "501", "501.1", "206", "208", "401", "403", "402", "402.1", "520", "308", "310", "406", "408", "410", "412.1"})  # 301 combined voda Sez. 58 (z 301.1, přidán břeh); 206 Sez. 30; 401/520 pokryv Sez. 41; 308 mokřad Sez. 44 + 310 Indistinct pseudo Sez. 99; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 park/zeleň Sez. 53; 501.1 ostatní plocha v sídlech Sez. 54; 208 pole balvanů Sez. 57; 408/410 věk porostu Sez. 62 (zeleň PROXY); 403 rough open Sez. 92 (separace)
+# ODVOZENO z omap_raster.AREA_ZORDER (SSoT, viz import výše) — frozenset = membership (close-flag),
+# z-order omap_export nepotřebuje. Dřív taxativní literál → rozešel se s raster u vody (301 vs 301.1,
+# Sez. 110). Obsah (Sez. odkazy): 301 voda combined Sez. 58; 206 Sez. 30; 401/520 pokryv Sez. 41; 308
+# mokřad Sez. 44 + 310 Indistinct Sez. 99; 406 stromořadí Sez. 45; 412.1 pole Sez. 47; 402/402.1 Sez. 53;
+# 501.1 Sez. 54; 208 Sez. 57; 408/410 věk porostu Sez. 62 (PROXY); 403 rough open Sez. 92 (separace).
+AREA_CODES = frozenset(AREA_ZORDER)
 OOM_CLOSE_FLAG = 18   # OOM coord flag uzavřeného ringu (16 hole point + 2 close point)
 
 
