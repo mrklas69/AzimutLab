@@ -99,6 +99,11 @@ N_CLASS = 5
 # velikost okna majority filtru (px). Na ~1,33 m/px je 7 px ≈ 9 m — potlačí vrstevnici/cestu
 # uvnitř plochy, zachová plošný tvar. Laděno probe Sez. 68.
 _MEDIAN_SIZE = 7
+# pixelový rozpočet jednoho chunku v _classify (Sez. 111). Nearest-color staví dočasné pole
+# (N_chunk, 13, 3) int32 (~156 B/px), s temp od `(a-b)**2` peak ~2× → 4 Mpx ≈ 1,2 GB transient.
+# Řez po řádcích drží peak konstantní bez ohledu na velikost mapy → segment_gt zvládne i 97 Mpx
+# obří mapy (RAM strop ntbhej ~30 Mpx na celorázové alokaci, Sez. 110); výstup byte-identický.
+_CLASSIFY_CHUNK_PX = 4_000_000
 # dilatace přetisk-masky (px iterací 3×3): pokryje antialiasovaný okraj purpurových čar/kroužků,
 # který nearest-color klasifikuje jako sousední barvu. 2 px ≈ 2,7 m na 1,33 m/px. Sez. 72.
 _OVERPRINT_DILATE = 2
@@ -113,15 +118,25 @@ _MAP_MERGE_DIL = 3
 
 
 def _classify(rgb: np.ndarray) -> np.ndarray:
-    """Každý pixel → index nejbližší ISOM barvy (do list(ISOM_REF)). Vrací (H,W) int.
+    """Každý pixel → index nejbližší ISOM barvy (do list(ISOM_REF)). Vrací (H,W) uint8.
 
     Vrací index barvy (ne rovnou label) — volající z něj odvodí jak runnability label
     (přes _LABEL), tak mapovou plochu (přes _MAP_COLOR_KEYS) jediným argmin (Sez. 73).
+
+    Řez po řádcích (chunk ~_CLASSIFY_CHUNK_PX, Sez. 111): dočasné pole (N,13,3) int32 by na
+    celé mapě přeteklo RAM (~5,5 GiB @ 35 Mpx → strop ntbhej ~30 Mpx). Per-pixel argmin je
+    nezávislý → chunking je byte-identický s celorázovou klasifikací, jen drží peak konstantní.
     """
     refs = np.array([ISOM_REF[k] for k in ISOM_REF], dtype=np.int32)
-    flat = rgb.reshape(-1, 3).astype(np.int32)   # int32: 255²·3 přeteče int16
-    d = ((flat[:, None, :] - refs[None, :, :]) ** 2).sum(2)
-    return d.argmin(1).reshape(rgb.shape[:2])
+    H, W = rgb.shape[:2]
+    out = np.empty((H, W), dtype=np.uint8)       # 13 < 256 referencí → uint8 (index, ne label)
+    rows = max(1, _CLASSIFY_CHUNK_PX // max(W, 1))
+    for y0 in range(0, H, rows):
+        y1 = min(y0 + rows, H)
+        flat = rgb[y0:y1].reshape(-1, 3).astype(np.int32)   # int32: 255²·3 přeteče int16
+        d = ((flat[:, None, :] - refs[None, :, :]) ** 2).sum(2)
+        out[y0:y1] = d.argmin(1).reshape(y1 - y0, W)
+    return out
 
 
 def _detect_map_area(mappix: np.ndarray) -> np.ndarray:
