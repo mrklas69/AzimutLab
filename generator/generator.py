@@ -4326,6 +4326,14 @@ def main() -> None:
         barriers=args.barriers,
         ortho=args.ortho, ortho_mpp=args.ortho_mpp, grivation=grivation)
     _log.info("výstup: %s", out.resolve())
+    # ořez přesahu na papír: real ČÚZK vrací CELÉ features protínající bbox → objekty sahají
+    # mimo papír (okolní sídla, „Nisa do Vesce", Sez. 113/114). Vektorový .omap; rgb.png je už
+    # ořezán canvasem. Jen real (noise je celý uvnitř → no-op zbytečný). No silent fallback: loguj.
+    if args.terrain == "real":
+        from cut import cut_box
+        kept, removed = cut_box(out, out.name)
+        _log.info("ořez na papír (cut_box): %d objektů po ořezu (%d celých mimo papír odstraněno; "
+                  "linie/plochy přes hranu geometricky oříznuty)", kept, removed)
 
 
 if __name__ == "__main__":
