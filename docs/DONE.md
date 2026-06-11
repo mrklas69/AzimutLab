@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 110 (2026-06-11) — Korpus na ntbhej + deep research + rock_relief v2 + ChatGPT %AUDIT:CODE (ntbhej)
+- [x] **Livelox korpus na ntbhej 57 → 264 map (+207), GT ~258.** `livelox.py batch` (870 eventů, idempotentní, GT inline;
+      ok 204/skip 38/fail 628 = staré smazané bloby). 22 map bez GT diagnostikováno (tranzient batch-time, standalone projde)
+      → `temp/fill_missing_gt.py` doplnil 15. Nález: **`segment_gt` paměťový strop na ntbhej ~30 Mpx** (alokace N_px×13×3 int32
+      = 5 GiB @ 35 Mpx) → 6 obřích map (76-97 Mpx + 2× 35) carry downscale-before-segment.
+- [x] **Deep research veřejných zdrojů (deep-research skill, 103 agentů) → RESEARCH.md.** Uťat session limitem (7 potvrzeno
+      3-0, zbytek neověřen — NE vyvrácen). Negativní nález: žádný otevřený archiv ZDROJOVÝCH vektorů (.omap/.ocd) → vektorová
+      GT jen z `generator()`. ČSOS Archiv = jen metadatový index (96 dpi watermark náhledy + JSON API, ne data). Leady
+      k doověření: arxiv 2405.04634 (ML nad OB mapami), Copernicus SWF + AOPK CC-BY (vegetace/mokřady), OO Mapper sample.
+- [x] **`rock_relief` v2 — pevné 0,5 m/px + tiling fetch + despeckle r=1px** (algoritmus; KPI carry). Z jiného threadu
+      handoff + zlatý vzorek (`docs/kb/rock-detection-v2/`). Probe doložil −43 % poddetekce (`TARGET_PX_M=1,5`) → `ANALYSIS_RES=0,5`
+      + `_fetch_assembled_grid` (dlaždice ≤ `MAX_FETCH_PX`, seamless assembled grid → morfologie 1×, čistší než handoff §7,
+      `dmr.py` netknut, reuse `fetch_elevation_grid` + inverzní transformer 5514→4326); −27 % (`OPEN_M` r=2px) → r=1px.
+      `MAX_TOTAL_PX=50 Mpx` strop → zhrubne s hlasitým varováním. **Verify:** golden Šulcák 48/2,56 ha = match (48/2,53,
+      tol ±2/±5 %), seamless tiling (vynucené 4 dlaždice identické), reálný HS 2×2 km 159 bloků, E2E `generate_map` HS 1×1 km
+      = 49× 206 + 411× 204 pseudo. Kontrakt funkce identický. **KPI carry HAL3000/Velbloud** (Bedř/Blatná neskalnaté).
+- [x] **ChatGPT 5.5 %AUDIT:CODE — verify-against-source (5 nálezů opraveno, kritický + 4).** Ověřeno proti zdroji, ne slepě.
+      **① KRITICKÝ — voda 301/301.1, Png2Area Y zahazoval vodu.** `generator.py:3968` zapisuje vodu `301` (combined, od 06-01),
+      `omap_raster.AREA_ZORDER` měl `301.1` (od vzniku 06-04). Měřeno: Lidové sady 58 obj → 0 v labelech. **Git timeline:**
+      voda 301 (06-01) ≪ omap_raster (06-04) ≪ trénink Sez. 103 (06-09) → **omap_raster NIKDY vodu nezachytil; oba Png2Area
+      tréninky (mIoU 0,640/0,568) se vodu nenaučily.** Oprava `301.1`→`301` + **root-cause SSoT** (`omap_export.AREA_CODES` =
+      `frozenset(omap_raster.AREA_ZORDER)`, import bez cyklu) → voda 58→58/11→11/8→8. **② stale `_tiles.json`** (16 vs 18) →
+      `class_weights()` guard selže nahlas. **③ no-silent-fallback** `build_tiles`/`load_split` → fail na prázdný split /
+      chybějící páry (`--allow-missing`). **⑤** `zabaged.map_path_to_isom` 503 fallback → `ValueError`. **⑥** stale komentáře
+      dataset.py. py_compile 6 souborů + 8 konzumentů OK. → Png2Area re-trénink povýšen `[!]` precondition (voda poprvé v Y).
+
 ## Sezení 109 (2026-06-10) — Diagnostika KPI pák (negativní nálezy) + podklady regrese + ořez přesahu na quad (ntbhej)
 - [x] **Měření KPI pák (`temp/sim_kpi.py`) — obrat intuice:** doplnit zeleň KPI **snižuje** (406 −3,5 / 408 −2,7 pb,
       gen globálně podstřeluje → ředění); páka = **oprava přestřelů** (521 budova +2,35 / kombo +4,98 pb). Kompas

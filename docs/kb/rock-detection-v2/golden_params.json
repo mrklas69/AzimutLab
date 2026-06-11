@@ -1,0 +1,21 @@
+{
+  "params": {
+    "lat": 50.5521339,
+    "lon": 15.1582817,
+    "half_m": 360,
+    "res": 0.5,
+    "thr": 46.0,
+    "close_r": 8,
+    "fill_max": 250.0,
+    "min_area": 60.0,
+    "simp": 1.2,
+    "chaikin_iters": 2
+  },
+  "expected": {
+    "polygons": 48,
+    "area_ha": 2.53,
+    "px": 0.5,
+    "crs": "EPSG:5514",
+    "tolerance": "pocet +-2, plocha +-5 %"
+  }
+}
