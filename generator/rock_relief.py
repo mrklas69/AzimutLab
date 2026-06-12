@@ -54,6 +54,14 @@ OPEN_M = 0.5               # despeckle (binary_opening) → disk r=1px @ 0,5 m/p
 CLOSE_M = 4.0              # uzávěr (binary_closing) — stěny + vršek scelí do bloku (jádro algoritmu)
 FILL_MAX_M2 = 250.0        # vyplnit jen díry menší než tohle (vrcholové plošiny); větší = průchody → nechat
 MIN_AREA_M2 = 60.0         # zahodit fragmenty pod tuhle plochu (drobky, ne skalní blok)
+# Per-mapa density gate (Sez. 116): rozlišuje SKALNATOU oblast od mikroreliéfu strmých lesních svahů.
+# Měření probe_rock_overdetect: skalnaté mapy mají >=0,16 % px nad prahem (SV 0,158 / HS 2,22 / golden Šulcák
+# 3,72 %), ne-skalnaté jen ~0,04 % (Bedřichovka 0,042 / Blatná 0,037 — rozptýlený mikroreliéf: zářezy cest,
+# břehy, terénní stupně). Práh 0,08 % odděluje s ~2× marginem na obě strany. Pod práh → vrstva 206 VYPNUTA
+# pro celou mapu (no silent: hlasitý INFO log). Plošný 206 = skalnatá OBLAST; osamělé skály jdou přes body
+# 204/207 (ZABAGED). Důvod: rock v2 (Sez. 110, ANALYSIS_RES 0,5 m) nabírá mikroreliéf → falešné 206 →
+# 210 Stony přestřel → KPI −3,25 pb (diagnostika Sez. 115). Golden Šulcák zůstává beze změny (3,72 % >> práh).
+DENSITY_GATE_PCT = 0.08    # min. podíl px nad SLOPE_THR_DEG [%], aby se vrstva 206 na mapě vůbec kreslila
 SIMPLIFY_M = 1.2           # Douglas-Peucker tolerance [m] (odstraní pixelové schody)
 CHAIKIN_ITERS = 2          # Chaikinovo vyhlazení obrysu (organický tvar; legitimní — de-pixeluje RASTER
 #                            masku, NE už-čisté vektory jako ZABAGED Sez. 30)
@@ -294,6 +302,16 @@ def detect_rock_areas(lat: float, lon: float, geo_bbox: tuple,
         zs = gaussian_filter(z.astype(float), GAUSS_SIGMA)
         gy, gx = np.gradient(zs, px_m, px_m)
         slope_deg = np.degrees(np.arctan(np.hypot(gx, gy)))
+        # density gate (Sez. 116): podíl strmých px (NaN dlaždice za hranicí → False = not-rocky). Pod práh
+        # je celá mapa mikroreliéf, ne skalnatá oblast → 0 ploch 206 (zachová golden, smaže falešné Bedř/Blatná).
+        density_pct = 100.0 * float(np.mean(slope_deg >= SLOPE_THR_DEG))
+        if density_pct < DENSITY_GATE_PCT:
+            del z, zs, gy, gx, slope_deg
+            logging.getLogger("rock_relief").info(
+                "skalnatost mapy %.3f %% px >= %.0f deg < prah %.2f %% → 0 ploch 206 "
+                "(mikrorelief, ne skalnata oblast; Sez. 116 density gate).",
+                density_pct, SLOPE_THR_DEG, DENSITY_GATE_PCT)
+            return []
         mask = _rock_mask(slope_deg, px_m)
     del z, zs, gy, gx, slope_deg                                   # uvolni ~1,4 GB před _contour_rings
     if not mask.any():
