@@ -2,7 +2,16 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
-## Sezení 118 (2026-06-12) — Png2Area re-trénink (voda 301 fix) + 6 testovacích nálezů + reakce na Fable5 audit (HAL3000)
+## Sezení 119 (2026-06-12) — A1 reálný benchmark Png2Area: vizuál čte mapu, číselná mIoU propastná (HAL3000, scratch)
+- [~] **A1 reálný benchmark (Fable5 audit A1)** — postaven ve `temp/` (nepovýšen). **Fáze 1 vizuál HOTOVÁ**
+  (`eval_real_probe.py`): model přenáší na reálný sken (Bedřichovka/Blatná struktura sedí, **voda 301
+  excelentní na Blatné = Sez. 118 fix validován reálně**); artefakty striping + modrá halucinace.
+  **Fáze 2 číselná ROZPRACOVÁNA** (`eval_real.py`): id-based parser kartografovy .omap (1230 obj) +
+  crosswalk 2000→2017 + **georef paper→sken px vyřešen** (rot_sign=−1 net rotace 0, flipY=1) →
+  **reálná mIoU 0,058 vs syntetická 0,537**. Nález: vizuál vs pixel-exact IoU se rozcházejí. Carry:
+  diagnostika nízké IoU (odstínová záměna? metrika?) + povýšení `eval_real.py` → `model/png2area/`.
+
+
 - [x] **Png2Area přetrénován na N_AREA 18 (voda 301 fix, precondition Sez. 110).** Celý řetěz: verify 1 páru
   (voda v Y 0 → 81 511 px) → regen 205 párů (`skip_existing=False`, ok 205/fail 2) → re-tile (`301` váha 0,0 →
   0,996) → plný trénink 40 ep. **TEST mIoU 0,537, voda 301 IoU 0,65** (dříve strukturálně 0 = cíl SPLNĚN, fix

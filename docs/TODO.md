@@ -8,10 +8,17 @@ Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1�
 Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
-- [!] *(A1, KRITICKÁ; HAL3000 — modely + resources `.pgw`)* **Reálný benchmark reconstructorů — měřit
-  doménový gap syntetika→sken.** Obě hlavní čísla (Png2Area mIoU 0,568 / Png2Point mF1 0,897) jsou změřena
-  jen na vlastní syntetice; na reálném skenu neběžel žádný test. Postavit malý benchmark a reportovat při
-  KAŽDÉM dalším tréninku dvojici čísel (syntetika / realita):
+- [~] *(A1, KRITICKÁ; HAL3000 — ROZPRACOVÁNO Sez. 119)* **Reálný benchmark reconstructorů — měřit
+  doménový gap syntetika→sken.** **Sez. 119 (`temp/eval_real{,_probe}.py`, scratch nepovýšeno):** Fáze 1
+  vizuál HOTOVÁ — model přenáší na reálný sken (struktura sedí, voda 301 excelentní na Blatné = Sez. 118
+  fix validován reálně; artefakty striping + modrá halucinace). Fáze 2 číselná: id-based parser kartografovy
+  .omap (1230 obj) + crosswalk 2000→2017 + **georef paper→sken px VYŘEŠEN** (rot_sign=−1 net rotace 0,
+  flipY=1, ověřeno colorized Y) → **reálná mIoU 0,058 vs syntetická 0,537**. **Nález: vizuál vs pixel-exact
+  IoU se ROZCHÁZEJÍ** (colorized Y georefově OK, model vizuálně čte, ale IoU propastné). **CARRY:** diagnostika
+  nízké IoU (odstínová záměna 401/403/406? jemná struktura Y vs hrubá pred? striping? subpixel georef? →
+  matice záměn pred×Y; zvážit „soft" metriku na hrubších skupinách) + povýšit `eval_real.py` → `model/png2area/`.
+  Obě hlavní čísla (Png2Area mIoU 0,537 / Png2Point mF1 0,897) jsou jinak změřena jen na syntetice. Reportovat
+  při KAŽDÉM dalším tréninku dvojici (syntetika / realita):
   (a) **Png2Area na `resources/`:** X = sken reálné mapy (PNG + `.pgw`), Y = rasterizace kartografovy
   `.omap` přes `omap_raster` — **POZOR crosswalk:** reálné mapy jsou ISOM 2000, `AREA_ZORDER` čeká 2017-2
   kódy → před rasterizací přemapovat přes `.crt` (vzor `compare_isom`, lekce Sez. 94 — bez crosswalku vyjde
