@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 117 (2026-06-12) — Meta-audit Fable 5: prompt + audit + úkoly + %BEGIN zapojení (HAL3000, docs-only)
+- [x] **`docs/AUDIT_FABLE5_PROMPT.md`** — opakovatelné zadání meta-auditu (role/postup/struktura/omezení;
+  datum parametrické; od 2. vydání povinná tabulka stavu minulých námitek VYŘEŠENO/TRVÁ/ZHORŠENO).
+- [x] **`docs/AUDIT_FABLE5_260612.md`** — 1. vydání: **A1 doménový gap syntetika→sken neměřen (KRITICKÁ)** /
+  A2 purple+geometrická augmentace chybí / A3 KPI Goodhart / A4 architecture drift (odklad „plné revize"
+  Sez. 79) / A5 nula testů / A6 artefakty bus-factor / A7 Png2Line bez %THINK + B1–B7 + C (9 pravidel pro
+  kolegy) + D (nerozbíjet). Podloženo Explore agentem nad kódem (0 testů, metriky jen syntetika, degrade
+  bez fialové, 15× sys.path).
+- [x] **TODO sekce „Audit Fable 5 — námitky → úkoly"** — 12 položek s kódy/stroji/podrobnostmi pro
+  jednodušší modely; 2 existující body povýšeny (reálný transfer 204/210 [!] ← A1; geometrická augmentace
+  ← A2). Hotové se přesouvají do DONE s kódem námitky.
+- [x] **%BEGIN zapojení (`docs/PROMPTS.md`)** — nový bod 7 audit-check (TL;DR + sekce C nejnovějšího
+  auditu) + rozšíření bodu 2: cadence AUDIT_FABLE5 ≥25 sez / milník + úsudkové práce (audity, velká
+  %THINK) nejsilnějším modelem, slabší model nabízí handoff.
+- [x] **Censure 1 → oprava auditu:** A3(2) původně „rozšířit KPI referenci o Livelox mapy" — KPI potřebuje
+  vektorovou `.omap`, Livelox je raster-only → referenci rozšíří jen další kartografické `.omap` (resources).
+
 ## Sezení 116 (2026-06-12) — Rock v2 over-detection density gate → KPI 48,2 → 55,0 % (+6,8 pb, ntbhej)
 - [x] **Density gate proti rock v2 over-detection 206** (`rock_relief.DENSITY_GATE_PCT=0,08`). Fokus z Příště 115
   (volba uživatele „rekalibrace pseudo / over-detection"). **Measure-first** (`temp/probe_rock_overdetect`, fetch-once +

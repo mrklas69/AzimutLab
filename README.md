@@ -152,6 +152,7 @@ CLAUDE.md              # thin project overlay (AI rules only — facts live here
 README.md              # this file — identity, DAG, status
 docs/
   PROMPTS.md           # %BEGIN / %END macros
+  AUDIT_FABLE5_*.md    # meta-audit by the strongest model: _PROMPT = repeatable assignment, dated issues (session 117)
   architecture.md      # canonical DAG: layers, UC dependencies, Pic2Omap relationship
   diary/YYYY-MM-DD.md  # session log
   TODO.md / DONE.md    # work tracking

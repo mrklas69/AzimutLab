@@ -19,6 +19,19 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    (Pozn.: cadence počítej od posledního výskytu daného auditu v diáři — od založení,
    pokud žádný (%CALIBRATE/pruning poprvé Sez. 17). %AUDIT:CODE reálně spouští LOC
    práh ≥500, ne počet sezení — `generator/` + `connectors/` už mají kód.)
+   **Projektové rozšíření (Sez. 117):**
+   - **Meta-audit AUDIT_FABLE5: ≥25 sez** od posledního `docs/AUDIT_FABLE5_*.md`, NEBO
+     milník (fáze B→A, nový reconstructor, výsledek A1 benchmarku). Spouští se zadáním
+     `docs/AUDIT_FABLE5_PROMPT.md`. Jiná optika než %AUDIT:CODE/DOCS/%CALIBRATE
+     (strategie, Goodhart, mezivrstvy) — nenahrazují se navzájem.
+   - **Úsudkové práce nejsilnějším modelem.** %AUDIT:CODE / %AUDIT:DOCS / %CALIBRATE /
+     AUDIT_FABLE5 + velká rozhodovací %THINK sezení (typ revize taxonomie UC, volba
+     přístupu Png2Line) patří na nejsilnější dostupný model (Fable/Mythos třída) —
+     úsudek nad velkým kontextem + verifikace nálezů proti zdroji (doklad: Sez. 93
+     4 agentí falešné poplachy; Sez. 110 ChatGPT audit 1 zásah + šum). Audity jsou
+     ntbhej-friendly → volba modelu nic neblokuje. Je-li audit zralý a sezení běží
+     na slabším modelu, **nabídni handoff** („audit příště na silném modelu") místo
+     provedení hned — výjimka: práh překročen o ≥2 a uživatel handoff nechce.
 3. Stale Příště check — položka v „Příště" ≥5 sezení po sobě → DO/DROP. **Počítej VŠECHNY body,
    i vedlejší/carry** (ne jen fokus bod 1). Nález Sez. 69: „compare/Slovanka" visela jako vedlejší
    bod 3 devětkrát, protože Stale check sledoval jen hlavní fokus → eskalace zpožděna.
@@ -39,6 +52,13 @@ Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
    (`--table`, největší proporční díry). Zdroj: poslední zaznamenaná hodnota z diáře/DIARY indexu
    (levné, vždy dostupné). **Přeměř** (na stroji s `resources/*.pgw`), jen pokud se od posledního
    měření měnil generátor (`connectors/`+`generator/` `.py`) → ukaž TREND vůči minulému sezení.
+
+7. **Audit Fable check (Sez. 117).** Existuje-li `docs/AUDIT_FABLE5_*.md`, načti
+   z NEJNOVĚJŠÍHO soubor TL;DR + **sekci C (doporučení pro kolegy)** a drž ta pravidla
+   po celé sezení — platí opakovaně, ne jednorázově. Auditové úkoly žijí v TODO sekci
+   „Audit Fable 5 — námitky → úkoly": řeš je jako běžné [!] položky (jedna položka =
+   jeden fokus), hotové přesouvej do DONE **s kódem námitky** (A1, B4, …), ať je
+   příští audit (`docs/AUDIT_FABLE5_PROMPT.md`) umí odškrtat.
 
 ## %END — konec sezení
 = globální %DOCS + commit pravidla. Projektová specifika:

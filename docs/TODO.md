@@ -3,6 +3,82 @@
 Markery: `[ ]` čeká · `[~]` rozděláno · `[x]` hotovo (přesouvá se do DONE) · `[!]` priorita.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
+## Audit Fable 5 (2026-06-12) — námitky → úkoly
+Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1–A7, připomínky B1–B7).
+Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
+při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
+
+- [!] *(A1, KRITICKÁ; HAL3000 — modely + resources `.pgw`)* **Reálný benchmark reconstructorů — měřit
+  doménový gap syntetika→sken.** Obě hlavní čísla (Png2Area mIoU 0,568 / Png2Point mF1 0,897) jsou změřena
+  jen na vlastní syntetice; na reálném skenu neběžel žádný test. Postavit malý benchmark a reportovat při
+  KAŽDÉM dalším tréninku dvojici čísel (syntetika / realita):
+  (a) **Png2Area na `resources/`:** X = sken reálné mapy (PNG + `.pgw`), Y = rasterizace kartografovy
+  `.omap` přes `omap_raster` — **POZOR crosswalk:** reálné mapy jsou ISOM 2000, `AREA_ZORDER` čeká 2017-2
+  kódy → před rasterizací přemapovat přes `.crt` (vzor `compare_isom`, lekce Sez. 94 — bez crosswalku vyjde
+  nesmysl). Start: Bedřichovka + Blatná (mají `.pgw`); metrika = stejný per-class IoU/mIoU kód jako
+  `train.evaluate` (žádná nová metrika). Pseudo vrstvy generátoru (516 / 310-split / pseudo 204/210)
+  v reálném Y nejsou → vyhodnotit jen třídy přítomné v kartografově `.omap` (viz B6 registr níže).
+  (b) **Png2Point na reálném skenu** = existující bod „reálný transfer 204/210" (sekce Png2Point) — touto
+  námitkou POVÝŠEN, měřit společně s (a). DoD úkolu: skript `model/png2area/eval_real.py` (nebo `train.py
+  --real`), čísla v diáři + README status. Výsledek řídí prioritu A2 vs další pokrytí.
+- [!] *(A2; mrkla, až PO [!] re-tréninku 301-voda a PO změření A1 baseline)* **Purple-course + geometrická
+  augmentace.** Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy
+  neviděl jako vstup — `degrade.py` je čistě fotometrický. (a) Do `model/png2area/dataset.py._augment`
+  (izomorfně png2point) přidat on-the-fly kreslení náhodné tratě ISOM purpurou: start trojúhelník, 5–12
+  koleček, spojnice, čísla kontrol; barvy dle `map_gt.py` purple_a/b (178,24,148)/(176,8,230); rozměry
+  z ISOM 704/705 (kolečko ⌀ 5–6 mm papíru) přepočtené přes mpp dlaždice — verify-against-source proti
+  template/spec, nehádat. Kreslí se JEN do X, Y se NEMĚNÍ; patří do augmentace, NE do `build_pair`
+  (paměť [[no-degradation-in-generator-phase]]). (b) Geometrická půlka (sklad/ohyb/warp X i Y zároveň,
+  vedle D4) = existující bod „Stupeň 2 — augmentační pipeline" níže, touto námitkou povýšen.
+- [ ] *(A3; měření HAL3000)* **KPI proti Goodhartu.** (a) Úspěch fáze `generator()` vázat na A1 benchmark;
+  KPI zůstává kompas děr, ne cílová funkce — propsat do KPI bloku níže + `architecture.md`. Pravidlo pro
+  každou další KPI práci: „pomůže to reconstructoru na reálném skenu?" (b) Rozšířit referenční sadu:
+  KPI potřebuje VEKTOROVOU `.omap` (počty objektů) — Livelox je raster-only a referencí být nemůže;
+  rozšíření = získat 3–5 dalších kartografických `.omap` (kluby/vlastní mapy) do `resources/`.
+  (c) Zvážit oživení per-symbol prostorové metriky (`compare_real_vs_gen.py`, stale-drop Sez. 69) jako
+  negamovatelný druhý pohled — až po (a), neotvírat metodologickou frontu navíc.
+- [ ] *(A4; ntbhej, docs-only sezení, bez kódu)* **Revize architektury — splatit odklad „plné revize"
+  ze Sez. 79 (~37 sezení).** `architecture.md` vede UC5 jako „palette separation/klasifikace" a
+  reconstructor jen jako reframe-poznámku; taxonomie UC se rozjela s mentálním modelem uživatele
+  (rekonstrukci sken→vektor nazývá „UC3", docs ji vedou jako UC4-III/Pic2Omap). Překreslit DAG kolem osy
+  generator() → reconstructor (Png2Area/Point/Line) → aplikace (de-purple, Pic2Omap); taxonomii
+  UC3↔UC4-III↔reconstructor rozhodnout S UŽIVATELEM (AskUserQuestion, ne fait accompli); propsat
+  README + GLOSSARY + IDEAS (conceptual integrity, všechny vrstvy najednou).
+- [ ] *(A5; kdekoli, bez CUDA)* **5 invariantních smoke testů** — automatizace dnešních ručních rituálů,
+  NE plná test suite (over-engineering proti fázi B): (1) noise-mode checksum (proc 65 byte-identický);
+  (2) golden Šulcák 48 polygonů / 2,56 ha, tol ±2/±5 % (potřebuje ČÚZK fetch nebo `.dmr_cache`);
+  (3) konzistence `AREA_ZORDER` ⊆ symboly v `template_classic.omap` ∧ kódy zapisované `omap_export`
+  (chytá 301/301.1 typ bugu staticky); (4) `cut.py` mini-verify primitiv (případy Sez. 114 zakonzervovat);
+  (5) mini `build_pair`/rasterizace fixture → Y má nenulové px pro každý area kód přítomný v `.omap`
+  (chytá 301/301.1 dynamicky). Jeden soubor `tests/smoke.py`, spustitelný `python tests/smoke.py`
+  (bez pytest závislosti, KISS); do `docs/PROMPTS.md` %END přidat „měnil-li se kód: spusť smoke".
+- [ ] *(A6; HAL3000)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
+  neopakovatelná lidská práce), `_split.json` (bez něj jsou všechna mIoU neporovnatelná), chybějící
+  `resources/*.pgw` (Velbloud na ntbhej). Malé textové soubory BEZ copyright obsahu → commitnout
+  (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
+  artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
+- [ ] *(A7; ntbhej-friendly, bez kódu)* **Png2Line — %THINK + rešerše PŘED implementací.** 61 % hmoty
+  symbolů = linie+body (Sez. 100); bez Png2Line nelze splnit cíl ≥ 85 %. Rešerše (ověřit, jak to dělá
+  branža — nehádat): cartographic line extraction, segmentace+skeletonizace, deep vectorization,
+  polyline regrese; zkušenost Pic2Omap. Probe: přenese se injekční trik (Sez. 105, paměť
+  [[png2point-inject-clean-base]]) na linie — dash vzory (508/516), křížení, překryvy? Výstup =
+  IDEAS návrh + rozhodnutí přístupu s uživatelem, NE kód.
+- [ ] *(B2, drobnost)* **`ISOM_REF` dvojník přejmenovat** — kopie v `connectors/map_gt.py` už divergovala
+  (nese olivovou + purple navíc, `generator/compare_real_vs_gen.py` ne) → přejmenovat GT variantu
+  (např. `GT_REF`) + křížový komentář o divergenci v obou souborech. Extrakce do sdíleného modulu dál
+  až s 3. konzumentem (generalizuj jen s důkazem).
+- [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
+  nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
+  Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
+  žádné výřezy Livelox map v commitovaných souborech/docs.
+- [ ] *(B4, drobnost)* **requirements split** — `requirements.txt` (runtime: numpy/Pillow/contourpy/
+  pyproj/scipy/pygeomag) vs `requirements-train.txt` (smp/matplotlib + pozn. torch cu128 mimo PyPI).
+  Hranice „matplotlib = trénink-only" je dnes nepsaná a už vystřelila (Sez. 112 clip_quad na ntbhej).
+- [ ] *(B6, docs drobnost)* **Registr pseudo vrstev do GLOSSARY** — tabulka: vrstva (516 plot /
+  310 split ~55 % / pseudo body 204/210) → mechanismus → kde žije (meta.json klíč · `.omap` · stats ·
+  Y rastr). Kodifikuje lekci Sez. 108 ([[pseudo-layer-writes-meta-and-omap]]) a umožní A1 benchmarku
+  pseudo třídy poctivě vyřadit.
+
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
@@ -89,6 +165,18 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
+- [ ] *(vizuál, ořez `cut.py`, nález uživatele Sez. 117)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
+  když `cut_area` (Sutherland-Hodgman) ořízne plochu, která má tučný černý obrys (impassable boundary, např. budova 521 / olivová
+  520 / lom), OOM vykreslí border kolem CELÉHO oříznutého prstenu → obrys se domaluje i na umělou řeznou hranu (linii střihu).
+  Vypadá to divně (uměle vzniklá „neproniknutelná" hrana na okraji výseku). Řešení (%THINK, neimplementovat teď): body vzniklé
+  řezem (leží na clip-linii) označit OOM gap/dash flagem, aby se obrys na řezném segmentu nekreslil — vyžaduje rozlišit řezné body
+  od původních v `cut_area` a ověřit OOM interpretaci flagu pro area border (verify-against-source: jak OOM přerušuje border line).
+- [ ] *(bug fix, test výstupů Sez. 117)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
+  marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
+  veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
+  přes hladinu = nepřípustné (voda není runnability-vegetace). Stejný typ vady jako balvany/plot na vodě (Sez. 113). Fix
+  (analogie): per-bod check `water_cell` v `_predict_veg_boundaries` → přerušit úsek nad vodou (jako `_generate_pseudo_boulders`
+  `mask &= ~water_cell`), nebo post-water clip 416 segmentů z `.omap` (`_clip_fences_off_water` vzor). Předat vodní masku do funkce.
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
   Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
   plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),
@@ -221,7 +309,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [ ] *(registr rozšíření, IDEAS B1 — Příště Sez. 108, vrchol žebříčku po 204/210)* přidat bodové třídy
     **417/419/418** (Special vegetation feature) do `POINT_CLASSES` (Png2Point) i pseudo injekce generátoru
     (mirror 204/210) → re-trénink + KPI; pak 109/111/112/115. Hustotu vyvážit dle nálezů Sez. 106/107.
-  - [ ] *(reálný transfer, doménový gap)* změřit detekci 204/210 na REÁLNÉM Livelox skenu (ne injekci) — analogie
+  - [!] *(reálný transfer, doménový gap; POVÝŠENO auditem A1 — sekce „Audit Fable 5" nahoře)* změřit detekci 204/210 na REÁLNÉM Livelox skenu (ne injekci) — analogie
     Png2Area gen-vs-realita; rozhodne, zda injekční trénink přenese na skutečné mapy.
   - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
@@ -296,7 +384,8 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [~] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken". **Fotometrická půlka HOTOVO Sez. 86,
   zapojena jako AUGMENTACE Sez. 103** (`degrade.py` volán v `model/png2area/dataset.py._augment` on-the-fly, ne
   v build_pair — degradace patří do tréninkové pipeline, ne do generator() výroby párů, viz
-  [[no-degradation-in-generator-phase]]). **ZBÝVÁ geometrická půlka** (deformace sklad/sken, rotace warp) —
+  [[no-degradation-in-generator-phase]]). **ZBÝVÁ geometrická půlka** (deformace sklad/sken, rotace warp;
+  POVÝŠENO auditem A2 — sekce „Audit Fable 5" nahoře) —
   patří na úroveň dlaždice (transformuje X i Y zároveň) vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)

@@ -510,6 +510,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   dvojice `<jméno>.omap` (vizuální geometrie kreslená v Mapperu — přesné body + ISOM symboly) +
   `<jméno>.rules.xml` (pravidla, co `.omap` nepojme: `rotation_rule`, `draw_order`, `source`). Žije v `asset/`.
 
+- **AUDIT_FABLE5 (meta-audit)** — čtvrtá auditní vrstva nad %AUDIT:CODE / %AUDIT:DOCS / %CALIBRATE:
+  strategický audit projektu nejsilnějším dostupným modelem (Fable/Mythos třída). Míří na směr, měření
+  cíle (doménový gap), Goodhart rizika a mezivrstvy, které detailní audity nemají v zadání (doklad:
+  Sez. 60–110 audity běžely, A1/A3 nezvedly). Opakovatelné zadání `docs/AUDIT_FABLE5_PROMPT.md`;
+  vydání `docs/AUDIT_FABLE5_<YYMMDD>.md` (1. = 260612, Sez. 117); úkoly v TODO sekci „Audit Fable 5",
+  hotové → DONE s kódem námitky (A1, B4, …). Cadence ≥25 sez nebo milník (%BEGIN bod 2); příští vydání
+  kontroluje minulé námitky VYŘEŠENO/TRVÁ/ZHORŠENO.
+
 ## Nástroje a knihovny
 
 - **OOM** (OpenOrienteering Mapper) — open-source editor OB map; cílový formát `.omap`.
