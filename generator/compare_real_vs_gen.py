@@ -177,7 +177,11 @@ def forward_classify_real(real_rgb, real_pgw, gen_pgw, gen_shape):
     return masks, coverage
 
 
-# ISOM referenční barvy (RGB) pro klasifikaci pixelů nejbližší barvou
+# ISOM referenční barvy (RGB) pro klasifikaci pixelů nejbližší barvou.
+# POZOR (Sez. 118, audit B2): connectors/map_gt.py má DIVERGOVANOU kopii tohoto dictu — base barvy
+# jsou shodné, ale map_gt přidává OLIVOVOU 520 (olive_a/b) + PURPURY přetisku (purple_a/b, Sez. 71/72),
+# které jsou runnability-specifické a compare je nemá. Stejné jméno `ISOM_REF`, jiný obsah = past pro
+# nového agenta → při změně BASE barev synchronizovat oba. DRY extrakce do sdíleného modulu až 3. konzument.
 ISOM_REF = {
     "white": (255, 255, 255), "yellow": (252, 221, 118), "road": (240, 170, 120),
     "brown": (191, 105, 37), "blue": (50, 162, 222), "black": (30, 30, 30),
