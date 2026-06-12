@@ -193,7 +193,7 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
   png2area/            #   LIVE Png2Area reconstructor (session 88): map scan → area label raster, first of the 3 OOM-geometry CV tasks
     tile.py            #     pre-tiling [scan.png, area_labels.png] pairs → 512×512 (no rejection — background is a class); 18 area codes + background from omap_raster; → resources/area_tiles/
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
-    train.py           #     U-Net/ResNet34, in→18 area codes + background, BF16, per-class IoU → resources/area_model/ (train on mrkla; session 103 test mIoU 0.568)
+    train.py           #     U-Net/ResNet34, in→18 area codes + background, BF16, per-class IoU → resources/area_model/ (train on mrkla; session 118 water-301 fix → test mIoU 0.537, water 301 IoU 0.65 first measured)
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade

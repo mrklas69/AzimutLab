@@ -164,9 +164,12 @@ bodových, liniových i plošných ISOM symbolů.
   `521` zachráněny 0,00→0,68 (median-freq váhy + data). **Stabilizace (Sez. 91):** cap vah @10 + cosine LR →
   test mIoU 0,640 (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop → class-balanced
   expansion. **Pokrytí area tříd (Sez. 92):** přidána **403 Rough open** (bledá žlutá ze separace). **Přetrénován
-  N_AREA 18 (Sez. 103):** +310 Indistinct marsh → 18 tříd; regen 205 párů + degradace-augmentace → **test mIoU
-  0,568 ≈ val 0,571** (pokles vs 0,640 = víc vzácných nul + degradace; hlavní plochy 0,70-0,92; vizuál
-  predikce≈GT → mIoU podhodnocuje). `resources/area_model/unet_best.pt`.
+  N_AREA 18 (Sez. 103):** +310 Indistinct marsh → 18 tříd; regen 205 párů + degradace-augmentace → test mIoU
+  0,568 ≈ val 0,571 (hlavní plochy 0,70-0,92). **Voda 301 fix re-trénink (Sez. 118):** `omap_raster` měl od narození
+  stale `301.1` → voda strukturálně vypadávala z Y (oba předchozí tréninky ji NIKDY neviděly, mIoU ji nepočítala);
+  fix `301.1`→`301` + SSoT (Sez. 110) → regen 205 párů + re-tile → **test mIoU 0,537, VODA 301 IoU 0,65** (poprvé
+  měřená, dříve strukturálně 0 = nadprůměrně naučená). mIoU 0,537 nesrovnatelné s 0,568 (to vodu nepočítalo).
+  `resources/area_model/unet_best.pt`.
 - **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
   druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
   (bez bodů, master flag `generate_map`) = GT zdarma + libovolně instancí (řeší vzácnost) + **heatmap regrese**

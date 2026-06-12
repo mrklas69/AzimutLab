@@ -73,7 +73,7 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
   sken → area label rastr, 18 tříd ze `omap_raster`; pár [scan.png, area_labels.png] z `pairs.py`; `tile.py`
-  BEZ rejection — pozadí je legitimní třída; test mIoU 0,568 Sez. 103) · `png2point/` = **živý** reconstructor
+  BEZ rejection — pozadí je legitimní třída; test mIoU 0,537 + voda 301 IoU 0,65 Sez. 118 voda fix) · `png2point/` = **živý** reconstructor
   `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210; test mF1
   0,897 Sez. 106). Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
