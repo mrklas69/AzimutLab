@@ -251,5 +251,31 @@ trestaly. Držte je:
 
 ---
 
+---
+
+## Stav řešení (aktualizováno Sezení 118, 2026-06-12 — Opus 4.8)
+
+Reakce na audit. Akční položky převedeny do `docs/TODO.md` (sekce „Audit Fable5 2026-06-12 — námitky"),
+tam je tracking. Stav nálezů ověřen proti zdroji:
+
+| # | Námitka | Stav | Poznámka |
+|---|---------|------|----------|
+| A1 | doménový gap se neměří | **PŘIJATO → TODO [!]** | benchmark = next po voda-re-tréninku; přímo odpovídá na uživatelovo „má smysl dělat páry?" (Sez. 118 diskuse) |
+| A2 | fialový přetisk + geom degradace | **PŘIJATO → TODO** | mění `dataset.py` → ne za běhu tréninku |
+| A3 | KPI Goodhart | **ČÁSTEČNĚ ŘEŠENO** | Sez. 118 diskuse: uživatel zpochybnil KPI<0,95 jako gate; vázat úspěch na A1, ne KPI |
+| A4 | architektura docs za realitou | **PŘIJATO → TODO** | docs-only sezení ntbhej (UC3↔UC4-III) |
+| A5 | 0 automatizovaných testů | **PŘIJATO → TODO** | 5 smoke testů, nový soubor |
+| A6 | reprodukovatelnost bus factor 1 | **PŘIJATO → TODO** | commit `_split`/`_curation`/`.pgw` |
+| A7 | Png2Line bez %THINK | **PŘIJATO → TODO** | rešerše brzy, ntbhej |
+| B2 | `ISOM_REF` divergovaný dvojník | **✅ VYŘEŠENO** | křížový komentář o divergenci doplněn do `compare_real_vs_gen.py` (map_gt měl, compare ne) |
+| B4 | requirements nedělený | **ČÁSTEČNĚ** | komentářové sekce už existují (matplotlib trénink-only); zbývá fyzický split / import-guard |
+| B1,B3,B5,B6,B7 | drobnosti | **PŘIJATO → TODO** | viz TODO blok |
+
+**Verifikace auditu (zásada „nález ≠ fakt", audit bod C2):** všechny nálezy ověřeny proti zdroji — drží, žádný
+falešný poplach. Korekce: B4 mířil na stav před vznikem komentářových sekcí (dnes částečně hotové); audit sám
+opravil prvotní A3 formulaci (Livelox raster nemůže být KPI ref). Audit hodnocen jako solidní a vyvážený.
+
+---
+
 *Příští vydání auditu: porovnat stav námitek A1–A7 (VYŘEŠENO/TRVÁ/ZHORŠENO) dle
 `AUDIT_FABLE5_PROMPT.md` bodu 3.*

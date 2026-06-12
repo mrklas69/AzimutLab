@@ -31,6 +31,16 @@ viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.
   se jako úspěch. Lekce: cache skip-existing dělal kompas slepým ke změnám generátoru (Sez. 99);
   `gitignored` korpus → ověř dostupnost, nepředpokládej (paměť `gitignored-availability-verify-not-assume`).
   Dobrý vzor: `measure_dod._missing_pgw` chybějící `.pgw` hlásí a vynechané mapy vypíše, nemlčí.
+- **Voda = no-draw zóna.** Na vodní ploše (301) se geometricky NEKRESLÍ žádný terénní / vegetační / pseudo /
+  predikční / separační prvek — vyříznout vodní maskou tak, aby geometricky nevznikl (**clip**, NE z-order).
+  Týká se i **vrstevnic** (101/102/103/104, hnědá kresba z DMR): kartograf vrstevnici do vodní plochy nekreslí
+  a color order ji NESkryje (IOF: modrá plocha je POD hnědou linií — ověřeno Sez. 118 proti IOF Printing &
+  Colour Definitions kap. 7 + OpenOrienteering/mapper#1966; náš template to má IOF-věrně; plná reference
+  `docs/kb/isom-colour-order.md`) → musí pryč geometricky, ne paletou. Opakovaný lapsus: balvany 204/210 + plot 516 na hladině (Sez. 113), hranice porostu
+  416 přes vodu + vrstevnice přes vodu (Sez. 118). Výjimka jen prvky, které vodu **legitimně překlenují /
+  ohraničují z tvrdých dat**: břehová linie 301 (černá, nad vodou), most/lávka 512/512.2, hráz, vtékající tok
+  304/305. Každá NOVÁ vrstva musí rovnou počítat s vodní maskou (DRY: sdílený `off_water` filtr, ne per-vrstva
+  záplata). Princip izomorfní s [[no-degradation-in-generator-phase]] — patří do výroby, ne dodatečně.
 
 ## %THINK — doménové rozšíření
 U map/CV/generování zvaž: ISOM↔ISSprOM spec rozdíly, paper-space vs world georef,

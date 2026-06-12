@@ -63,10 +63,10 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   polyline regrese; zkušenost Pic2Omap. Probe: přenese se injekční trik (Sez. 105, paměť
   [[png2point-inject-clean-base]]) na linie — dash vzory (508/516), křížení, překryvy? Výstup =
   IDEAS návrh + rozhodnutí přístupu s uživatelem, NE kód.
-- [ ] *(B2, drobnost)* **`ISOM_REF` dvojník přejmenovat** — kopie v `connectors/map_gt.py` už divergovala
-  (nese olivovou + purple navíc, `generator/compare_real_vs_gen.py` ne) → přejmenovat GT variantu
-  (např. `GT_REF`) + křížový komentář o divergenci v obou souborech. Extrakce do sdíleného modulu dál
-  až s 3. konzumentem (generalizuj jen s důkazem).
+- [x] *(B2, drobnost — HOTOVO Sez. 118, komentářová cesta)* **`ISOM_REF` dvojník — křížový komentář o divergenci.**
+  Audit dával alternativu „přejmenovat NEBO doplnit křížový komentář do obou" → zvolen komentář (méně invazivní). `map_gt.py`
+  komentář o divergenci (olivová 520 + purpury navíc) UŽ MĚL; doplněn chybějící do `compare_real_vs_gen.py` (Sez. 118).
+  Přejmenování `GT_REF` / extrakce do sdíleného modulu se nedělaly (až 3. konzument).
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
   nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
   Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
@@ -78,6 +78,14 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   310 split ~55 % / pseudo body 204/210) → mechanismus → kde žije (meta.json klíč · `.omap` · stats ·
   Y rastr). Kodifikuje lekci Sez. 108 ([[pseudo-layer-writes-meta-and-omap]]) a umožní A1 benchmarku
   pseudo třídy poctivě vyřadit.
+- [ ] *(B1, až bolí)* **Sdílený modul pro string-level `.omap` operace.** `cut.py`/`gen_backgrounds.py` jsou správně
+  moduly (monolit nepřikrmovat), ale string-regex místo XML parseru je křehké — každý nový `.omap` zápis musí myslet, ať ho
+  cut/backgrounds nerozbije (Sez. 109: clip NESMÍ přes ET kvůli inject). Extrahovat konvenci string-`.omap` operací na jedno místo.
+- [ ] *(B5, docs hygiena)* **DIARY index znovu bobtná.** Řádky Sez. 110-116 = mnohařádkové odstavce, index přesahuje 25k
+  read-cap (vlastní důvod splitu archivu, %CALIBRATE Sez. 51/86). Vrátit disciplínu „1-2 věty hook" — detail do diáře, index =
+  rozcestník. Pozor: staré řádky nepřepisovat (PROMPTS) → zkrátit nově psané + zvážit další split archivu.
+- [ ] *(B7, proces)* **Deep research fázovat.** 103 agentů uťatých session limitem (Sez. 110) = nehospodárné. Příště:
+  scout → cílený fan-out, průběžně sklízet do RESEARCH.md, ať i uťatý běh zanechá plnou stopu.
 
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
@@ -121,15 +129,27 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   mapě. **Sez. 111: Velbloud `.pgw` na ntbhej NEODVODITELNÝ** (`.omap` nese jen minimální georef bez pixel→S-JTSK;
   rekonstrukce z bbox vyvrácena validací — scan rotován grivací) → měřit na **HAL3000** (kartografův georef / rocky
   korpus mapa). Regen párů Y při příštím Png2Area re-trénu (skály do Y věrnější).
-- [!] *(model, carry mrkla — nález Sez. 99 + PRECONDITION Sez. 110)* **Png2Area přetrénovat na N_AREA 18** (310 přidán
-  do AREA_ZORDER) — spojit s class-balanced expansion (208/501/301). **Sez. 110 (ChatGPT %AUDIT:CODE) odhalil, že
-  `omap_raster` měl od narození (2026-06-04) stale `301.1`, zatímco generátor zapisuje vodu jako `301` od 2026-06-01
-  → VODA tiše vypadávala z area_labels (měřeno: Lidové sady 58/0). Oba dosavadní tréninky (Sez. 90/91 mIoU 0,640,
-  Sez. 103 mIoU 0,568) se vodu NIKDY nenaučily** — reportovaná mIoU vodu nepočítala. Opraveno Sez. 110 (`301.1`→`301`
-  + SSoT `AREA_CODES` ← `AREA_ZORDER`). **Re-trénink je teď nutný, ne volitelný** — až poběží, voda 301 bude poprvé
-  v Y. (Pozn.: `class-balanced expansion` u `301` může být moot — voda je po fixu hojná, ne vzácná.) Regen párů +
-  dlaždic (`_tiles.json` guard teď selže nahlas na stale n_area).
-- [ ] *(doladění, Sez. 98)* plot 516 `FENCE_SIMPLIFY_M` 5→8–10 m, kdyby přímost obvodu nestačila (riziko zkomolení malých bloků).
+- [x] *(model, mrkla — PRECONDITION Sez. 110 → HOTOVO Sez. 118)* **Png2Area přetrénován na N_AREA 18 (voda 301 fix). TEST mIoU 0,537, voda 301 IoU 0,65.**
+  **Sez. 110 (ChatGPT %AUDIT:CODE) odhalil, že `omap_raster` měl od narození (2026-06-04) stale `301.1`, zatímco generátor
+  zapisuje vodu jako `301` od 2026-06-01 → VODA tiše vypadávala z area_labels (měřeno: Lidové sady 58/0). Oba dosavadní
+  tréninky (Sez. 90/91 mIoU 0,640, Sez. 103 mIoU 0,568) se vodu NIKDY nenaučily** — reportovaná mIoU vodu nepočítala.
+  Opraveno Sez. 110 (`301.1`→`301` + SSoT `AREA_CODES` ← `AREA_ZORDER`). **Sez. 118 PROVEDENO (mrkla/HAL3000):**
+  (0) verify 1 páru `1005002` — voda label 8 v Y: **0 → 81 511 px** (fix prokázán PŘED batchem); (1) regen 205 párů
+  force `skip_existing=False` (**ok 205 / fail 2** — `1192962` mimo DMR hranice, `874127` UnicodeEncodeError; stale pár
+  874127 smazán, ať tile nevezme bez-vody); (2) re-tile `allow_missing=True` → `_tiles.json` n_area 18, `301` váha
+  **0,0 → 0,996** (už ne prázdná třída); (3) plný trénink 40 ep HOTOVO (best ep 37) — **TEST mIoU 0,537, voda 301 IoU
+  0,65** (dříve strukturálně 0 = dnešní cíl SPLNĚN, fix prošel celým řetězem do modelu; voda nadprůměrně naučená).
+  **mIoU 0,537 je POPRVÉ POCTIVÝ (s vodou) — naivní srovnání s 0,568 (Sez. 103, BEZ vody) neplatí**; očištěno o vodu ~0,53,
+  mírně níž (voda přebrala px + 2 mapy vypadly + 1 běh, ne regrese kvality). Křivka stabilní bez spiků (cap @10 + cosine drží).
+  Datový strop vzácných drží: 402/208/501 IoU ~0 (známé, class-balanced expansion). `unet_best.pt` → `resources/area_model/`. Pozn.: `class-balanced expansion` u 301 moot (voda po fixu hojná). **Dohoda Sez. 118: po tomto
+  STOP na modelech, zpět ke zrání generátoru** (off-water / cut / layout / crop nálezy z testu).
+- [ ] *(doladění → nález uživatele Sez. 118 „zubaté ploty")* **Plot 516 kolem velké privátní oblasti (520) je ZUBATÝ** ({A}, ~6 zbytečných
+  zubů na velkém pozemku). Mechanika: `_dissolve_mask_to_polys(olive_ruian_img)` → outer ring → `_rdp(eps = FENCE_SIMPLIFY_M=5 m)` →
+  `_draw_fence_line` (gen ~2496-2506). RDP 5 m zuby nespolkne. **Řešení (volba uživatele „zjednodušit na vnější hraniční body"):** primárně
+  **zvýšit `FENCE_SIMPLIFY_M` 5→8–10 m** (původní Sez. 98 dořešení — tohle je ten „kdyby přímost nestačila"). Pokud hluboké zuby přetrvají:
+  morfologické **closing seed masky** PŘED dissolve (vyplní úzké zářezy mezi RÚIAN parcelami). **Oponuji convex hullu** (uživatelovo „vnější
+  body" by mohl znamenat hull) — ztratil by legitimní konkávní tvary velkých pozemků (zálivy) a mohl by plotem pohltit sousední ne-privátní
+  oblast. RDP/closing drží tvar, jen hladí. Riziko (Sez. 98): vyšší práh komolí malé bloky → ladit s `FENCE_MIN_AREA_M2` na očích.
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Balvany 204/210 + plot 516 na vodní hladině** (Nová Louka). Root
   cause: `_generate_pseudo_boulders` nedostával vodní masku → pseudo balvany padaly na 301; plot se generuje PŘED
   vodou (z-order pokryv vespod). Fix: `_rasterize_water_grid` (outer=voda, holes=ostrov→souš) odečte vodu ze seed
@@ -165,18 +185,35 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
-- [ ] *(vizuál, ořez `cut.py`, nález uživatele Sez. 117)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
+- [ ] *(vizuál, ořez `cut.py`, nález uživatele Sez. 118)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
   když `cut_area` (Sutherland-Hodgman) ořízne plochu, která má tučný černý obrys (impassable boundary, např. budova 521 / olivová
   520 / lom), OOM vykreslí border kolem CELÉHO oříznutého prstenu → obrys se domaluje i na umělou řeznou hranu (linii střihu).
   Vypadá to divně (uměle vzniklá „neproniknutelná" hrana na okraji výseku). Řešení (%THINK, neimplementovat teď): body vzniklé
   řezem (leží na clip-linii) označit OOM gap/dash flagem, aby se obrys na řezném segmentu nekreslil — vyžaduje rozlišit řezné body
   od původních v `cut_area` a ověřit OOM interpretaci flagu pro area border (verify-against-source: jak OOM přerušuje border line).
-- [ ] *(bug fix, test výstupů Sez. 117)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
+- [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
   přes hladinu = nepřípustné (voda není runnability-vegetace). Stejný typ vady jako balvany/plot na vodě (Sez. 113). Fix
   (analogie): per-bod check `water_cell` v `_predict_veg_boundaries` → přerušit úsek nad vodou (jako `_generate_pseudo_boulders`
   `mask &= ~water_cell`), nebo post-water clip 416 segmentů z `.omap` (`_clip_fences_off_water` vzor). Předat vodní masku do funkce.
+- [ ] *(vizuál, vrstevnice přes vodu, nález uživatele Sez. 118 — řešení OPRAVENO na CLIP po rešerši IOF)* **Vrstevnice se NESMÍ zobrazovat
+  přes vodní plochu — řešení CLIP (geometrie), NE z-order.** Původní hypotéza „z-order (modrá plocha nad hnědou)" VYVRÁCENA rešerší IOF
+  (Fable5, Sez. 118): oficiální IOF colour order má **modrou plochu POD hnědou linií** (Printing & Colour Definitions Feb 2022, kap. 7 str. 6;
+  cross-check OpenOrienteering/mapper#1966). Náš OOM template to má IOF-věrně (`Blue area` priority 15 pod `Brown` 6). Že reálné mapy nemají
+  vrstevnice v jezerech je GEOMETRIE (kartograf je tam nekreslí), ne paleta — z-order by je nikdy neschoval. Fix: vrstevnice (101/102/103/104)
+  vyříznout vodní maskou (`water_cell`) STEJNĚ jako 416/balvany/plot → spadá pod sdílený `off_water` filtr níže. X↔Y konzistentní pro budoucí
+  Png2Line (Y bez vrstevnice ve vodě = jako reálné `.omapy`). Pozn.: břehová linie 301 (černá #4) i toky 304/305 (modrá linie #8) zůstávají NAD vodou (IOF-věrné, neclipovat).
+  **Reference colour order: `docs/kb/isom-colour-order.md`** (plná tabulka ISOM 2017-2 + ISOM 2000 rozdíl + lokální PDF `iof-printing-colour-2022.pdf`).
+- [ ] *(bug fix, 416, nález uživatele Sez. 118)* **Hranice porostu 416 jen tam, kde aspoň jedna sousední oblast je les (zeleň/bílá)** —
+  `resources/livelox/1163841/gen/map.omap` {A}: 416 vedená mezi dvěma OPEN (oranžová↔oranžová) = nesmysl (ISOM 416 = hranice ZŘETELNĚ
+  RŮZNÉ vegetace, mezi dvěma open není). `PREDICT_AREA_CLASS` = {410:1, 408:2, 406:3 (zeleň), **403:4 (rough open)**}. `_predict_veg_boundaries`
+  bere libovolnou mezitřídní hranici → fix: úsek kresli jen pokud aspoň jedna strana ∈ {zeleň 406/408/410} nebo bílá (les runnable),
+  NE když obě open (401/403). Ověřit přesný mechanismus na 1163841 {A} při implementaci (jak vzniká open↔open hrana — soused přes pozadí?).
+- [ ] *(DRY konsolidace, princip CLAUDE.md „voda = no-draw zóna" Sez. 118)* **Sjednotit off-water masking do jednoho `off_water` helperu** —
+  dnes per-vrstva: balvany `mask &= ~water_cell` (Sez. 113), plot `_clip_fences_off_water` (Sez. 113); přibývají 416 + **vrstevnice 101-104**
+  (Sez. 118). Extrahovat jeden filtr beroucí `water_cell`, aplikovat na VŠECHNY terénní/predikční/pseudo geometrie (≥4 konzumenti = jasný důkaz
+  pro „generalizuj s důkazem"). Výjimka jen prvky legitimně nad/přes vodou z tvrdých dat: břehová linie 301, most/lávka 512, hráz, tok 304/305.
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
   Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
   plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),
@@ -322,14 +359,26 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   rodina** (404/412/413/414 + zelené directional 406.1/408.1) — generátor kreslit + Y rozšířit, separace
   pattern-aware (těžké, separace per-pixel slepá → jen model nebo generátor kreslí). Konzistentní trojice:
   generátor umí + render kreslí signál + Y má label. Y se jen přerasterizuje (`omap_raster`).
-- [ ] *(GT kvalita, nález Sez. 90 — NEŘEŠIT TEĎ, volba uživatele)* **Layout/watermark prosakuje do separace** —
-  Livelox mapy s plným layoutem (NEořezané na mapové pole; např. `652602` SKALÁČEK: titulek + sponzorská loga
-  + watermark „APP AGENT" + čárový kód) → `map_gt` je zčásti klasifikuje jako zeleň → projde do páru jako falešná
-  vegetace ve tvaru textu/loga. `_detect_map_area` (Sez. 73) část vyřízne (652602 gt 13 % ignore), ale watermark
-  UVNITŘ mapy + loga proklouznou. **Volba uživatele: pro trénink nevadí** — pár [scan, area_labels] je KONZISTENTNÍ
-  (X i Y z téže gen.omap), mapování X→Y validní. Dvě kategorie: (a) watermark uvnitř pole = zeleň na lese, neškodí;
-  (b) logo/titulek MIMO pole = „papír jako les", soustavný šum kdyby přes hodně map. **Reálné riziko = ROZSAH** →
-  po 1. tréninku změřit, kolik párů nese layout (near-near vs `_detect_map_area` zlepšit / agresivnější crop).
+- [!] *(GT kvalita, nález Sez. 90 → ESKALOVÁNO Sez. 118 uživatelem — VADÍ)* **Layout/text/loga prosakují do separace jako falešná vegetace.**
+  Livelox mapy s plným layoutem (NEořezané na mapové pole) → texty/titulky/loga/měřítko se separují a projdou do páru jako falešná
+  vegetace ve tvaru písmen/loga. **Sez. 118 konkrétní důkaz `resources/livelox/946084/gen` {A}:** zelený titulek **„SAXBO 2025" + „KATEGORIE"
+  + měřítko/datum jsou UVNITŘ mapového pole** (vytištěné přes mapu), v ISOM zelené → separace je nemůže odlišit BARVOU od porostu →
+  hustý porost ve tvaru textu „SAXBO 2025". Vizuál potvrzen (rgb.png). **Volba Sez. 90 „pro trénink nevadí" PŘEHODNOCENA** — model se učí
+  „zelený text = hustý porost" (halucinace). **Klíčové zjištění Sez. 118: ořez na quad NESTAČÍ** (text je UVNITŘ quadu, ne mimo jako legenda)
+  → potřeba **strukturní detekce textu/popisků uvnitř pole** (barva selhává — čistá ISOM zeleň). `_detect_map_area` (Sez. 73) řeší jen layout
+  MIMO pole. Směry (%THINK): (a) strukturní detektor — souvislé tenké zelené komponenty s vysokým aspect-ratio / pravidelnými rozestupy /
+  ostrými hranami písma vs plošný organický porost; (b) kurace — vyřadit/cropnout mapy s titulkem v poli (titulek bývá dole/v rohu →
+  cílený crop spodního pruhu? riziko ořezu mapy); (c) měřit ROZSAH (kolik z 205 párů nese text-v-poli). Souvisí s follow-up detektor
+  control-description mřížky (níže, Sez. 73 known limitation). **Pozn.: nezdržuje dnešní voda re-trénink** (946084 je test split; patří do zrání korpusu, směr PO re-tréninku).
+- [!] *(GT kvalita / ořez, nález uživatele Sez. 118)* **Crop gen na bbox REÁLNÉHO mapového obsahu, ne na celý Livelox quad.**
+  `resources/livelox/856040/gen` {A}: reálná mapa „Mezi silnicemi" je NEPRAVIDELNÝ tvar s velkým bílým okolím; Livelox quad (obdélník)
+  je VĚTŠÍ → generátor generuje i tam, kde `map.png` nemá obsah → mimo reálnou mapu separace nemá co separovat → kreslí jen syrová
+  ZABAGED (bílý les, žádné zelené areas). Vizuál gen render POTVRZEN: věrohodná vegetace jen ve středu (kde byla předloha), zbytek quadu
+  = syrová žlutá ZABAGED. **Řešení (volba uživatele): crop na OBDÉLNÍK s podkladem `map.png`** — detekovat bbox ne-bílé/mapové oblasti
+  (**reuse `_detect_map_area` Sez. 73**, už barevně detekuje mapové pole) → crop extent místo Livelox quadu (mechanika `cut.cut_box` existuje,
+  jen jiný extent; volá se v `pairs.build_pair` před rasterizací Y). **Bonus:** odřízne i layout MIMO pole (titulek/legenda MH-SK) → částečně
+  řeší layout nález výše (SAXBO text UVNITŘ pole ale zůstává na strukturní detektor). Nuance: bbox obdélník nechá rohy s bílou/ZABAGED (mapa
+  nepravidelná) — pro úplnou čistotu crop na MASKU tvaru (nad KISS, až kdyby vadily rohy). **Nezdržuje voda re-trénink** (856040 test split).
 - [x] *(úklid, conceptual integrity — HOTOVO Sez. 93)* **Legacy „forest_age" názvosloví v predict cestě
   přejmenováno na neutrální `veg_area`** — sdílené nosiče predict separace i archiv věku (proměnné
   `veg_area_*` / soubor `mask_veg_area.png` / meta klíč `real_sections["veg_area"]` / `omap_export`

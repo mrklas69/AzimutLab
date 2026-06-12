@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 118 (2026-06-12) — Png2Area re-trénink (voda 301 fix) + 6 testovacích nálezů + reakce na Fable5 audit (HAL3000)
+- [x] **Png2Area přetrénován na N_AREA 18 (voda 301 fix, precondition Sez. 110).** Celý řetěz: verify 1 páru
+  (voda v Y 0 → 81 511 px) → regen 205 párů (`skip_existing=False`, ok 205/fail 2) → re-tile (`301` váha 0,0 →
+  0,996) → plný trénink 40 ep. **TEST mIoU 0,537, voda 301 IoU 0,65** (dříve strukturálně 0 = cíl SPLNĚN, fix
+  prošel celým řetězem do modelu). mIoU nesrovnatelné s 0,568 (Sez. 103 BEZ vody). `unet_best.pt`.
+- [x] **B2 (Fable5 audit) — `ISOM_REF` křížový komentář o divergenci** doplněn do `compare_real_vs_gen.py`
+  (komentářová cesta, audit dával alternativu k přejmenování). `map_gt.py` komentář už měl.
+- [x] **Voda = no-draw zóna** — princip do `CLAUDE.md` (clip, ne z-order; výjimky most/hráz/břeh/tok).
+- [x] **KB `docs/kb/isom-colour-order.md`** + lokální PDF `iof-printing-colour-2022.pdf` — IOF colour order
+  (rešerše Fable5 vedlejšího vlákna): modrá plocha POD hnědou → vrstevnice přes vodu = CLIP, ne z-order.
+  Vyvrátilo původní z-order návrh PŘED implementací (verify-against-source). Odkaz z `isom-issprom.md`.
+- [x] **6 testovacích nálezů uživatele → TODO** (blok zrání generátoru): cut.py tučná hrana řezu / 416 přes vodu
+  / 416 open↔open / layout text v poli (`946084`) / crop na mapový obsah (`856040`) / zubaté ploty 516.
+- [x] **Reakce na Fable5 audit Sez. 117** — audit TODO blok SJEDNOCEN (duplikát smazán, Censure 1), B1/B5/B7
+  doplněny, B2 [x]; AUDIT status sekce (PŘIJATO/VYŘEŠENO/ČÁSTEČNĚ). A1 reálný benchmark = next.
+- [x] **Rozhodnutí:** KPI<0,95 jako gate na páry vyvrácen (Png2Area konzumuje jen plochy, voda byl BUG); dohoda
+  STOP na modelech → zpět ke zrání generátoru.
+
 ## Sezení 117 (2026-06-12) — Meta-audit Fable 5: prompt + audit + úkoly + %BEGIN zapojení (HAL3000, docs-only)
 - [x] **`docs/AUDIT_FABLE5_PROMPT.md`** — opakovatelné zadání meta-auditu (role/postup/struktura/omezení;
   datum parametrické; od 2. vydání povinná tabulka stavu minulých námitek VYŘEŠENO/TRVÁ/ZHORŠENO).

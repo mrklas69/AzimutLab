@@ -19,6 +19,11 @@ Cílová sémantika generátoru = **ISOM 2017-2** (1:10000; `generator/template_
 je geometricky identický s oficiálním OOM 1:10000 setem, ověřeno Sez. 38). Každý výstup deklaruje
 verzi (`meta["isom"]` + `.omap` `<notes>`) — ochrana proti záměně, viz níže.
 
+**Colour order (z-order / printing order)** = samostatná reference [[isom-colour-order]]
+(`isom-colour-order.md`): pořadí barev rozhoduje, co překryje co. Klíč pro generátor: modrá vodní
+plocha je POD hnědou vrstevnicí (ISOM 2017-2) → vrstevnice přes vodu se řeší geometrií (clip), ne
+paletou (Sez. 118). ISOM 2000 má pořadí opačné (spot tisk + overprint).
+
 ## ISOM 2000 ↔ 2017-2 — verze a crosswalk (Sez. 37–40)
 
 **Číslování symbolů se mezi ISOM 2000 a 2017-2 RECYKLUJE s jiným významem** — naivní kód-na-kód
