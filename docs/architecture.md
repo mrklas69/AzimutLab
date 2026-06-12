@@ -176,8 +176,10 @@ bodových, liniových i plošných ISOM symbolů.
   `resources/point_model/unet_best.pt`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný). **Stav Sez. 107: 59,1 %**
-  (plocha 69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210). Cíl plošná ~55 % (splněn),
-  s reconstructory ≥ 85 %. Měř `generator/measure_dod.py` (default KPI, `--table` kompas děr). Detail TODO/DONE.
+  (HAL3000, 5 map; plocha 69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210). Cíl plošná
+  ~55 % (splněn), s reconstructory ≥ 85 %. **Sez. 116: rock v2 over-detection 206 opraven density gate**
+  (`rock_relief.DENSITY_GATE_PCT`, ne-skalnaté mapy < 0,08 % px ≥46° → 0 ploch 206 → konec 210 Stony přestřelu) →
+  ntbhej Bedř+Blatná **48,2 → 55,0 %** (+6,8 pb). Měř `generator/measure_dod.py` (default KPI, `--table` kompas děr). Detail TODO/DONE.
 
 ### UC3 — Restaurace (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

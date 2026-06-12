@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 116 (2026-06-12) — Rock v2 over-detection density gate → KPI 48,2 → 55,0 % (+6,8 pb, ntbhej)
+- [x] **Density gate proti rock v2 over-detection 206** (`rock_relief.DENSITY_GATE_PCT=0,08`). Fokus z Příště 115
+  (volba uživatele „rekalibrace pseudo / over-detection"). **Measure-first** (`temp/probe_rock_overdetect`, fetch-once +
+  threshold-sweep): klíčový nález — rozdíl skutečná vs falešná skála NENÍ práh sklonu (oba >46°: Šulcák max 83° / Bedř 77°),
+  ale **regionální HUSTOTA px ≥46°**: skalnaté ≥0,16 % (SV 0,158 / HS 2,22 / golden Šulcák 3,72 %) vs ne-skalnaté ~0,04 %
+  (Bedř 0,042 / Blatná 0,037 = mikroreliéf zářezů/břehů) → **88× separace**. Páka `MIN_AREA_M2` sama golden poškodí (−27 %
+  @ 500 m²), density gate ne. **Volba uživatele** (3 možnosti přes AskUserQuestion): density gate ~0,08 % (per-mapa podíl
+  px ≥ práh; pod → 0 ploch 206 + hlasitý INFO log, no silent). Správný pro PLOŠNÝ 206 = skalnatá oblast (osamělé skály jdou
+  přes body 204/207). **Verify:** golden Šulcák **48 polygonů beze změny** (3,72 % >> práh), Bedřichovka **0** (gate, log).
+- [x] **KPI verify: 48,2 → 55,0 % (+6,8 pb)** — NAD baseline Sez. 109 (54,9 %). Bedř 45,1→50,6 / Blatná 51,4→59,3;
+  **bod sub 45,8 → 51,8** (210 Stony přestřel z falešné skalnatosti pryč). Naplněná predikce Sez. 110/115 opravena.
+  204/210 zmizely z žebříčku děr → vrchol kompasu nyní 508/403/417/409/416 (+ nový 202 Passable rock face 120/0).
+- [x] **TODO (nálezy uživatele Sez. 116):** kameny/balvany (204/210) NEumisťovat na tenké liniové plochy podél komunikací
+  (SV, symboly zakryté cestou — řešení izomorfní vyloučení vody `_clip_fences_off_water`: road-corridor exclusion v pseudo
+  masce) + 102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů (feature). Obojí zapsáno do TODO, neimplementováno.
+
 ## Sezení 115 (2026-06-11) — Rock_relief OOM + border fix (measure-first) + diagnostika poklesu KPI (ntbhej)
 - [x] **Rock_relief OOM fix** (`rock_relief.py`). Measure-first (`temp/probe_rock_oom`): f64 sklon pipeline @ 50 Mpx
   peak **3,3 GB** = OOM (8,4 GB volných + běžící generátor). Nález **f64+del = f32+del = 1,9 GB** → páka je `del`

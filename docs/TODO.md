@@ -75,16 +75,20 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   (no silent fallback); `errstate` v sklonu → NaN propadne `slope>=46`→False (bez skal u hranice). **Verify:** golden Šulcák
   **48/2,56 ha = match** (behavior-preserving); izolovaný HS 847 bloků/peak 2,6 GB + SV 130 bloků/2 dlaždice NaN; **plný regen
   HS/SV/LS se skalami EXIT 0** (HS 847× 206 v .omap = skalní ukázka má zpět skály). Detail DONE Sez. 115.
-- [ ] *(KPI regrese, nález Sez. 115 — diagnostika poklesu 54,9→48,2 %)* **Pseudo body 204/210 — stale kalibrace po rock v2.**
-  Přeměření KPI po ořezu (volba uživatele) odhalilo pokles −6,7 pb. **Ořez VYVRÁCEN jako příčina** (zvedá +0,9 pb, čistá výhra),
-  **grivace VYVRÁCENA** (identické, georef-only). **Hlavní příčina: pseudo body −3,25 pb** (Bedř −5,1, `temp/diag_pseudo_kpi`):
-  rock v2 (Sez. 110) zvýšil detekci skal i na ne-skalnatých mapách (**206 g1→g14** na Bedř/Blatná) → větší skalnatost maska →
-  **210 Stony přestřel 962 vs orig 372** (2,6×). = naplněná predikce Sez. 110 („víc skal na ne-skalnatých KPI zhorší → měřit na
-  skalnaté mapě"). Sez. 107 kalibrace pseudo (na rock v1 masku) je STALE. **Volby (Sez. 115, příště):** rekalibrace hustoty na
-  rock v2 masku (správně na SKALNATÉ mapě = Velbloud `.pgw` blokátor) NEBO řešit kořen **rock v2 over-detection 206 na ne-skalním
-  strmém terénu** (Bedř/Blatná by měly mít 206 ~0, ne 14 — DMR slope nabírá strmé lesní svahy?). Zbytek poklesu ~3 pb = Sez. 113
-  fixy / HAL3000↔ntbhej baseline (neizolováno). Velbloud `.pgw` ODLOŽEN (volba uživatele Sez. 115; automatika z `.omap` nejde —
-  Local CRS bez pixel→S-JTSK, Sez. 111; nejjednodušší = solver z 2-3 ručních bodů, carry HAL3000).
+- [x] *(KPI regrese, nález Sez. 115 → VYŘEŠENO Sez. 116 density gate)* **Pseudo body 204/210 — rock v2 over-detection na ne-skalnatých mapách.**
+  Pokles 54,9→48,2 % izolován: ořez VYVRÁCEN (+0,9 pb), grivace VYVRÁCENA, **hlavní příčina pseudo body −3,25 pb** (210 Stony přestřel
+  962 vs 372 z falešné skalnatosti). **Měření Sez. 116 (`temp/probe_rock_overdetect`, cesta B = kořen):** rozdíl skutečná vs falešná
+  skála NENÍ práh sklonu (oba >46°), ale **regionální HUSTOTA**: skalnaté mapy ≥0,16 % px ≥46° (SV 0,158 / HS 2,22 / golden Šulcák 3,72 %),
+  ne-skalnaté jen ~0,04 % (Bedř 0,042 / Blatná 0,037 — mikroreliéf: zářezy cest, břehy). **Fix = `rock_relief.DENSITY_GATE_PCT=0,08`**
+  (volba uživatele): pod práh → 0 ploch 206 + hlasitý INFO log (no silent). Golden Šulcák ZACHOVÁN beze změny (48 polygonů), SV/HS zachovány,
+  Bedř/Blatná falešné → 0. **KPI 48,2 → 55,0 % (+6,8 pb, NAD baseline 54,9)**, bod sub 45,8→51,8. 204/210 pryč z žebříčku děr.
+- [ ] *(vizuál Soví vrch, nález uživatele Sez. 116)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové plochy podél komunikací** —
+  symboly jsou pak často zakryté nebo částečně zakryté liniovým symbolem cesty/silnice. Souvisí s pseudo body maskou
+  (`_generate_pseudo_boulders`) — analogie k vyloučení vody (`_clip_fences_off_water`/`_rasterize_water_grid`, Sez. 113):
+  vyloučit z pseudo masky úzké plošky/koridory podél cest (erodovat masku o okolí cest, nebo min. vzdálenost bodu od linie cesty).
+- [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
+  do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
+  jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
 - [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
   Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
   plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),
