@@ -16,15 +16,19 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   s rastrem). 90 %+ halucinace 210 mimo pole = striping artefakt jako Png2Area. Dvojice zavedena jako 2. KPI (blok
   níže). **Vstup pro A2:** gap = striping/ostrost + halucinace, NE fialový přetisk. Pozn.: pseudo vrstvy generátoru
   (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnoceny jen třídy v kartografově `.omap` (registr B6).
-- [!] *(A2; mrkla, až PO [!] re-tréninku 301-voda a PO změření A1 baseline)* **Purple-course + geometrická
-  augmentace.** Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy
-  neviděl jako vstup — `degrade.py` je čistě fotometrický. (a) Do `model/png2area/dataset.py._augment`
-  (izomorfně png2point) přidat on-the-fly kreslení náhodné tratě ISOM purpurou: start trojúhelník, 5–12
-  koleček, spojnice, čísla kontrol; barvy dle `map_gt.py` purple_a/b (178,24,148)/(176,8,230); rozměry
-  z ISOM 704/705 (kolečko ⌀ 5–6 mm papíru) přepočtené přes mpp dlaždice — verify-against-source proti
-  template/spec, nehádat. Kreslí se JEN do X, Y se NEMĚNÍ; patří do augmentace, NE do `build_pair`
-  (paměť [[no-degradation-in-generator-phase]]). (b) Geometrická půlka (sklad/ohyb/warp X i Y zároveň,
-  vedle D4) = existující bod „Stupeň 2 — augmentační pipeline" níže, touto námitkou povýšen.
+- [~] *(A2; mrkla — (a) HOTOVO Sez. 123, (b) zbývá)* **Purple-course + geometrická augmentace.**
+  Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy neviděl jako
+  vstup — `degrade.py` je čistě fotometrický. **(a) Purpura HOTOVO Sez. 123:** `model/purple.py`
+  (sdílený util mimo `generator/`) `overprint_course(rgb, seed)` kreslí ISOM trať (701 start △ / 702
+  kruh / 703 čísla / 704 spojnice / 706 finish) JEN do X, Y/heatmapa netknuté; rozměry
+  verify-against-source ISOM 2000 §4.7 (`PX_PER_MM≈7,52` izomorf `inject.py`), barvy `purple_a/b`
+  (Sez. 72). Integrace do obou `dataset.py` (po D4/inject, před degrade, prob 0,5). Measure-first
+  doložil hodnotu: fialová sráží purpura-naivní Png2Area test mIoU 0,537 → 0,488 (−4,9 pb; 501.1 −0,255).
+  **ZBÝVÁ: re-trénink obou modelů s augmentací + re-probe** (cíl dopad → ~0); `eval_real` fialovou
+  nevidí (čisté skeny) → zvážit purpurový TEST set jako trvalou metriku robustnosti. **(b) Geometrická
+  půlka** (sklad/ohyb/warp X i Y zároveň, vedle D4) = existující bod „Stupeň 2 — augmentační pipeline"
+  níže, touto námitkou povýšen. Pozor u Png2Area: warp Y by mezi třídami vyrobil smíšené px (proto D4
+  jen rot90) → nearest-neighbor na Y, nebo warp jen X.
 - [ ] *(A3; měření HAL3000)* **KPI proti Goodhartu.** (a) Úspěch fáze `generator()` vázat na A1 benchmark;
   KPI zůstává kompas děr, ne cílová funkce — propsat do KPI bloku níže + `architecture.md`. Pravidlo pro
   každou další KPI práci: „pomůže to reconstructoru na reálném skenu?" (b) Rozšířit referenční sadu:

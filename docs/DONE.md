@@ -2,6 +2,20 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 123 (2026-06-13) — A2a fialový přetisk tratě do augmentace obou reconstructorů
+- [x] **A2a (Fable5 audit) — purpurový course overprint do `_augment` obou modelů.** Nový sdílený
+  `model/purple.py` (mimo `generator/` = respekt hranice paralelního vlákna): `overprint_course(rgb, seed)`
+  kreslí náhodnou ISOM trať (701 start △ / 702 kruh / 703 čísla / 704 spojnice / 706 finish dvojkruh)
+  JEN do X; Y/heatmapa se nemění (trať není mapový obsah → model se ji učí ignorovat). Rozměry
+  verify-against-source z ISOM 2000 §4.7 (papír 1:15000, `PX_PER_MM≈7,52` izomorf `inject.py`: kruh 45 px /
+  start 53 px / čára 3 px); barvy `purple_a/b` z `map_gt.ISOM_REF` (Sez. 72). Integrace do
+  `png2area/dataset._augment` (po D4, před degrade) + `png2point/dataset.__getitem__` (po inject, před
+  degrade), prob 0,5. Vizuál ověřen na reálné dlaždici (sedí jako závodní mapa s tratí).
+- [x] **Measure-first: dopad fialové na purpura-naivní Png2Area.** `temp/probe_purple_impact.py`
+  (force `APPLY_PROB=1`, izolace bez D4/degrade): **test mIoU 0,537 → 0,488 (−0,049)**; nejvíc
+  **501.1 −0,255 / 301 −0,139 / 406 −0,078 / 206 −0,066**. Doložený problém + baseline hodnoty A2a;
+  `eval_real` ho nevidí (čisté skeny bez tratě) → měřitelné jen vloženou purpurou. Re-trénink = carry.
+
 ## Sezení 122 (2026-06-13) — Buschdörfl E2E + globální kartografická konfigurace + sémantický GT
 - [x] **Buschdörfl (`classId=1201511`) georeferencován z mobilní fotografie.** SIFT/FLANN + robustní
   homografie proti Livelox skenu: 943 inlierů, medián reprojekce 1,88 px. Přenosný výstup v
