@@ -4,8 +4,9 @@ Vizuální pomůcka (NETRÉNINKOVÁ): warpne tři reálné podklady Livelox loka
 je jako PODKLADOVÉ (background) image templates do gen.omap, aby šlo v OOM vizuálně srovnat gen kresbu
 s realitou:
   - bg_scan.png  ← map.png        (Livelox sken mapy, native rotovaný quad → _map_affine)
+  - bg_mobile.png ← mobile_rectified.png (volitelné mobilní foto registrované do gridu map.png)
   - bg_ortho.png ← ortho.png      (ČÚZK ortofoto, S-JTSK grid → _georef_grid)
-  - bg_gt.png    ← gt_grid_vis.png (GT runnability barevná vizualizace, týž S-JTSK grid)
+  - bg_gt.png    ← gt_semantic_grid_vis.png (GT ploch včetně vody a 520, týž S-JTSK grid)
 
 Každý podklad je v JINÉM gridu → resample do gen px gridu (rgb.pgw): pro každý gen px → S-JTSK →
 zpět do zdrojového px → nearest sample. Warpnutý obraz W×H se pak připne identickým mechanismem jako
@@ -33,7 +34,7 @@ sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 from livelox import _georef_grid, _map_affine  # noqa: E402
 from omap_export import inject_image_templates  # noqa: E402
-from map_gt import IGNORE as _GT_IGNORE, _LABEL_VIS as _GT_VIS  # noqa: E402  (GT IGNORE barva → bílá)
+from map_gt import IGNORE as _GT_IGNORE, SEMANTIC_LABEL_VIS as _GT_VIS  # noqa: E402
 
 _GT_IGNORE_RGB = _GT_VIS[_GT_IGNORE]   # (255,0,255) magenta = oblast mimo Livelox mapu v gt_grid_vis
 
@@ -148,10 +149,21 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
     if (cid_dir / "map.png").exists() and g is not None:
         with Image.open(cid_dir / "map.png") as im:
             Wm, Hm = im.size
-        sources.append(("bg_scan.png", cid_dir / "map.png", _scan_inverse(g["quad"], Wm, Hm), None))
+        scan_inv = _scan_inverse(g["quad"], Wm, Hm)
+        sources.append(("bg_scan.png", cid_dir / "map.png", scan_inv, None))
+        mobile = cid_dir / "mobile_rectified.png"
+        if mobile.exists():
+            with Image.open(mobile) as im:
+                if im.size != (Wm, Hm):
+                    raise ValueError(
+                        f"{mobile}: rozměr {im.size} != map.png {(Wm, Hm)} "
+                        "(mobilní foto musí být registrované do gridu map.png)"
+                    )
+            sources.append(("bg_mobile.png", mobile, scan_inv, None))
     if g is not None:
         for bg, src, recolor in (("bg_ortho.png", "ortho.png", None),
-                                 ("bg_gt.png", "gt_grid_vis.png", {_GT_IGNORE_RGB: (255, 255, 255)})):
+                                 ("bg_gt.png", "gt_semantic_grid_vis.png",
+                                  {_GT_IGNORE_RGB: (255, 255, 255)})):
             if (cid_dir / src).exists():
                 sources.append((bg, cid_dir / src, _grid_inverse(g), recolor))
 
@@ -160,8 +172,8 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
                          (g is None, ("podklady", "chybí cid meta.json → _georef_grid")),
                          (g is not None and not (cid_dir / "ortho.png").exists(),
                           ("bg_ortho.png", "chybí ortho.png (mimo GATE 1 běh)")),
-                         (g is not None and not (cid_dir / "gt_grid_vis.png").exists(),
-                          ("bg_gt.png", "chybí gt_grid_vis.png (mimo GATE 1 běh)"))):
+                         (g is not None and not (cid_dir / "gt_semantic_grid_vis.png").exists(),
+                          ("bg_gt.png", "chybí gt_semantic_grid_vis.png (spusť map_gt + GATE 1)"))):
         if missing:
             result["skipped"].append(why)
 

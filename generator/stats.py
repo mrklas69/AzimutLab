@@ -2,8 +2,8 @@
 
 Pro každou lokalitu (maps/<dirname>/) přečte:
 - meta.json: počty symbolů ze sekcí (paths/rides/water/paved/buildings/powerlines/railways/rocks/
-  bridges/surfaces/landmarks/linefeatures/marsh/treerows/veg_area/barriers + point_symbols) — každá items má
-  `symbol: int` (např. 503, 304, 5122=512.2),
+  bridges/surfaces/landmarks/linefeatures/marsh/treerows/veg_area/veg_boundary/barriers +
+  point_symbols) — každá items má `symbol` jako číslo nebo kód (např. 503, 512.2, 416.1),
 - contours.geojson: vrstevnice 101/102/103 (každý feature má properties.symbol),
 - mtime meta.json: čas poslední regenerace.
 
@@ -62,7 +62,8 @@ SYMBOLS = [
     ("406",   "Vegetation: slow running"),
     ("408",   "Vegetation: walk"),       # predikční zeleň ze separace (Sez. 83)
     ("410",   "Vegetation: fight"),      # predikční zeleň ze separace (Sez. 83)
-    ("416",   "Distinct vegetation boundary"),   # mezitřídní hranice predikčních veg ploch (Sez. 101)
+    ("416",   "Distinct vegetation boundary, black dotted"),
+    ("416.1", "Distinct vegetation boundary, green dashed"),
     ("412",   "Cultivated land"),
     ("520",   "Area that shall not be entered"),
     # Komunikace (§4.9)
@@ -127,10 +128,10 @@ def _gather_symbol_counts(folder: Path) -> tuple[Counter, datetime] | tuple[None
     counts: Counter = Counter()
     # 1) vrstevnice 101/102/103 z contours.geojson (meta agreguje jen total)
     counts.update(_count_contours(folder / "contours.geojson"))
-    # 2) items z 15 sekcí (každá má seznam s {"symbol": <int>})
+    # 2) items z vrstev (každá má seznam s {"symbol": <číslo nebo kód>})
     for section in ("paths", "rides", "water", "paved", "buildings", "powerlines",
                     "railways", "rocks", "bridges", "surfaces", "landmarks", "linefeatures",
-                    "marsh", "treerows", "veg_area", "barriers"):
+                    "marsh", "treerows", "veg_area", "veg_boundary", "barriers"):
         items = meta.get(section, {}).get("items", [])
         for it in items:
             counts[_normalize_code(it.get("symbol"))] += 1

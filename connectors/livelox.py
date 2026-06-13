@@ -379,7 +379,8 @@ def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
     Výstup do out_dir:
       - ortho.png       = X (ČÚZK ortofoto v S-JTSK gridu)
       - gt_grid.png     = Y (GT labely warpnuté do TÉHOŽ gridu, nearest, fill IGNORE)
-      - gt_grid_vis.png = barevná vizualizace Y (verify okem)
+      - gt_grid_vis.png = runnability vizualizace Y (kompatibilní archivní výstup)
+      - gt_semantic_grid(.png/_vis.png) = plošný GT se zachovanou vodou a 520
       - blend.png       = ortofoto+mapa (vizuální důkaz georefu)
     X i Y procházejí identickou transformací do stejného gridu → pixel-na-pixel zarovnané.
 
@@ -390,7 +391,7 @@ def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
     from PIL import Image
     _ensure_connectors_on_path()
     from ortofoto import _export_tile
-    from map_gt import IGNORE, _LABEL_VIS
+    from map_gt import IGNORE, _LABEL_VIS, SEMANTIC_LABEL_VIS, colorize
 
     Image.MAX_IMAGE_PIXELS = None
     out_dir = Path(out_dir)
@@ -402,8 +403,19 @@ def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
 
     rgb = np.asarray(Image.open(out_dir / "map.png").convert("RGB"), dtype=np.uint8)
     gt = np.asarray(Image.open(out_dir / "gt_labels.png"), dtype=np.uint8)
+    semantic_path = out_dir / "gt_semantic_labels.png"
+    if not semantic_path.exists():
+        raise FileNotFoundError(
+            f"{semantic_path}: spusť nejdřív map_gt.segment_gt; "
+            "sémantický GT nemá tichý fallback na runnability"
+        )
+    semantic = np.asarray(Image.open(semantic_path), dtype=np.uint8)
     if gt.shape != rgb.shape[:2]:
         raise RuntimeError(f"gt_labels {gt.shape} != map.png {rgb.shape[:2]} v {out_dir}")
+    if semantic.shape != rgb.shape[:2]:
+        raise RuntimeError(
+            f"gt_semantic_labels {semantic.shape} != map.png {rgb.shape[:2]} v {out_dir}"
+        )
 
     H, W = rgb.shape[:2]
     A = _map_affine(g["quad"], W, H)
@@ -411,21 +423,29 @@ def build_georef_pair(out_dir: str | Path, mpp_target: float = 1.33,
                                g["out_w"], g["out_h"])         # pro blend + měření
     warped_gt = _warp_to_grid(gt, A, g["xmin"], g["ymax"], g["mpp"],
                               g["out_w"], g["out_h"], fill=IGNORE)   # Y, mimo mapu = ignore
+    warped_semantic = _warp_to_grid(
+        semantic, A, g["xmin"], g["ymax"], g["mpp"],
+        g["out_w"], g["out_h"], fill=IGNORE
+    )
 
     # ulož pár + verify artefakty
     Image.fromarray(ortho).save(out_dir / "ortho.png")
     Image.fromarray(warped_gt, mode="L").save(out_dir / "gt_grid.png")
-    vis = np.zeros((*warped_gt.shape, 3), np.uint8)
-    for lab, col in _LABEL_VIS.items():
-        vis[warped_gt == lab] = col
-    Image.fromarray(vis).save(out_dir / "gt_grid_vis.png")
+    Image.fromarray(colorize(warped_gt, _LABEL_VIS)).save(out_dir / "gt_grid_vis.png")
+    Image.fromarray(warped_semantic, mode="L").save(out_dir / "gt_semantic_grid.png")
+    Image.fromarray(colorize(warped_semantic, SEMANTIC_LABEL_VIS)).save(
+        out_dir / "gt_semantic_grid_vis.png"
+    )
     blend = (0.5 * ortho.astype(np.float32) +
              0.5 * warped_rgb.astype(np.float32)).astype(np.uint8)
     Image.fromarray(blend).save(out_dir / "blend.png")
 
     offset = measure_georef_offset(ortho, warped_rgb, g["mpp"]) if measure else None
     return {"ortho": out_dir / "ortho.png", "gt_grid": out_dir / "gt_grid.png",
-            "gt_grid_vis": out_dir / "gt_grid_vis.png", "blend": out_dir / "blend.png",
+            "gt_grid_vis": out_dir / "gt_grid_vis.png",
+            "gt_semantic_grid": out_dir / "gt_semantic_grid.png",
+            "gt_semantic_grid_vis": out_dir / "gt_semantic_grid_vis.png",
+            "blend": out_dir / "blend.png",
             "mpp": round(g["mpp"], 3), "out_w": g["out_w"], "out_h": g["out_h"],
             "offset": offset}
 

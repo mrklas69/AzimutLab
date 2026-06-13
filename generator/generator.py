@@ -54,7 +54,8 @@ MAPS_DIR = _REPO_ROOT / "maps"
 # Python má složku spouštěného skriptu na sys.path, takže `palette` je viditelný,
 # ať generator.py běží přímo, nebo ho importuje batch.py. Po řezu (Sez. 11) zbyly
 # tři barvy: bílá (pozadí/les), hnědá (vrstevnice + body), černá (cesty).
-from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_PAVED, C_YELLOW, C_YELLOW_PALE, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3
+from palette import C_WHITE, C_BROWN, C_BLACK, C_BLUE, C_ROAD, C_PAVED, C_YELLOW, C_YELLOW_PALE, C_OLIVE, C_GREEN1, C_GREEN2, C_GREEN3, C_BOUNDARY_GREEN
+from project_config import CONFIG as AZIMUTLAB_CONFIG
 
 # Logger generátoru — synthesize loguje průběh (INFO). Knihovna NEkonfiguruje root handler
 # (žádný side-effect při importu): CLI (main) zapne basicConfig(INFO) → uvidí se; batch.py
@@ -597,13 +598,20 @@ PREDICT_AREA_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running", ISOM_VEG_WALK: "
 # (krátké šumové fragmenty separace odpadnou; reálné 416 medián 45-90 m). Měřením laděno na práh 50 m
 # → KPI 46,1 → ~50 % (+3,8 pb; prototyp temp/proto_416). Stejný typ problému jako marsh 310 (data
 # nediskriminují), ale heuristika MEZITŘÍDNÍ je doménově věrná (ISOM 416 = hranice různé runnability).
-# Render = černá tečkovaná (template 416 = Black 100% dotted, type 2). LINIE → bez Y-area dluhu
-# (Png2Line neexistuje); jde do .omap (KPI/kompas to měří) + render. Izomorf s průsekem 508 (RIDE_STYLE).
-ISOM_VEG_BOUNDARY = 416
-BOUNDARY_NAME = {ISOM_VEG_BOUNDARY: "Distinct vegetation boundary"}
-BOUNDARY_CLASS = {ISOM_VEG_BOUNDARY: 1}     # mask_boundaries.png třída (jediná)
-# tečkovaná černá: krátký dot + mezera (aproximace OOM dotted; věrný symbol nese .omap z template)
-BOUNDARY_STYLE = {ISOM_VEG_BOUNDARY: ("dashed", 1, (0.2 * PX_PER_MM, 0.45 * PX_PER_MM))}
+# Varianta symbolu je globální projektové nastavení v azimutlab.toml. OOM šablona nese obě
+# definice; na jedné mapě se smí použít právě jedna. 416.1 nesmí ohraničovat 410 Fight.
+ISOM_VEG_BOUNDARY = AZIMUTLAB_CONFIG.symbols.vegetation_boundary
+BOUNDARY_NAME = {
+    "416": "Distinct vegetation boundary, black dotted line",
+    "416.1": "Distinct vegetation boundary, green dashed line",
+}
+BOUNDARY_CLASS = {"416": 1, "416.1": 1}     # mask_boundaries.png třída (jediná)
+BOUNDARY_COLOR = {"416": C_BLACK, "416.1": C_BOUNDARY_GREEN}
+BOUNDARY_STYLE = {
+    "416": ("dashed", 1, (0.2 * PX_PER_MM, 0.45 * PX_PER_MM)),
+    "416.1": ("dashed", max(1, round(0.14 * PX_PER_MM)),
+              (0.30 * PX_PER_MM, 0.20 * PX_PER_MM)),
+}
 BOUNDARY_MIN_LEN_M = 50      # délkový práh úseku [m terénu] (měření Sez. 101: optimum KPI ~50 %)
 BOUNDARY_SAMPLE_M = 3.0      # poloměr okolí pro detekci sousední veg třídy [m terénu]
 
@@ -1056,11 +1064,15 @@ def _draw_ride(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
 
 
 def _draw_boundary(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw,
-                   curve_px: list[tuple[float, float]], code: int) -> None:
-    """Hranice vegetace (černá tečkovaná, ISOM 416) dle BOUNDARY_STYLE — wrapper nad _draw_line_symbol
+                   curve_px: list[tuple[float, float]], code: str) -> None:
+    """Hranice vegetace 416/416.1 dle globální konfigurace a BOUNDARY_STYLE.
+
+    Wrapper nad _draw_line_symbol
     (izomorfní s _draw_ride). Mezitřídní hranice predikčních veg ploch (Sez. 101)."""
     mode, width, dash = BOUNDARY_STYLE[code]
-    _draw_line_symbol(draw, bdraw, curve_px, C_BLACK, mode, width, dash, BOUNDARY_CLASS[code])
+    _draw_line_symbol(
+        draw, bdraw, curve_px, BOUNDARY_COLOR[code], mode, width, dash, BOUNDARY_CLASS[code]
+    )
 
 
 def _offset_polyline_px(pts: list[tuple[float, float]], offset: float) -> list[tuple[float, float]]:
@@ -2608,7 +2620,7 @@ def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
 
 def _predict_veg_boundaries(class_mask: Image.Image,
                             draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDraw) -> list:
-    """Mezitřídní hranice predikčních veg ploch → ISOM 416 Distinct vegetation boundary (Sez. 101).
+    """Mezitřídní hranice predikčních veg ploch → zvolená varianta ISOM 416 (Sez. 101).
 
     416 = NEJVĚTŠÍ proporční díra KPI (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ hranice mezi
     oblastmi RŮZNÉ runnability (403↔406↔408↔410) tečkovanou linií. `class_mask` = PREDICT_AREA_CLASS
@@ -2616,7 +2628,8 @@ def _predict_veg_boundaries(class_mask: Image.Image,
     contour každé třídy (rock_relief) → per-bod prstenu klasifikuj, je-li v okolí JINÁ veg vyšší
     třídy (dedup B>A, ať se hrana A↔B bere jen jednou) → souvislé mezitřídní úseky → DÉLKOVÝ práh
     BOUNDARY_MIN_LEN_M (krátké šumové fragmenty separace odpadnou) → RDP → polyline. Render tečkovaně
-    do draw + bdraw maska; vrací [(grid, 416)] pro .omap (linefeature). Bez predikční zeleně = []."""
+    do draw + bdraw maska; vrací [(grid, kód)] pro .omap. Při 416.1 vynechá hranice
+    kolem 410 Fight, kde zelenou variantu norma zakazuje. Bez predikční zeleně = []."""
     from rock_relief import _contour_rings, _rdp
     L = np.asarray(class_mask)
     mpp = WORLD_W_M / W                                  # metry na px (render rozlišení)
@@ -2624,6 +2637,8 @@ def _predict_veg_boundaries(class_mask: Image.Image,
     rad = max(1, round(BOUNDARY_SAMPLE_M / mpp))
     features: list = []
     for A in sorted(int(v) for v in np.unique(L) if v):
+        if ISOM_VEG_BOUNDARY == "416.1" and A == PREDICT_AREA_CLASS[ISOM_VEG_FIGHT]:
+            continue
         for ring in _contour_rings(L == A):
             n = len(ring)
             if n < 4:
@@ -3541,7 +3556,7 @@ def generate_map(
     veg_area_features: list[tuple] = []
     veg_area_info: list[dict] = []
     veg_area_mask_img: Image.Image | None = None
-    boundary_features: list[tuple] = []           # 416 mezitřídní hranice (Sez. 101)
+    boundary_features: list[tuple] = []           # 416/416.1 mezitřídní hranice (Sez. 101)
     boundary_mask_img: Image.Image | None = None
     predict_veg = predict_areas_sjtsk is not None
     if predict_veg:
@@ -3550,12 +3565,13 @@ def generate_map(
         veg_area_features, veg_area_info = _draw_predict_areas(
             draw, fadraw, predict_areas_sjtsk, geo_bbox)
         _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(veg_area_info))
-        # 416 Distinct vegetation boundary: mezitřídní hranice predikčních veg ploch (Sez. 101,
+        # 416/416.1 Distinct vegetation boundary: mezitřídní hranice predikčních veg ploch (Sez. 101,
         # největší KPI díra). Z-order: NAD plošnou zelení (kterou ohraničuje), pod liniemi/body.
         boundary_mask_img = Image.new("L", (W, H), 0)
         bdraw = ImageDraw.Draw(boundary_mask_img)
         boundary_features = _predict_veg_boundaries(veg_area_mask_img, draw, bdraw)
-        _log.info("  hranice vegetace: %d (416 mezitřídní)", len(boundary_features))
+        _log.info("  hranice vegetace: %d (%s mezitřídní)", len(boundary_features),
+                  ISOM_VEG_BOUNDARY)
 
     # --- stromořadí / lineární les (ISOM 406): `Liniová vegetace` → úzký zelený pás (Sez. 45) ---
     # Z-order: NAD plošným pokryvem (401/520 jsou podklad), pod vrstevnicemi/liniemi/body — světle
@@ -4178,6 +4194,20 @@ def generate_map(
                         **{str(PREDICT_AREA_CLASS[c]): f"{c} {PREDICT_AREA_NAME[c]}" for c in used}},
             "items": veg_area_info,
         }
+        real_sections["veg_boundary"] = {
+            "count": len(boundary_features),
+            "mask": "mask_boundaries.png",
+            "source": "separace_realne_mapy", "provenance": "predict", "proxy": True,
+            "symbols": {ISOM_VEG_BOUNDARY: BOUNDARY_NAME[ISOM_VEG_BOUNDARY]},
+            "classes": {"0": "pozadí", "1": f"{ISOM_VEG_BOUNDARY} "
+                        f"{BOUNDARY_NAME[ISOM_VEG_BOUNDARY]}"},
+            "items": [
+                {"symbol": ISOM_VEG_BOUNDARY,
+                 "symbol_name": BOUNDARY_NAME[ISOM_VEG_BOUNDARY],
+                 "kind": "line", "layer": "separace reálné mapy (predict)"}
+                for _ in boundary_features
+            ],
+        }
     meta = _build_meta(seed, rug, det, terrain, paths, pseudorealistic, lat, lon, elev,
                        crs_epsg, n_contours, len(formline_features), n_paths, paths_info,
                        point_symbols, omap_info, real_sections, layer_errors)
@@ -4185,6 +4215,10 @@ def generate_map(
     # `isom` = deklarace verze (ochrana proti záměně 2000↔2017-2); `georef` = S-JTSK bbox + .pgw + sever.
     meta["isom"] = _isom_meta()
     meta["georef"] = _georef_meta(geo_bbox, crs_epsg, grivation)
+    meta["azimutlab_config"] = {
+        "file": "azimutlab.toml",
+        "symbols": {"vegetation_boundary": ISOM_VEG_BOUNDARY},
+    }
     (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     # finální souhrn (SSoT = právě spočtené počty vrstev) — ta řádka, co inspirovala log (Sez. 27)
     _log.info("hotovo → %s · pokryv %d · budovy %d · řopíky %d · voda %d · zpevněné %d · cesty %d · průseky %d · "

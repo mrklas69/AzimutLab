@@ -1,5 +1,5 @@
 """
-map_gt.py — GT segmentace runnability z reálné ISOM rastrové mapy (UC5 ground-truth).
+map_gt.py — runnability + sémantická GT segmentace reálné ISOM rastrové mapy.
 
 Účel (UC5 runnability korpus, Sez. 68): UC5 model predikuje běhatelnost (zelená škála +
 žlutá open) z dat (ortofoto/DMR/věk). Je supervised → potřebuje GT = co kartograf nakreslil.
@@ -14,9 +14,10 @@ Metoda (ověřeno probe Sez. 68 na 4 mapách):
      plošná runnability chce DOMINANTNÍ barvu okolí, ne per-pixel šum
   3) tři zelené úrovně → tři runnability stupně, žlutá → open, zbytek → průchodné/bílá
 
-Olivová 520 (oplocené areály) MÁ vlastní referenci → label 0 (out-of-bounds, ne běhatelnost),
-od Sez. 71; bez ní padala na green → falešná zelená runnability na městských mapách (Turnov).
-Voda/budovy/skály/vrstevnice se z runnability masky vyřazují taky (label 0 = podklad).
+Kompatibilní `gt_labels.png` je nadále runnability maska: olivová 520 i voda v ní padají
+na label 0. `gt_semantic_labels.png` však informaci zachovává jako 5=voda a 6=520;
+vizualizace a `bg_gt.png` proto tyto plochy neztrácejí. Budovy/skály/vrstevnice zůstávají
+podklad 0, protože samotná barva bez kontextu jejich přesný plošný symbol neurčí.
 
 Fialový přetisk tratí (purpurová: kroužky kontrol, spojnice, start, čísla) NENÍ ISOM
 runnability barva → label IGNORE (255), od Sez. 72. Trénink ho přeskočí (ignore_index v loss),
@@ -96,6 +97,34 @@ LABEL_NAME = {0: "průchodný", 1: "406 slow", 2: "408 walk", 3: "410 fight", 4:
 # i model/train.py importují odtud, ať se „5" nedrží na dvou místech (DRY, nález audit Sez. 81).
 N_CLASS = 5
 
+# Sémantická plošná maska zachovává vedle runnability i třídy, které starý GT záměrně
+# sléval do nuly. Čísla 0-4 jsou kompatibilní s runnability maskou; 5-6 jsou nové.
+SEMANTIC_WATER = 5
+SEMANTIC_OOB = 6
+SEMANTIC_LABEL = {
+    "white": 0, "brown": 0, "black": 0,
+    "green_l": 1, "green_m": 2, "green_d": 3,
+    "yellow": 4, "road": 4,
+    "blue": SEMANTIC_WATER,
+    "olive_a": SEMANTIC_OOB, "olive_b": SEMANTIC_OOB,
+    "purple_a": IGNORE, "purple_b": IGNORE,
+}
+SEMANTIC_LABEL_VIS = {
+    0: (255, 255, 255),
+    1: (200, 232, 200),
+    2: (120, 200, 140),
+    3: (40, 160, 90),
+    4: (252, 221, 118),
+    SEMANTIC_WATER: (50, 162, 222),
+    SEMANTIC_OOB: (168, 168, 56),
+    IGNORE: (255, 0, 255),
+}
+SEMANTIC_LABEL_NAME = {
+    0: "průchodný/podklad", 1: "406 slow", 2: "408 walk", 3: "410 fight",
+    4: "open", SEMANTIC_WATER: "voda", SEMANTIC_OOB: "520 out-of-bounds",
+    IGNORE: "ignore (přetisk+layout)",
+}
+
 # velikost okna majority filtru (px). Na ~1,33 m/px je 7 px ≈ 9 m — potlačí vrstevnici/cestu
 # uvnitř plochy, zachová plošný tvar. Laděno probe Sez. 68.
 _MEDIAN_SIZE = 7
@@ -167,8 +196,40 @@ def _detect_map_area(mappix: np.ndarray) -> np.ndarray:
     return np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize((W, H), Image.NEAREST)) > 0
 
 
+def _categorical_majority(labels: np.ndarray, classes: tuple[int, ...],
+                          size: int = _MEDIAN_SIZE) -> np.ndarray:
+    """Kategoriální majority filtr bez předpokladu číselného pořadí labelů.
+
+    `median_filter` je vhodný pro uspořádanou škálu runnability 0-4, ale pro nezávislé
+    třídy voda/520 by výsledek závisel na libovolně přiděleném čísle. Počty sousedů
+    počítáme po třídách; držíme jen aktuální maximum, takže paměť neroste s počtem tříd.
+    """
+    kernel = np.ones((size, size), dtype=np.uint8)
+    best_count = np.zeros(labels.shape, dtype=np.uint16)
+    result = np.zeros(labels.shape, dtype=np.uint8)
+    for lab in classes:
+        count = ndimage.convolve(
+            (labels == lab).astype(np.uint8), kernel, mode="nearest", output=np.uint16
+        )
+        better = count > best_count
+        result[better] = lab
+        best_count[better] = count[better]
+    return result
+
+
+def colorize(labels: np.ndarray, palette: dict[int, tuple[int, int, int]]) -> np.ndarray:
+    """Indexovou masku převede na RGB; neznámý label je tvrdá chyba."""
+    unknown = set(np.unique(labels).tolist()) - set(palette)
+    if unknown:
+        raise ValueError(f"Maska obsahuje neznámé labely: {sorted(unknown)}")
+    vis = np.zeros((*labels.shape, 3), np.uint8)
+    for lab, col in palette.items():
+        vis[labels == lab] = col
+    return vis
+
+
 def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
-    """Z map.png vytvoří GT: gt_labels.png (index) + gt_vis.png (barevná). Vrací rozpad %.
+    """Z map.png vytvoří runnability i sémantický GT. Vrací rozpad runnability v %.
 
     out_dir default = adresář vstupní mapy (vedle map.png/meta.json v korpusu).
     """
@@ -180,17 +241,29 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     color_idx = _classify(rgb)                   # index nejbližší ISOM barvy per pixel
     idx_to_label = np.array([_LABEL[k] for k in keys], dtype=np.uint8)
     labels = idx_to_label[color_idx]             # index barvy → runnability label
+    idx_to_semantic = np.array([SEMANTIC_LABEL[k] for k in keys], dtype=np.uint8)
+    semantic = idx_to_semantic[color_idx]        # voda a 520 zůstávají samostatné
 
     # přetisk tratě (purpurová) → IGNORE. Oddělit PŘED median: hodnota 255 v okně by zkreslila
     # medián sousedů. Ignore pixely dočasně na 0 (neutrální), medianuj runnability, pak vrať masku
     # dilatovanou (pokryje antialiasovaný okraj čar, který padl na sousední barvu).
     ignore = labels == IGNORE
     labels[ignore] = 0
+    semantic[ignore] = 0
     # majority filtr potlačí tenké ne-plošné linie uvnitř ploch
     labels = ndimage.median_filter(labels, size=_MEDIAN_SIZE)
+    semantic_majority = _categorical_majority(
+        semantic, tuple(lab for lab in SEMANTIC_LABEL_VIS if lab != IGNORE)
+    )
+    # Základ 0-4 drží přesně původní runnability filtr. Kategoriální majority rozhoduje
+    # jen o nových nezávislých třídách, aby přidání vody/520 neposunulo hranice zeleně.
+    semantic = labels.copy()
+    semantic[semantic_majority == SEMANTIC_WATER] = SEMANTIC_WATER
+    semantic[semantic_majority == SEMANTIC_OOB] = SEMANTIC_OOB
     if ignore.any():
         ignore = ndimage.binary_dilation(ignore, iterations=_OVERPRINT_DILATE)
         labels[ignore] = IGNORE
+        semantic[ignore] = IGNORE
 
     # layout mimo mapové území → IGNORE (Sez. 73). Spočítá se z mapově-barevných pixelů
     # (stejný color_idx) a aplikuje AŽ NAKONEC: vše mimo mapu (legenda/tabulka/titulek/papír)
@@ -198,13 +271,17 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     is_map_color = np.array([k in _MAP_COLOR_KEYS for k in keys])
     map_area = _detect_map_area(is_map_color[color_idx])
     labels[~map_area] = IGNORE
+    semantic[~map_area] = IGNORE
 
-    # ulož index mapu (trénink) + barevnou vizualizaci (verify)
+    # Kompatibilní runnability výstup.
     Image.fromarray(labels, mode="L").save(out_dir / "gt_labels.png")
-    vis = np.zeros((*labels.shape, 3), np.uint8)
-    for lab, col in _LABEL_VIS.items():
-        vis[labels == lab] = col
-    Image.fromarray(vis).save(out_dir / "gt_vis.png")
+    Image.fromarray(colorize(labels, _LABEL_VIS)).save(out_dir / "gt_vis.png")
+
+    # Bezeztrátovější sémantický výstup pro vizuální GT a další plošné úlohy.
+    Image.fromarray(semantic, mode="L").save(out_dir / "gt_semantic_labels.png")
+    Image.fromarray(colorize(semantic, SEMANTIC_LABEL_VIS)).save(
+        out_dir / "gt_semantic_vis.png"
+    )
 
     tot = labels.size
     breakdown = {LABEL_NAME[lab]: float(round(100 * (labels == lab).sum() / tot, 1))

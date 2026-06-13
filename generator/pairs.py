@@ -30,6 +30,7 @@ sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 from pyproj import Transformer            # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
+from map_gt import IGNORE                 # noqa: E402
 from separate import separate_areas  # noqa: E402
 from generator import generate_map        # noqa: E402
 from omap_raster import rasterize_map_dir  # noqa: E402
@@ -37,6 +38,30 @@ from omap_raster import rasterize_map_dir  # noqa: E402
 Image.MAX_IMAGE_PIXELS = None
 _CORPUS = _REPO_ROOT / "resources" / "livelox"
 _SJTSK_TO_WGS84 = Transformer.from_crs("EPSG:5514", "EPSG:4326", always_xy=True)
+
+
+def _content_quad_sjtsk(cid_dir: pathlib.Path, quad: list) -> list[tuple[float, float]]:
+    """Obdélník skutečného mapového obsahu z GT masky, transformovaný do S-JTSK.
+
+    Livelox quad georeferencuje celý tiskový list, který může obsahovat velké bílé layoutové
+    okraje. `segment_gt` je označí IGNORE; bbox všech ostatních pixelů proto dává konzervativní
+    obdélník mapového pole. Vrací rohy ve stejném pořadí jako image bbox:
+    top-left, top-right, bottom-right, bottom-left.
+    """
+    labels = np.asarray(Image.open(cid_dir / "gt_labels.png"), dtype=np.uint8)
+    valid = labels != IGNORE
+    rows, cols = np.nonzero(valid)
+    if not len(cols):
+        raise RuntimeError(f"{cid_dir}: gt_labels neobsahuje žádné mapové pixely")
+
+    c0, c1 = float(cols.min()), float(cols.max() + 1)
+    r0, r1 = float(rows.min()), float(rows.max() + 1)
+    H, W = labels.shape
+    A = _map_affine(quad, W, H)
+    px = np.array([[c0, r0, 1.0], [c1, r0, 1.0],
+                   [c1, r1, 1.0], [c0, r1, 1.0]], dtype=float).T
+    xy = (A @ px).T
+    return [(float(x), float(y)) for x, y in xy]
 
 
 def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
@@ -113,7 +138,10 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     cid_dir = _CORPUS / cid
     meta = json.loads((cid_dir / "meta.json").read_text(encoding="utf-8"))
     g = _georef_grid(meta)
-    xmin, ymin, xmax, ymax = g["xmin"], g["ymin"], g["xmax"], g["ymax"]
+    content_quad = _content_quad_sjtsk(cid_dir, g["quad"])
+    xs = [p[0] for p in content_quad]
+    ys = [p[1] for p in content_quad]
+    xmin, ymin, xmax, ymax = min(xs), min(ys), max(xs), max(ys)
     cx, cy = (xmin + xmax) / 2, (ymin + ymax) / 2
     lon, lat = _SJTSK_TO_WGS84.transform(cx, cy)             # centroid obalu → WGS84
     w_km, h_km = (xmax - xmin) / 1000.0, (ymax - ymin) / 1000.0
@@ -132,13 +160,11 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     res = generate_map(lat, lon, w_km, h_km,
                        predict_areas_sjtsk=predict_sjtsk, point_base=point_base,
                        out_dir=out, ortho=ortho)
-    # Ořež gen.omap + render na reálné mapové pole (Livelox quad) — odstraní přesah axis-aligned obalu
-    # (okolní sídla mimo OB mapu; Sez. 109, zadání uživatele). MUSÍ být PŘED rasterizací Y: X render
-    # i Y label se berou z TÉŽE ořezané .omap → konzistentní pár. Quad = 4 rohy mapy v S-JTSK (g["quad"],
-    # týž zdroj jako separace _map_affine). Centroid (KISS, viz cut).
+    # Ořež gen.omap + render na obdélník skutečného mapového obsahu, ne na celý tiskový list.
+    # MUSÍ být PŘED rasterizací Y: X render i Y label se berou z TÉŽE ořezané .omap.
     from cut import clip_omap_to_quad
-    kept, removed = clip_omap_to_quad(out, pathlib.Path(out).name, g["quad"])
-    print(f"  ořez na quad: {kept} objektů v poli, {removed} přesah odstraněn")
+    kept, removed = clip_omap_to_quad(out, pathlib.Path(out).name, content_quad)
+    print(f"  ořez na mapový obsah: {kept} objektů v poli, {removed} přesah odstraněn")
     if labels and not point_base:                           # Y páru: plošné symboly z .omap → label rastr
         lab = rasterize_map_dir(pathlib.Path(out))
         Image.fromarray(lab, mode="L").save(pathlib.Path(out) / "area_labels.png")

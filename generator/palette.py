@@ -41,6 +41,7 @@ PALETTE: dict[str, Swatch] = {
     "green1": Swatch((194, 232, 176), "světle zelená — pomalý běh"),
     "green2": Swatch((109, 199, 113), "středně zelená — chůze"),
     "green3": Swatch((45, 169, 79),   "tmavě zelená — těžko prostupné"),
+    "boundary_green": Swatch((31, 128, 11), "tmavá zelená — hranice porostu 416.1"),
     "olive":  Swatch((150, 158, 56),  "olivová — zákaz vstupu/hřbitov (ISOM 520; aprox., doladit okem)"),
     "brown":  Swatch((160, 95, 31),   "vrstevnice, rýhy"),
     "road":   Swatch((232, 167, 116), "silnice 502 — výplň (ISOM Upper brown 50%)"),
@@ -60,6 +61,7 @@ C_YELLOW_PALE = PALETTE["yellow_pale"].rgb   # 403 Rough open (Sez. 92)
 C_GREEN1 = PALETTE["green1"].rgb
 C_GREEN2 = PALETTE["green2"].rgb
 C_GREEN3 = PALETTE["green3"].rgb
+C_BOUNDARY_GREEN = PALETTE["boundary_green"].rgb
 C_OLIVE  = PALETTE["olive"].rgb
 C_BROWN  = PALETTE["brown"].rgb
 C_ROAD   = PALETTE["road"].rgb
