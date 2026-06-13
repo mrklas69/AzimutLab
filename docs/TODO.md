@@ -8,26 +8,15 @@ Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1�
 Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
-- [~] *(A1, KRITICKÁ; HAL3000 — ROZPRACOVÁNO Sez. 119)* **Reálný benchmark reconstructorů — měřit
-  doménový gap syntetika→sken.** **Sez. 119 (`temp/eval_real{,_probe}.py`, scratch nepovýšeno):** Fáze 1
-  vizuál HOTOVÁ — model přenáší na reálný sken (struktura sedí, voda 301 excelentní na Blatné = Sez. 118
-  fix validován reálně; artefakty striping + modrá halucinace). Fáze 2 číselná: id-based parser kartografovy
-  .omap (1230 obj) + crosswalk 2000→2017 + **georef paper→sken px VYŘEŠEN** (rot_sign=−1 net rotace 0,
-  flipY=1, ověřeno colorized Y) → **reálná mIoU 0,058 vs syntetická 0,537**. **Nález: vizuál vs pixel-exact
-  IoU se ROZCHÁZEJÍ** (colorized Y georefově OK, model vizuálně čte, ale IoU propastné). **CARRY:** diagnostika
-  nízké IoU (odstínová záměna 401/403/406? jemná struktura Y vs hrubá pred? striping? subpixel georef? →
-  matice záměn pred×Y; zvážit „soft" metriku na hrubších skupinách) + povýšit `eval_real.py` → `model/png2area/`.
-  Obě hlavní čísla (Png2Area mIoU 0,537 / Png2Point mF1 0,897) jsou jinak změřena jen na syntetice. Reportovat
-  při KAŽDÉM dalším tréninku dvojici (syntetika / realita):
-  (a) **Png2Area na `resources/`:** X = sken reálné mapy (PNG + `.pgw`), Y = rasterizace kartografovy
-  `.omap` přes `omap_raster` — **POZOR crosswalk:** reálné mapy jsou ISOM 2000, `AREA_ZORDER` čeká 2017-2
-  kódy → před rasterizací přemapovat přes `.crt` (vzor `compare_isom`, lekce Sez. 94 — bez crosswalku vyjde
-  nesmysl). Start: Bedřichovka + Blatná (mají `.pgw`); metrika = stejný per-class IoU/mIoU kód jako
-  `train.evaluate` (žádná nová metrika). Pseudo vrstvy generátoru (516 / 310-split / pseudo 204/210)
-  v reálném Y nejsou → vyhodnotit jen třídy přítomné v kartografově `.omap` (viz B6 registr níže).
-  (b) **Png2Point na reálném skenu** = existující bod „reálný transfer 204/210" (sekce Png2Point) — touto
-  námitkou POVÝŠEN, měřit společně s (a). DoD úkolu: skript `model/png2area/eval_real.py` (nebo `train.py
-  --real`), čísla v diáři + README status. Výsledek řídí prioritu A2 vs další pokrytí.
+- [~] *(A1, KRITICKÁ; HAL3000 — Png2Area ČÁST HOTOVÁ Sez. 120, Png2Point část zbývá)* **Reálný benchmark
+  reconstructorů — měřit doménový gap syntetika→sken.** **(a) Png2Area HOTOVO Sez. 120** (detail DONE, kód A1):
+  `model/png2area/eval_real.py` povýšen z temp/; **per-odstín mIoU 0,256/0,354 + soft-skupiny pixel-acc 0,88–0,90**
+  (model reálné mapy ČTE, gap metrický ne kategorický; Sez. 119 „0,058" byl bug chybné rotace `__main__` default).
+  Dvojice (per-odstín / soft) zavedena jako 2. KPI (KPI blok níže). **ZBÝVÁ (b) Png2Point na reálném skenu** =
+  existující bod „reálný transfer 204/210" (sekce Png2Point) — detekce 204/210 na REÁLNÉM Livelox skenu (ne injekci);
+  reportovat dvojici (syntetika mF1 0,897 / realita) stejnou optikou jako (a). Výsledek (a) řídí prioritu A2 vs
+  další pokrytí. Pozn.: pseudo vrstvy generátoru (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnotit
+  jen třídy přítomné v kartografově `.omap` (registr B6).
 - [!] *(A2; mrkla, až PO [!] re-tréninku 301-voda a PO změření A1 baseline)* **Purple-course + geometrická
   augmentace.** Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy
   neviděl jako vstup — `degrade.py` je čistě fotometrický. (a) Do `model/png2area/dataset.py._augment`
@@ -111,6 +100,11 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **`generator/measure_dod.py`** (DEFAULT režim; `--table` kompas diagnostika děr / `--dod` archiv binární DoD).
 > Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
 > **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
+>
+> **2. KPI — reálný doménový gap (Sez. 120, Fable5 A1):** KPI výše měří jen FEEDER (kvalita generátoru); zda
+> reconstructor reálné mapy ČTE, měří `model/png2area/eval_real.py` na kartografových skenech jako **dvojici
+> (per-odstín mIoU / soft-skupiny pixel-acc)**. Stav: Png2Area **0,256–0,354 / 0,88–0,90** (čte, gap metrický);
+> Png2Point realita zbývá (A1.b). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
 > 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**

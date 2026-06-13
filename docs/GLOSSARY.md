@@ -496,7 +496,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Gate** — licenční/datová brána: bez vyjasněné licence (nebo dostupnosti dat) se nad
   zdrojem nestaví. „Vegetace gate" = zavřená cesta k vegetaci z ČÚZK open dat.
 - **Domain gap** — rozdíl mezi syntetikou a realitou (syntetika je hladší). Řeší se
-  sim-to-real receptem.
+  sim-to-real receptem. **Změřen pro `Png2Area` (Sez. 120, A1 benchmark `model/png2area/eval_real.py`):**
+  na reálném kartografově skenu per-odstín mIoU **0,256/0,354** vs syntetická 0,537, ALE **soft mIoU
+  na sémantických skupinách** (open/les/voda) **pixel-acc 0,88–0,90** → model reálné mapy ČTE na úrovni
+  runnability-kategorie; per-odstín gap je metrický (odstínová záměna 401↔403, vzácné třídy bez supportu),
+  ne kategorický. Reportuje se **dvojice (per-odstín / soft-skupiny)** jako 2. KPI při každém tréninku.
 - **Sim-to-real** — předtrénink na syntetice (cesta C) + fine-tuning/validace na reálných
   mapách (cesta B); reálný terén (A) dosazený do generátoru.
 - **Cesty A / B / C** — datové zdroje pro UC5: (A) geodata ČÚZK, (B) reálné korpusy map,

@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 120 (2026-06-13) — A1 reálný benchmark Png2Area DOKONČEN: model čte mapu, gap je metrický (HAL3000)
+- [x] **A1 (Fable5 audit, KRITICKÁ) — Png2Area reálný benchmark dotažen + povýšen.** Fokus z Příště 119 (volba
+  uživatele). Dotažena diagnostika rozporu „vizuál čte ✓ vs mIoU 0,058 ✗" ze Sez. 119.
+  - **Nález 1 — Sez. 119 reportovalo BUG:** `0,058` byl artefakt chybné rotace (`__main__` default `rot_sign=+1`,
+    zatímco závěr diáře + vizuální overlay používaly `−1`). Ověřeno oboustranně: `+1` → 0,058, `−1` → reálná čísla.
+  - **Nález 2 — model reálné mapy ČTE:** soft metrika na sémantických skupinách (open/les/voda/…) = **88–90 %
+    pixelů správně** (vizuálně i číselně). Doménový gap existuje, ale je výrazně menší, než tvrdilo Sez. 119.
+  - **Nález 3 — per-odstín gap je metrický, ne kategorický** (confusion matice): hlavní žrout = záměna **401↔403**
+    (open vs rough-open, fuzzy i pro kartografa; Bedř 401 60 % → 403) + kolaps vzácných tříd bez supportu
+    (402/308/501/voda Bedř n=489 ~0). Les naopak dobrý (recall 406 80 % / 408 81 % / 410 74 %). Striping +
+    modrá halucinace = reálné artefakty (model-improvement, mimo dohodu STOP na modelech).
+  - **Čísla:** Bedřichovka per-odstín mIoU **0,256** / soft pixel-acc **0,895** (grouped mIoU 0,466) · Blatná
+    **0,354** / **0,880** (grouped 0,411). Per-odstín srovnatelné se syntetickou 0,537.
+  - **Kód:** povýšeno `temp/eval_real.py` → **`model/png2area/eval_real.py`** (DoD A1; oprava cesty `parents[2]`,
+    dokumentace vyřešeného stavu) s **dvojicí metrik** (per-odstín + soft-skupiny `GROUPS` + confusion dump) —
+    volba uživatele. Verify z nové lokace identický (0,256/0,466/0,895), py_compile OK. Scratch `temp/eval_real*.py`
+    smazány (subsumovány). Vizuál Y/pred/sken uložen do `temp/` (georef verify, oko = source).
+  - **2. KPI zavedeno** (volba uživatele): dvojice (per-odstín / soft-skupiny) reportovat při každém tréninku
+    (GLOSSARY „Domain gap", TODO KPI blok). Png2Point realita zbývá (A1.b).
+  - **Censure (viz Kudos/Censure):** Sez. 119 zapsalo nepoctivé číslo 0,058 — ověřená hodnota (`rot_sign=−1`) byla
+    jen v overlay/závěru, ne v default cesty `__main__`. Lekce: ověřená hodnota musí být i v default, ne jen v komentáři.
+
 ## Sezení 119 (2026-06-12) — A1 reálný benchmark Png2Area: vizuál čte mapu, číselná mIoU propastná (HAL3000, scratch)
 - [~] **A1 reálný benchmark (Fable5 audit A1)** — postaven ve `temp/` (nepovýšen). **Fáze 1 vizuál HOTOVÁ**
   (`eval_real_probe.py`): model přenáší na reálný sken (Bedřichovka/Blatná struktura sedí, **voda 301
