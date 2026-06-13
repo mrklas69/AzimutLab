@@ -35,7 +35,9 @@ _TILES_DIR = _REPO_ROOT / "resources" / "area_tiles"
 
 # generator/ na path kvůli degrade.py (fotometrická augmentace skenu, přesun z build_pair Sez. 103)
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
+sys.path.insert(0, str(_REPO_ROOT / "model"))   # purple.py = sdílený s png2point (A2a fialový přetisk)
 from degrade import degrade   # noqa: E402
+from purple import overprint_course   # noqa: E402  (fialový přetisk tratě do X — Sez. 117 audit A2a)
 from omap_raster import N_AREA   # noqa: E402  (SSoT počtu area tříd — guard proti stale _tiles.json, Sez. 110)
 
 Image.MAX_IMAGE_PIXELS = None
@@ -89,10 +91,14 @@ class AreaTileDataset(Dataset):
             x = np.rot90(x, k)
             y = np.rot90(y, k)
 
+        x = np.ascontiguousarray(x)                          # rozbij negativní stride z D4 před degrade
+        # --- fialový přetisk tratě jen na X (A2a, Sez. 117 audit): trať NENÍ mapový obsah → label Y
+        # se NEMĚNÍ; model se ji má naučit ignorovat (reálná závodní mapa ji nese, trénink ji nikdy
+        # neviděl). Kreslí se PŘED degrade, ať se fialová rozmaže/posune jako na reálném skenu. ---
+        x = overprint_course(x, seed=int(torch.randint(0, 2 ** 31 - 1, (1,)).item()))
         # --- fotometrická degradace jen na X (čistý gen render → sken), label Y se nedotýká ---
         # degrade() = CMYK misregistrace/blur/papír/šum/JPEG (generator/degrade.py). Variabilní seed
         # → jiná sken-realizace každou epochu (Sez. 103: degradace = augmentace tady, ne v build_pair).
-        x = np.ascontiguousarray(x)                          # rozbij negativní stride z D4 před degrade
         seed = int(torch.randint(0, 2 ** 31 - 1, (1,)).item())
         x = degrade(x, seed=seed)                            # (H,W,3) uint8 → uint8
         # .copy() y: rozbije negativní stride z [::-1]/rot90 (torch.from_numpy je nemá rád)

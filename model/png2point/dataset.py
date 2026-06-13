@@ -37,10 +37,12 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _CORPUS = _REPO_ROOT / "resources" / "livelox"   # point_base rendery: <cid>/gen_pointbase/rgb.png
 
 sys.path.insert(0, str(_REPO_ROOT / "model" / "png2point"))
+sys.path.insert(0, str(_REPO_ROOT / "model"))   # purple.py = sdílený s png2area (A2a fialový přetisk)
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
 sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 from inject import inject_tile, N_POINT, TILE   # noqa: E402
 from degrade import degrade                      # noqa: E402
+from purple import overprint_course             # noqa: E402  (fialový přetisk tratě do X — Sez. 117 audit A2a)
 from split import load_split                     # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
@@ -135,6 +137,9 @@ class PointTileDataset(Dataset):
         x, heat = inject_tile(rgb, seed=seed)      # (TILE,TILE,3) uint8 , (N_POINT,TILE,TILE) f32
 
         if self.augment:
+            # fialový přetisk tratě (A2a, Sez. 117 audit) PO injekci (trať se tiskne přes mapu i body),
+            # PŘED degrade (fialová se rozmaže jako na skenu). Kreslí JEN do X → heatmapa GT se nemění.
+            x = overprint_course(x, seed=int(torch.randint(0, 2 ** 31 - 1, (1,)).item()))
             # degradace AŽ po injekci (symboly se degradují jako na reálném skenu); fotometrická → heat OK
             dseed = int(torch.randint(0, 2 ** 31 - 1, (1,)).item())
             x = degrade(x, seed=dseed)
