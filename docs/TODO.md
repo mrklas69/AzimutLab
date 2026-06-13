@@ -372,7 +372,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   ostrými hranami písma vs plošný organický porost; (b) kurace — vyřadit/cropnout mapy s titulkem v poli (titulek bývá dole/v rohu →
   cílený crop spodního pruhu? riziko ořezu mapy); (c) měřit ROZSAH (kolik z 205 párů nese text-v-poli). Souvisí s follow-up detektor
   control-description mřížky (níže, Sez. 73 known limitation). **Pozn.: nezdržuje dnešní voda re-trénink** (946084 je test split; patří do zrání korpusu, směr PO re-tréninku).
-- [!] *(GT kvalita / ořez, nález uživatele Sez. 118)* **Crop gen na bbox REÁLNÉHO mapového obsahu, ne na celý Livelox quad.**
+- [x] *(GT kvalita / ořez — HOTOVO Sez. 122)* **Crop gen na bbox REÁLNÉHO mapového obsahu, ne na celý Livelox quad.**
   `resources/livelox/856040/gen` {A}: reálná mapa „Mezi silnicemi" je NEPRAVIDELNÝ tvar s velkým bílým okolím; Livelox quad (obdélník)
   je VĚTŠÍ → generátor generuje i tam, kde `map.png` nemá obsah → mimo reálnou mapu separace nemá co separovat → kreslí jen syrová
   ZABAGED (bílý les, žádné zelené areas). Vizuál gen render POTVRZEN: věrohodná vegetace jen ve středu (kde byla předloha), zbytek quadu
@@ -380,7 +380,9 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   (**reuse `_detect_map_area` Sez. 73**, už barevně detekuje mapové pole) → crop extent místo Livelox quadu (mechanika `cut.cut_box` existuje,
   jen jiný extent; volá se v `pairs.build_pair` před rasterizací Y). **Bonus:** odřízne i layout MIMO pole (titulek/legenda MH-SK) → částečně
   řeší layout nález výše (SAXBO text UVNITŘ pole ale zůstává na strukturní detektor). Nuance: bbox obdélník nechá rohy s bílou/ZABAGED (mapa
-  nepravidelná) — pro úplnou čistotu crop na MASKU tvaru (nad KISS, až kdyby vadily rohy). **Nezdržuje voda re-trénink** (856040 test split).
+  nepravidelná) — pro úplnou čistotu crop na MASKU tvaru (nad KISS, až kdyby vadily rohy). **Implementace Sez. 122:**
+  `pairs._content_quad_sjtsk` vezme bbox `gt_labels != IGNORE`, transformuje jej přes `_map_affine` do S-JTSK
+  a použije pro extent i finální `clip_omap_to_quad` před rasterizací Y.
 - [x] *(úklid, conceptual integrity — HOTOVO Sez. 93)* **Legacy „forest_age" názvosloví v predict cestě
   přejmenováno na neutrální `veg_area`** — sdílené nosiče predict separace i archiv věku (proměnné
   `veg_area_*` / soubor `mask_veg_area.png` / meta klíč `real_sections["veg_area"]` / `omap_export`

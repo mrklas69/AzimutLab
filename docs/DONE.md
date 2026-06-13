@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 122 (2026-06-13) — Buschdörfl E2E + globální kartografická konfigurace + sémantický GT
+- [x] **Buschdörfl (`classId=1201511`) georeferencován z mobilní fotografie.** SIFT/FLANN + robustní
+  homografie proti Livelox skenu: 943 inlierů, medián reprojekce 1,88 px. Přenosný výstup v
+  `maps/Buschdörfl/` obsahuje `.omap`, render, sken, mobilní foto, ortofoto, GT a verify artefakty.
+- [x] **Crop páru na skutečný bbox mapového obsahu.** `pairs._content_quad_sjtsk` bere bbox validních
+  pixelů `gt_labels != IGNORE`, transformuje jej přes Livelox affine a používá jej pro extent i finální
+  `clip_omap_to_quad` před rasterizací Y. Uzavírá `[!]` nález `856040` ze Sez. 118.
+- [x] **Globální nastavení AzimutLabu.** Nový kořenový `azimutlab.toml` + striktní
+  `generator/project_config.py` bez silent fallbacku. `symbols.vegetation_boundary` přijímá jen
+  `"416"` / `"416.1"`; default `"416.1"`. Volba řídí RGB i `.omap`, zapisuje se do `meta.json`.
+  Zelená 416.1 používá přesnou tmavou barvu z OOM šablony a dle ISOM vynechává hranice kolem 410 Fight.
+- [x] **Sémantický GT zachovává vodu a ISOM 520.** `gt_labels.png` zůstává kompatibilní runnability
+  `0–4/255`; nový `gt_semantic_labels.png` přidává `5=voda`, `6=520`. Georef větev zapisuje
+  `gt_semantic_grid(.png/_vis.png)` a `bg_gt.png` ji používá místo ztrátové runnability vizualizace.
+  Buschdörfl: 6 436 vodních + 21 174 olivových pixelů v georef gridu; vizuálně ověřeno.
+- [x] **KPI po změně generátoru:** čistý síťový běh **58,6 %** (plocha 69,5 / linie 58,9 / bod 52,8).
+  První běh 50,8 % byl neplatný (hlasitě vynechané ZABAGED rocks po odmítnutí sítě), nebyl reportován.
+
 ## Sezení 121 (2026-06-13) — A1.b reálný benchmark Png2Point: 204 přenáší, 210 kolabuje → A1 CELÁ dokončena (HAL3000)
 - [x] **A1 (Fable5 audit, KRITICKÁ) — část (b) Png2Point reálný benchmark → A1 DOKONČENA CELÁ.** Fokus z Příště 120
   (volba „Go!"). Detekce bodů 204/210 na REÁLNÉM kartografově skenu (ne injekci), dvojice optikou Sez. 120.

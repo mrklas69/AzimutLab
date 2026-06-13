@@ -89,6 +89,8 @@ Realizuje **MVP řez** specifikace
   zeď/hradba→**513 Wall**, rokle/výmol→**107 Erosion gully** (Sez. 58; HNĚDÁ plná bez ticků, mirror 104; v ČR řídká, Σ0 na DEV),
 - **stromořadí** — `--treerows real` (Sez. 45): `Liniová vegetace`→**406 Vegetation: slow running** („lineární les":
   osa→buffer→úzký světle zelený pás; oprava 416 = hranice porostů byla sémanticky špatně pro řadu stromů),
+- **hranice porostu** — globální `azimutlab.toml` volí `symbols.vegetation_boundary = "416"` nebo
+  `"416.1"` (výchozí). Volba platí pro RGB i `.omap`; zelená 416.1 se dle ISOM nekreslí kolem 410 Fight,
 - **prostupy** — `--barriers real` (Sez. 52): `Zábrana` na nosné zdi 513→**519 Crossing point** („branka",
   orientace = tangenta zdi, zeď se pod brankou přeruší; jen bod na zdi = průchod plotem, závory na cestách zahozeny —
   2/66 na LS = řídké), **poslední kandidát ZABAGED katalogu**,

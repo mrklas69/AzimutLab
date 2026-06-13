@@ -200,7 +200,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   zdroje napříč osou. (Reálná půlka od Sez. 42 čerpá i z **RÚIAN** katastru, ne jen ZABAGED — viz [[RÚIAN]].)
 - **Ground-truth (GT)** — referenční „pravdivá" anotace pro trénink/validaci modelu.
   Klíčová výhoda generátoru: každá vrstva je zároveň segmentační maska → GT zdarma.
-  U reálné mapy (`map_gt.py`) labely 0–4 (průchodný/406/408/410/open), navíc **label 255 = ignore**
+  U reálné mapy (`map_gt.py`) má kompatibilní **runnability GT** labely 0–4
+  (průchodný/406/408/410/open). Souběžný **sémantický GT** (Sez. 122) zachovává navíc
+  **5=voda, 6=ISOM 520**; `bg_gt` používá tuto větev. V obou platí **label 255 = ignore**
   (trénink přeskočí přes `ignore_index`). Ignore nese: (1) **fialový přetisk tratě** (kroužky kontrol,
   spojnice, čísla — ne ISOM runnability barva; Sez. 72); (2) **layout mimo mapové území** (legenda,
   control-description tabulka, titulek, tiráž, logo, papírový okraj — `_detect_map_area`, Sez. 73 část B):

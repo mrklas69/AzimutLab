@@ -326,7 +326,8 @@ nástroje: `yoav28/livelox-map-downloader-extension` (Chrome ext., MIT) a `route
   4 mapách (vizuál) → `oris.py` lookup ani georef fitter nejsou potřeba („stav až s důkazem").
 
 **Konektor hotov Sez. 68, ŠKÁLOVÁN Sez. 70:** `connectors/livelox.py` (`download_map(classId)` →
-`resources/livelox/<id>/`: `map.png` + `meta.json` + `blend.png`) + `connectors/map_gt.py` (runnability GT).
+`resources/livelox/<id>/`: `map.png` + `meta.json` + `blend.png`) + `connectors/map_gt.py`
+(runnability GT `0–4/255` + sémantický GT `5=voda`, `6=520`, Sez. 122).
 **Batch Sez. 70:** `allEvents` reverzováno na **`POST /Home/SearchEvents`** (GeoBox + `timePeriod`; classId v
 `classes[].id`) → `search_events`/`download_corpus` (1 class/event, idempotent, backoff retry). **Korpus 268 map**
 (severní Čechy CZ + Žitavsko-Šluknovsko DE / série SAXBO; ORIS souřadnice netřeba — blob nese georef).
