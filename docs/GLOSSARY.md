@@ -501,6 +501,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   na sémantických skupinách** (open/les/voda) **pixel-acc 0,88–0,90** → model reálné mapy ČTE na úrovni
   runnability-kategorie; per-odstín gap je metrický (odstínová záměna 401↔403, vzácné třídy bez supportu),
   ne kategorický. Reportuje se **dvojice (per-odstín / soft-skupiny)** jako 2. KPI při každém tréninku.
+  **Změřen pro `Png2Point` (Sez. 121, A1.b `model/png2point/eval_real.py`):** peak mF1 synt **0,897** /
+  realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
+  F1 0,38–0,68: plný kruh přežije injekce→sken), **210 Stony KOLABUJE** (F1 ~0,04: drobné tečky splývají
+  s rastrem skenu). 90 %+ halucinace 210 mimo mapové pole = striping artefakt (jako Png2Area) → maska
+  pole nutná pro poctivý výpočet.
 - **Sim-to-real** — předtrénink na syntetice (cesta C) + fine-tuning/validace na reálných
   mapách (cesta B); reálný terén (A) dosazený do generátoru.
 - **Cesty A / B / C** — datové zdroje pro UC5: (A) geodata ČÚZK, (B) reálné korpusy map,

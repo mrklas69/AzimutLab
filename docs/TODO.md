@@ -8,15 +8,14 @@ Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1�
 Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
-- [~] *(A1, KRITICKÁ; HAL3000 — Png2Area ČÁST HOTOVÁ Sez. 120, Png2Point část zbývá)* **Reálný benchmark
-  reconstructorů — měřit doménový gap syntetika→sken.** **(a) Png2Area HOTOVO Sez. 120** (detail DONE, kód A1):
-  `model/png2area/eval_real.py` povýšen z temp/; **per-odstín mIoU 0,256/0,354 + soft-skupiny pixel-acc 0,88–0,90**
-  (model reálné mapy ČTE, gap metrický ne kategorický; Sez. 119 „0,058" byl bug chybné rotace `__main__` default).
-  Dvojice (per-odstín / soft) zavedena jako 2. KPI (KPI blok níže). **ZBÝVÁ (b) Png2Point na reálném skenu** =
-  existující bod „reálný transfer 204/210" (sekce Png2Point) — detekce 204/210 na REÁLNÉM Livelox skenu (ne injekci);
-  reportovat dvojici (syntetika mF1 0,897 / realita) stejnou optikou jako (a). Výsledek (a) řídí prioritu A2 vs
-  další pokrytí. Pozn.: pseudo vrstvy generátoru (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnotit
-  jen třídy přítomné v kartografově `.omap` (registr B6).
+- [x] *(A1, KRITICKÁ; HAL3000 — CELÁ HOTOVÁ: Png2Area Sez. 120 + Png2Point Sez. 121; detail DONE, kód A1)*
+  **Reálný benchmark reconstructorů — měřit doménový gap syntetika→sken.** **(a) Png2Area Sez. 120:**
+  `model/png2area/eval_real.py`, per-odstín mIoU 0,256/0,354 + soft pixel-acc 0,88–0,90 (model ČTE, gap metrický).
+  **(b) Png2Point Sez. 121:** `model/png2point/eval_real.py`, dvojice synt mF1 0,897 / realita 0,19–0,36 (po masce
+  pole) — **204 PŘENÁŠÍ** (recall 0,66–0,67 stabilně, F1 0,38–0,68), **210 KOLABUJE** (F1 ~0,04, tečky splývají
+  s rastrem). 90 %+ halucinace 210 mimo pole = striping artefakt jako Png2Area. Dvojice zavedena jako 2. KPI (blok
+  níže). **Vstup pro A2:** gap = striping/ostrost + halucinace, NE fialový přetisk. Pozn.: pseudo vrstvy generátoru
+  (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnoceny jen třídy v kartografově `.omap` (registr B6).
 - [!] *(A2; mrkla, až PO [!] re-tréninku 301-voda a PO změření A1 baseline)* **Purple-course + geometrická
   augmentace.** Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy
   neviděl jako vstup — `degrade.py` je čistě fotometrický. (a) Do `model/png2area/dataset.py._augment`
@@ -101,10 +100,11 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
 > **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
 >
-> **2. KPI — reálný doménový gap (Sez. 120, Fable5 A1):** KPI výše měří jen FEEDER (kvalita generátoru); zda
-> reconstructor reálné mapy ČTE, měří `model/png2area/eval_real.py` na kartografových skenech jako **dvojici
-> (per-odstín mIoU / soft-skupiny pixel-acc)**. Stav: Png2Area **0,256–0,354 / 0,88–0,90** (čte, gap metrický);
-> Png2Point realita zbývá (A1.b). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
+> **2. KPI — reálný doménový gap (Sez. 120–121, Fable5 A1, DOKONČENO):** KPI výše měří jen FEEDER (kvalita
+> generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point}/eval_real.py` na kartografových
+> skenech. **Png2Area** (per-odstín mIoU / soft pixel-acc): **0,256–0,354 / 0,88–0,90** (čte, gap metrický).
+> **Png2Point** (peak mF1 synt / realita): **0,897 / 0,19–0,36** — 204 přenáší (recall ~0,67), 210 kolabuje
+> (~0,04). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
 > 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**
@@ -347,8 +347,9 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [ ] *(registr rozšíření, IDEAS B1 — Příště Sez. 108, vrchol žebříčku po 204/210)* přidat bodové třídy
     **417/419/418** (Special vegetation feature) do `POINT_CLASSES` (Png2Point) i pseudo injekce generátoru
     (mirror 204/210) → re-trénink + KPI; pak 109/111/112/115. Hustotu vyvážit dle nálezů Sez. 106/107.
-  - [!] *(reálný transfer, doménový gap; POVÝŠENO auditem A1 — sekce „Audit Fable 5" nahoře)* změřit detekci 204/210 na REÁLNÉM Livelox skenu (ne injekci) — analogie
-    Png2Area gen-vs-realita; rozhodne, zda injekční trénink přenese na skutečné mapy.
+  - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
+    kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
+    kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).
   - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení

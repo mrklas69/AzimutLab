@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 121 (2026-06-13) — A1.b reálný benchmark Png2Point: 204 přenáší, 210 kolabuje → A1 CELÁ dokončena (HAL3000)
+- [x] **A1 (Fable5 audit, KRITICKÁ) — část (b) Png2Point reálný benchmark → A1 DOKONČENA CELÁ.** Fokus z Příště 120
+  (volba „Go!"). Detekce bodů 204/210 na REÁLNÉM kartografově skenu (ne injekci), dvojice optikou Sez. 120.
+  - **Nález 0 (measure-first):** probe `temp/probe_points.py` (crosswalk-aware, point type=1) → Bedř/Blatná málo
+    skalnaté; primární mapa **Velbloud** (680× 204 / 603× 210, S-JTSK Křovák, `.pgw` JE na HAL3000 — Sez. 111 chyběl
+    na ntbhej). Slovanka (2481/3473) odložena = UTM33. Všech 6 map má `.png`+`.pgw`+`.omap`.
+  - **Nález 1 — 204 Boulder PŘENÁŠÍ:** recall **0,66–0,67 stabilně napříč 3 mapami** = model reálné balvany ČTE.
+    F1 204: Blatná 0,68 / Velbloud 0,63 / Bedř 0,38 (gap = precision/halucinace, ne recall). Plný černý kruh (r≈3 px)
+    přežije přechod injekce→sken. Georef ověřen vizuálně (rot_sign=−1 platí i pro Velbloud, dosud neověřený Sez. 111).
+  - **Nález 2 — 210 Stony KOLABUJE:** F1 ~0,04, precision ~0,02, recall 0,18/0,27/0,00. Drobné tečky (r≈1 px) splývají
+    s rastrem/texturou skenu → halucinace stony pole na zrnité ploše. Injekční trénink na tuto třídu nepřenáší.
+  - **Nález 3 — striping artefakt (maska pole nutná):** PŘED maskou 210 pred 59k/30k/49k peaků, **90 %+ FP MIMO mapové
+    pole** na bílém okolí (= striping doménový artefakt jako Png2Area Sez. 120). Přidána `_map_area_mask` (hrubý mappix
+    → reuse `map_gt._detect_map_area` Sez. 73) = zpřesnění MĚŘENÍ, ne ladění modelu (dohoda STOP na modelech dodržena).
+  - **Čísla (po masce pole):** Velbloud mF1 0,335 (204 0,63 / 210 0,04) · Blatná 0,364 (0,68 / 0,05) · Bedř 0,191
+    (0,38 / 0,00). Syntetická mF1 = 0,897.
+  - **Kód:** nový **`model/png2point/eval_real.py`** (izomorfní s png2area): DRY reuse `paper_to_scan_px` z png2area přes
+    `importlib` (kolize jmen modulů); `parse_carto_points` (type=1 + crosswalk), `predict_peaks` (tiled sigmoid heatmap
+    + NMS), `_map_area_mask`, detekční helpery kopie z `train.py` (SSoT tam). py_compile OK, vizuál overlay → `temp/`.
+  - **Vstup pro A2:** hlavní gap = striping/ostrost + halucinace u jemných symbolů, NE fialový přetisk (204 čte i bez něj)
+    → informuje pořadí A2 („benchmark může ukázat, že fialová je menší problém než ostrost").
+
 ## Sezení 120 (2026-06-13) — A1 reálný benchmark Png2Area DOKONČEN: model čte mapu, gap je metrický (HAL3000)
 - [x] **A1 (Fable5 audit, KRITICKÁ) — Png2Area reálný benchmark dotažen + povýšen.** Fokus z Příště 119 (volba
   uživatele). Dotažena diagnostika rozporu „vizuál čte ✓ vs mIoU 0,058 ✗" ze Sez. 119.
