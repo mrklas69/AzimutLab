@@ -424,8 +424,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
   Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
   má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
-  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125 — test mF1 0,888** (medián 3 seedů / rozptyl 0,019 po
-  focal bias initu; 0,897 byl nereprodukovatelný single-run; 204 ~0,92 / 210 ~0,86): `point_base` render +
+  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125, MPP fix Sez. 126 — test mF1 0,874** (medián 3 seedů na
+  kanonickém měřítku 1,33; 0,888 bylo na starém měřítku se symboly 1,64× velkými; 204 ~0,92 / 210 ~0,86): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
 - **`point_base`** (Sez. 106) — render lokality BEZ jediného bodového symbolu (`generate_map(point_base=True)`:
@@ -456,6 +456,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   vynásobí ZPĚT na původní grid (výstup v image-px vstupu → volající se nemění). Dva důvody: **výkon** (separace
   je O(n² prstenců) — měřeno 0,56→1,33 mpp = **31,6× zrychlení**, věrnost ploch zachována, žrout #1 ze Sez. 84) +
   **konzistence** (`MIN_AREA_PX` laděné na 1,33 platí stejně napříč korpusem). Bez `src_mpp` = no-op (PoC).
+- **`CANONICAL_MPP` = 1,33 (`model/mpp.py`, SSoT měřítka tréninkové dlaždice, Sez. 126)** — m/px, na kterém
+  reconstructory (Png2Area/Point) trénují I inferují. **Odlišný koncept od `separate.TARGET_MPP`** (to je interní
+  separační downscale, náhodou stejná hodnota — nesjednocovat, jinak by změna jednoho rozbila druhý). Audit C1/K1
+  (Sez. 126) odhalil nesoulad: gen render je 2,18 m/px (`generator.py` pixel_size_m=bbox_m/W), ale `inject.py`/
+  `purple.py` počítaly symboly z 1,33 → symboly 1,64× velké; `eval_real` byl na 1,33 = rozbitý jen TRÉNINK.
+  Oprava (var. a1): `resample_to_mpp` přepočítá páry X+Y na CANONICAL_MPP PŘED tilingem (bilineár RGB / nearest
+  label) — `tile.py` (Png2Area), `dataset.py.__init__` (Png2Point); `read_src_mpp` čte src z `meta.georef.pixel_size_m`
+  (no silent fallback). `PX_PER_MM` (7,52) nezměněn — symboly vždy správné pro 1,33, rozbitý byl jen podklad.
+  Dopad: Png2Area test mIoU 0,537→0,683, reálný 210 z kolapsu na 0,11–0,18.
 - **`pairs.py` / `build_pair(cid)`** (Sez. 83, `generator/pairs.py`) — per-classId **továrna párů** [render, `.omap`]
   pro [[reconstructor]] (izomorf reframe „generator = továrna párů"; neplést s archivovaným `livelox.build_pairs` =
   ortofoto X,Y). Spojí REAL část (ČÚZK vrstvy z [[generator|`generate_map`]]) + PREDICT část (separace vegetace,

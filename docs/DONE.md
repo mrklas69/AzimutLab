@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 126 (2026-06-14) — MPP fix (audit C1/K1): kanonické měřítko dlaždice 1,33 → Png2Area test mIoU 0,537 → 0,683
+Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-126--mpp-fix-audit-c1k1-kanonické-měřítko-dlaždice--png2area-test-miou-0537--0683-hal3000).
+- [x] **(DOCS-K1 = CODE-C1, KRITICKÉ) Nesoulad fyzického rozlišení vyřešen var. a1.** Kořen: dlaždice 2,18 m/px,
+  ale `inject.py`/`purple.py` počítaly symboly z 1,33 (mylně „= separate.TARGET_MPP", což je interní separační
+  downscale) → symboly 1,64× velké; `eval_real` byl na 1,33 = rozbitý jen TRÉNINK. **Měření PŘED rozhodnutím**
+  (volba uživatele „nejdřív měřit"): reálné skeny 0,15–0,32 m/px (`.pgw`), gen render 2,18 (`generator.py:1811`).
+  **Volba var. a1** (resample párů na kanonické MPP, ne přepočet symbolů — měřením: tečka 210 na 1,33 = 4,5 px
+  čitelná vs 2,18 = 2,75 px splývá). **Kód:** nový SSoT `model/mpp.py` (`CANONICAL_MPP=1,33` + `resample_to_mpp`
+  bilineár/nearest + `read_src_mpp` z georef.pixel_size_m, no silent fallback); `inject.py`/`purple.py` PX_PER_MM
+  z CANONICAL_MPP; `png2area/tile.py` resample X+Y při tile (+`target_mpp` do `_tiles.json`); `png2point/dataset.py`
+  resample v `__init__`; oba `eval_real.py` ← CANONICAL_MPP; `separate.TARGET_MPP` ponechán jako oddělený koncept
+  (conceptual integrity). Elegance: `PX_PER_MM` nezměněn (7,52) — symboly vždy správné pro 1,33, rozbitý byl jen
+  podklad. Verify-against-source: 204 (3 px) = 4 m = ISOM 204 (r 0,4 mm @ 1:10000).
+- [x] **Rebuild + retrain obou reconstructorů na 1,33.** Re-tile korpusu (10093/2029/1672 dlaždic, 2,7× víc).
+  **num_workers 0→4** v `png2area/train.py` (+persistent+pin_memory): po 2,7× dlaždicích GPU hladověl (ep 889 s,
+  util 0 %) → 251 s/ep (3,5×), GPU 99 %, Windows spawn nespadl. Png2Point nechán na 0 (self.maps v RAM).
+  **Synt:** Png2Area test mIoU **0,537→0,683** (+14,6 pb; voda 301 0,74, 308 0,79, 521 0,73, 501 0,27). Png2Point
+  multiseed 3 seedy **medián 0,874** (0,856/0,874/0,893; vs 0,888 starý — menší/správné symboly, nesrovnatelné).
+- [x] **(A1) Re-benchmark `eval_real` obou na správném měřítku.** Png2Area per-odstín Bedř **0,256→0,336** (+8 pb),
+  Blatná 0,357 (~0). Png2Point realita **0,19–0,36 → 0,23–0,43**: 204 stabilní (F1 0,46–0,69, R ~0,55–0,60),
+  **210 z kolapsu (0,04) na 0,11–0,18** na 2/3 map (recall nízký = řídká detekce pole teček). MPP fix = správná
+  oprava; reálný gap (striping/ostrost, voda 0,22, 210 recall) = samostatné fronty mimo MPP.
+- [x] **(CODE-C2 částečně) Promote nejlepšího seedu** — multiseed driver kopíruje per-seed checkpoint a promotuje
+  best (ne poslední) → `unet_best.pt`. Obecné run_id řešení v `train.py` zbývá.
+- [x] **Přesun ChatGPT audit souborů** `AUDIT_{CODE,DOCS}_260614.md` z kořene → `docs/`.
+
 ## Sezení 125 (2026-06-14) — A2a Png2Point re-trénink odhalil seed-nestabilitu → vyřešena focal bias initem (medián 0,888) + ChatGPT audity
 Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-trénink-odhalil-seed-nestabilitu--vyřešena-focal-bias-initem-medián-0888--chatgpt-audity-hal3000).
 - [x] **(A2-derivát) Png2Point nestabilita VYŘEŠENA focal prior bias initem.** A2a re-trénink (purpura) dal

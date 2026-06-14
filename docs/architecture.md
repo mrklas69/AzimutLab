@@ -112,8 +112,8 @@ bodových, liniových i plošných ISOM symbolů.
 > reálně použitého symbolu z OOM `<symbol type>`, variant-aware): **plošný strop 54 %** (kdyby gen dokreslil
 > chybějící typy ploch; Sez. 96 přeřadil 210 Stony z plochy na bod — kartografové ho kreslí polem teček); zbytek =
 > linie (→ Png2Line) + body (→ Png2Point) → cesta k 90 % vede přes ně, ne přes leštění ploch.
-> **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125** (test mF1 0,888 medián 3 seedů / rozptyl 0,019 po focal
-> bias initu; 0,897 byl nereprodukovatelný single-run), pseudo body 204/210 integrovány do generátoru Sez. 107
+> **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125, na kanonickém měřítku Sez. 126** (test mF1 0,874 medián 3
+> seedů na MPP 1,33; 0,888 byl na starém měřítku se symboly 1,64× velkými), pseudo body 204/210 integrovány do generátoru Sez. 107
 > (KPI 50,3 → 59,1 %); zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
 > **separaci** (reálná produkční cesta párů
 > `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
@@ -172,6 +172,8 @@ bodových, liniových i plošných ISOM symbolů.
   stale `301.1` → voda strukturálně vypadávala z Y (oba předchozí tréninky ji NIKDY neviděly, mIoU ji nepočítala);
   fix `301.1`→`301` + SSoT (Sez. 110) → regen 205 párů + re-tile → **test mIoU 0,537, VODA 301 IoU 0,65** (poprvé
   měřená, dříve strukturálně 0 = nadprůměrně naučená). mIoU 0,537 nesrovnatelné s 0,568 (to vodu nepočítalo).
+  **MPP fix re-trénink (Sez. 126, audit C1/K1):** dlaždice byly 2,18 m/px, ale symboly/eval na 1,33 → kanonické
+  měřítko `model/mpp.CANONICAL_MPP=1,33`, re-tile + retrain → **test mIoU 0,683** (+14,6 pb; voda 301 0,74).
   `resources/area_model/unet_best.pt`.
 - **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
   druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
@@ -181,6 +183,8 @@ bodových, liniových i plošných ISOM symbolů.
   (19× imbalance 210/204), ne velikostní záměna → `n_boulder` hustě → single-run **mF1 0,897**, ALE nestabilní.
   **Stabilizace Sez. 125: skutečný kořen = chybějící focal prior bias init** (mrtvá fáze prvních ~15 ep) →
   bias init → **test mF1 0,888 medián 3 seedů / rozptyl 0,019** (204 ~0,92 / 210 ~0,86, obě stabilně živé).
+  **MPP fix (Sez. 126):** retrain na kanonickém měřítku 1,33 → **mF1 medián 0,874** (0,888 bylo na starém měřítku
+  se symboly 1,64× velkými); reálný transfer 210 z kolapsu (F1 0,04) na 0,11–0,18 (tečka 4,5 px přežije sken).
   `resources/point_model/unet_best.pt`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný). **Stav Sez. 107: 59,1 %**

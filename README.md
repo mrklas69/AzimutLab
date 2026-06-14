@@ -194,11 +194,11 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
   png2area/            #   LIVE Png2Area reconstructor (session 88): map scan → area label raster, first of the 3 OOM-geometry CV tasks
     tile.py            #     pre-tiling [scan.png, area_labels.png] pairs → 512×512 (no rejection — background is a class); 18 area codes + background from omap_raster; → resources/area_tiles/
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
-    train.py           #     U-Net/ResNet34, in→18 area codes + background, BF16, per-class IoU → resources/area_model/ (train on mrkla; session 118 water-301 fix → test mIoU 0.537; session 124 A2a purple-overprint augmentation re-train → test mIoU 0.566, residual purple impact −4.9 → −1.2 pb)
+    train.py           #     U-Net/ResNet34, in→18 area codes + background, BF16, per-class IoU → resources/area_model/ (train on mrkla; session 118 water-301 fix → test mIoU 0.537; session 124 A2a purple-overprint augmentation re-train; session 126 MPP fix → canonical tile resolution 1.33 (model/mpp.py) → test mIoU 0.683)
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
-    train.py           #     U-Net (smp) + sigmoid heatmaps, focal loss, peak-NMS → F1 → resources/point_model/ (test mF1 0.888 median/3 seeds, stable after focal bias init, session 125)
+    train.py           #     U-Net (smp) + sigmoid heatmaps, focal loss, peak-NMS → F1 → resources/point_model/ (test mF1 0.888 median/3 seeds, stable after focal bias init, session 125; session 126 MPP fix → canonical 1.33 → mF1 0.874, real 210 from collapse to 0.11–0.18)
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)

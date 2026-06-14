@@ -107,20 +107,18 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 ## ChatGPT audity (2026-06-14, Sez. 125) — DOCS + CODE → úkoly
 Zdroj: `AUDIT_DOCS_260614.md` + `AUDIT_CODE_260614.md` (kořen repa, untracked → přesunout do `docs/` v %END).
 Nálezy OVĚŘENY proti zdroji (Sez. 93/110: nález agenta ≠ fakt). Hotové v Sez. 125 níže.
-- [!] *(DOCS-K1 = CODE-C1, KRITICKÉ; OVĚŘENO Sez. 125)* **Nesoulad fyzického rozlišení — symboly 1,64× moc velké.**
-  Gen rastr (point_base/dlaždice) je **2,18 m/px** (meta `pixel_size_m 2.1805`; `tile.py`/`dataset.py` krájí BEZ
-  resamplingu), ale `inject.py`/`purple.py` počítají velikosti z `TARGET_MPP=1,33` (PX_PER_MM 7,52) s mylným
-  komentářem „= finální dlaždice" (1,33 je jen interní separační downscale, polygony se škálují ZPĚT). → body
-  204/210 + fialový přetisk jsou **2,18/1,33 = 1,64×** větší, než odpovídá kresbě podkladu. **Pravděpodobný
-  spoluviník A1.b** (210 Stony kolabuje na reálu — synt tečky moc velké; eval_real downscaluje sken na 1,33 =
-  jiné měřítko než trénink). **Designové rozhodnutí + rebuild datasetů + přetrénování → s uživatelem:** zvolit
-  kanonické MPP (SSoT), buď (a) resamplovat páry X+Y na 1,33 před tilingem (RGB bilineár / label nearest), nebo
-  (b) přepočítat symboly na 2,18. Pak `source_mpp`/`target_mpp` do `_tiles.json`+checkpoint + guard. **Po opravě
-  nejsou dosavadní synt ani reálné metriky srovnatelné** (vč. dnešní stabilizace — bias init ale ortogonální).
-- [ ] *(CODE-C2, KRITICKÉ)* **Každý běh přepisuje kanonický `unet_best.pt`** (žádné run_id/metadata; `eval_real`
-  načte cokoli aktuálního). Akutní teď u Png2Point (multi-seed/EMA běhy). Návrh: běh do `run_id` adresáře, seed/
-  EMA/decay/test-mF1/epocha do checkpointu, `unet_best.pt` měnit jen explicitním `promote`, atomický rename.
-  Stejný vzor i `png2area/train.py`. Pozn. Sez. 125: po multiseed bězích je `unet_best.pt` = poslední seed, NE nejlepší.
+- [x] *(DOCS-K1 = CODE-C1, KRITICKÉ; VYŘEŠENO Sez. 126 — detail DONE, kód C1/K1)* **Nesoulad fyzického rozlišení —
+  symboly 1,64× moc velké.** Volba uživatele **var. a1** (resample párů X+Y na kanonické MPP, ne přepočet symbolů):
+  nový SSoT `model/mpp.CANONICAL_MPP=1,33` + `resample_to_mpp`/`read_src_mpp`; `inject.py`/`purple.py` PX_PER_MM
+  z něj; `png2area/tile.py` resample X+Y při tile (+`target_mpp` do `_tiles.json`); `png2point/dataset.py` resample
+  v `__init__`; oba `eval_real.py` ← CANONICAL_MPP; `separate.TARGET_MPP` zůstává oddělený koncept. Rebuild
+  (re-tile 10093 dlaždic) + retrain obou. **Synt: Png2Area 0,537→0,683 (+14,6 pb)**, Png2Point mF1 medián 0,874.
+  **Realita A1: Png2Area Bedř 0,256→0,336; Png2Point 0,19–0,36→0,23–0,43, 210 z kolapsu 0,04 na 0,11–0,18**
+  (recall nízký), 204 stabilní. `PX_PER_MM` nezměněn (7,52) — symboly vždy správné pro 1,33, rozbitý jen podklad.
+- [~] *(CODE-C2, KRITICKÉ; ČÁSTEČNĚ Sez. 126)* **Každý běh přepisuje kanonický `unet_best.pt`** (žádné run_id/metadata;
+  `eval_real` načte cokoli aktuálního). Sez. 126: multiseed driver kopíruje per-seed (`unet_best_mpp_seed{N}.pt`)
+  a **promotuje NEJLEPŠÍ seed** (ne poslední) → `unet_best.pt`. ZBÝVÁ obecné řešení v `train.py` obou: běh do
+  `run_id` adresáře, seed/decay/test-mF1/epocha do checkpointu, `unet_best.pt` jen explicitním `promote`, atomický rename.
 - [ ] *(CODE-D3, no-silent-fallback)* **`cut.py clip_omap` tiše vrací (0,0) na chybu formátu** (chybějící
   `<objects>` / nečíselný coord token → objekt se tváří jako úspěšně ponechaný). Porušení „no silent fallback" +
   verify-against-source. Fix: vyhodit výjimku s cestou+identifikací; legitimní bezsouřadnicový typ allowlistem.
@@ -154,12 +152,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
 > **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
 >
-> **2. KPI — reálný doménový gap (Sez. 120–121, Fable5 A1, DOKONČENO):** KPI výše měří jen FEEDER (kvalita
-> generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point}/eval_real.py` na kartografových
-> skenech. **Png2Area** (per-odstín mIoU / soft pixel-acc): **0,256–0,354 / 0,88–0,90** (čte, gap metrický).
-> **Png2Point** (peak mF1 synt / realita): **0,888 stabilní (Sez. 125, medián 3 seedů; 0,897 byl nereprodukovatelný
-> single-run) / realita 0,19–0,36** (POZOR: měřeno na nestabilním modelu → re-benchmark na stabilním + po MPP fixu
-> Příště) — 204 přenáší (recall ~0,67), 210 kolabuje (~0,04). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
+> **2. KPI — reálný doménový gap (Sez. 120–121, re-benchmark Sez. 126 po MPP fixu, Fable5 A1):** KPI výše měří jen
+> FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point}/eval_real.py` na
+> kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
+> **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
+> mIoU 0,683). **Png2Point** (peak mF1 synt / realita): **0,874 synt (Sez. 126 medián 3 seedů na 1,33) / realita
+> 0,23–0,43** (z 0,19–0,36) — 204 přenáší stabilně (F1 0,46–0,69, R ~0,55–0,60), **210 z kolapsu (0,04) na 0,11–0,18**
+> (recall stále nízký, řídká detekce pole teček). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
 > 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**
