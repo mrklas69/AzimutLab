@@ -52,6 +52,7 @@ from map_gt import _detect_map_area                                            #
 
 TARGET_MPP = 1.33                                      # trénovací rozlišení dlaždice (inject.TARGET_MPP)
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
+_OUT.mkdir(parents=True, exist_ok=True)                # fresh clone / úklid temp/ → bez FileNotFoundError (audit CODE-D2)
 _CODES = [pc.code for pc in POINT_CLASSES]
 
 # --- detekční konstanty + helpery (SSoT = model/png2point/train.py; sem zkopírováno ať netáhneme
@@ -252,7 +253,9 @@ def main(name):
               f"(−{dropped[c]} mimo pole)  TP={tp:>4} FP={fp:>5} FN={fn:>4}  "
               f"P={prec:.3f} R={rec:.3f} F1={f1:.3f}")
     mf1 = float(np.mean(f1s))
-    print(f"  [REALITA] mean F1 {mf1:.3f}  vs syntetická 0,897")
+    # POZN. (Sez. 125): syntetická referenční mF1 je NESTABILNÍ (0,15–0,90 dle seedu) — „0,897" (Sez. 106)
+    # byl nereprodukovaný outlier. Hardcoded srovnání odstraněno; aktuální syntetické číslo viz train.py TEST.
+    print(f"  [REALITA] mean F1 {mf1:.3f}")
     pred = pred_in                                            # overlay ukáže jen in-field peaky
 
     _overlay(scan_img, gt_raw, pred, f, to_px).save(_OUT / f"realpt_{name}_overlay.png")

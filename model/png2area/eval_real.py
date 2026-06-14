@@ -36,6 +36,7 @@ from compare_isom import _load_crosswalk, _resolve_targets, detect_version      
 
 TARGET_MPP = 1.33                                      # trénovací rozlišení (separate.TARGET_MPP)
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
+_OUT.mkdir(parents=True, exist_ok=True)                # fresh clone / úklid temp/ → bez FileNotFoundError (audit CODE-D2)
 
 
 def _local(tag): return tag.split("}")[-1]

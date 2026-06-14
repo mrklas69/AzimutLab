@@ -3,17 +3,15 @@
 generate_map kreslí grid-north-up na axis-aligned bbox; reálná mapa je natočený quad (~2× užší kvůli
 grivaci). Přesahové rohy bboxu obsahují okolní sídla (Stráž n. Nisou u Bedřichovky) s kompletní ČÚZK
 infrastrukturou (ulice/budovy), kterou závodní OB mapa nepokrývá → výsledná gen.omap je nečistá jako
-produkt a tréninkové páry učí reconstructor hustou uliční síť mimo cílovou doménu. Ořez = vynech
-objekty s CENTROIDEM mimo quad + maska renderu na bílou (Sez. 109, zadání uživatele).
+produkt a tréninkové páry učí reconstructor hustou uliční síť mimo cílovou doménu. Ořez = geometrický řez
+objektů na hranici quadu + maska renderu na bílou (Sez. 109/114, zadání uživatele).
 
-PLÁN sjednocení (Sez. 113, schváleno uživatelem — DRY, zatím NEimplementováno; viz TODO bod ořez):
-geometrická primitiva `cut_line` (reuse generator `_split_by_zones_interp`) / `cut_area` (Sutherland-Hodgman) /
-`cut_point` (`_point_in_quad`) → JEDEN orchestrátor `clip_omap(.omap, clip_poly)` (přepíše `<coords>`, ne jen
-maže bloky) → wrappery `cut_box` (4 rohy papíru, CLI `--location`) + `clip_omap_to_quad` (Livelox quad). Tím
-clip_quad povýší z centroidu na geometrický (přesný řez dlouhých linií — „Nisa do Vesce", Sez. 113 Novina).
-
-Centroid (KISS, hrubé na hranici — dlouhá linie protínající hranici se ponechá/zahodí dle středu);
-geometrický ořez na hranici quadu = výše uvedený PLÁN (důkaz vady doložen Sez. 113: Novina přesah ~20 km).
+ARCHITEKTURA (Sez. 114, IMPLEMENTOVÁNO; povýšeno z původního centroidu): geometrická primitiva `cut_line`
+(přímá konstrukce + reuse jen `_interp_grid_at` — `_split_by_zones_interp` nestačil, ponechával konce linie →
+neuměl in→out, Sez. 114) / `cut_area` (Sutherland-Hodgman) / `cut_point` (`_point_in_quad`) → JEDEN
+orchestrátor `clip_omap(.omap, clip_poly)` (přepíše `<coords>` + flagy, ne jen maže bloky) → wrappery
+`cut_box` (4 rohy papíru, CLI `--location`) + `clip_omap_to_quad` (Livelox quad). Geometrický řez = přesné
+dělení dlouhých linií na hranici quadu (doložená vada „Nisa do Vesce", Sez. 113/114 Novina přesah ~20 km → 1,00×).
 
 `.omap` se upravuje STRING manipulací (regex odstranění `<object>` bloků), NE ET round-tripem — ten
 přeformátuje celý dokument a rozbije jak string-based `inject_image_templates` (podklady), tak riskuje

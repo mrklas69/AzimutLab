@@ -24,6 +24,7 @@ Checkpoint best (dle val F1) → resources/point_model/ (gitignored).
 """
 import argparse
 import csv
+import math
 import sys
 import time
 from pathlib import Path
@@ -52,9 +53,19 @@ _CODES = [pc.code for pc in POINT_CLASSES]
 
 # ----------------------------------------------------------------------------- model
 def build_model() -> torch.nn.Module:
-    """U-Net + ResNet34 (ImageNet pretrained), 3 vstupní kanály → N_POINT heatmap kanálů (logity)."""
-    return smp.Unet(encoder_name=ENCODER, encoder_weights="imagenet",
-                    in_channels=3, classes=N_POINT)
+    """U-Net + ResNet34 (ImageNet pretrained), 3 vstupní kanály → N_POINT heatmap kanálů (logity).
+
+    Focal prior bias init (RetinaNet/CenterNet, Sez. 125): bias výstupní vrstvy se nastaví tak, aby
+    počáteční p(peak) ≈ π = 0,01 (ne 0,5 všude). Bez něj startují logity vysoké → model prvních ~15 epoch
+    jen 'stlačuje' plochou heatmapu dolů (mrtvá fáze) a teprve pak skokem naskočí → kdy/jestli skok nastane
+    závisí na seedu = hlavní zdroj rozptylu mF1 0,15–0,90. Prior bias mrtvou fázi odstraní."""
+    model = smp.Unet(encoder_name=ENCODER, encoder_weights="imagenet",
+                     in_channels=3, classes=N_POINT)
+    prior = 0.01
+    bias_val = -math.log((1.0 - prior) / prior)        # ≈ -4,595 → sigmoid(bias) ≈ 0,01
+    head = model.segmentation_head[0]                   # poslední Conv2d (produkuje logity)
+    torch.nn.init.constant_(head.bias, bias_val)
+    return model
 
 
 # ------------------------------------------------------------------------- focal loss
@@ -190,11 +201,50 @@ def _plot_curve(history: list[dict], tag: str, f1_label: str) -> None:
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------------ EMA
+class _EMA:
+    """Exponenciální klouzavý průměr vah (Páka 1 stabilizace, Sez. 125).
+
+    Drží 'shadow' kopii všech tensorů state_dict. Po každém kroku optimalizátoru se
+    float tensory přiblíží aktuálním vahám faktorem (1-decay); ne-float buffery
+    (např. BN `num_batches_tracked`) se kopírují přímo. Vyhlazené váhy konvergují
+    klidněji než poslední iterace → menší run-to-run rozptyl (Png2Point mF1 0,15–0,90)."""
+
+    def __init__(self, model: torch.nn.Module, decay: float):
+        self.decay = decay
+        # detach().clone() = nezávislá kopie mimo autograd graf
+        self.shadow = {k: v.detach().clone() for k, v in model.state_dict().items()}
+
+    @torch.no_grad()
+    def update(self, model: torch.nn.Module) -> None:
+        for k, v in model.state_dict().items():
+            s = self.shadow[k]
+            if v.dtype.is_floating_point:
+                s.mul_(self.decay).add_(v.detach(), alpha=1.0 - self.decay)   # in-place EMA
+            else:
+                s.copy_(v)                                                    # buffery jen kopíruj
+
+    def copy_to(self, model: torch.nn.Module) -> None:
+        model.load_state_dict(self.shadow)
+
+
 # -------------------------------------------------------------------------- trénink
-def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEAK_THR) -> None:
+def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEAK_THR,
+          seed: int | None = None, ema: bool = False, ema_decay: float = 0.998) -> float | None:
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla/HAL3000, RTX 5070)"
     device = "cuda"
-    torch.backends.cudnn.benchmark = True
+    if seed is not None:
+        # Reprodukovatelný běh (Sez. 125): augmentace (crop/D4/injekce/degrade/purpura) jede přes
+        # globální torch RNG → manual_seed zdeterminuje celý stream. cudnn deterministicky (mírně
+        # pomalejší, ale run-to-run stabilní). Bez --seed zůstává staré nedeterministické chování.
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        print(f"[seed] reprodukovatelný běh, seed={seed} (cudnn deterministic)")
+    else:
+        torch.backends.cudnn.benchmark = True
 
     if overfit:
         # 1-2 point_base mapy z train splitu (gate = memorizace na čistém podkladu, Sez. 105/106)
@@ -215,6 +265,12 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = (None if overfit
                  else torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs))
+
+    # EMA (Páka 1): druhý model jako eval cíl naplněný vyhlazenými vahami; None = vypnuto
+    ema_obj = _EMA(model, ema_decay) if ema else None
+    ema_model = build_model().to(device) if ema else None
+    if ema:
+        print(f"[ema] zapnuto, decay={ema_decay} (eval + best z vyhlazených vah)")
 
     print(f"train {len(train_ds)} dlaždic | val {len(val_ds)} | batch {batch} | lr {lr} | "
           f"epoch {epochs} | BF16 | {ENCODER} U-Net | {N_POINT} bod. tříd {_CODES}"
@@ -237,12 +293,18 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
             loss = focal_loss(logits.float(), gt)      # loss ve fp32 (log stabilita)
             loss.backward()
             optimizer.step()
+            if ema_obj is not None:
+                ema_obj.update(model)
             running += loss.item()
         avg = running / len(train_dl)
         if scheduler is not None:
             scheduler.step()
 
-        per, mf1 = evaluate(model, val_dl, device, thr)
+        # eval (a níže i best ckpt) z EMA vah, pokud zapnuto; jinak z živého modelu
+        if ema_obj is not None:
+            ema_obj.copy_to(ema_model)
+        eval_target = ema_model if ema_obj is not None else model
+        per, mf1 = evaluate(eval_target, val_dl, device, thr)
         dt = time.time() - t0
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"ep {ep:>3}/{epochs}  loss {avg:.4f}  {f1_label} mF1 {mf1:.3f}  "
@@ -254,7 +316,7 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
 
         if not overfit and mf1 > best_f1:
             best_f1 = mf1
-            torch.save({"model": model.state_dict(), "epoch": ep, "mf1": mf1,
+            torch.save({"model": eval_target.state_dict(), "epoch": ep, "mf1": mf1,
                         "encoder": ENCODER, "n_point": N_POINT, "codes": _CODES},
                        _CKPT_DIR / "unet_best.pt")
 
@@ -266,6 +328,8 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
         per, mf1 = evaluate(model, test_dl, device, thr)
         print(f"\n=== TEST (best ep {ckpt['epoch']}, val mF1 {ckpt['mf1']:.3f}) ===")
         print(f"test mF1 {mf1:.3f}  [{_fmt(per)}]")
+        return mf1
+    return None
 
 
 if __name__ == "__main__":
@@ -282,6 +346,12 @@ if __name__ == "__main__":
                     help="learning rate (AdamW, cosine decay). Nález Sez. 105: heatmapa konverguje "
                          "až s ~1e-3 (gate spouštěj --lr 1e-3); 1e-4 default pro klidnější plný trénink")
     ap.add_argument("--peak-thr", type=float, default=PEAK_THR, help=f"práh detekce peaku (default {PEAK_THR})")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="fixní seed → reprodukovatelný běh (Sez. 125). Bez něj nedeterministický jako dřív.")
+    ap.add_argument("--ema", action="store_true",
+                    help="EMA vah (Páka 1 stabilizace, Sez. 125) — eval i best z vyhlazených vah")
+    ap.add_argument("--ema-decay", type=float, default=0.998, help="EMA decay (default 0.998)")
     args = ap.parse_args()
     n_ep = args.epochs if args.epochs is not None else (60 if args.overfit else 40)
-    train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit, thr=args.peak_thr)
+    train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit, thr=args.peak_thr,
+          seed=args.seed, ema=args.ema, ema_decay=args.ema_decay)
