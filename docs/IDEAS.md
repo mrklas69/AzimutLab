@@ -522,3 +522,50 @@ detekuje jako 401/403 base odstín (per-pixel slepá k patternu, [[area-coverage
 mapy nesou ty pattern třídy jako samostatné objekty, gen je slévá. **Pokrok:** oba odstíny oranžové/žluté
 (401 sytá / 403 bledá) UŽ umíme rozlišit (Sez. 92). Pattern rodina = budoucí krok (generátor kreslit vzor
 + Y rozšířit, [[area-coverage-shade-vs-pattern]]).
+
+---
+
+## Stabilizace Png2Point — focal imbalance × seed-nestabilita (Sez. 125)
+
+A2a re-trénink odhalil, že **Png2Point trénink je vážně nestabilní**: test mF1 napříč jen lišícími se
+náhodnými podmínkami (stejný kód/data/split) = **0,15–0,90**. Tři seedy bez EMA: 0,151 / 0,247 / 0,318
+(medián 0,247). Reportovaná „**0,897**" (Sez. 106) byla téměř jistě **outlier šťastného nedeterministického
+běhu**, ne reprezentativní výkon.
+
+**Mechanismus** (diagnóza z `train.py:focal_loss` + dnešní data): pos i neg člen focal loss se normalizují
+jedním sdíleným `n_pos` přes oba kanály (CenterNet). 210 (pole teček) generuje řádově víc pozitiv než 204
+(jednotlivé body) → příspěvek 204 do `pos_sum` je malý → model ho podle inicializace (seed) **upustí** bez
+velké penalty. seed=2: 204 F1=**0,01** / 210 F1=0,63 (model obětoval 204). Sez. 106 to tlumil uměle vysokým
+`n_boulder=(40,120)`, ale řešení je křehké — drží jen pro některé seedy. K tomu single best-epoch výběr na
+malém val setu (96 dlaždic) = šum ve výběru checkpointu.
+
+**Páky (od nejnižšího rizika):**
+- **0 — metrologie první (foundations).** Reportovat **medián K≥3 seedů**, ne single-run. Nestabilizuje, ale
+  dělá měření poctivým (jinak honíme šum, Goodhart). `train.py --seed` (Sez. 125). KISS.
+- **1 — EMA vah.** Vyhlazené váhy konvergují klidněji → menší rozptyl. `train.py --ema` (Sez. 125), decay 0,998.
+- **2 — víc dat.** Jen 40 `point_base` map; rozšířit batch na celý korpus (207+) → menší variance i imbalance.
+- **3 — vyvážení tříd v loss (rizikové, JEN měřeně).** Per-class váha na `pos_loss`, ale **ne** per-kanál
+  `n_pos` dělení (Sez. 106 censure: explodovalo neg člen řídké třídy → oba na 0). Diagnostický skript, před/po
+  multi-seed.
+
+**Pořadí:** 0 → 1+2 → 3 jen pokud rozptyl drží. Cíl není „vyšší jedno číslo", ale **nižší rozptyl + obě třídy
+živé**. Purpura (A2a) je proti tomu podružná (paired seed=0: ON−OFF = −0,043) → doměřit až na stabilním základě.
+**→ TODO** (Sez. 125).
+
+**KOREKCE měřením (Sez. 125) — kořen nalezen, Páka 1 EMA byla slepá ulička.** EMA s decay 0,998 i 0,995 dala
+val stuck 0,013 → kontrola podmínky odhalila, že trénink se prvních ~15 epoch **vůbec neučí** i BEZ EMA
+(val 0,01, precision 0,00 / recall 0,99 = „peak všude"), pak skokem naskočí. Kdy/jestli skok nastane = zdroj
+rozptylu. **Skutečný kořen: chybějící focal prior bias init výstupní vrstvy** (`build_model` smp.Unet default
+bias=0 → sigmoid 0,5 všude na startu → model epochy stlačuje plochou heatmapu dolů = mrtvá fáze). Fix = bias
+= −log((1−π)/π), π=0,01 (RetinaNet/CenterNet; train.py:54 Sez. 125). **Dopad: mrtvá fáze ZMIZELA** — seed 0,
+JEN 12 ep, bez EMA: loss ep1 541→2,97, val ep1 0,012→0,310, **TEST mF1 0,151 → 0,730** (204 0,70 / 210 0,76,
+obě živé). EMA `--ema` flag ponechán (opt-in, neškodí), ale netlačí se. Censure: smoke 6 ep byl bezcenný
+(nic se neučí do ep ~10) → vinil jsem EMA decay před kontrolou baseline trajektorie. Lekce: znej baseline
+křivku, než viníš novou komponentu.
+
+**VYŘEŠENO (Sez. 125, multiseed 3 seedy, 40 ep, bias init bez EMA):** medián **0,888** (0,878/0,897/0,888),
+**rozptyl 0,019** vs baseline medián 0,247 / rozptyl 0,167 → **+0,64 medián, 8,8× menší rozptyl**, 204 ~0,92 /
+210 ~0,86 stabilně. Nuance: 0,888 je blízko „0,897" (Sez. 106) → ten **nebyl přehnaný, byl jen
+nereprodukovatelný** (šťastný běh přes nestabilní trénink); bias init dělá ~0,89 spolehlivě. **Páky 2 (víc dat)
+a 3 (loss) nepotřeba** — rozptyl 0,019 je dostatečně malý. Stabilní model `unet_best_biasinit_seed2.pt`
+(promote kandidát). **→ DONE** (Sez. 125).

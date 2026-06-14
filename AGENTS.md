@@ -63,7 +63,8 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   sken → area label rastr, 18 tříd ze `omap_raster`; pár [scan.png, area_labels.png] z `pairs.py`; `tile.py`
   BEZ rejection — pozadí je legitimní třída; test mIoU 0,568 Sez. 103) · `png2point/` = **živý** reconstructor
   `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210; test mF1
-  0,897 Sez. 106). Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
+  0,888 medián 3 seedů, stabilní po focal bias initu Sez. 125 — 0,897 Sez. 106 byl nereprodukovatelný single-run).
+  Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
   pořád ale **ne produkční balík** (ten přijde s přechodem na monorepo, fáze A). Sys.path skripty.

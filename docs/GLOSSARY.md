@@ -314,7 +314,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   runnability baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90,
   první funkční model) → stabilizace Sez. 91 test 0,640 → **přetrénován N_AREA 18 (Sez. 103): test mIoU 0,568 ≈
   val 0,571** (pokles = víc vzácných tříd + degradace-augmentace; vizuál predikce≈GT). Png2Point měří **mF1**
-  (detekce bodů, ne IoU): test mF1 0,897 (Sez. 106).
+  (detekce bodů, ne IoU): test mF1 **0,888** (medián 3 seedů, stabilní po focal bias initu Sez. 125; 0,897
+  Sez. 106 byl nereprodukovatelný single-run).
 
 - **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
   (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,
@@ -423,7 +424,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
   Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
   má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
-  **`Png2Point` HOTOVO Sez. 106 — test mF1 0,897** (204 F1 0,93 / 210 0,86, bez leaku): `point_base` render +
+  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125 — test mF1 0,888** (medián 3 seedů / rozptyl 0,019 po
+  focal bias initu; 0,897 byl nereprodukovatelný single-run; 204 ~0,92 / 210 ~0,86): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
 - **`point_base`** (Sez. 106) — render lokality BEZ jediného bodového symbolu (`generate_map(point_base=True)`:
@@ -499,12 +501,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   zdrojem nestaví. „Vegetace gate" = zavřená cesta k vegetaci z ČÚZK open dat.
 - **Domain gap** — rozdíl mezi syntetikou a realitou (syntetika je hladší). Řeší se
   sim-to-real receptem. **Změřen pro `Png2Area` (Sez. 120, A1 benchmark `model/png2area/eval_real.py`):**
-  na reálném kartografově skenu per-odstín mIoU **0,256/0,354** vs syntetická 0,537, ALE **soft mIoU
-  na sémantických skupinách** (open/les/voda) **pixel-acc 0,88–0,90** → model reálné mapy ČTE na úrovni
+  na reálném kartografově skenu per-odstín mIoU **0,256/0,354** vs syntetická 0,537, ALE na sémantických
+  skupinách (open/les/voda) **grouped mIoU 0,47** + **pixel-accuracy 0,88–0,90** (dvě různé metriky, ne
+  „soft mIoU") → model reálné mapy ČTE na úrovni
   runnability-kategorie; per-odstín gap je metrický (odstínová záměna 401↔403, vzácné třídy bez supportu),
   ne kategorický. Reportuje se **dvojice (per-odstín / soft-skupiny)** jako 2. KPI při každém tréninku.
-  **Změřen pro `Png2Point` (Sez. 121, A1.b `model/png2point/eval_real.py`):** peak mF1 synt **0,897** /
-  realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
+  **Změřen pro `Png2Point` (Sez. 121, A1.b `model/png2point/eval_real.py`):** peak mF1 synt **0,897** (POZOR:
+  nestabilní model PŘED Sez. 125 — synt referenci nahradit 0,888, realitu re-benchmarkovat na stabilním modelu
+  + po MPP fixu) / realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
   F1 0,38–0,68: plný kruh přežije injekce→sken), **210 Stony KOLABUJE** (F1 ~0,04: drobné tečky splývají
   s rastrem skenu). 90 %+ halucinace 210 mimo mapové pole = striping artefakt (jako Png2Area) → maska
   pole nutná pro poctivý výpočet.
@@ -528,6 +532,20 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   vydání `docs/AUDIT_FABLE5_<YYMMDD>.md` (1. = 260612, Sez. 117); úkoly v TODO sekci „Audit Fable 5",
   hotové → DONE s kódem námitky (A1, B4, …). Cadence ≥25 sez nebo milník (%BEGIN bod 2); příští vydání
   kontroluje minulé námitky VYŘEŠENO/TRVÁ/ZHORŠENO.
+
+- **Registr pseudo vrstev** (B6, Sez. 125) — pseudorealistická dekorace (fáze 2, vypne `--only-real`) =
+  prvky, které v ČÚZK datech NEJSOU a generátor je vyrábí procedurálně, aby render vypadal reálně. Lekce
+  [[pseudo-layer-writes-meta-and-omap]]: **každá pseudo vrstva MUSÍ psát do VŠECH vrstev** (jinak tichá díra
+  v měření — past Sez. 108). Kanonický přehled (vrstva → mechanismus → kde žije):
+
+  | Vrstva | Mechanismus | meta.json | `.omap` | `stats` | Y rastr |
+  |--------|-------------|-----------|---------|---------|---------|
+  | **516 Plot/Fence** | obvod RÚIAN zahrad (druh 5), `_rdp` narovnání, ticky dovnitř; off-water clip | `fences_info` | ✓ | ✓ | ✗ (linie → čeká na Png2Line) |
+  | **310 Indistinct marsh** | ~55 % mokřadů 308 náhodně přepnuto (spatial-hash split), 2× řidší přeruš. šrafa | `veg_area` | ✓ | ✓ | ✓ (N_AREA 18) |
+  | **pseudo body 204/210** | injekce na DOLOŽENOU skalnatost (206 DMR + ZABAGED body + dilatace), reuse inject geometrie | `rocks_info` | ✓ | ✓ (SYMBOLS) | ✗ (body → Png2Point) |
+
+  Pozn.: pseudo body 204/210 jsou v REÁLNÉM kartografově `.omap` taky (kartograf je kreslí) — A1 benchmark
+  je ale jako pseudo VYŘADÍ z hodnocení (registr B6: reconstructor se měří jen na třídách, co data nesou).
 
 ## Nástroje a knihovny
 

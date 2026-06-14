@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 125 (2026-06-14) — A2a Png2Point re-trénink odhalil seed-nestabilitu → vyřešena focal bias initem (medián 0,888) + ChatGPT audity
+Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-trénink-odhalil-seed-nestabilitu--vyřešena-focal-bias-initem-medián-0888--chatgpt-audity-hal3000).
+- [x] **(A2-derivát) Png2Point nestabilita VYŘEŠENA focal prior bias initem.** A2a re-trénink (purpura) dal
+  mF1 0,194 vs Sez. 106 0,897 → measure-first diagnostika odhalila, že trénink je seed-nestabilní (mF1 **0,15–0,90**,
+  model obětuje řídké 204 dle inicializace; „0,897" = nereprodukovatelný outlier). Kořen = chybějící focal prior
+  bias init (`smp.Unet` default bias=0 → mrtvá fáze prvních ~15 ep). Fix `build_model` bias=−log((1−π)/π), π=0,01
+  → multiseed 3 seedy **medián 0,888 / rozptyl 0,019** (vs baseline 0,247/0,167 = +0,64 medián, 8,8× menší rozptyl,
+  204 ~0,92 / 210 ~0,86). `train.py --seed` (reprodukovatelnost) + `--ema` (opt-in, slepá ulička). Stabilní model
+  `unet_best_biasinit_seed2.pt`. Purpura paired dopad podružný (−0,043). „0,897"→0,888 v živých docs.
+- [x] **(B6) Registr pseudo vrstev do GLOSSARY** — tabulka 516 plot / 310 split / pseudo body 204/210 →
+  mechanismus → kde žije (meta.json / `.omap` / stats / Y rastr). Kodifikuje [[pseudo-layer-writes-meta-and-omap]].
+- [x] **ChatGPT audity DOCS+CODE (uživatel, vedlejší session) ověřeny + drobné opravy.** Hlavní nález OVĚŘEN
+  proti zdroji: nesoulad rozlišení 2,18 vs 1,33 m/px (symboly 1,64× velké) → `[!]` TODO (designové rozhodnutí).
+  Opraveno: `eval_real._OUT.mkdir` (D2), hardcoded „0,897" v eval_real (D1), `cut.py` docstring (K2), GLOSSARY
+  soft mIoU↔pixel-acc (DOCS-C1). Zbytek → TODO audit blok + %END/ntbhej.
+
 ## Sezení 123 (2026-06-13) — A2a fialový přetisk tratě do augmentace obou reconstructorů
 - [x] **A2a (Fable5 audit) — purpurový course overprint do `_augment` obou modelů.** Nový sdílený
   `model/purple.py` (mimo `generator/` = respekt hranice paralelního vlákna): `overprint_course(rgb, seed)`

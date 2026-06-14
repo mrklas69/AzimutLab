@@ -112,7 +112,8 @@ bodových, liniových i plošných ISOM symbolů.
 > reálně použitého symbolu z OOM `<symbol type>`, variant-aware): **plošný strop 54 %** (kdyby gen dokreslil
 > chybějící typy ploch; Sez. 96 přeřadil 210 Stony z plochy na bod — kartografové ho kreslí polem teček); zbytek =
 > linie (→ Png2Line) + body (→ Png2Point) → cesta k 90 % vede přes ně, ne přes leštění ploch.
-> **Png2Point HOTOVÝ Sez. 106** (test mF1 0,897), pseudo body 204/210 integrovány do generátoru Sez. 107
+> **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125** (test mF1 0,888 medián 3 seedů / rozptyl 0,019 po focal
+> bias initu; 0,897 byl nereprodukovatelný single-run), pseudo body 204/210 integrovány do generátoru Sez. 107
 > (KPI 50,3 → 59,1 %); zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
 > **separaci** (reálná produkční cesta párů
 > `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
@@ -177,7 +178,9 @@ bodových, liniových i plošných ISOM symbolů.
   (bez bodů, master flag `generate_map`) = GT zdarma + libovolně instancí (řeší vzácnost) + **heatmap regrese**
   (CenterNet focal, peak NMS → F1). Scope **204 Boulder + 210 Stony** (210 = pole teček `210.1`, ne plocha —
   probe Sez. 106). Root-cause 204 (Sez. 106): příčina F1 0,00 = **hustota pozitiv vs focal `n_pos` normalizace**
-  (19× imbalance 210/204), ne velikostní záměna → `n_boulder` hustě → **test mF1 0,897** (204 0,93 / 210 0,86).
+  (19× imbalance 210/204), ne velikostní záměna → `n_boulder` hustě → single-run **mF1 0,897**, ALE nestabilní.
+  **Stabilizace Sez. 125: skutečný kořen = chybějící focal prior bias init** (mrtvá fáze prvních ~15 ep) →
+  bias init → **test mF1 0,888 medián 3 seedů / rozptyl 0,019** (204 ~0,92 / 210 ~0,86, obě stabilně živé).
   `resources/point_model/unet_best.pt`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný). **Stav Sez. 107: 59,1 %**

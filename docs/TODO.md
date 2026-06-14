@@ -11,12 +11,13 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 - [x] *(A1, KRITICKÁ; HAL3000 — CELÁ HOTOVÁ: Png2Area Sez. 120 + Png2Point Sez. 121; detail DONE, kód A1)*
   **Reálný benchmark reconstructorů — měřit doménový gap syntetika→sken.** **(a) Png2Area Sez. 120:**
   `model/png2area/eval_real.py`, per-odstín mIoU 0,256/0,354 + soft pixel-acc 0,88–0,90 (model ČTE, gap metrický).
-  **(b) Png2Point Sez. 121:** `model/png2point/eval_real.py`, dvojice synt mF1 0,897 / realita 0,19–0,36 (po masce
+  **(b) Png2Point Sez. 121:** `model/png2point/eval_real.py`, dvojice synt mF1 0,897 (POZOR: nestabilní model
+  PŘED Sez. 125 → stabilní 0,888; realita měřila nestabilní model → re-benchmark Příště) / realita 0,19–0,36 (po masce
   pole) — **204 PŘENÁŠÍ** (recall 0,66–0,67 stabilně, F1 0,38–0,68), **210 KOLABUJE** (F1 ~0,04, tečky splývají
   s rastrem). 90 %+ halucinace 210 mimo pole = striping artefakt jako Png2Area. Dvojice zavedena jako 2. KPI (blok
   níže). **Vstup pro A2:** gap = striping/ostrost + halucinace, NE fialový přetisk. Pozn.: pseudo vrstvy generátoru
   (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnoceny jen třídy v kartografově `.omap` (registr B6).
-- [~] *(A2; mrkla — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; ZBÝVÁ Png2Point re-trénink + (b))* **Purple-course + geometrická augmentace.**
+- [~] *(A2; mrkla — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; Png2Point re-trénink Sez. 125 ODHALIL NESTABILITU → [!] položka níže; ZBÝVÁ (b))* **Purple-course + geometrická augmentace.**
   Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy neviděl jako
   vstup — `degrade.py` je čistě fotometrický. **(a) Purpura HOTOVO Sez. 123:** `model/purple.py`
   (sdílený util mimo `generator/`) `overprint_course(rgb, seed)` kreslí ISOM trať (701 start △ / 702
@@ -26,12 +27,26 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   doložil hodnotu: fialová sráží purpura-naivní Png2Area test mIoU 0,537 → 0,488 (−4,9 pb; 501.1 −0,255).
   **Png2Area re-trénink HOTOVO Sez. 124** (best ep 21, TEST mIoU 0,566; re-probe `temp/probe_purple_impact.py`
   clean 0,566 → purpura 0,554 = **Δ −0,012**, dopad ↓ ~75 % vs naivních −0,049; 501.1 −0,255→−0,016 /
-  301 −0,139→−0,017 → hypotéza A2a potvrzena). **ZBÝVÁ: Png2Point re-trénink + point re-probe**
-  (`temp/probe_purple_impact_point.py` READY, izomorfní F1 metrika); zvážit purpurový TEST set jako
-  trvalou metriku robustnosti. **(b) Geometrická
+  301 −0,139→−0,017 → hypotéza A2a potvrzena). **Png2Point re-trénink Sez. 125: NEDOKONČITELNÝ jako rutina —
+  odhalil, že trénink je vážně nestabilní** (mF1 0,15–0,90 dle seedu; „0,897" Sez. 106 = outlier). Purpura dopad
+  paired (seed=0): **ON−OFF −0,043** (mírně škodí, podružné vůči nestabilitě). Stabilizace = [!] položka níže;
+  purpuru doměřit až na stabilním základě. **(b) Geometrická
   půlka** (sklad/ohyb/warp X i Y zároveň, vedle D4) = existující bod „Stupeň 2 — augmentační pipeline"
   níže, touto námitkou povýšen. Pozor u Png2Area: warp Y by mezi třídami vyrobil smíšené px (proto D4
   jen rot90) → nearest-neighbor na Y, nebo warp jen X.
+- [x] *(A2-derivát; mrkla/CUDA; VYŘEŠENO Sez. 125)* **Png2Point nestabilita VYŘEŠENA focal bias initem.**
+  A2a re-trénink odhalil rozptyl test mF1 **0,15–0,90** podle seedu (stejný kód/data/split); „0,897" (Sez. 106)
+  byl outlier. Mechanismus: focal `n_pos` sdílený přes kanály → model dle inicializace upustí řídké 204 (seed=2:
+  204 F1 0,01 / 210 0,63). **Hotovo Sez. 125:** Páka 0 metrologie (`train.py --seed`, baseline 3 seedy 0,151/
+  0,247/0,318 medián 0,247). **KOŘEN NALEZEN — chybějící focal prior bias init** (`build_model`, RetinaNet/
+  CenterNet, train.py:54): mrtvá fáze prvních ~15 ep (logity 0,5 všude na startu) = zdroj rozptylu. Fix
+  smoke (seed 0, 12 ep, bez EMA): **TEST mF1 0,151 → 0,730** (204 0,70 / 210 0,76, obě živé), mrtvá fáze pryč.
+  Páka 1 EMA = slepá ulička (decay táhne přes mrtvou fázi), flag `--ema` ponechán opt-in. **VYŘEŠENO Sez. 125:**
+  multiseed 3 seedy bias init medián **0,888** / rozptyl **0,019** (vs baseline 0,247 / 0,167 = +0,64 medián,
+  8,8× menší rozptyl; 204 ~0,92 / 210 ~0,86). Páky 2/3 nepotřeba. Stabilní model `unet_best_biasinit_seed2.pt`.
+  „0,897" v živých docs opraveno na 0,888 (Sez. 125). Detail [[IDEAS „Stabilizace Png2Point"]]. **ZBÝVÁ (Příště):**
+  (a) MPP fix (audit [!] níže) PŘED re-benchmarkem (mění měřítko); (b) re-benchmark A1.b `eval_real` na stabilním
+  modelu (staré 0,19–0,36 měřilo nestabilní model); (c) purpura paired re-probe na stabilním základě.
 - [ ] *(A3; měření HAL3000)* **KPI proti Goodhartu.** (a) Úspěch fáze `generator()` vázat na A1 benchmark;
   KPI zůstává kompas děr, ne cílová funkce — propsat do KPI bloku níže + `architecture.md`. Pravidlo pro
   každou další KPI práci: „pomůže to reconstructoru na reálném skenu?" (b) Rozšířit referenční sadu:
@@ -76,10 +91,10 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 - [ ] *(B4, drobnost)* **requirements split** — `requirements.txt` (runtime: numpy/Pillow/contourpy/
   pyproj/scipy/pygeomag) vs `requirements-train.txt` (smp/matplotlib + pozn. torch cu128 mimo PyPI).
   Hranice „matplotlib = trénink-only" je dnes nepsaná a už vystřelila (Sez. 112 clip_quad na ntbhej).
-- [ ] *(B6, docs drobnost)* **Registr pseudo vrstev do GLOSSARY** — tabulka: vrstva (516 plot /
-  310 split ~55 % / pseudo body 204/210) → mechanismus → kde žije (meta.json klíč · `.omap` · stats ·
-  Y rastr). Kodifikuje lekci Sez. 108 ([[pseudo-layer-writes-meta-and-omap]]) a umožní A1 benchmarku
-  pseudo třídy poctivě vyřadit.
+- [x] *(B6, docs drobnost — HOTOVO Sez. 125)* **Registr pseudo vrstev do GLOSSARY** — tabulka vrstva (516 plot /
+  310 split ~55 % / pseudo body 204/210) → mechanismus → kde žije (meta.json klíč · `.omap` · stats · Y rastr)
+  přidána do GLOSSARY „Projekt — struktura a principy". Kodifikuje lekci Sez. 108
+  ([[pseudo-layer-writes-meta-and-omap]]) a umožní A1 benchmarku pseudo třídy poctivě vyřadit.
 - [ ] *(B1, až bolí)* **Sdílený modul pro string-level `.omap` operace.** `cut.py`/`gen_backgrounds.py` jsou správně
   moduly (monolit nepřikrmovat), ale string-regex místo XML parseru je křehké — každý nový `.omap` zápis musí myslet, ať ho
   cut/backgrounds nerozbije (Sez. 109: clip NESMÍ přes ET kvůli inject). Extrahovat konvenci string-`.omap` operací na jedno místo.
@@ -88,6 +103,38 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   rozcestník. Pozor: staré řádky nepřepisovat (PROMPTS) → zkrátit nově psané + zvážit další split archivu.
 - [ ] *(B7, proces)* **Deep research fázovat.** 103 agentů uťatých session limitem (Sez. 110) = nehospodárné. Příště:
   scout → cílený fan-out, průběžně sklízet do RESEARCH.md, ať i uťatý běh zanechá plnou stopu.
+
+## ChatGPT audity (2026-06-14, Sez. 125) — DOCS + CODE → úkoly
+Zdroj: `AUDIT_DOCS_260614.md` + `AUDIT_CODE_260614.md` (kořen repa, untracked → přesunout do `docs/` v %END).
+Nálezy OVĚŘENY proti zdroji (Sez. 93/110: nález agenta ≠ fakt). Hotové v Sez. 125 níže.
+- [!] *(DOCS-K1 = CODE-C1, KRITICKÉ; OVĚŘENO Sez. 125)* **Nesoulad fyzického rozlišení — symboly 1,64× moc velké.**
+  Gen rastr (point_base/dlaždice) je **2,18 m/px** (meta `pixel_size_m 2.1805`; `tile.py`/`dataset.py` krájí BEZ
+  resamplingu), ale `inject.py`/`purple.py` počítají velikosti z `TARGET_MPP=1,33` (PX_PER_MM 7,52) s mylným
+  komentářem „= finální dlaždice" (1,33 je jen interní separační downscale, polygony se škálují ZPĚT). → body
+  204/210 + fialový přetisk jsou **2,18/1,33 = 1,64×** větší, než odpovídá kresbě podkladu. **Pravděpodobný
+  spoluviník A1.b** (210 Stony kolabuje na reálu — synt tečky moc velké; eval_real downscaluje sken na 1,33 =
+  jiné měřítko než trénink). **Designové rozhodnutí + rebuild datasetů + přetrénování → s uživatelem:** zvolit
+  kanonické MPP (SSoT), buď (a) resamplovat páry X+Y na 1,33 před tilingem (RGB bilineár / label nearest), nebo
+  (b) přepočítat symboly na 2,18. Pak `source_mpp`/`target_mpp` do `_tiles.json`+checkpoint + guard. **Po opravě
+  nejsou dosavadní synt ani reálné metriky srovnatelné** (vč. dnešní stabilizace — bias init ale ortogonální).
+- [ ] *(CODE-C2, KRITICKÉ)* **Každý běh přepisuje kanonický `unet_best.pt`** (žádné run_id/metadata; `eval_real`
+  načte cokoli aktuálního). Akutní teď u Png2Point (multi-seed/EMA běhy). Návrh: běh do `run_id` adresáře, seed/
+  EMA/decay/test-mF1/epocha do checkpointu, `unet_best.pt` měnit jen explicitním `promote`, atomický rename.
+  Stejný vzor i `png2area/train.py`. Pozn. Sez. 125: po multiseed bězích je `unet_best.pt` = poslední seed, NE nejlepší.
+- [ ] *(CODE-D3, no-silent-fallback)* **`cut.py clip_omap` tiše vrací (0,0) na chybu formátu** (chybějící
+  `<objects>` / nečíselný coord token → objekt se tváří jako úspěšně ponechaný). Porušení „no silent fallback" +
+  verify-against-source. Fix: vyhodit výjimku s cestou+identifikací; legitimní bezsouřadnicový typ allowlistem.
+- [ ] *(DOCS-D1, DRY/conceptual integrity)* **Sjednotit kontrakt Png2Area pipeline** napříč docs: **17 ISOM kódů +
+  background = `N_AREA 18`, labely 0–17, X=`rgb.png`, degradace on-the-fly, Y=`area_labels.png`**. Dnes rozpor
+  (16 vs 18 kódů, zastaralá `scan.png` pipeline) v `generator/README`, kořenovém README, GLOSSARY, architecture.
+- [ ] *(%END / ntbhej balík — docs hygiena)* DOCS-D2 (přesun 23 `[x]` z TODO do DONE) · DOCS-D3 (DONE chybí sezení
+  19/21/32/34/48/118/124) · DOCS-D5 (README supluje changelog → snapshot) · DOCS-D4 = [[B5]] (DIARY index) ·
+  DOCS-D6 (makra routing AGENTS `~/.Codex` vs CLAUDE `~/.claude`) · DOCS-C2 (UC3 „Restaurace" → „Restaurování map")
+  · CODE-K1 (`purple.py` n_ctrl off-by-one: komentář 5–12 / reálně 4–11).
+- [x] *(HOTOVO Sez. 125, během tréninku)* **Bezpečné drobné opravy:** CODE-D2 `eval_real` `_OUT.mkdir` (oba,
+  FileNotFoundError fix) · CODE-D1 odstraněn hardcoded „vs syntetická 0,897" v `png2point/eval_real.py` · CODE-K2
+  `cut.py` docstring (centroid→geometrický, Sez. 114) · DOCS-C1 GLOSSARY soft mIoU↔pixel-acc rozlišeno (grouped
+  mIoU 0,47 + pixel-acc 0,88–0,90). DOCS-K2 (0,897 v živých docs) řeší [!] Png2Point stabilizace blok výše.
 
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
@@ -110,8 +157,9 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **2. KPI — reálný doménový gap (Sez. 120–121, Fable5 A1, DOKONČENO):** KPI výše měří jen FEEDER (kvalita
 > generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point}/eval_real.py` na kartografových
 > skenech. **Png2Area** (per-odstín mIoU / soft pixel-acc): **0,256–0,354 / 0,88–0,90** (čte, gap metrický).
-> **Png2Point** (peak mF1 synt / realita): **0,897 / 0,19–0,36** — 204 přenáší (recall ~0,67), 210 kolabuje
-> (~0,04). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
+> **Png2Point** (peak mF1 synt / realita): **0,888 stabilní (Sez. 125, medián 3 seedů; 0,897 byl nereprodukovatelný
+> single-run) / realita 0,19–0,36** (POZOR: měřeno na nestabilním modelu → re-benchmark na stabilním + po MPP fixu
+> Příště) — 204 přenáší (recall ~0,67), 210 kolabuje (~0,04). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
 > 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**
