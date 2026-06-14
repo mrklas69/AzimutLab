@@ -19,14 +19,21 @@ přetiskové fialové z map_gt.ISOM_REF (Sez. 72). Převod mm→px sdílí konve
 
 Sys.path skript (fáze B). Importují model/png2area/dataset.py i model/png2point/dataset.py.
 """
+import sys
+from pathlib import Path
+
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-# --- převod mm papíru → px dlaždice (SSoT konvence = inject.PX_PER_MM, Sez. 105) ---
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # mpp.py = sourozenec (model/)
+from mpp import CANONICAL_MPP   # noqa: E402
+
+# --- převod mm papíru → px dlaždice (SSoT měřítka = mpp.CANONICAL_MPP, Sez. 126 audit C1/K1) ---
 # mm papíru → m terénu (× scale/1000) → px (÷ mpp). Korpus 1:10000, dlaždice 1,33 m/px → ≈ 7,52 px/mm.
-# Lokální kopie (ne import inject) ať purple.py netáhne png2point-specifický registr/contourpy.
+# Dřív TARGET_MPP=1,33 hardcoded (= „separate.TARGET_MPP") → symboly 1,64× velké vůči dlaždici 2,18.
+# Páry se teď resamplují na CANONICAL_MPP před injektem (dataset.py) → měřítko sedí.
 MAP_SCALE = 10000
-TARGET_MPP = 1.33
+TARGET_MPP = CANONICAL_MPP
 PX_PER_MM = (MAP_SCALE / 1000.0) / TARGET_MPP   # ≈ 7,52 px/mm
 
 # Fialové přetiskové barvy (= map_gt.ISOM_REF purple_a/b, Sez. 72; verify-against-source proti zdroji).

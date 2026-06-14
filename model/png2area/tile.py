@@ -45,11 +45,13 @@ _TILES_DIR = _REPO_ROOT / "resources" / "area_tiles"
 _CORPUS = _REPO_ROOT / "resources" / "livelox"
 _MAPS = _REPO_ROOT / "maps"
 
-# connectors (split) + generator (omap_raster: SSoT area tříd) na path
+# connectors (split) + generator (omap_raster: SSoT area tříd) + model (mpp: kanonické MPP) na path
 sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
+sys.path.insert(0, str(_REPO_ROOT / "model"))
 import split                                                # noqa: E402
 from omap_raster import N_AREA, LABEL_NAME, colorize   # noqa: E402
+from mpp import CANONICAL_MPP, resample_to_mpp, read_src_mpp   # noqa: E402  (Sez. 126: páry na kanonické měřítko)
 
 Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL decompression bomb guard
 
@@ -109,6 +111,12 @@ def tile_one(pair_dir: Path, split_name: str, cid: str) -> Counter:
     if y.shape != x.shape[:2]:
         raise RuntimeError(f"area_labels {y.shape} != scan {x.shape[:2]} v {pair_dir}")
 
+    # Resample X+Y na kanonické měřítko dlaždice (Sez. 126, audit C1/K1) PŘED tilingem — gen render je
+    # ~2,18 m/px, trénink + eval_real ale na CANONICAL_MPP (1,33). Stejný faktor pro oba → zarovnané.
+    src_mpp = read_src_mpp(pair_dir)
+    x = resample_to_mpp(x, src_mpp)                 # RGB → bilineár
+    y = resample_to_mpp(y, src_mpp, label=True)     # label → nearest (bez míchání tříd)
+
     H, W = y.shape
     out_dir = _TILES_DIR / split_name / cid
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -152,6 +160,7 @@ def _write_tiles_json(per_split: dict, source: str) -> dict:
         "_meta": {
             "generated": "model/png2area/tile.py (Sez. 88, Png2Area)",
             "source": source, "tile": TILE, "stride": STRIDE, "n_area": N_AREA,
+            "target_mpp": CANONICAL_MPP,   # měřítko dlaždice [m/px] — páry resamplované sem (Sez. 126)
         },
         "class_weights_train": {LABEL_NAME[c]: weights[c] for c in range(N_AREA)},
         "class_weights_list": weights,    # pořadí 0..N_AREA-1 pro CrossEntropyLoss(weight=)

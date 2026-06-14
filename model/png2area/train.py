@@ -178,10 +178,15 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool,
         train_ds = AreaTileDataset("train", augment=True)
         val_ds = AreaTileDataset("val", augment=False)
 
-    # num_workers=0: Windows + sys.path skript (spawn by reimportoval); IO je z SSD svižné.
-    train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True,
-                          num_workers=0, drop_last=not overfit)
-    val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=0)
+    # num_workers>0 (Sez. 126): po MPP fixu je dlaždic 2,7× víc (1,33 mpp) + on-the-fly degrade je drahý
+    # → na num_workers=0 GPU hladoví (util ~0 %, 9× pomalejší než compute). Paralelní loading to řeší.
+    # Windows spawn: dataset.py má sys.path.insert na top-level (reimport workeru ho obnoví); persistent
+    # workery šetří spawn overhead mezi epochami, pin_memory zrychluje H2D přenos. Při pádu spawn → vrátit 0.
+    NW = 4
+    train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=NW,
+                          drop_last=not overfit, persistent_workers=True, pin_memory=True)
+    val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=NW,
+                        persistent_workers=True, pin_memory=True)
 
     # --- model + loss + optimizer ---
     model = build_model().to(device)

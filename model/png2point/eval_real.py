@@ -49,8 +49,9 @@ paper_to_scan_px = _area_eval.paper_to_scan_px
 from compare_isom import _load_crosswalk, _resolve_targets, detect_version      # noqa: E402
 from inject import POINT_CLASSES, N_POINT, CODE_TO_IDX                          # noqa: E402
 from map_gt import _detect_map_area                                            # noqa: E402
+from mpp import CANONICAL_MPP                                                   # noqa: E402  (inject už přidal model/ na path)
 
-TARGET_MPP = 1.33                                      # trénovací rozlišení dlaždice (inject.TARGET_MPP)
+TARGET_MPP = CANONICAL_MPP                             # = měřítko dlaždice (SSoT mpp.py, Sez. 126); sken se naň downscaluje
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
 _OUT.mkdir(parents=True, exist_ok=True)                # fresh clone / úklid temp/ → bez FileNotFoundError (audit CODE-D2)
 _CODES = [pc.code for pc in POINT_CLASSES]

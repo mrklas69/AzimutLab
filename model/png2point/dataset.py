@@ -44,6 +44,7 @@ from inject import inject_tile, N_POINT, TILE   # noqa: E402
 from degrade import degrade                      # noqa: E402
 from purple import overprint_course             # noqa: E402  (fialový přetisk tratě do X — Sez. 117 audit A2a)
 from split import load_split                     # noqa: E402
+from mpp import resample_to_mpp, read_src_mpp    # noqa: E402  (Sez. 126: render na kanonické měřítko)
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -93,9 +94,13 @@ class PointTileDataset(Dataset):
                 f"žádné point_base rendery pro split '{split}'"
                 + (f" / cid {limit_cids}" if limit_cids else "")
                 + f" v {_CORPUS}/<cid>/gen_pointbase/rgb.png — spusť `python generator/pairs.py pointbase 40`")
-        # načti plné rendery do paměti jednou (~40 map × 2293² × 3 B ≈ 0,6 GB; HAL3000 utáhne) —
-        # random-crop za běhu je pak levný (žádné re-dekódování PNG každý __getitem__).
-        self.maps = [np.asarray(Image.open(p).convert("RGB"), dtype=np.uint8) for p in paths]
+        # načti plné rendery do paměti jednou + resample na kanonické měřítko dlaždice (Sez. 126,
+        # audit C1/K1): render je ~2,18 m/px, ale inject/purple kreslí symboly v CANONICAL_MPP (1,33)
+        # → bez resamplu byly symboly 1,64× velké. Upsample 2,18→1,33 ≈ 1,64× (~40 map × 3760² × 3 B
+        # ≈ 1,7 GB; HAL3000 utáhne). Random-crop za běhu je pak levný (bez re-dekódování PNG).
+        self.maps = [resample_to_mpp(np.asarray(Image.open(p).convert("RGB"), dtype=np.uint8),
+                                     read_src_mpp(p.parent))
+                     for p in paths]
         self.cids = [p.parent.parent.name for p in paths]
 
     def __len__(self) -> int:

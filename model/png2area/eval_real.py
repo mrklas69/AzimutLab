@@ -31,10 +31,12 @@ import xml.etree.ElementTree as ET
 Image.MAX_IMAGE_PIXELS = None                          # reálné skeny jsou velké (Bedř 114 Mpx)
 _REPO = Path(__file__).resolve().parents[2]            # model/png2area/eval_real.py → kořen repa
 sys.path.insert(0, str(_REPO / "generator"))
+sys.path.insert(0, str(_REPO / "model"))
 from omap_raster import CODE_TO_LABEL, N_AREA, LABEL_NAME, colorize, _split_rings   # noqa: E402
 from compare_isom import _load_crosswalk, _resolve_targets, detect_version           # noqa: E402
+from mpp import CANONICAL_MPP                                                          # noqa: E402
 
-TARGET_MPP = 1.33                                      # trénovací rozlišení (separate.TARGET_MPP)
+TARGET_MPP = CANONICAL_MPP                             # = měřítko dlaždice (SSoT mpp.py, Sez. 126); sken se naň downscaluje
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
 _OUT.mkdir(parents=True, exist_ok=True)                # fresh clone / úklid temp/ → bez FileNotFoundError (audit CODE-D2)
 

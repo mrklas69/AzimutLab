@@ -33,10 +33,15 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT / "model"))   # mpp.py = sdílený util reconstructorů
+from mpp import CANONICAL_MPP   # noqa: E402
 
-# --- rozlišení dlaždice = sdílené s Png2Area (1,33 mpp, 512 px) ---
+# --- rozlišení dlaždice: SSoT = model/mpp.CANONICAL_MPP (Sez. 126, audit C1/K1 oprava) ---
+# Dřív TARGET_MPP=1,33 mylně odkazoval na separate.TARGET_MPP (interní separační downscale, NE měřítko
+# dlaždice) → symboly se kreslily v px pro 1,33, zatímco dlaždice byla 2,18 → 1,64× velké. Teď páry X+Y
+# resamplujeme na CANONICAL_MPP PŘED injektem (dataset.py) a symboly počítáme z TÉHOŽ měřítka.
 TILE = 512                 # strana dlaždice (px), shodně s model/png2area/tile.py
-TARGET_MPP = 1.33          # m/px finální dlaždice (= separate.TARGET_MPP, SSoT tam; lokálně ať netáhneme contourpy)
+TARGET_MPP = CANONICAL_MPP # m/px finální dlaždice (SSoT v mpp.py)
 MAP_SCALE = 10000          # referenční měřítko korpusu 1:10000 (i 1:15000 existuje → SIZE_JITTER níže)
 # mm papíru → m terénu (×scale/1000) → px (÷mpp). 0,4 mm @ 1:10000 / 1,33 mpp = 3,0 px.
 PX_PER_MM = (MAP_SCALE / 1000.0) / TARGET_MPP   # ≈ 7,52 px/mm
