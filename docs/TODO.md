@@ -98,9 +98,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
 > **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
 > mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **4 třídy 204/210/417/419 od Sez. 128**): synt **0,827**
-> (medián 3 seedů: 417 0,85 / 419 0,86 / 204 0,77 / 210 0,84) / **realita mean 0,41–0,54** (z 0,23–0,43): **419
-> Prom. veg. feature SILNÝ 0,67–0,76** (líp než 204, výrazný zelený X + bílá svatozář), **417 Prom. large tree
-> střední 0,40–0,49** (čte, přestřeluje), 204 stabilní 0,44–0,73, **210 pořád kolabuje 0,00–0,19** (drobné tečky).
+> (medián 3 seedů: 417 0,85 / 419 0,86 / 204 0,77 / 210 0,84) / **realita mean 0,43–0,57** (per-class práh Sez. 129):
+> **419 Prom. veg. feature SILNÝ 0,67–0,76** (líp než 204, výrazný zelený X + bílá svatozář), **417 Prom. large tree
+> 0,52–0,55** (per-class práh 0,45 srazil přestřel P 0,38→0,40–0,68), 204 stabilní 0,44–0,73, **210 pořád kolabuje
+> 0,00–0,25** (drobné tečky). Práh detekce je **per třída v registru `PointClass.peak_thr`** (zelené chtějí vyšší).
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 127 (%BEGIN přeměření): KPI 58,6 %** (Bedř 52,3 / Blatná 59,2 /
@@ -260,13 +261,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     skalnatost, přestřelil) + kalibrace na **share** (ne absolutní Σ). Bod sub 18,4 → 54,3 %. Zbytek = data-gate
     (skalnatost není v geodatech → Blatná přestřel 48 %).
   - [~] *(registr rozšíření, IDEAS B1; DETEKCE HOTOVO Sez. 128, decoupling)* bodové třídy **417/419** přidány do
-    `POINT_CLASSES` (Png2Point) — registr generalizován (kind/color/n_range), zelený prstenec 417 + X 419 s bílou
-    knockout svatozáří (verify ISOM 2017-2). Synt medián 3 seedů mF1 0,827; **reálný transfer: 419 SILNÝ 0,67–0,76,
-    417 střední 0,40–0,49** (eval_real, audit A1). **ZBÝVÁ:** (a) **KPI pseudo injekce do generátoru (půlka 2)** —
-    VĚDOMĚ ODLOŽENA Sez. 128: 417/419 nejsou v geodatech doložené → fabrikace polohy = Goodhart (A3); informovaná
-    transferem (419 by stálo za to, ale chybí doložený zdroj umístění — 417 má řídký `Významný_strom` ZABAGED, 419 ne);
-    (b) **417 precision** (přestřeluje, P 0,27–0,45) — práh/hustota/sigma; (c) **418** (odloženo: malý, riziko kolapsu
-    jako 210); (d) pak 109/111/112/115.
+    `POINT_CLASSES` (Png2Point) — registr generalizován (kind/color/n_range/**peak_thr**), zelený prstenec 417 + X 419
+    s bílou knockout svatozáří (verify ISOM 2017-2). Synt medián 3 seedů mF1 0,827; **reálný transfer (eval_real, audit
+    A1): 419 SILNÝ 0,67–0,76, 417 0,52–0,55** (po per-class prahu Sez. 129). **ZBÝVÁ:** (a) **KPI pseudo injekce do
+    generátoru (půlka 2)** — VĚDOMĚ ODLOŽENA Sez. 128: 417/419 nejsou v geodatech doložené → fabrikace polohy = Goodhart
+    (A3); informovaná transferem (419 by stálo za to, ale chybí doložený zdroj umístění — 417 má řídký `Významný_strom`
+    ZABAGED, 419 ne); (b) **417 precision — SYMPTOM HOTOVO Sez. 129** (per-class práh 0,45 v registru, F1 0,46→0,54,
+    P 0,38→0,40–0,68; sweep `temp/sweep_thr_417.py`); ZBÝVÁ příčina = re-trénink (řidší/distinktivnější injekce 417);
+    (c) **418** (odloženo: malý, riziko kolapsu jako 210); (d) pak 109/111/112/115.
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).

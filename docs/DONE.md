@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 129 (2026-06-15) — 417 precision přes per-class práh detekce
+Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-129--417-precision-přes-per-class-práh-detekce-hal3000).
+- [x] **417 precision řešena per-class prahem detekce peaku** (Příště #2 — 417 přestřeloval P 0,38).
+  Measure-first per-třída threshold sweep na stávajícím `unet_best.pt` (`temp/sweep_thr_417.py`,
+  inference 1× per sken, sweep prahů 0,20–0,60 čistě CPU): 417 default thr 0,30 F1 0,46 → optimum
+  0,50 F1 0,55 (+0,086). **Strukturální vzor: zelené 417/419 chtějí VYŠŠÍ práh** (soupeří s porostem
+  o FP), **černé 204/210 nižší** → globální posun nepomůže, smysl jen per-class.
+- [x] **Práh přesunut do registru `PointClass.peak_thr`** (nový SSoT, izomorfní se `sigma`/`radius`):
+  204:0,30 / 210:0,20 / 417:**0,45** (robustní z ploché části křivky, ne ostré 0,50) / 419:0,40.
+  `train.evaluate(thr=None)` + `eval_real.predict_peaks(thr=None)` čtou per-kanál; `--peak-thr` =
+  globální override (sweep/experiment); smazána mrtvá konstanta `PEAK_THR`.
+- [x] **Měřený dopad** (`eval_real`, produkční cesta): 417 F1 0,40–0,49 → **0,52–0,55** napříč 3 skeny;
+  419 Blatná 0,67 → 0,76; **mean F1 0,477 → 0,515 (+0,038), bez re-tréninku.** Caveat: prahy laděné
+  in-sample na týchž 3 skenech (optimistické). Symptom-fix; re-trénink příčiny (417 halucinace) =
+  follow-up. 8 CPU testů OK, compile OK.
+
 ## Sezení 128 (2026-06-15) — Png2Point 417 a 419 detekce + reálný transfer
 Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-128--png2point-417-a-419-detekce--reálný-transfer-hal3000).
 - [x] **Png2Point rozšířen o bodové třídy 417 + 419** (vrchol KPI žebříčku děr). Decoupling
