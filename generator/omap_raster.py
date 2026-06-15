@@ -1,10 +1,15 @@
-"""omap_raster.py — rasterizace plošných (Area) ISOM symbolů z .omap → label rastr (Y pro Png2Area, Sez. 87).
+"""omap_raster.py — rasterizace ISOM symbolů z .omap → label rastr (Y-pipeline reconstructorů).
 
 Role v pipeline (reframe Sez. 79/80): reconstructor() se učí na párech [scan.png, .omap]. X = degradovaný
-render (degrade.py, Sez. 86); Y = TENHLE label rastr, vyrobený rasterizací plošných symbolů z téže .omap.
+render (degrade.py, Sez. 86); Y = TENHLE label rastr, vyrobený rasterizací symbolů z téže .omap.
 Y je odvozeno z .omap (NE z render masek `mask_*.png`) záměrně — .omap je jediná pravda, kterou má model
-rekonstruovat → pár je self-konzistentní (Y nezávisí na render artefaktech). První ze tří CV úloh dekompozice
-podle OOM geometrie (Sez. 80): Png2Area (type=4 plochy) | Png2Point (type=1 body) | Png2Line (type=2 linie).
+rekonstruovat → pár je self-konzistentní (Y nezávisí na render artefaktech). Jádro dekompozice podle OOM
+geometrie (Sez. 80): Png2Area (type=4 plochy) | Png2Point (type=1 body) | Png2Line (type=2 linie).
+
+DVA Y-rastrery v jednom souboru (sdílí měřenou transformaci `_paper_to_px`, DRY proti driftu, Sez. 130):
+  - PLOCHY (Png2Area, Sez. 87): `AREA_ZORDER`/`rasterize` — z-order, díry per-objekt, SSoT area schématu.
+  - LINIE (Png2Line, Sez. 130): `LINE_CLASSES`/`rasterize_lines` — polyline kreslená NAFOUKLOU (dilatovaná
+    GT proti rozpouštění tenkých linií v U-Netu, lekce budovy 521 0,00); skeletonizace zpět až při inferenci.
 
 Co dělá: .omap → label rastr (H×W, STEJNÝ grid jako scan.png/rgb.png), každý px nese ISOM area třídu
 (0 = pozadí/bez plochy, 1..N = jednotlivé area kódy). Per-ISOM-kód (volba Sez. 87): GT nese plnou informaci,
@@ -208,6 +213,119 @@ def rasterize_map_dir(map_dir: Path) -> np.ndarray:
             raise FileNotFoundError(f"žádná .omap v {map_dir}")
         omap = cands[0]
     return rasterize(omap, meta)
+
+
+# ============================================================ LINIE (Png2Line, Sez. 130)
+# Liniové ISOM kódy → label index (0 = pozadí/bez linie, 1..N_LINE-1 = třídy). KROK 1 (Sez. 130): jen
+# souvislé vodní toky 304 (named) + 305 (unnamed) → JEDNA třída "watercourse" (liší se jen tloušťkou
+# ~0,1 mm papíru, ze skenu nerozlišitelné → KISS jeden label; rozlišovat = postavit model na nemožnou
+# úlohu). 306 (dashed seasonal) AŽ krok 2 (dashed handling). Registr je rozšiřitelný — přidat třídu = řádek
+# (název, [ISOM kódy]); izomorfní s AREA_ZORDER (plochy) a POINT_CLASSES (body, inject.py).
+LINE_CLASSES: list[tuple[str, list[str]]] = [
+    ("watercourse", ["304", "305"]),   # plná modrá linie vodního toku (krok 1)
+]
+LINE_CODE_TO_LABEL = {code: i + 1 for i, (_, codes) in enumerate(LINE_CLASSES) for code in codes}
+LINE_LABEL_NAME = {0: "pozadí", **{i + 1: name for i, (name, _) in enumerate(LINE_CLASSES)}}
+N_LINE = len(LINE_CLASSES) + 1   # + pozadí (label 0)
+
+# GT dilatace (klíčová volba Sez. 130): tenká linie (304 ~1,4 px @ 1,33 mpp) se v U-Netu downsamplingem
+# rozpustí → naučit nejde (přímá lekce Png2Area: budovy 521 tenké → test IoU 0,00). Proto GT kreslíme
+# NAFOUKLOU na GT_LINE_WIDTH_PX; model predikuje tlustou stopu, skeletonizace ji zúží zpět na 1px až při
+# inferenci/vektorizaci (izomorf Png2Point: 1px bod → Gaussian peak → NMS). Hodnota ~3 px = dost na naučení,
+# dost úzká ať se sousední linie nesplynou (vrstevnice/hustá síť toků).
+GT_LINE_WIDTH_PX = 3
+
+# Vizualizační barvy linií (verify overlay) — modrá pro watercourse (přibližná ISOM, ne render).
+LINE_LABEL_VIS = {0: (255, 255, 255), 1: (30, 110, 210)}
+
+
+def _parse_polyline(text: str) -> list[tuple[int, int]]:
+    """coords text liniového objektu → [(x,y) paper µm]. Na rozdíl od ploch BEZ ring-splitu na hole-flagu.
+
+    Liniový objekt je otevřený path (omap_export.line_object): jen vrcholy, žádné prsteny/díry. Bereme
+    x,y každého tokenu, flagy (close/bezier/hole) ignorujeme — pro polyline jsou nepodstatné (bezier control
+    body bereme jako vrcholy = aproximace polygonem, jako u ploch; naše linie jsou vektorizované polylinie)."""
+    pts: list[tuple[int, int]] = []
+    for tok in text.strip().split(";"):
+        nums = tok.split()
+        if len(nums) < 2:
+            continue
+        try:
+            pts.append((int(nums[0]), int(nums[1])))
+        except ValueError:
+            continue
+    return pts
+
+
+def parse_line_objects(omap_path: Path) -> list[tuple[list, str]]:
+    """Vrátí [(points, code)] liniových objektů z .omap — points = [(x,y) paper µm].
+
+    Bere JEN objekty, jejichž ISOM kód je v LINE_CODE_TO_LABEL (liniové třídy Png2Line); plošné/bodové
+    se přeskočí. Sdílí parser-skeleton s parse_area_objects (symbol index → code), liší se filtrem
+    a tím, že coords čte jako polyline (_parse_polyline), ne jako prsteny (_split_rings)."""
+    root = ET.parse(omap_path).getroot()
+    sp = next(e for e in root.iter() if _strip(e.tag) == "symbols")
+    codes = [s.get("code") for s in sp if _strip(s.tag) == "symbol"]
+    op = next(e for e in root.iter() if _strip(e.tag) == "objects")
+    out: list[tuple[list, str]] = []
+    for o in op.iter():
+        if _strip(o.tag) != "object":
+            continue
+        si = int(o.get("symbol", -1))
+        if not (0 <= si < len(codes)):
+            continue
+        code = codes[si]
+        if code not in LINE_CODE_TO_LABEL:       # ne-liniový symbol → přeskoč
+            continue
+        c = next((x for x in o if _strip(x.tag) == "coords"), None)
+        if c is None or not c.text:
+            continue
+        pts = _parse_polyline(c.text)
+        if len(pts) >= 2:
+            out.append((pts, code))
+    return out
+
+
+def rasterize_lines(omap_path: Path, meta: dict) -> np.ndarray:
+    """.omap → label rastr (H,W) uint8: liniové ISOM symboly per-třída, kreslené nafouklé (GT_LINE_WIDTH_PX).
+
+    Každá polyline se nakreslí PIL line s width=GT_LINE_WIDTH_PX (kulaté spoje přidáme kroužkem na vrcholech,
+    ať dilatovaná linie nemá zuby v lomech). Pozdější třída (vyšší label) přepíše — pro krok 1 (jedna třída)
+    bezpředmětné, ale drží izomorfismus s rasterize (z-order). Label = LINE_CODE_TO_LABEL[code]."""
+    to_px, W, H = _paper_to_px(meta)
+    label = np.zeros((H, W), dtype=np.uint8)
+    objs = parse_line_objects(omap_path)
+    objs.sort(key=lambda o: LINE_CODE_TO_LABEL[o[1]])    # z-order: nižší label dřív (dole)
+    img = Image.fromarray(label)
+    d = ImageDraw.Draw(img)
+    r = GT_LINE_WIDTH_PX / 2.0
+    for pts, code in objs:
+        cls = LINE_CODE_TO_LABEL[code]
+        px = [to_px(x, y) for x, y in pts]
+        d.line(px, fill=cls, width=GT_LINE_WIDTH_PX)
+        for cx, cy in px:                                # kulaté spoje v lomech (PIL line nemá round join)
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=cls)
+    return np.asarray(img, dtype=np.uint8)
+
+
+def colorize_lines(label: np.ndarray) -> Image.Image:
+    """Liniový label rastr → barevný RGB (LINE_LABEL_VIS) pro vizuální verify."""
+    vis = np.zeros((*label.shape, 3), dtype=np.uint8)
+    for lab, col in LINE_LABEL_VIS.items():
+        vis[label == lab] = col
+    return Image.fromarray(vis)
+
+
+def rasterize_lines_map_dir(map_dir: Path) -> np.ndarray:
+    """Wrapper: <map_dir>/<*.omap> + meta.json → liniový label rastr (analogie rasterize_map_dir)."""
+    meta = json.loads((map_dir / "meta.json").read_text(encoding="utf-8"))
+    omap = map_dir / f"{map_dir.name}.omap"
+    if not omap.exists():
+        cands = sorted(map_dir.glob("*.omap"))
+        if not cands:
+            raise FileNotFoundError(f"žádná .omap v {map_dir}")
+        omap = cands[0]
+    return rasterize_lines(omap, meta)
 
 
 def main(name: str) -> None:
