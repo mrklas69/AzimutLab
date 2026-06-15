@@ -52,12 +52,14 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   `resources/*.pgw` (Velbloud na ntbhej). Malé textové soubory BEZ copyright obsahu → commitnout
   (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
   artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
-- [ ] *(A7; ntbhej-friendly, bez kódu)* **Png2Line — %THINK + rešerše PŘED implementací.** 61 % hmoty
-  symbolů = linie+body (Sez. 100); bez Png2Line nelze splnit cíl ≥ 85 %. Rešerše (ověřit, jak to dělá
-  branža — nehádat): cartographic line extraction, segmentace+skeletonizace, deep vectorization,
-  polyline regrese; zkušenost Pic2Omap. Probe: přenese se injekční trik (Sez. 105, paměť
-  [[png2point-inject-clean-base]]) na linie — dash vzory (508/516), křížení, překryvy? Výstup =
-  IDEAS návrh + rozhodnutí přístupu s uživatelem, NE kód.
+- [x] *(A7; %THINK + rešerše HOTOVO Sez. 130 — detail IDEAS „Png2Line — segmentace + odložená vektorizace")*
+  **Png2Line — %THINK + rešerše PŘED implementací.** Rešerše doložila 4 branžové rodiny (segmentace+skeletonizace
+  dominantní / graph-based RoadTracer-Sat2Graph / LETR transformer / symbol-reconstruction = validace injekčního
+  triku, Chiang 2022). Probe: injekční trik se přenáší JEN ČÁSTEČNĚ — Png2Line = dvě ortogonální podúlohy
+  **(A) per-class segmentace** (izomorfní Png2Area, GT z injekce) + **(B) maska→polyline vektorizace** (nová práce).
+  **Rozhodnuto s uživatelem (architektura A):** neuronový Png2Line = JEN segmentace (dilatovaná GT proti rozpouštění
+  tenkých linií, skeletonizace zpět), vektorizace = sdílený downstream „.omap assembly" krok. **Scope:** souvislá
+  distinktivní linie první (505/506 nebo 304/305), pak dashed 508 + 516. Implementace = nová [ ] položka níže.
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
   nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
   Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
@@ -272,7 +274,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).
-  - [ ] **`Png2Line`** (poslední, nejtěžší) — liniové ISOM → polyline (segmentace + skeletonizace).
+  - [ ] **`Png2Line`** (poslední, nejtěžší; přístup ROZHODNUT Sez. 130, IDEAS „Png2Line — segmentace + odložená
+    vektorizace"). MVP = **per-class segmentace linií** (U-Net izomorfní s `png2area`, GT z injekce + `.omap`
+    rasterizace, **dilatovaná GT** proti rozpouštění tenkých linií, skeletonizace zpět na 1px). Maska→polyline
+    = odložený sdílený „.omap assembly" krok (crude skeletonize+RDP, dashed/crossing = měřené known limitations).
+    **Krok 1: souvislá linie** (505/506 cesta nebo 304/305 tok) — de-risk pipeline. **Krok 2: dashed 508 + 516.**
+    Reuse `tile.py`/`dataset.py`/`degrade`/`purple`/`eval_real`. CUDA-vázané (HAL3000/mrkla).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)

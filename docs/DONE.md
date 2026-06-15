@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 130 (2026-06-15) — Png2Line: %THINK + rešerše → krok 1 segmentace watercourse
+Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-130--png2line-think--rešerše--krok-1-segmentace-watercourse-gate-prošel-hal3000).
+- [x] **(A7) Png2Line %THINK + rešerše PŘED implementací** — rešerše 4 branžových rodin (segmentace+
+  skeletonizace dominantní / graph-based RoadTracer-Sat2Graph / LETR transformer / symbol-reconstruction
+  Chiang 2022 = validace injekčního triku). Probe: trik se přenáší JEN ČÁSTEČNĚ → Png2Line = 2 ortogonální
+  podúlohy (A) segmentace + (B) maska→polyline vektorizace. **Rozhodnuto s uživatelem: architektura A**
+  (neuronový model = jen segmentace, vektorizace = odložený sdílený krok), izomorfismus s Png2Point
+  (dilatovaná GT proti rozpouštění tenkých linií). Scope: souvislá linie první, pak dashed. Detail v IDEAS.
+- [x] **Png2Line krok 1 — liniová Y-pipeline** (`generator/omap_raster.py` rozšíření): `LINE_CLASSES`
+  registr + `parse_line_objects` (polyline) + `rasterize_lines` (dilatovaná GT `GT_LINE_WIDTH_PX=3`) +
+  `colorize_lines`/`rasterize_lines_map_dir`. Sdílí měřenou `_paper_to_px` s Png2Area (DRY). Krok 1 = 304+305
+  → třída "watercourse" (`N_LINE=2`); 306 dashed až krok 2. Vizuál ověřen (Blatná: GT trasuje odvodňovací síť).
+- [x] **`model/png2line/{tile,dataset,train}.py`** — kompletní modul, izomorfní s Png2Area (reuse U-Net/loss/
+  IoU/degrade/purple/checkpoints). Y on-the-fly z .omap (nesahá na pairs.py). `--allow-missing` resume.
+- [x] **Tiling + overfit gate** — 10093/2085/1672 dlaždic, watercourse 0,616 % px. **Gate PROŠEL: train
+  mIoU 0,884 @ ep50, watercourse IoU 0,61→0,77** (rostoucí). Dilatovaná GT + U-Net se watercourse naučí.
+  ZBÝVÁ: plný trénink (CUDA okno) → test mIoU + `eval_real`; pak vektorizace nebo krok 2 (dashed 508/516).
+
 ## Sezení 129 (2026-06-15) — 417 precision přes per-class práh detekce
 Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-129--417-precision-přes-per-class-práh-detekce-hal3000).
 - [x] **417 precision řešena per-class prahem detekce peaku** (Příště #2 — 417 přestřeloval P 0,38).

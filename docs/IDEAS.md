@@ -46,6 +46,30 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
 
 ## Reconstructor
 
+- **Png2Line — segmentace + odložená vektorizace (rozhodnuto Sez. 130, %THINK + rešerše).**
+  Třetí reconstructor (sken → liniové ISOM symboly). Rešerše doložila čtyři branžové rodiny:
+  segmentace+skeletonizace+vektorizace (dominantní pro vrstevnice/cesty z topo map), graph-based
+  (RoadTracer/Sat2Graph — topologie nativně, ale těžké), line-segment transformer (LETR — laděný na
+  ROVNÉ čáry, špatný fit na zakřivené OB linie), a **symbol-reconstruction synthetic data** (Chiang
+  et al. 2022) — přímá validace našeho injekčního triku (imitation maps z rekonstrukce symbolů +
+  mix s reálnými daty překoná real-only).
+  - **Klíčové zjištění (probe injekčního triku):** trik se přenáší jen ČÁSTEČNĚ. Png2Line se rozpadá
+    na dvě ORTOGONÁLNÍ podúlohy: **(A) per-class segmentace linií** (izomorfní s Png2Area, U-Net, GT
+    zdarma z injekce + `.omap`) a **(B) maska → polyline vektorizace** (genuinně nová práce: skeletonizace,
+    přemostění mezer u čárek, řešení křížení/junctions, RDP). Injekce řeší jen (A) — generování dat.
+  - **Zvolená architektura (A): neuronový Png2Line = JEN segmentace** (jako Png2Area, který taky
+    nevektorizuje — vrací area label rastr). Maska→polyline = **sdílený downstream „.omap assembly" krok**
+    pro všechny tři modely (area→polygon, point→hotovo, line→polyline), ne součást modelu; zpočátku crude
+    `skeletonize + RDP`, dashed/crossing jako MĚŘENÉ known limitations. KISS, reuse `tile.py`/`dataset.py`/
+    `degrade`/`purple`/`eval_real`. Nový kód = jen line-aware GT + vektorizační postprocess.
+  - **Izomorfismus s Png2Point (drží přístup KISS):** Png2Point predikuje 1px bod jako nafouklý Gaussian
+    → peak NMS. Png2Line predikuje 1px linii jako **DILATOVANOU masku** (ať se tenká linie v U-Netu
+    nerozpustí — lekce „tvar > velikost, budovy 521 0,00" z Png2Area) → skeletonizace zpět na 1px.
+  - **Scope (vzor Png2Point start 204/210): souvislá distinktivní linie PRVNÍ** (505/506 cesta nebo
+    304/305 tok) — de-risk celé pipeline bez dashed komplikace; PAK **508 narrow ride (dashed) + 516 fence**
+    (doložený nejtěžší případ: „line-tracing nefunguje na dashed"). Dvě iterace, každá de-riskuje další.
+  - **Doložená rizika:** dashed linie (508/516) tříští trasování → potřeba gap-bridging; text/anotace dělají
+    díry (náš layout-bleed Sez. 118); tenké třídy se v U-Netu downsamplingem rozpustí (proto dilatovaná GT).
 - **Patternové area třídy.** Nearest-color rozliší odstín, ne mřížku, tečky,
   diagonály a směrové čárky. Každá nová jemná třída musí současně splnit:
   generátor ji umí vytvořit, render nese viditelný signál a
