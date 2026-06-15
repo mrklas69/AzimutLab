@@ -41,7 +41,7 @@ APP      UC3  Restoration         UC4  Generators (I random / II inspired / III 
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210): 3-seed synthetic median mF1 **0.874**; real mF1 **0.23-0.43**, with weak 210 recall. `Png2Line` is the missing final reconstructor. Generator KPI **58.6%**; details in architecture/TODO/DONE. |
+| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.41-0.54** — **419 strong 0.67-0.76**, 417 moderate 0.40-0.49, 204 stable, 210 still collapses. `Png2Line` is the missing final reconstructor. Generator KPI **58.6%**; details in architecture/TODO/DONE. |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 58.6 %; III = Pic2Omap) |
 
@@ -109,7 +109,7 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
     train.py           #     U-Net/ResNet34, 18 labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.683
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
-    inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony)
+    inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
     train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px → mF1 0.874; real 210 F1 0.11–0.18)
 asset/                 # shared map assets (řopík pillbox .omap)

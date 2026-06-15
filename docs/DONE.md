@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 128 (2026-06-15) — Png2Point 417 a 419 detekce + reálný transfer
+Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-128--png2point-417-a-419-detekce--reálný-transfer-hal3000).
+- [x] **Png2Point rozšířen o bodové třídy 417 + 419** (vrchol KPI žebříčku děr). Decoupling
+  (volba uživatele): jen **detekce** (půlka 1); **KPI pseudo injekce do generátoru (půlka 2)
+  vědomě odložena** — 417/419 nejsou v geodatech doložené → fabrikace polohy = Goodhart (audit A3).
+  418 odloženo (malý, riziko kolapsu jako 210). `inject.py`: `POINT_CLASSES` 2→4, registr
+  generalizován (`PointClass` + `kind`/`color`/`n_range`, `_stamp` dispatcher dot/tree/cross);
+  417 zelený prstenec + bílá knockout svatozář, 419 zelený X + svatozář (verify-against-source
+  `template_classic.omap` ISOM 2017-2: color 3 Green / color 22 White-over-green knockout).
+  dataset.py + train.py beze změny (generické přes `N_POINT`). `eval_real.py`: 4-barevný overlay
+  + crosswalk pozn. (ISOM 2000 417 → 2017-2 419).
+- [x] **Reálný transfer prokázán (audit A1, dvojice synt/realita).** Synt medián 3 seedů mF1
+  **0,827** (rozptyl 0,033, promotnut medián seed2). Realita (`eval_real`, 3 skeny): **419 SILNÝ
+  0,67–0,76** (líp než 204), **417 střední 0,40–0,49** (čte, přestřeluje), 204 stabilní 0,44–0,73,
+  210 pořád kolabuje. Reálný mean 0,41–0,54 (z 0,23–0,43, Sez. 126). Injekce + bílá svatozář
+  fungují na výrazný zelený symbol.
+
 ## Sezení 127 (2026-06-15) — cleanup + bezpečné checkpointy + uzavření auditních dluhů
 Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-127--cleanup--bezpečné-checkpointy--uzavření-auditních-dluhů-hal3000).
 - [x] **%CALIBRATE + %AUDIT:DOCS + TODO/IDEAS pruning.** Opraveno směrování maker na
