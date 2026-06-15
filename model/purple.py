@@ -73,6 +73,19 @@ def _noisy(color: tuple[int, int, int], rng: np.random.Generator) -> tuple[int, 
     return tuple(int(np.clip(c + rng.integers(-12, 13), 0, 255)) for c in color)
 
 
+def _course_points(rng: np.random.Generator, height: int, width: int) -> list[tuple[int, int]]:
+    """Vylosuje start, 5–12 kontrol a cíl; vrací tedy 7–14 bodů tratě."""
+    margin = round(_CIRCLE_DIAM_MM * PX_PER_MM)
+    n_controls = int(rng.integers(5, 13))
+    # Náhodné body seřadíme podle x, aby spojnice připomínaly plynulou reálnou trať.
+    # Když je dlaždice menší než dvojnásobný okraj, rozsah se zúží na jeden pixel.
+    lo, hi = margin, max(margin + 1, width - margin)
+    loy, hiy = margin, max(margin + 1, height - margin)
+    xs = np.sort(rng.integers(lo, hi, size=n_controls + 2))
+    ys = rng.integers(loy, hiy, size=n_controls + 2)
+    return list(zip(xs.tolist(), ys.tolist()))
+
+
 def _draw_triangle(draw: ImageDraw.ImageDraw, cx: float, cy: float, side: float,
                    angle: float, color, width: int) -> None:
     """Rovnostranný △ (701 Start) se středem (cx,cy), stranou `side`, natočený o `angle` rad.
@@ -112,17 +125,8 @@ def overprint_course(rgb: np.ndarray, seed: int) -> np.ndarray:
     lw = max(1, round(_LINE_W_MM * PX_PER_MM))       # tloušťka čáry v px (~3 px)
     font = _number_font(round(_NUMBER_H_MM * PX_PER_MM))   # výška číslice 4 mm ≈ 30 px
 
-    # --- rozmísti kontroly náhodně v dlaždici s okrajem (kroužek se nesmí celý kreslit mimo) ---
-    margin = round(_CIRCLE_DIAM_MM * PX_PER_MM)      # ~45 px okraj
-    n_ctrl = int(rng.integers(5, 13))                # 5-12 kontrol (TODO A2a)
-    # body trati: start + kontroly. Náhodné, ale seřazené podle x → spojnice se tolik nekříží (jako
-    # reálná trať plyne; není to nutnost, jen vizuální věrnost). Když je dlaždice menší než 2× margin,
-    # body padnou doprostřed (clamp lo<hi v integers).
-    lo, hi = margin, max(margin + 1, W - margin)
-    loy, hiy = margin, max(margin + 1, H - margin)
-    xs = np.sort(rng.integers(lo, hi, size=n_ctrl + 1))
-    ys = rng.integers(loy, hiy, size=n_ctrl + 1)
-    pts = list(zip(xs.tolist(), ys.tolist()))
+    # --- start + 5–12 kontrol + cíl, vše uvnitř bezpečného okraje dlaždice ---
+    pts = _course_points(rng, H, W)
 
     # --- 704 Line: spojnice mezi po sobě jdoucími body (start → 1 → 2 → … → poslední) ---
     draw.line(pts, fill=color, width=lw, joint="curve")

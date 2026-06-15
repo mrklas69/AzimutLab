@@ -20,7 +20,8 @@ precision/recall/F1. accuracy/IoU by u bodů neměřily lokalizaci.
 Trénink jen na `mrkla`/HAL3000 (RTX 5070, BF16 autocast). Dva režimy:
   python model/png2point/train.py --overfit   # sanity gate: 1-2 mapy, fixní injekce, F1→~1
   python model/png2point/train.py             # plný trénink na train splitu, eval val + test
-Checkpoint best (dle val F1) → resources/point_model/ (gitignored).
+Každý běh zapisuje do resources/point_model/runs/<run_id>/; unet_best.pt mění
+jen explicitní --promote.
 """
 import argparse
 import csv
@@ -39,10 +40,19 @@ from torch.utils.data import DataLoader   # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "model" / "png2point"))
+sys.path.insert(0, str(_REPO_ROOT / "model"))
 
 import segmentation_models_pytorch as smp   # noqa: E402
 from dataset import PointTileDataset, _pointbase_paths   # noqa: E402
 from inject import N_POINT, POINT_CLASSES   # noqa: E402
+from checkpoints import (   # noqa: E402
+    finish_diagnostic_run,
+    finish_run,
+    fingerprint_inputs,
+    promote_run,
+    save_best,
+    start_run,
+)
 
 _CKPT_DIR = _REPO_ROOT / "resources" / "point_model"
 ENCODER = "resnet34"
@@ -169,8 +179,9 @@ def _fmt(per: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------- průběžná statistika
-def _save_history(history: list[dict], tag: str) -> None:
-    path = _CKPT_DIR / f"history_{tag}.csv"
+def _save_history(history: list[dict], output_dir: Path) -> None:
+    """Zapíše historii pouze do adresáře konkrétního běhu."""
+    path = output_dir / "history.csv"
     cols = ["epoch", "loss", "mf1"] + [f"f1_{c}" for c in _CODES]
     with open(path, "w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
@@ -180,7 +191,7 @@ def _save_history(history: list[dict], tag: str) -> None:
                         + [f"{d['f1']:.4f}" for d in h["per"]])
 
 
-def _plot_curve(history: list[dict], tag: str, f1_label: str) -> None:
+def _plot_curve(history: list[dict], output_dir: Path, f1_label: str) -> None:
     eps = [h["epoch"] for h in history]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
     ax1.plot(eps, [h["loss"] for h in history], "r-o", ms=3, label="train loss")
@@ -197,7 +208,7 @@ def _plot_curve(history: list[dict], tag: str, f1_label: str) -> None:
     ax2.grid(alpha=0.3); ax2.legend(fontsize=8, loc="lower right")
     ax2.set_title(f"per-class F1 ({f1_label})")
     fig.tight_layout()
-    fig.savefig(_CKPT_DIR / f"curve_{tag}.png", dpi=90)
+    fig.savefig(output_dir / "curve.png", dpi=90)
     plt.close(fig)
 
 
@@ -230,7 +241,8 @@ class _EMA:
 
 # -------------------------------------------------------------------------- trénink
 def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEAK_THR,
-          seed: int | None = None, ema: bool = False, ema_decay: float = 0.998) -> float | None:
+          seed: int | None = None, ema: bool = False, ema_decay: float = 0.998,
+          run_id: str | None = None) -> float | None:
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla/HAL3000, RTX 5070)"
     device = "cuda"
     if seed is not None:
@@ -272,15 +284,42 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
     if ema:
         print(f"[ema] zapnuto, decay={ema_decay} (eval + best z vyhlazených vah)")
 
+    pointbase_paths = (
+        _pointbase_paths("train") + _pointbase_paths("val") + _pointbase_paths("test")
+    )
+    # Hashujeme split a malé generátorové manifesty všech použitých podkladů.
+    # Samotné PNG by při každém startu zbytečně četly gigabajty; meta.json nese
+    # parametry a provenance, které určují reprodukovatelnost point_base renderu.
+    pointbase_manifests = [path.with_name("meta.json") for path in pointbase_paths]
+    config = {
+        "epochs": epochs,
+        "batch": batch,
+        "lr": lr,
+        "overfit": overfit,
+        "peak_thr": thr,
+        "seed": seed,
+        "ema": ema,
+        "ema_decay": ema_decay if ema else None,
+        "encoder": ENCODER,
+        "n_point": N_POINT,
+        "codes": _CODES,
+        "train_samples": len(train_ds),
+        "val_samples": len(val_ds),
+    }
+    data_fingerprint = fingerprint_inputs(
+        [_REPO_ROOT / "resources" / "livelox" / "_split.json", *pointbase_manifests],
+        [f"pointbase_count={len(pointbase_paths)}"],
+    )
+    run = start_run(_CKPT_DIR, "png2point", config, data_fingerprint, run_id)
+    print(f"[run] {run.run_id} → {run.run_dir}")
+
     print(f"train {len(train_ds)} dlaždic | val {len(val_ds)} | batch {batch} | lr {lr} | "
           f"epoch {epochs} | BF16 | {ENCODER} U-Net | {N_POINT} bod. tříd {_CODES}"
           + ("" if overfit else " | cosine LR"))
 
     best_f1 = -1.0
     history: list[dict] = []
-    tag = "overfit" if overfit else "full"
     f1_label = "train" if overfit else "val"
-    _CKPT_DIR.mkdir(parents=True, exist_ok=True)
     for ep in range(1, epochs + 1):
         model.train()
         t0 = time.time()
@@ -311,24 +350,34 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
               f"lr {lr_now:.2e}  [{_fmt(per)}]  {dt:.0f}s")
 
         history.append({"epoch": ep, "loss": avg, "mf1": mf1, "per": per})
-        _save_history(history, tag)
-        _plot_curve(history, tag, f1_label)
+        _save_history(history, run.run_dir)
+        _plot_curve(history, run.run_dir, f1_label)
 
         if not overfit and mf1 > best_f1:
             best_f1 = mf1
-            torch.save({"model": eval_target.state_dict(), "epoch": ep, "mf1": mf1,
-                        "encoder": ENCODER, "n_point": N_POINT, "codes": _CODES},
-                       _CKPT_DIR / "unet_best.pt")
+            save_best(
+                run,
+                eval_target.state_dict(),
+                epoch=ep,
+                metric_name="mf1",
+                metric_value=mf1,
+                model_metadata={"encoder": ENCODER, "n_point": N_POINT, "codes": _CODES},
+            )
 
     if not overfit:
-        ckpt = torch.load(_CKPT_DIR / "unet_best.pt", weights_only=False)
+        ckpt = torch.load(run.best_path, weights_only=False)
         model.load_state_dict(ckpt["model"])
         test_dl = DataLoader(PointTileDataset("test", augment=False),
                              batch_size=batch, shuffle=False, num_workers=0)
         per, mf1 = evaluate(model, test_dl, device, thr)
         print(f"\n=== TEST (best ep {ckpt['epoch']}, val mF1 {ckpt['mf1']:.3f}) ===")
         print(f"test mF1 {mf1:.3f}  [{_fmt(per)}]")
+        finish_run(run, "test_mf1", mf1)
+        print(f"[run] dokončen; kanonický model beze změny. Promote: "
+              f"python model/png2point/train.py --promote {run.run_id}")
         return mf1
+    finish_diagnostic_run(run, "train_mf1", history[-1]["mf1"])
+    print(f"[run] diagnostika dokončena bez promotovatelného checkpointu: {run.run_dir}")
     return None
 
 
@@ -351,7 +400,18 @@ if __name__ == "__main__":
     ap.add_argument("--ema", action="store_true",
                     help="EMA vah (Páka 1 stabilizace, Sez. 125) — eval i best z vyhlazených vah")
     ap.add_argument("--ema-decay", type=float, default=0.998, help="EMA decay (default 0.998)")
+    ap.add_argument("--run-id", default=None,
+                    help="vlastní ID běhu; default je UTC čas + náhodný suffix")
+    ap.add_argument("--promote", metavar="RUN_ID",
+                    help="atomicky povýší dokončený běh na unet_best.pt a skončí")
     args = ap.parse_args()
+    if args.promote:
+        if args.overfit or args.epochs is not None or args.run_id is not None:
+            ap.error("--promote nelze kombinovat s parametry tréninku")
+        target = promote_run(_CKPT_DIR, args.promote, "png2point")
+        print(f"[promote] {args.promote} → {target}")
+        raise SystemExit(0)
+
     n_ep = args.epochs if args.epochs is not None else (60 if args.overfit else 40)
     train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit, thr=args.peak_thr,
-          seed=args.seed, ema=args.ema, ema_decay=args.ema_decay)
+          seed=args.seed, ema=args.ema, ema_decay=args.ema_decay, run_id=args.run_id)

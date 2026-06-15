@@ -34,6 +34,10 @@ _OBJ_RE = re.compile(r"<object\b.*?</object>", re.DOTALL)       # párový objek
 _COORDS_RE = re.compile(r"<coords[^>]*>(.*?)</coords>", re.DOTALL)
 
 
+class OmapFormatError(ValueError):
+    """Vstupní `.omap` nemá strukturu, kterou stringový ořez bezpečně podporuje."""
+
+
 def _pgw(path: pathlib.Path):
     """.pgw world-file (řádky A,D,B,E,C,F) → (A,B,C,D,E,F): x=A·col+B·row+C, y=D·col+E·row+F."""
     A, D, B, E, C, F = [float(x) for x in pathlib.Path(path).read_text().split()]
@@ -219,20 +223,43 @@ _OBJECTS_RE = re.compile(r'(<objects count=")(\d+)(">)(.*?)(</objects>)', re.DOT
 _TYPE_RE = re.compile(r'<object type="(\d)"')
 
 
+def _object_identity(attrs: str) -> str:
+    """Stručná identifikace objektu pro chybovou hlášku bez parsování celého XML."""
+    fields = []
+    for name in ("type", "symbol"):
+        match = re.search(rf'\b{name}="([^"]+)"', attrs)
+        if match:
+            fields.append(f'{name}="{match.group(1)}"')
+    return " ".join(fields) or "bez type/symbol"
+
+
 def _parse_coords(block: str):
-    """Z `<object>` bloku → (tokeny coords jako list (x,y,flag), opening-tag atributy). None coords → (None, attrs)."""
+    """Z `<object>` bloku vrátí souřadnice a atributy; poškozený formát odmítne."""
+    opening = re.search(r"<object\b([^>]*)>", block)
+    if opening is None:
+        raise OmapFormatError("objekt nemá platný otevírací tag")
+    attrs = opening.group(1)
+    identity = _object_identity(attrs)
     cm = _COORDS_RE.search(block)
-    attrs = re.search(r'<object\b([^>]*)>', block).group(1)
     if cm is None:
-        return None, attrs
+        raise OmapFormatError(f"objekt {identity} nemá párový <coords> blok")
     toks = []
-    for t in cm.group(1).strip().split(";"):
+    for index, t in enumerate(cm.group(1).split(";"), start=1):
         p = t.split()
-        if len(p) >= 2:
-            try:
-                toks.append((int(p[0]), int(p[1]), int(p[2]) if len(p) > 2 else 0))
-            except ValueError:
-                pass
+        if not p:
+            continue
+        if len(p) < 2:
+            raise OmapFormatError(
+                f"objekt {identity}, coord token {index}: očekávány alespoň x y, nalezeno {t!r}"
+            )
+        try:
+            toks.append((int(p[0]), int(p[1]), int(p[2]) if len(p) > 2 else 0))
+        except ValueError as exc:
+            raise OmapFormatError(
+                f"objekt {identity}, coord token {index}: nečíselná souřadnice {t!r}"
+            ) from exc
+    if not toks:
+        raise OmapFormatError(f"objekt {identity} má prázdný <coords> blok")
     return toks, attrs
 
 
@@ -272,17 +299,29 @@ def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
     doc = omap_path.read_text(encoding="utf-8")
     om = _OBJECTS_RE.search(doc)
     if om is None:
-        return 0, 0
+        raise OmapFormatError(f"{omap_path}: chybí podporovaný <objects count=\"…\"> blok")
+    declared_count = int(om.group(2))
+    recognized_count = sum(1 for _ in _OBJ_RE.finditer(om.group(4)))
+    if recognized_count != declared_count:
+        raise OmapFormatError(
+            f"{omap_path}: <objects> deklaruje {declared_count} objektů, "
+            f"ale podporovaný párový formát rozpoznal {recognized_count}"
+        )
     stats = {"kept": 0, "removed": 0}
+    object_index = 0
 
     def _filter(m: re.Match) -> str:
+        nonlocal object_index
+        object_index += 1
         block = m.group(0)
-        toks, attrs = _parse_coords(block)
-        if not toks:
-            stats["kept"] += 1
-            return block                                  # bez coords → ponech
+        try:
+            toks, attrs = _parse_coords(block)
+        except OmapFormatError as exc:
+            raise OmapFormatError(f"{omap_path}, objekt {object_index}: {exc}") from exc
         tm = _TYPE_RE.search(block)
-        typ = tm.group(1) if tm else "1"
+        if tm is None:
+            raise OmapFormatError(f"{omap_path}, objekt {object_index}: chybí atribut type")
+        typ = tm.group(1)
         pts_all = [(x, y) for x, y, _ in toks]
         # CELÝ uvnitř → ponech beze změny (0 drift)
         if all(_point_in_quad(x, y, clip_poly) for x, y in pts_all):

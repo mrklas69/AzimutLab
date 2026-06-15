@@ -3,8 +3,9 @@ train.py — trénink reconstructor modelu Png2Area (Sez. 88).
 
 První ze tří CV úloh dekompozice OOM podle geometrie (Sez. 80): Png2Area (plochy) → mapový sken RGB
 predikuje area label rastr (18 tříd: 0 pozadí + 17 ISOM plošných kódů, schéma omap_raster Sez. 87;
-N_AREA prošlo 16→17 (403, Sez. 92) →18 (310, Sez. 99/103)). Páry [scan.png, area_labels.png] vyrábí
-generator/pairs.py; tile.py je krájí, dataset.py je čte. Izomorfní s archivovaným model/runnability/train.py
+N_AREA prošlo 16→17 (403, Sez. 92) →18 (310, Sez. 99/103)). Páry [rgb.png, area_labels.png] vyrábí
+generator/pairs.py; tile.py je krájí, dataset.py je čte a degraduje X on-the-fly. Izomorfní
+s archivovaným model/runnability/train.py
 (reuse U-Net/loss/IoU/křivka) — liší se: vstup je mapa ne ortofoto, 18 area tříd ne 5 runnability,
 BEZ ignore_index (Y z naší .omap je celé validní).
 
@@ -22,7 +23,8 @@ Třída je nevyvážená (pozadí 60–90 % vs vzácné plochy <1 %) → CrossEn
 z tile.py (resources/area_tiles/_tiles.json). Metrika = per-class IoU + mIoU (accuracy by schovala,
 že vzácné třídy model ignoruje).
 
-Sys.path skript (fáze B). Checkpoint best (dle val mIoU) → resources/area_model/ (gitignored).
+Sys.path skript (fáze B). Každý běh zapisuje do
+resources/area_model/runs/<run_id>/; unet_best.pt mění jen explicitní --promote.
 """
 import argparse
 import csv
@@ -33,18 +35,28 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")   # headless backend — kreslíme do PNG, žádné GUI okno (běží i na pozadí)
 import matplotlib.pyplot as plt   # noqa: E402
+import numpy as np   # noqa: E402
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]   # model/png2area/ → o dvě úrovně hloub
 sys.path.insert(0, str(_REPO_ROOT / "model" / "png2area"))
+sys.path.insert(0, str(_REPO_ROOT / "model"))
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 import segmentation_models_pytorch as smp   # noqa: E402
 
 from dataset import AreaTileDataset, class_weights   # noqa: E402
 from omap_raster import N_AREA, LABEL_NAME   # noqa: E402  (SSoT area schématu, Sez. 87)
+from checkpoints import (   # noqa: E402
+    finish_diagnostic_run,
+    finish_run,
+    fingerprint_inputs,
+    promote_run,
+    save_best,
+    start_run,
+)
 
 _CKPT_DIR = _REPO_ROOT / "resources" / "area_model"
 ENCODER = "resnet34"
@@ -118,9 +130,9 @@ def _fmt_iou(per: list[float]) -> str:
 
 
 # ---------------------------------------------------------------- průběžná statistika
-def _save_history(history: list[dict], tag: str) -> None:
-    """Zapíše dosavadní historii epoch do CSV (resources/area_model/history_<tag>.csv)."""
-    path = _CKPT_DIR / f"history_{tag}.csv"
+def _save_history(history: list[dict], output_dir: Path) -> None:
+    """Zapíše dosavadní historii epoch do izolovaného adresáře běhu."""
+    path = output_dir / "history.csv"
     cols = ["epoch", "loss", "miou"] + [f"iou_{LABEL_NAME[c]}" for c in range(N_AREA)]
     with open(path, "w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
@@ -130,8 +142,8 @@ def _save_history(history: list[dict], tag: str) -> None:
                         + [f"{v:.4f}" for v in h["iou"]])
 
 
-def _plot_curve(history: list[dict], tag: str, miou_label: str) -> None:
-    """Překreslí křivku učení → resources/area_model/curve_<tag>.png (2 panely)."""
+def _plot_curve(history: list[dict], output_dir: Path, miou_label: str) -> None:
+    """Překreslí křivku učení do izolovaného adresáře běhu."""
     eps = [h["epoch"] for h in history]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
 
@@ -153,17 +165,28 @@ def _plot_curve(history: list[dict], tag: str, miou_label: str) -> None:
     ax2.set_title(f"per-class IoU ({miou_label})")
 
     fig.tight_layout()
-    fig.savefig(_CKPT_DIR / f"curve_{tag}.png", dpi=90)
+    fig.savefig(output_dir / "curve.png", dpi=90)
     plt.close(fig)
 
 
 # -------------------------------------------------------------------------- trénink
 def train(*, epochs: int, batch: int, lr: float, overfit: bool,
-          weight_cap: float = WEIGHT_CAP) -> None:
+          weight_cap: float = WEIGHT_CAP, seed: int | None = None,
+          run_id: str | None = None) -> None:
     """Hlavní tréninková smyčka. overfit=True → 2 mapy, bez augmentace (sanity gate)."""
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla, RTX 5070)"
     device = "cuda"
-    torch.backends.cudnn.benchmark = True   # fixní rozměr dlaždice → cudnn si najde rychlé kernely
+    if seed is not None:
+        # Fixní seed určuje inicializaci, shuffle i torch-based augmentace. Deterministické
+        # CuDNN je pomalejší, ale dovolí přesně přiřadit metriku konkrétním vahám.
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        print(f"[seed] reprodukovatelný běh, seed={seed} (cudnn deterministic)")
+    else:
+        torch.backends.cudnn.benchmark = True
 
     # --- data ---
     if overfit:
@@ -208,15 +231,32 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool,
     scheduler = (None if overfit
                  else torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs))
 
+    config = {
+        "epochs": epochs,
+        "batch": batch,
+        "lr": lr,
+        "overfit": overfit,
+        "weight_cap": weight_cap,
+        "seed": seed,
+        "encoder": ENCODER,
+        "n_area": N_AREA,
+        "train_samples": len(train_ds),
+        "val_samples": len(val_ds),
+    }
+    data_fingerprint = fingerprint_inputs(
+        [_REPO_ROOT / "resources" / "area_tiles" / "_tiles.json"],
+        [f"train={len(train_ds)}", f"val={len(val_ds)}"],
+    )
+    run = start_run(_CKPT_DIR, "png2area", config, data_fingerprint, run_id)
+    print(f"[run] {run.run_id} → {run.run_dir}")
+
     print(f"train {len(train_ds)} dlaždic | val {len(val_ds)} | batch {batch} | "
           f"lr {lr} | epoch {epochs} | BF16 | {ENCODER} U-Net | {N_AREA} tříd"
           + ("" if overfit else " | cosine LR"))
 
     best_miou = -1.0
     history: list[dict] = []
-    tag = "overfit" if overfit else "full"
     miou_label = "train" if overfit else "val"
-    _CKPT_DIR.mkdir(parents=True, exist_ok=True)
     for ep in range(1, epochs + 1):
         model.train()
         t0 = time.time()
@@ -242,24 +282,35 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool,
               f"lr {lr_now:.2e}  [{_fmt_iou(per)}]  {dt:.0f}s")
 
         history.append({"epoch": ep, "loss": avg, "miou": miou, "iou": per})
-        _save_history(history, tag)
-        _plot_curve(history, tag, miou_label)
+        _save_history(history, run.run_dir)
+        _plot_curve(history, run.run_dir, miou_label)
 
         if not overfit and miou > best_miou:
             best_miou = miou
-            torch.save({"model": model.state_dict(), "epoch": ep, "miou": miou,
-                        "encoder": ENCODER, "n_area": N_AREA},
-                       _CKPT_DIR / "unet_best.pt")
+            save_best(
+                run,
+                model.state_dict(),
+                epoch=ep,
+                metric_name="miou",
+                metric_value=miou,
+                model_metadata={"encoder": ENCODER, "n_area": N_AREA},
+            )
 
     # --- finální eval na test (jen plný trénink, z nejlepšího checkpointu) ---
     if not overfit:
-        ckpt = torch.load(_CKPT_DIR / "unet_best.pt", weights_only=False)
+        ckpt = torch.load(run.best_path, weights_only=False)
         model.load_state_dict(ckpt["model"])
         test_dl = DataLoader(AreaTileDataset("test", augment=False),
                              batch_size=batch, shuffle=False, num_workers=0)
         per, miou = evaluate(model, test_dl, device)
         print(f"\n=== TEST (best ep {ckpt['epoch']}, val mIoU {ckpt['miou']:.3f}) ===")
         print(f"test mIoU {miou:.3f}  [{_fmt_iou(per)}]")
+        finish_run(run, "test_miou", miou)
+        print(f"[run] dokončen; kanonický model beze změny. Promote: "
+              f"python model/png2area/train.py --promote {run.run_id}")
+    else:
+        finish_diagnostic_run(run, "train_miou", history[-1]["miou"])
+        print(f"[run] diagnostika dokončena bez promotovatelného checkpointu: {run.run_dir}")
 
 
 if __name__ == "__main__":
@@ -276,8 +327,21 @@ if __name__ == "__main__":
     ap.add_argument("--lr", type=float, default=1e-4, help="learning rate (AdamW, cosine decay)")
     ap.add_argument("--weight-cap", type=float, default=WEIGHT_CAP,
                     help=f"strop median-freq vah (default {WEIGHT_CAP:.0f}, Sez. 91)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="fixní seed → reprodukovatelný běh; uloží se do checkpointu")
+    ap.add_argument("--run-id", default=None,
+                    help="vlastní ID běhu; default je UTC čas + náhodný suffix")
+    ap.add_argument("--promote", metavar="RUN_ID",
+                    help="atomicky povýší dokončený běh na unet_best.pt a skončí")
     args = ap.parse_args()
+
+    if args.promote:
+        if args.overfit or args.epochs is not None or args.run_id is not None:
+            ap.error("--promote nelze kombinovat s parametry tréninku")
+        target = promote_run(_CKPT_DIR, args.promote, "png2area")
+        print(f"[promote] {args.promote} → {target}")
+        raise SystemExit(0)
 
     n_ep = args.epochs if args.epochs is not None else (80 if args.overfit else 40)
     train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit,
-          weight_cap=args.weight_cap)
+          weight_cap=args.weight_cap, seed=args.seed, run_id=args.run_id)
