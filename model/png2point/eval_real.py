@@ -100,10 +100,12 @@ def _match_counts(pred_xy, gt_xy, tol):
 
 
 def parse_carto_points(omap_path):
-    """[(x_µm, y_µm, idx)] z kartografovy .omap — POINT objekty (type=1) 204/210 přes crosswalk.
+    """[(x_µm, y_µm, idx)] z kartografovy .omap — POINT objekty (type=1) ve scope POINT_CLASSES přes crosswalk.
 
-    idx = kanál heatmapy (CODE_TO_IDX: 204→0, 210→1). Crosswalk 2000→2017 (bez něj nesmysl, Sez. 94):
-    skalnaté ISOM 2000 mapy mají boulder=206, stony=210; 2017-2 přečíslovalo boulder→204."""
+    idx = kanál heatmapy (CODE_TO_IDX, dnes 204→0, 210→1, 417→2, 419→3). Crosswalk 2000→2017 (bez něj
+    nesmysl, Sez. 94): skalnaté ISOM 2000 mapy mají boulder=206, stony=210; 2017-2 přečíslovalo boulder→204.
+    POZOR vegetace (Sez. 128): ISOM 2000 417 → 2017-2 419, 2000 419 → 2017-2 418 (záměna v .crt) — crosswalk
+    `_resolve_targets` ji vyřeší automaticky, scope se řídí cílovými 2017-2 kódy v CODE_TO_IDX."""
     root = ET.parse(omap_path).getroot()
     ver = detect_version(str(omap_path))
     cw, v2000, v2017 = _load_crosswalk()
@@ -186,17 +188,20 @@ def predict_peaks(arr, model, dev, thr=PEAK_THR):
 
 
 def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
-    """Vizuál georef verify: GT body (zeleně) + pred peaky (204 červeně / 210 modře) na sken."""
+    """Vizuál georef verify: GT body (zeleně) + pred peaky per třída na sken.
+    Pred barvy: 204 červeně / 210 modře / 417 azurově / 419 fialově (kontrolní, nesouvisí s ISOM)."""
     img = scan_img.convert("RGB").copy()
     d = ImageDraw.Draw(img)
     for x, y, idx in gt_pts:                                   # GT zeleně (kroužek)
         cx, cy = to_px(x, y)
         cx, cy = cx * f, cy * f
         d.ellipse([cx-4, cy-4, cx+4, cy+4], outline=(0, 200, 0), width=1)
-    pcol = [(230, 40, 40), (40, 90, 230)]                      # 204 červeně / 210 modře
+    # barvy per kanál (drží i pro N_POINT>2; padding zelenou, kdyby přibyla další třída)
+    pcol = [(230, 40, 40), (40, 90, 230), (20, 200, 200), (200, 40, 200)]
     for c in range(N_POINT):
+        col = pcol[c] if c < len(pcol) else (0, 200, 0)
         for px, py in pred_peaks[c]:
-            d.point([(px, py)], fill=pcol[c])
+            d.point([(px, py)], fill=col)
     return img
 
 
@@ -213,7 +218,7 @@ def main(name):
     scan_img = full.resize((W, H), Image.BILINEAR)
 
     gt_raw = parse_carto_points(omap)
-    print(f"{name}: {len(gt_raw)} bodů 204/210; ver {detect_version(str(omap))}; sken {W0}x{H0}→{W}x{H}")
+    print(f"{name}: {len(gt_raw)} bodů {_CODES}; ver {detect_version(str(omap))}; sken {W0}x{H0}→{W}x{H}")
 
     to_px = paper_to_scan_px(omap, pgw)                        # rot_sign=−1, flip_y=True (default, ověřeno)
     # GT body do downscaled grid px (×f) + filtr na plátno

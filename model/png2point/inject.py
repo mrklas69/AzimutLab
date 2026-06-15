@@ -48,6 +48,14 @@ PX_PER_MM = (MAP_SCALE / 1000.0) / TARGET_MPP   # ≈ 7,52 px/mm
 
 # Černá ISOM kresba (reálné skeny nejsou čistě 0; degradace v dataset.py ji pak rozmaže/zesvětlí).
 _BLACK = (25, 25, 25)
+# Zelená vegetační kresba 417/419 (verify-against-source template_classic.omap: symboly nesou color 3
+# "Green 100%"). Hodnota = palette `green3`/generator `C_GREEN3` (45,169,79), kterým generátor kreslí 417
+# → injekce barevně konzistentní s reálným renderem. Lokální konstanta (jako _BLACK), inject.py je self-contained.
+_GREEN = (45, 169, 79)
+# Bílý knockout ("White over green", template color 22): 417/419 mají kolem zeleného symbolu bílou svatozář,
+# která vyřízne zelený podklad (les) → symbol vynikne. Klíčové pro detekci i realismus (na lese by zelený
+# symbol jinak splynul). Na bílém/žlutém podkladu je svatozář neviditelná (bílá na bílé) → realistické.
+_WHITE = (255, 255, 255)
 SIZE_JITTER = 0.25         # ± relativní jitter velikosti ikonky (různá měřítka korpusu + robustnost)
 
 
@@ -59,24 +67,38 @@ class PointClass:
     code      — ISOM 2017-2 kód (string kvůli suffixům typu 210.1).
     name      — lidský název (do vizuálu/logu).
     radius_mm — poloměr ikonky v mm papíru (ze spec); px = radius_mm × PX_PER_MM.
+                "dot": poloměr kruhu · "tree": poloměr zeleného prstence · "cross": polodélka ramene X.
     sigma_px  — sigma Gaussian peaku v GT heatmapě (~ velikost symbolu; malá ať se husté nesplynou).
-    field     — True = symbol se kreslí jako POLE instancí (210 stony), False = jednotlivý bod (204).
+    field     — True = symbol se kreslí jako POLE instancí (210 stony), False = jednotlivý bod (204/417/419).
+    kind      — tvar ikonky: "dot" plný kruh (204/210) | "tree" zelený prstenec + bílá svatozář (417)
+                | "cross" zelený X + bílá svatozář (419).
+    color     — barva kresby (204/210 černá, 417/419 zelená).
+    n_range   — (min,max) počtu instancí na dlaždici (single), resp. počtu POLÍ (field). Náhoda v rozsahu;
+                u řídkých tříd ZÁMĚRNĚ vysoké kvůli focal balancu (nález Sez. 106, viz inject_tile docstring).
     """
     code: str
     name: str
     radius_mm: float
     sigma_px: float
     field: bool = False
+    kind: str = "dot"
+    color: tuple = _BLACK
+    n_range: tuple = (40, 120)
 
 
 # Pořadí = index kanálu heatmapy (0..N_POINT-1). Start 204+210 (největší díry kompasu Sez. 104:
-# 204 7,8 pb / 210 7,3 pb). Registr je rozšiřitelný — přidat 417/419/109/111/… = jeden řádek + stamp.
+# 204 7,8 pb / 210 7,3 pb); Sez. 128 přidány 417/419 (vrchol KPI žebříčku děr — Prominent large tree /
+# Prominent vegetation feature). Registr je rozšiřitelný — přidat třídu = jeden řádek + případně stamp tvar.
 # sigma_px (nález Sez. 105): peak ~1 px na full-res 512 NEJDE naučit (protichůdný gradient → model
 # rozmaže globálně) → floor ~2,5. 204 řídký → 3,0 (širší peak, snadno se ostří). 210 husté POLE teček
 # (rozestup ~9 px) → 2,0: dost velký na naučení, dost malý ať se sousední peaky nesplynou (< rozestup/2).
+# 417/419 jsou VÝRAZNÉ zelené symboly (footprint 13,5 m) → širší peak (3,5 / 4,0; X 419 je rozměrnější).
+# n_range u 417/419 nižší než 204 (reálně řidší), ale dost vysoké, ať je focal nezdusí vedle hustého 210.
 POINT_CLASSES: list[PointClass] = [
-    PointClass(code="204", name="Boulder",       radius_mm=0.40, sigma_px=3.0, field=False),
-    PointClass(code="210", name="Stony ground",  radius_mm=0.15, sigma_px=2.0, field=True),
+    PointClass(code="204", name="Boulder",                  radius_mm=0.40, sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120)),
+    PointClass(code="210", name="Stony ground",             radius_mm=0.15, sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2)),
+    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(20, 60)),
+    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60, sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45)),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
@@ -91,6 +113,45 @@ def _stamp_dot(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
     clamp na minimum 0,7 px ať tečka nezmizí úplně (degradace ji pak ještě ztenčí)."""
     r = max(0.7, r_px)
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
+
+
+def _stamp_tree(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+                color=_GREEN) -> None:
+    """417 Prominent large tree: zelený PRSTENEC v bílé knockout svatozáři (verify-against-source template).
+
+    Template: prstenec color 3 (Green) v bílém disku color 22 ("White over green", knockout zeleného
+    podkladu). Svatozář ~1,65× poloměr prstence (template white disk 825 µm vs prstenec ~500 µm).
+    Pořadí: nejdřív bílý disk (vyřízne les), pak zelený prstenec navrch."""
+    r = max(1.2, r_px)
+    halo = r * 1.65
+    draw.ellipse([cx - halo, cy - halo, cx + halo, cy + halo], fill=_WHITE)   # bílý knockout
+    w = max(1, int(round(r * 0.55)))                                          # tloušťka prstence
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=color, width=w)
+
+
+def _stamp_cross(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+                 color=_GREEN) -> None:
+    """419 Prominent vegetation feature: zelený křížek X v bílé knockout svatozáři.
+
+    Template: 2 zelené diagonály (color 3, w 270) + 2 silnější bílé (color 22, w 540 = knockout svatozář).
+    Pořadí: nejdřív obě bílé diagonály (svatozář), pak obě zelené navrch. r_px = polodélka ramene X."""
+    r = max(1.5, r_px)
+    wg = max(1, int(round(r * 0.45)))            # tloušťka zelené diagonály
+    wh = wg + max(2, int(round(r * 0.6)))        # bílá svatozář o ~r širší než zelená
+    a = [(cx - r, cy - r), (cx + r, cy + r)]     # diagonála ↘
+    b = [(cx - r, cy + r), (cx + r, cy - r)]     # diagonála ↗
+    draw.line(a, fill=_WHITE, width=wh); draw.line(b, fill=_WHITE, width=wh)
+    draw.line(a, fill=color, width=wg);  draw.line(b, fill=color, width=wg)
+
+
+def _stamp(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float, pc: "PointClass") -> None:
+    """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross). Sjednocuje kresbu pro oba samplery."""
+    if pc.kind == "tree":
+        _stamp_tree(draw, cx, cy, r_px, pc.color)
+    elif pc.kind == "cross":
+        _stamp_cross(draw, cx, cy, r_px, pc.color)
+    else:
+        _stamp_dot(draw, cx, cy, r_px, pc.color)
 
 
 # ============================================================ Gaussian heatmap splat
@@ -134,12 +195,12 @@ def _rand_size_px(pc: PointClass, rng: np.random.Generator) -> float:
 
 def _sample_single(pc: PointClass, idx: int, draw: ImageDraw.ImageDraw,
                    rng: np.random.Generator, n: int) -> list[tuple[float, float, int]]:
-    """Rozeseje `n` jednotlivých bodů třídy (204 boulder) náhodně po dlaždici. Vrací [(cx,cy,idx)]."""
+    """Rozeseje `n` jednotlivých bodů třídy (204 boulder / 417 strom / 419 veg. feature) náhodně. Vrací [(cx,cy,idx)]."""
     pts = []
     for _ in range(n):
         cx = rng.uniform(0, TILE)
         cy = rng.uniform(0, TILE)
-        _stamp_dot(draw, cx, cy, _rand_size_px(pc, rng))
+        _stamp(draw, cx, cy, _rand_size_px(pc, rng), pc)
         pts.append((cx, cy, idx))
     return pts
 
@@ -166,26 +227,25 @@ def _sample_field(pc: PointClass, idx: int, draw: ImageDraw.ImageDraw,
                 jx = gx + rng.uniform(-0.3, 0.3) * spacing
                 jy = gy + rng.uniform(-0.3, 0.3) * spacing
                 if ((jx - ox) / rx) ** 2 + ((jy - oy) / ry) ** 2 <= 1.0 and 0 <= jx < TILE and 0 <= jy < TILE:
-                    _stamp_dot(draw, jx, jy, _rand_size_px(pc, rng))
+                    _stamp(draw, jx, jy, _rand_size_px(pc, rng), pc)
                     pts.append((jx, jy, idx))
                 gx += spacing
             gy += spacing
     return pts
 
 
-def inject_tile(rgb: np.ndarray, seed: int,
-                *, n_boulder: tuple[int, int] = (40, 120),
-                n_stony_fields: tuple[int, int] = (0, 2)
-                ) -> tuple[np.ndarray, np.ndarray]:
+def inject_tile(rgb: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray]:
     """Injektuje bodové symboly do RGB dlaždice + vyrobí GT heatmapy. Hlavní vstup pro dataset.py.
 
     rgb  — (TILE,TILE,3) uint8 čistý gen render (podklad bez bodů, point_base.png, Sez. 106).
     seed — deterministická realizace (jiný seed každou epochu → injekce = nekonečná augmentace).
-    n_*  — (min,max) rozsah počtu instancí (boulder bodů / stony polí) na dlaždici; náhoda v rozsahu.
-           n_boulder ZÁMĚRNĚ vysoké (40-120, Sez. 106): focal loss normalizuje gradient počtem pozitiv,
-           a 204 řídký (~10/dlaždice) se vedle hustého 210 (~200 teček, 19×) VŮBEC nenaučil (gate+diag
-           F1 0,00). Hustota 204 srovnatelná s 210 → 204 naskočí (diag F1 0→0,70). Reframe Sez. 79 to
-           dovoluje: detektor IKONEK, počet/poloha nemusí být reálné — hustota slouží jen k balancu.
+
+    Počty instancí jsou per-třída v PointClass.n_range (single = počet bodů, field = počet polí).
+    n_range u 204 ZÁMĚRNĚ vysoké (40-120, Sez. 106): focal loss normalizuje gradient počtem pozitiv,
+    a 204 řídký (~10/dlaždice) se vedle hustého 210 (~200 teček, 19×) VŮBEC nenaučil (gate+diag F1 0,00).
+    Hustota 204 srovnatelná s 210 → 204 naskočí (diag F1 0→0,70). Reframe Sez. 79 to dovoluje: detektor
+    IKONEK, počet/poloha nemusí být reálné — hustota slouží jen k balancu. 417/419 (Sez. 128) drží nižší
+    rozsah (reálně řidší), ale dost vysoký, ať je focal nezdusí vedle hustého 210.
 
     Vrací:
       x_out — (TILE,TILE,3) uint8 RGB s vkreslenými symboly.
@@ -197,12 +257,11 @@ def inject_tile(rgb: np.ndarray, seed: int,
 
     all_pts: list[tuple[float, float, int]] = []
     for idx, pc in enumerate(POINT_CLASSES):
+        n = int(rng.integers(pc.n_range[0], pc.n_range[1] + 1))
         if pc.field:
-            nf = int(rng.integers(n_stony_fields[0], n_stony_fields[1] + 1))
-            all_pts += _sample_field(pc, idx, draw, rng, nf)
+            all_pts += _sample_field(pc, idx, draw, rng, n)
         else:
-            nb = int(rng.integers(n_boulder[0], n_boulder[1] + 1))
-            all_pts += _sample_single(pc, idx, draw, rng, nb)
+            all_pts += _sample_single(pc, idx, draw, rng, n)
 
     # GT heatmapy — splat Gaussian peak za každý injektovaný bod do kanálu jeho třídy
     heat = np.zeros((N_POINT, TILE, TILE), dtype=np.float32)
@@ -214,9 +273,11 @@ def inject_tile(rgb: np.ndarray, seed: int,
 
 # ==================================================================== self-test / vizuál
 def _heat_overlay(rgb: np.ndarray, heat: np.ndarray) -> Image.Image:
-    """Vizuál: RGB s injekcí + barevné peaky heatmapy (204 červeně, 210 modře) pro kontrolu zarovnání."""
+    """Vizuál: RGB s injekcí + barevné peaky heatmapy pro kontrolu zarovnání (204 červeně, 210 modře,
+    417 azurově, 419 fialově). Barvy = kontrolní, nesouvisí s ISOM."""
     out = rgb.astype(np.float32).copy()
-    colors = np.array([[230, 40, 40], [40, 90, 230]], dtype=np.float32)   # 204 / 210
+    colors = np.array([[230, 40, 40], [40, 90, 230], [20, 200, 200], [200, 40, 200]],
+                      dtype=np.float32)   # 204 / 210 / 417 / 419
     for idx in range(min(N_POINT, len(colors))):
         a = heat[idx][..., None]                 # (H,W,1) alfa = síla peaku
         out = out * (1 - a) + colors[idx] * a
@@ -238,7 +299,8 @@ if __name__ == "__main__":
         base = np.full((TILE, TILE, 3), 255, dtype=np.uint8)
         src = "bílý papír (žádné area_tiles)"
 
-    print(f"PX_PER_MM={PX_PER_MM:.2f}  204 r={0.40*PX_PER_MM:.1f}px  210 r={0.15*PX_PER_MM:.1f}px")
+    print(f"PX_PER_MM={PX_PER_MM:.2f}  "
+          + "  ".join(f"{pc.code}({pc.kind}) r={pc.radius_mm*PX_PER_MM:.1f}px" for pc in POINT_CLASSES))
     print(f"tříd={N_POINT} {[pc.code for pc in POINT_CLASSES]}  podklad: {src}")
 
     x, heat = inject_tile(base, seed=7)
