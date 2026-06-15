@@ -29,6 +29,7 @@ Sys.path skript (fáze B, ne balík). Spouštět z kořene: `python generator/om
 import json
 import sys
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -221,11 +222,29 @@ def rasterize_map_dir(map_dir: Path) -> np.ndarray:
 # ~0,1 mm papíru, ze skenu nerozlišitelné → KISS jeden label; rozlišovat = postavit model na nemožnou
 # úlohu). 306 (dashed seasonal) AŽ krok 2 (dashed handling). Registr je rozšiřitelný — přidat třídu = řádek
 # (název, [ISOM kódy]); izomorfní s AREA_ZORDER (plochy) a POINT_CLASSES (body, inject.py).
-LINE_CLASSES: list[tuple[str, list[str]]] = [
-    ("watercourse", ["304", "305"]),   # plná modrá linie vodního toku (krok 1)
+@dataclass
+class LineClass:
+    """Jedna liniová ISOM třída (registr izomorfní s PointClass v png2point/inject.py, Sez. 131).
+
+    name      — lidský název = label (do vizuálu/logu/metriky).
+    codes     — ISOM kódy mapované na tuto třídu (304 named + 305 unnamed → watercourse; ze skenu
+                nerozlišitelné tloušťkou → KISS jeden label).
+    conf_thr  — práh softmax konfidence PER TŘÍDA při INFERENCI (sweep Sez. 131). Holý argmax (= 0,5 u
+                2 tříd) přestřeloval: model fíruje na tenkou linii obecně (cesty/ploty), ne jen modrou →
+                vyšší práh ořeže FP. watercourse 0,95 z plochého plató relaxed-F1 (ne in-sample špička,
+                3 skeny = malý vzorek; izomorf rozhodnutí 417 peak_thr Sez. 129). POZOR: NEpoužívá se
+                v tréninku (train.evaluate jede čistý argmax = 0,5) — jen inference/eval_real/vektorizace.
+    """
+    name: str
+    codes: list
+    conf_thr: float = 0.5
+
+LINE_CLASSES: list[LineClass] = [
+    LineClass(name="watercourse", codes=["304", "305"], conf_thr=0.95),   # plná modrá linie vodního toku
 ]
-LINE_CODE_TO_LABEL = {code: i + 1 for i, (_, codes) in enumerate(LINE_CLASSES) for code in codes}
-LINE_LABEL_NAME = {0: "pozadí", **{i + 1: name for i, (name, _) in enumerate(LINE_CLASSES)}}
+LINE_CODE_TO_LABEL = {code: i + 1 for i, lc in enumerate(LINE_CLASSES) for code in lc.codes}
+LINE_LABEL_NAME = {0: "pozadí", **{i + 1: lc.name for i, lc in enumerate(LINE_CLASSES)}}
+LINE_CONF_THR = {i + 1: lc.conf_thr for i, lc in enumerate(LINE_CLASSES)}   # label → softmax práh (inference)
 N_LINE = len(LINE_CLASSES) + 1   # + pozadí (label 0)
 
 # GT dilatace (klíčová volba Sez. 130): tenká linie (304 ~1,4 px @ 1,33 mpp) se v U-Netu downsamplingem
