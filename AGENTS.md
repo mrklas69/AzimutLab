@@ -1,10 +1,15 @@
 # AGENTS.md — AzimutLab (projektový overlay)
 
-Rozšiřuje globální `~/.Codex/AGENTS.md`, nepřevažuje. Makra %BEGIN/%END:
-viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.md`
+Rozšiřuje globální `~/AGENTS.md`, nepřevažuje. Kanonické globální definice maker
+jsou v `~/.claude/PROMPTS.md`; projektový override `%BEGIN`/`%END` je v
+`docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.md`
 (ne sem).
 
 ## Doménové pracovní zásady
+- **Zvonek před čekáním na uživatele.** Těsně před otázkou, žádostí o schválení
+  nebo jiným krokem, po kterém agent čeká na vstup uživatele, přehraj
+  `C:\Users\mrkla\.codex\resources\servant-bell-ring.mp3`. Pokud soubor není
+  dostupný, řekni to nahlas; nepředstírej úspěch.
 - **Foundations before curtains — tvrdě.** Projekt je deštník nad 5 UC (DAG, ne
   seznam). Enablery (UC2 data / UC5 modely) jdou před aplikacemi (UC3/UC4).
   Než sáhneš na aplikaci, ověř, že enabler pod ní stojí. Scope creep je
@@ -60,8 +65,9 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
-  sken → area label rastr, 18 tříd ze `omap_raster`; pár [scan.png, area_labels.png] z `pairs.py`; `tile.py`
-  BEZ rejection — pozadí je legitimní třída; test mIoU 0,568 Sez. 103) · `png2point/` = **živý** reconstructor
+  sken → area label rastr, 17 ISOM kódů + pozadí = `N_AREA=18`; pár
+  [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
+  BEZ rejection — pozadí je legitimní třída; test mIoU 0,683 Sez. 126) · `png2point/` = **živý** reconstructor
   `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210; test mF1
   0,888 medián 3 seedů, stabilní po focal bias initu Sez. 125 — 0,897 Sez. 106 byl nereprodukovatelný single-run).
   Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`

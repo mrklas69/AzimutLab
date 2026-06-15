@@ -12,14 +12,18 @@ do JEDNÉ georeferencované `.omap` per classId (provenance real/predict) — `[
 Separace **downscaluje vstupní gt na `TARGET_MPP`=1,33 PŘED vektorizací** (Sez. 85, `separate_areas(src_mpp)` —
 `pairs` předá `meta["effectiveMppX"]`): řeší výkon žroutu #1 (O(n² prstenců) — 31,6× zrychlení na jemném skenu,
 věrnost zachována) + sjednotí měřítko separace napříč korpusem. Polygony se ×f vrací na původní grid (volající beze změny).
-**Fáze II `degrade.py` (Sez. 86):** `degrade(rgb, seed)` degraduje čistý render → „sken" (`scan.png` = X páru) —
-4 fotometrické vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG), Y (`.omap`) se nemění. `pairs`
-volá s `degrade=True`. Geometrie (rotace/warp) NEní zde — patří na úroveň páru/dlaždice (loader D4, DRY). omap2png =
-náš rastr (`generate_map` dělá `rgb.png`); C++ headless OOM až s důkazem doménového gapu (Sez. 82).
+**Fáze II `degrade.py` (Sez. 86/103):** `degrade(rgb, seed)` degraduje čistý
+`rgb.png` fotometrickými vadami (CMYK misregistrace / blur / papír+zažloutnutí /
+šum+JPEG). Nezapisuje trvalý `scan.png`: volá se on-the-fly v modelovém loaderu
+pouze nad X, zatímco Y se nemění. Geometrie (rotace/warp) sem nepatří —
+transformuje X i Y na úrovni dlaždice. omap2png = náš rastr (`generate_map`
+dělá `rgb.png`); C++ headless OOM až s důkazem doménového gapu.
 **Y-pipeline `omap_raster.py` (Sez. 87):** `rasterize(omap, meta)` rasterizuje plošné (Area) ISOM symboly z `.omap`
 → **label rastr** (`area_labels.png` = **Y** páru, pro reconstructor `Png2Area`). Y z `.omap` (NE z render masek) →
-pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL` 16 area kódů + pozadí, statický z-order zdola nahoru, díry
-per-objekt); paper µm→px triviální z meta. `pairs` volá s `labels=True`. Pár = **[scan.png (X), area_labels.png (Y)]**.
+pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL`: **17 ISOM kódů +
+pozadí, `N_AREA=18`, labely 0–17**), statický z-order zdola nahoru a díry per
+objekt. `pairs` volá s `labels=True`. Pár = **[`rgb.png` (X),
+`area_labels.png` (Y)]**; degradace X probíhá až on-the-fly v loaderu.
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
@@ -156,7 +160,7 @@ Dávkový dataset (`batch.py`) — sada map + manifest + náhledová mozaika:
 
 | Soubor | Obsah |
 |--------|-------|
-| `rgb.png` | finální mapa (čistý render); `scan.png` = degradovaný „sken" (X páru, `pairs` `degrade=True`, Sez. 86) |
+| `rgb.png` | čistý render = X páru; skenové vady se přidávají on-the-fly v modelovém loaderu |
 | `area_labels.png` | label rastr plošných ISOM symbolů z `.omap` (Y páru pro `Png2Area`; `pairs` `labels=True`, Sez. 87) |
 | `rgb.pgw` | world file — georef rastru do S-JTSK (jen `--terrain real`; grid-north-up, rotace 0 = bez grivace) |
 | `mask_contours.png` | binární maska vrstevnic |

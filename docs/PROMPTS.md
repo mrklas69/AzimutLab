@@ -1,6 +1,7 @@
 # PROMPTS — AzimutLab (projektová makra)
 
-Rozšiřuje globální makra (`~/.claude/CLAUDE.md`). Jen projektová specifika.
+Rozšiřuje kanonické globální definice maker z `~/.claude/PROMPTS.md`.
+Tento soubor obsahuje pouze projektové override a rozšíření.
 
 ## %BEGIN — start sezení
 0. **Sync s remote — PRVNÍ, před načtením kontextu.** `git fetch` + porovnej `HEAD`

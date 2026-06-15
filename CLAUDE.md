@@ -1,10 +1,15 @@
 # CLAUDE.md — AzimutLab (projektový overlay)
 
-Rozšiřuje globální `~/.claude/CLAUDE.md`, nepřevažuje. Makra %BEGIN/%END:
-viz `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md + `docs/architecture.md`
-(ne sem).
+Rozšiřuje globální `~/.claude/CLAUDE.md`, nepřevažuje. Kanonické globální
+definice maker jsou v `~/.claude/PROMPTS.md`; projektový override `%BEGIN`/`%END`
+je v `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md +
+`docs/architecture.md` (ne sem).
 
 ## Doménové pracovní zásady
+- **Zvonek před čekáním na uživatele.** Těsně před otázkou, žádostí o schválení
+  nebo jiným krokem, po kterém agent čeká na vstup uživatele, přehraj
+  `C:\Users\mrkla\.codex\resources\servant-bell-ring.mp3`. Pokud soubor není
+  dostupný, řekni to nahlas; nepředstírej úspěch.
 - **Foundations before curtains — tvrdě.** Projekt je deštník nad 5 UC (DAG, ne
   seznam). Enablery (UC2 data / UC5 modely) jdou před aplikacemi (UC3/UC4).
   Než sáhneš na aplikaci, ověř, že enabler pod ní stojí. Scope creep je
@@ -72,7 +77,8 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
-  sken → area label rastr, 18 tříd ze `omap_raster`; pár [scan.png, area_labels.png] z `pairs.py`; `tile.py`
+  sken → area label rastr, 17 ISOM kódů + pozadí = `N_AREA=18`; pár
+  [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
   BEZ rejection — pozadí je legitimní třída; test mIoU **0,683 Sez. 126** MPP fix na kanonické měřítko dlaždice 1,33,
   z 0,537 Sez. 118) · `png2point/` = **živý** reconstructor
   `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210; test mF1

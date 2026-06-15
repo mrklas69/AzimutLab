@@ -29,7 +29,7 @@ prací: enablery před aplikacemi.
         │                                           │
         └────────────────────┬──────────────────────┘
 ┌────────────────────────────▼──────────────────────────────────────┐
-│ APP     UC3  Restaurace            UC4  Generátory                  │
+│ APP     UC3  Restaurování map      UC4  Generátory                  │
 │         de-purple, de-crease,         I.  plausible-random          │
 │         digitální restaurování        II. inspirované (obraz/coords)│
 │         opotřebených map               III.přesné = Pic2Omap        │
@@ -157,12 +157,14 @@ bodových, liniových i plošných ISOM symbolů.
   (páry/GT/split/dlaždice) zůstává znovupoužitelná — reálně reusována Png2Area modelem níže.
 - **Png2Area reconstructor — PRVNÍ FUNKČNÍ MODEL (Sez. 88 kód → Sez. 90-91 trénink), `model/png2area/{tile,dataset,train}.py`:**
   první ze tří CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`rgb.png` (X, ČISTÝ gen render),
-  `area_labels.png` (Y, **18 ISOM area kódů + pozadí** ze `omap_raster`, +403 Sez. 92 / +310 Sez. 99)]** vyrobeném
+  `area_labels.png` (Y, **17 ISOM kódů + pozadí = `N_AREA 18`** ze
+  `omap_raster`, +403 Sez. 92 / +310 Sez. 99)]** vyrobeném
   `generator/pairs.py`. Fotometrická degradace (sken-vady) NENÍ v páru — aplikuje se on-the-fly jako augmentace
   v `dataset.py` (Sez. 103, degradace patří do tréninkové fáze II/III, ne do generator() výroby párů). Izomorf
   s archivem (reuse tiling 512/256, median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto**
   (proto vysoký strop, na rozdíl od archivu), **bez rejection** (pozadí = legitimní třída) a **bez IGNORE** (Y z naší
-  `.omap` je celé validní). Dlaždice → `resources/area_tiles/`, checkpoint → `resources/area_model/`. **Výsledek
+  `.omap` je celé validní). Dlaždice → `resources/area_tiles/`; každý tréninkový
+  běh → `resources/area_model/runs/<run_id>/`. **Výsledek
   (Sez. 90):** plný trénink 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs runnability baseline 0,25); budovy
   `521` zachráněny 0,00→0,68 (median-freq váhy + data). **Stabilizace (Sez. 91):** cap vah @10 + cosine LR →
   test mIoU 0,640 (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop → class-balanced
@@ -174,7 +176,8 @@ bodových, liniových i plošných ISOM symbolů.
   měřená, dříve strukturálně 0 = nadprůměrně naučená). mIoU 0,537 nesrovnatelné s 0,568 (to vodu nepočítalo).
   **MPP fix re-trénink (Sez. 126, audit C1/K1):** dlaždice byly 2,18 m/px, ale symboly/eval na 1,33 → kanonické
   měřítko `model/mpp.CANONICAL_MPP=1,33`, re-tile + retrain → **test mIoU 0,683** (+14,6 pb; voda 301 0,74).
-  `resources/area_model/unet_best.pt`.
+  Kanonický `resources/area_model/unet_best.pt` se mění pouze explicitním
+  `train.py --promote <run_id>`.
 - **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
   druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
   (bez bodů, master flag `generate_map`) = GT zdarma + libovolně instancí (řeší vzácnost) + **heatmap regrese**
@@ -185,15 +188,25 @@ bodových, liniových i plošných ISOM symbolů.
   bias init → **test mF1 0,888 medián 3 seedů / rozptyl 0,019** (204 ~0,92 / 210 ~0,86, obě stabilně živé).
   **MPP fix (Sez. 126):** retrain na kanonickém měřítku 1,33 → **mF1 medián 0,874** (0,888 bylo na starém měřítku
   se symboly 1,64× velkými); reálný transfer 210 z kolapsu (F1 0,04) na 0,11–0,18 (tečka 4,5 px přežije sken).
-  `resources/point_model/unet_best.pt`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
+  Stejný checkpoint kontrakt jako Area: běh je izolovaný v
+  `resources/point_model/runs/<run_id>/` a kanonický `unet_best.pt` se mění jen
+  explicitním `--promote`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
+- **Checkpoint kontrakt živých modelů (CODE-C2, Sez. 127):**
+  `model/checkpoints.py` je SSoT pro Png2Area i Png2Point. `best.pt`,
+  `history.csv`, `curve.png` a `manifest.json` patří jednomu `run_id`;
+  checkpoint nese seed, hyperparametry, epochu, selection/test metriku a SHA-256
+  fingerprint splitu/datového manifestu. Checkpoint i promote používají dočasný
+  soubor + atomický rename. Nedokončený nebo diagnostický overfit běh nelze
+  povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
-  reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný). **Stav Sez. 107: 59,1 %**
-  (HAL3000, 5 map; plocha 69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210). Cíl plošná
-  ~55 % (splněn), s reconstructory ≥ 85 %. **Sez. 116: rock v2 over-detection 206 opraven density gate**
-  (`rock_relief.DENSITY_GATE_PCT`, ne-skalnaté mapy < 0,08 % px ≥46° → 0 ploch 206 → konec 210 Stony přestřelu) →
-  ntbhej Bedř+Blatná **48,2 → 55,0 %** (+6,8 pb). Měř `generator/measure_dod.py` (default KPI, `--table` kompas děr). Detail TODO/DONE.
+  reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
+  **Stav Sez. 127: 58,6 %** (plocha 69,5 / linie 58,9 / bod 52,8);
+  největší díry 417/419/508/409/202. Cíl plošná ~55 % (splněn), s reconstructory
+  ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch se ověřuje také na
+  reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
+  `--table` kompas). Detail TODO/DONE.
 
-### UC3 — Restaurace (APP)
+### UC3 — Restaurování map (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních
 (často opotřebených, tištěných) map a digitálně je restaurovat (deskew, de-crease,
 inpainting).

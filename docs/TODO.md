@@ -8,15 +8,6 @@ Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1�
 Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
-- [x] *(A1, KRITICKÁ; HAL3000 — CELÁ HOTOVÁ: Png2Area Sez. 120 + Png2Point Sez. 121; detail DONE, kód A1)*
-  **Reálný benchmark reconstructorů — měřit doménový gap syntetika→sken.** **(a) Png2Area Sez. 120:**
-  `model/png2area/eval_real.py`, per-odstín mIoU 0,256/0,354 + soft pixel-acc 0,88–0,90 (model ČTE, gap metrický).
-  **(b) Png2Point Sez. 121:** `model/png2point/eval_real.py`, dvojice synt mF1 0,897 (POZOR: nestabilní model
-  PŘED Sez. 125 → stabilní 0,888; realita měřila nestabilní model → re-benchmark Příště) / realita 0,19–0,36 (po masce
-  pole) — **204 PŘENÁŠÍ** (recall 0,66–0,67 stabilně, F1 0,38–0,68), **210 KOLABUJE** (F1 ~0,04, tečky splývají
-  s rastrem). 90 %+ halucinace 210 mimo pole = striping artefakt jako Png2Area. Dvojice zavedena jako 2. KPI (blok
-  níže). **Vstup pro A2:** gap = striping/ostrost + halucinace, NE fialový přetisk. Pozn.: pseudo vrstvy generátoru
-  (516 / 310-split / pseudo 204/210) v reálném Y nejsou → vyhodnoceny jen třídy v kartografově `.omap` (registr B6).
 - [~] *(A2; mrkla — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; Png2Point re-trénink Sez. 125 ODHALIL NESTABILITU → [!] položka níže; ZBÝVÁ (b))* **Purple-course + geometrická augmentace.**
   Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy neviděl jako
   vstup — `degrade.py` je čistě fotometrický. **(a) Purpura HOTOVO Sez. 123:** `model/purple.py`
@@ -34,19 +25,6 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   půlka** (sklad/ohyb/warp X i Y zároveň, vedle D4) = existující bod „Stupeň 2 — augmentační pipeline"
   níže, touto námitkou povýšen. Pozor u Png2Area: warp Y by mezi třídami vyrobil smíšené px (proto D4
   jen rot90) → nearest-neighbor na Y, nebo warp jen X.
-- [x] *(A2-derivát; mrkla/CUDA; VYŘEŠENO Sez. 125)* **Png2Point nestabilita VYŘEŠENA focal bias initem.**
-  A2a re-trénink odhalil rozptyl test mF1 **0,15–0,90** podle seedu (stejný kód/data/split); „0,897" (Sez. 106)
-  byl outlier. Mechanismus: focal `n_pos` sdílený přes kanály → model dle inicializace upustí řídké 204 (seed=2:
-  204 F1 0,01 / 210 0,63). **Hotovo Sez. 125:** Páka 0 metrologie (`train.py --seed`, baseline 3 seedy 0,151/
-  0,247/0,318 medián 0,247). **KOŘEN NALEZEN — chybějící focal prior bias init** (`build_model`, RetinaNet/
-  CenterNet, train.py:54): mrtvá fáze prvních ~15 ep (logity 0,5 všude na startu) = zdroj rozptylu. Fix
-  smoke (seed 0, 12 ep, bez EMA): **TEST mF1 0,151 → 0,730** (204 0,70 / 210 0,76, obě živé), mrtvá fáze pryč.
-  Páka 1 EMA = slepá ulička (decay táhne přes mrtvou fázi), flag `--ema` ponechán opt-in. **VYŘEŠENO Sez. 125:**
-  multiseed 3 seedy bias init medián **0,888** / rozptyl **0,019** (vs baseline 0,247 / 0,167 = +0,64 medián,
-  8,8× menší rozptyl; 204 ~0,92 / 210 ~0,86). Páky 2/3 nepotřeba. Stabilní model `unet_best_biasinit_seed2.pt`.
-  „0,897" v živých docs opraveno na 0,888 (Sez. 125). Detail [[IDEAS „Stabilizace Png2Point"]]. **ZBÝVÁ (Příště):**
-  (a) MPP fix (audit [!] níže) PŘED re-benchmarkem (mění měřítko); (b) re-benchmark A1.b `eval_real` na stabilním
-  modelu (staré 0,19–0,36 měřilo nestabilní model); (c) purpura paired re-probe na stabilním základě.
 - [ ] *(A3; měření HAL3000)* **KPI proti Goodhartu.** (a) Úspěch fáze `generator()` vázat na A1 benchmark;
   KPI zůstává kompas děr, ne cílová funkce — propsat do KPI bloku níže + `architecture.md`. Pravidlo pro
   každou další KPI práci: „pomůže to reconstructoru na reálném skenu?" (b) Rozšířit referenční sadu:
@@ -80,10 +58,6 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   polyline regrese; zkušenost Pic2Omap. Probe: přenese se injekční trik (Sez. 105, paměť
   [[png2point-inject-clean-base]]) na linie — dash vzory (508/516), křížení, překryvy? Výstup =
   IDEAS návrh + rozhodnutí přístupu s uživatelem, NE kód.
-- [x] *(B2, drobnost — HOTOVO Sez. 118, komentářová cesta)* **`ISOM_REF` dvojník — křížový komentář o divergenci.**
-  Audit dával alternativu „přejmenovat NEBO doplnit křížový komentář do obou" → zvolen komentář (méně invazivní). `map_gt.py`
-  komentář o divergenci (olivová 520 + purpury navíc) UŽ MĚL; doplněn chybějící do `compare_real_vs_gen.py` (Sez. 118).
-  Přejmenování `GT_REF` / extrakce do sdíleného modulu se nedělaly (až 3. konzument).
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
   nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
   Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
@@ -91,49 +65,16 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 - [ ] *(B4, drobnost)* **requirements split** — `requirements.txt` (runtime: numpy/Pillow/contourpy/
   pyproj/scipy/pygeomag) vs `requirements-train.txt` (smp/matplotlib + pozn. torch cu128 mimo PyPI).
   Hranice „matplotlib = trénink-only" je dnes nepsaná a už vystřelila (Sez. 112 clip_quad na ntbhej).
-- [x] *(B6, docs drobnost — HOTOVO Sez. 125)* **Registr pseudo vrstev do GLOSSARY** — tabulka vrstva (516 plot /
-  310 split ~55 % / pseudo body 204/210) → mechanismus → kde žije (meta.json klíč · `.omap` · stats · Y rastr)
-  přidána do GLOSSARY „Projekt — struktura a principy". Kodifikuje lekci Sez. 108
-  ([[pseudo-layer-writes-meta-and-omap]]) a umožní A1 benchmarku pseudo třídy poctivě vyřadit.
 - [ ] *(B1, až bolí)* **Sdílený modul pro string-level `.omap` operace.** `cut.py`/`gen_backgrounds.py` jsou správně
   moduly (monolit nepřikrmovat), ale string-regex místo XML parseru je křehké — každý nový `.omap` zápis musí myslet, ať ho
   cut/backgrounds nerozbije (Sez. 109: clip NESMÍ přes ET kvůli inject). Extrahovat konvenci string-`.omap` operací na jedno místo.
-- [ ] *(B5, docs hygiena)* **DIARY index znovu bobtná.** Řádky Sez. 110-116 = mnohařádkové odstavce, index přesahuje 25k
-  read-cap (vlastní důvod splitu archivu, %CALIBRATE Sez. 51/86). Vrátit disciplínu „1-2 věty hook" — detail do diáře, index =
-  rozcestník. Pozor: staré řádky nepřepisovat (PROMPTS) → zkrátit nově psané + zvážit další split archivu.
 - [ ] *(B7, proces)* **Deep research fázovat.** 103 agentů uťatých session limitem (Sez. 110) = nehospodárné. Příště:
   scout → cílený fan-out, průběžně sklízet do RESEARCH.md, ať i uťatý běh zanechá plnou stopu.
 
 ## ChatGPT audity (2026-06-14, Sez. 125) — DOCS + CODE → úkoly
-Zdroj: `AUDIT_DOCS_260614.md` + `AUDIT_CODE_260614.md` (kořen repa, untracked → přesunout do `docs/` v %END).
+Zdroj: [`AUDIT_DOCS_260614.md`](AUDIT_DOCS_260614.md) +
+[`AUDIT_CODE_260614.md`](AUDIT_CODE_260614.md).
 Nálezy OVĚŘENY proti zdroji (Sez. 93/110: nález agenta ≠ fakt). Hotové v Sez. 125 níže.
-- [x] *(DOCS-K1 = CODE-C1, KRITICKÉ; VYŘEŠENO Sez. 126 — detail DONE, kód C1/K1)* **Nesoulad fyzického rozlišení —
-  symboly 1,64× moc velké.** Volba uživatele **var. a1** (resample párů X+Y na kanonické MPP, ne přepočet symbolů):
-  nový SSoT `model/mpp.CANONICAL_MPP=1,33` + `resample_to_mpp`/`read_src_mpp`; `inject.py`/`purple.py` PX_PER_MM
-  z něj; `png2area/tile.py` resample X+Y při tile (+`target_mpp` do `_tiles.json`); `png2point/dataset.py` resample
-  v `__init__`; oba `eval_real.py` ← CANONICAL_MPP; `separate.TARGET_MPP` zůstává oddělený koncept. Rebuild
-  (re-tile 10093 dlaždic) + retrain obou. **Synt: Png2Area 0,537→0,683 (+14,6 pb)**, Png2Point mF1 medián 0,874.
-  **Realita A1: Png2Area Bedř 0,256→0,336; Png2Point 0,19–0,36→0,23–0,43, 210 z kolapsu 0,04 na 0,11–0,18**
-  (recall nízký), 204 stabilní. `PX_PER_MM` nezměněn (7,52) — symboly vždy správné pro 1,33, rozbitý jen podklad.
-- [~] *(CODE-C2, KRITICKÉ; ČÁSTEČNĚ Sez. 126)* **Každý běh přepisuje kanonický `unet_best.pt`** (žádné run_id/metadata;
-  `eval_real` načte cokoli aktuálního). Sez. 126: multiseed driver kopíruje per-seed (`unet_best_mpp_seed{N}.pt`)
-  a **promotuje NEJLEPŠÍ seed** (ne poslední) → `unet_best.pt`. ZBÝVÁ obecné řešení v `train.py` obou: běh do
-  `run_id` adresáře, seed/decay/test-mF1/epocha do checkpointu, `unet_best.pt` jen explicitním `promote`, atomický rename.
-- [ ] *(CODE-D3, no-silent-fallback)* **`cut.py clip_omap` tiše vrací (0,0) na chybu formátu** (chybějící
-  `<objects>` / nečíselný coord token → objekt se tváří jako úspěšně ponechaný). Porušení „no silent fallback" +
-  verify-against-source. Fix: vyhodit výjimku s cestou+identifikací; legitimní bezsouřadnicový typ allowlistem.
-- [ ] *(DOCS-D1, DRY/conceptual integrity)* **Sjednotit kontrakt Png2Area pipeline** napříč docs: **17 ISOM kódů +
-  background = `N_AREA 18`, labely 0–17, X=`rgb.png`, degradace on-the-fly, Y=`area_labels.png`**. Dnes rozpor
-  (16 vs 18 kódů, zastaralá `scan.png` pipeline) v `generator/README`, kořenovém README, GLOSSARY, architecture.
-- [ ] *(%END / ntbhej balík — docs hygiena)* DOCS-D2 (přesun 23 `[x]` z TODO do DONE) · DOCS-D3 (DONE chybí sezení
-  19/21/32/34/48/118/124) · DOCS-D5 (README supluje changelog → snapshot) · DOCS-D4 = [[B5]] (DIARY index) ·
-  DOCS-D6 (makra routing AGENTS `~/.Codex` vs CLAUDE `~/.claude`) · DOCS-C2 (UC3 „Restaurace" → „Restaurování map")
-  · CODE-K1 (`purple.py` n_ctrl off-by-one: komentář 5–12 / reálně 4–11).
-- [x] *(HOTOVO Sez. 125, během tréninku)* **Bezpečné drobné opravy:** CODE-D2 `eval_real` `_OUT.mkdir` (oba,
-  FileNotFoundError fix) · CODE-D1 odstraněn hardcoded „vs syntetická 0,897" v `png2point/eval_real.py` · CODE-K2
-  `cut.py` docstring (centroid→geometrický, Sez. 114) · DOCS-C1 GLOSSARY soft mIoU↔pixel-acc rozlišeno (grouped
-  mIoU 0,47 + pixel-acc 0,88–0,90). DOCS-K2 (0,897 v živých docs) řeší [!] Png2Point stabilizace blok výše.
-
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
@@ -160,44 +101,15 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > 0,23–0,43** (z 0,19–0,36) — 204 přenáší stabilně (F1 0,46–0,69, R ~0,55–0,60), **210 z kolapsu (0,04) na 0,11–0,18**
 > (recall stále nízký, řídká detekce pole teček). Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 107: KPI 59,1 %** (Bedř 52,8 / Blatná 59,4 / Velbloud 65,1; plocha 69,2 / linie 59,3 / **bod 18,4 →
-> 54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti). **Žebříček děr (kam mířit):**
-> **417/419/418** (3,1/2,8/1,3 pb, veg body → Png2Point registr, Příště Sez. 108) / **508/306** (linie) /
-> **409/404/410** (vegetace gate, ZABAGED nevede) / 109 (bod). **Další skok = registr veg bodů + Png2Line.**
+> **Stav Sez. 127 (%BEGIN přeměření): KPI 58,6 %** (Bedř 52,3 / Blatná 59,2 /
+> Velbloud 64,2; plocha 69,5 / linie 58,9 / bod 52,8). **Žebříček děr:**
+> **417 / 419 / 508 / 409 / 202**. Další velká strukturální páka zůstává Png2Line;
+> KPI je kompas děr, ne cílová funkce (ověřovat dopad na reálném benchmarku).
 >
 > **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
 > smíšený podstřel +0,34, 404/407/409 = vegetace gate). Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
 > pokrytí = strop tréninku (memory `generator-coverage-is-the-ceiling`). **Historie baseline (43 %→59,1 %), analytické
 > cuty (plošný strop 54 %), kompas a vyvrácené páky 403/508: DONE Sez. 94-102 + diáře.**
-- [x] *(generator kvalita — HOTOVO Sez. 110, algoritmus; KPI carry)* **`rock_relief` v2 — dlaždicová detekce skal
-  @ 0,5 m/px + rekalibrace despeckle.** Z jiného threadu přišel vylepšený `rockcore` v2 (handoff + zlatý vzorek →
-  `docs/kb/rock-detection-v2/`). Probami doloženy + opraveny dvě vady: (1) `TARGET_PX_M=1,5` poddetekoval o 43 %
-  (40/1,29 ha vs 0,5 m/px) → **pevný `ANALYSIS_RES=0,5`** (práh 46° je na něj kalibrovaný, handoff §4a) + **tiling
-  fetch** (`_fetch_assembled_grid`: dlaždice ≤ `MAX_FETCH_PX`, seamless assembled grid → morfologie JEDNOU; čistší
-  než handoff §7 per-dlaždice; `dmr.py` netknut); (2) `OPEN_M=1,0` (r=2px) maže tenké stěny −27 % → **`OPEN_M=0,5`**
-  (r=1px golden). **Verify (vše ntbhej):** golden Šulcák **48/2,56 ha = match** (golden 48/2,53, tol ±2/±5 %); seamless
-  tiling (vynucené 4 dlaždice = identické); reálný Hrubá Skála 2×2 km 159 bloků; E2E `generate_map` 1×1 km HS =
-  **49× 206 v .omap + 411× 204 pseudo** (downstream skalnatost maska OK). `MAX_TOTAL_PX=50 Mpx` paměťový strop →
-  velký výsek zhrubne s HLASITÝM varováním (no silent fallback). **CARRY HAL3000/Velbloud:** KPI před/po **nelze na
-  ntbhej změřit** — kompas Sez. 110: Bedř/Blatná **nejsou skalnaté** (206 orig=0/gen=1, 208 orig=31/gen=0), skalnatá
-  Velbloud nemá `.pgw`. Víc skal na ne-skalnatých mapách KPI jen zhorší (přestřel) → KPI dopad měřit až na skalnaté
-  mapě. **Sez. 111: Velbloud `.pgw` na ntbhej NEODVODITELNÝ** (`.omap` nese jen minimální georef bez pixel→S-JTSK;
-  rekonstrukce z bbox vyvrácena validací — scan rotován grivací) → měřit na **HAL3000** (kartografův georef / rocky
-  korpus mapa). Regen párů Y při příštím Png2Area re-trénu (skály do Y věrnější).
-- [x] *(model, mrkla — PRECONDITION Sez. 110 → HOTOVO Sez. 118)* **Png2Area přetrénován na N_AREA 18 (voda 301 fix). TEST mIoU 0,537, voda 301 IoU 0,65.**
-  **Sez. 110 (ChatGPT %AUDIT:CODE) odhalil, že `omap_raster` měl od narození (2026-06-04) stale `301.1`, zatímco generátor
-  zapisuje vodu jako `301` od 2026-06-01 → VODA tiše vypadávala z area_labels (měřeno: Lidové sady 58/0). Oba dosavadní
-  tréninky (Sez. 90/91 mIoU 0,640, Sez. 103 mIoU 0,568) se vodu NIKDY nenaučily** — reportovaná mIoU vodu nepočítala.
-  Opraveno Sez. 110 (`301.1`→`301` + SSoT `AREA_CODES` ← `AREA_ZORDER`). **Sez. 118 PROVEDENO (mrkla/HAL3000):**
-  (0) verify 1 páru `1005002` — voda label 8 v Y: **0 → 81 511 px** (fix prokázán PŘED batchem); (1) regen 205 párů
-  force `skip_existing=False` (**ok 205 / fail 2** — `1192962` mimo DMR hranice, `874127` UnicodeEncodeError; stale pár
-  874127 smazán, ať tile nevezme bez-vody); (2) re-tile `allow_missing=True` → `_tiles.json` n_area 18, `301` váha
-  **0,0 → 0,996** (už ne prázdná třída); (3) plný trénink 40 ep HOTOVO (best ep 37) — **TEST mIoU 0,537, voda 301 IoU
-  0,65** (dříve strukturálně 0 = dnešní cíl SPLNĚN, fix prošel celým řetězem do modelu; voda nadprůměrně naučená).
-  **mIoU 0,537 je POPRVÉ POCTIVÝ (s vodou) — naivní srovnání s 0,568 (Sez. 103, BEZ vody) neplatí**; očištěno o vodu ~0,53,
-  mírně níž (voda přebrala px + 2 mapy vypadly + 1 běh, ne regrese kvality). Křivka stabilní bez spiků (cap @10 + cosine drží).
-  Datový strop vzácných drží: 402/208/501 IoU ~0 (známé, class-balanced expansion). `unet_best.pt` → `resources/area_model/`. Pozn.: `class-balanced expansion` u 301 moot (voda po fixu hojná). **Dohoda Sez. 118: po tomto
-  STOP na modelech, zpět ke zrání generátoru** (off-water / cut / layout / crop nálezy z testu).
 - [ ] *(doladění → nález uživatele Sez. 118 „zubaté ploty")* **Plot 516 kolem velké privátní oblasti (520) je ZUBATÝ** ({A}, ~6 zbytečných
   zubů na velkém pozemku). Mechanika: `_dissolve_mask_to_polys(olive_ruian_img)` → outer ring → `_rdp(eps = FENCE_SIMPLIFY_M=5 m)` →
   `_draw_fence_line` (gen ~2496-2506). RDP 5 m zuby nespolkne. **Řešení (volba uživatele „zjednodušit na vnější hraniční body"):** primárně
@@ -205,34 +117,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   morfologické **closing seed masky** PŘED dissolve (vyplní úzké zářezy mezi RÚIAN parcelami). **Oponuji convex hullu** (uživatelovo „vnější
   body" by mohl znamenat hull) — ztratil by legitimní konkávní tvary velkých pozemků (zálivy) a mohl by plotem pohltit sousední ne-privátní
   oblast. RDP/closing drží tvar, jen hladí. Riziko (Sez. 98): vyšší práh komolí malé bloky → ladit s `FENCE_MIN_AREA_M2` na očích.
-- [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Balvany 204/210 + plot 516 na vodní hladině** (Nová Louka). Root
-  cause: `_generate_pseudo_boulders` nedostával vodní masku → pseudo balvany padaly na 301; plot se generuje PŘED
-  vodou (z-order pokryv vespod). Fix: `_rasterize_water_grid` (outer=voda, holes=ostrov→souš) odečte vodu ze seed
-  masky + per-tečka check 210; `_clip_fences_off_water` (post-water) vyřízne fence úseky nad hladinou z `.omap`
-  (rastr OK — voda kreslí nad). Verify měřením: balvany na vodě 0 px po erozi břehu 3 px (max shluk 16 px = okraj
-  symbolu na břehu); plot 0 bodů >3 px od břehu. Vizuál nádrž čistá.
-- [x] *(bug fix Sez. 113/114 — HOTOVO Sez. 114)* **Ořez `.omap` na výsek bez Livelox páru** (Novina „Nisa do Vesce",
-  ±20 km přesah). Implementována schválená DRY architektura v `generator/cut.py`: primitiva `cut_point`/`cut_line`/
-  `cut_area` (Sutherland-Hodgman) → orchestrátor `clip_omap` (přepis `<coords>`+flagy, scoped na `<objects>`) → wrappery
-  `cut_box` (papír, CLI `--location` real) + geometrický `clip_omap_to_quad`. Mini-verify 10/10 + 9/9. **Nález: reuse
-  `_split_by_zones_interp` pro `cut_line` nestačil** (ponechává konce linie → neumí in→out) → přímá konstrukce, reuse jen
-  `_interp_grid_at`. Verify: regen 5 DEV ořez 1,00× (uživatel OOM „perfektní"). Detail DONE Sez. 114.
-- [x] *(blokátor regenu se skalami, nález Sez. 114 — „zmizely kontury skal"; HOTOVO Sez. 115)* **`rock_relief` OOM + border noData.**
-  Plný regen DEV map SE SKALAMI spadl u 3/5. **Měření (`temp/probe_rock_oom`):** f64 pipeline @ 50 Mpx peak **3,3 GB**
-  (OOM @ 8,4 GB volných + běžící generátor); páka = **`del` mezivýsledků sklonu PŘED `_contour_rings`** (ne dtype — peak je
-  v `_rock_mask`/label int32, f64↔f32 stejně 1,9 GB) → zvolen **f64+del** (zachová přesnost prahu 46°, peak 3,3→1,9 GB).
-  **(a) OOM fix:** `del z,zs,gy,gx,slope_deg` + `_contour_rings` padded float32 (behavior-preserving, sdíleno se `separate.py`).
-  **(b) border fix:** `_fetch_assembled_grid` zachytí `RuntimeError` za hranicí ČR → **NaN dlaždice + hlasité warning**
-  (no silent fallback); `errstate` v sklonu → NaN propadne `slope>=46`→False (bez skal u hranice). **Verify:** golden Šulcák
-  **48/2,56 ha = match** (behavior-preserving); izolovaný HS 847 bloků/peak 2,6 GB + SV 130 bloků/2 dlaždice NaN; **plný regen
-  HS/SV/LS se skalami EXIT 0** (HS 847× 206 v .omap = skalní ukázka má zpět skály). Detail DONE Sez. 115.
-- [x] *(KPI regrese, nález Sez. 115 → VYŘEŠENO Sez. 116 density gate)* **Pseudo body 204/210 — rock v2 over-detection na ne-skalnatých mapách.**
-  Pokles 54,9→48,2 % izolován: ořez VYVRÁCEN (+0,9 pb), grivace VYVRÁCENA, **hlavní příčina pseudo body −3,25 pb** (210 Stony přestřel
-  962 vs 372 z falešné skalnatosti). **Měření Sez. 116 (`temp/probe_rock_overdetect`, cesta B = kořen):** rozdíl skutečná vs falešná
-  skála NENÍ práh sklonu (oba >46°), ale **regionální HUSTOTA**: skalnaté mapy ≥0,16 % px ≥46° (SV 0,158 / HS 2,22 / golden Šulcák 3,72 %),
-  ne-skalnaté jen ~0,04 % (Bedř 0,042 / Blatná 0,037 — mikroreliéf: zářezy cest, břehy). **Fix = `rock_relief.DENSITY_GATE_PCT=0,08`**
-  (volba uživatele): pod práh → 0 ploch 206 + hlasitý INFO log (no silent). Golden Šulcák ZACHOVÁN beze změny (48 polygonů), SV/HS zachovány,
-  Bedř/Blatná falešné → 0. **KPI 48,2 → 55,0 % (+6,8 pb, NAD baseline 54,9)**, bod sub 45,8→51,8. 204/210 pryč z žebříčku děr.
 - [ ] *(vizuál Soví vrch, nález uživatele Sez. 116)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové plochy podél komunikací** —
   symboly jsou pak často zakryté nebo částečně zakryté liniovým symbolem cesty/silnice. Souvisí s pseudo body maskou
   (`_generate_pseudo_boulders`) — analogie k vyloučení vody (`_clip_fences_off_water`/`_rasterize_water_grid`, Sez. 113):
@@ -269,10 +153,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   dnes per-vrstva: balvany `mask &= ~water_cell` (Sez. 113), plot `_clip_fences_off_water` (Sez. 113); přibývají 416 + **vrstevnice 101-104**
   (Sez. 118). Extrahovat jeden filtr beroucí `water_cell`, aplikovat na VŠECHNY terénní/predikční/pseudo geometrie (≥4 konzumenti = jasný důkaz
   pro „generalizuj s důkazem"). Výjimka jen prvky legitimně nad/přes vodou z tvrdých dat: břehová linie 301, most/lávka 512, hráz, tok 304/305.
-- [x] *(bug fix, test výstupů Sez. 113 — HOTOVO)* **Plot 516 „uvězňuje" budovu** (Lidové sady, panelák Hokejka).
-  Root cause: fence kolem RÚIAN parcel druhu {5 zahrada, **13 zastavěná plocha**}; panelák JE parcela druhu 13 →
-  plot obkresloval otisk budovy. Fix (volba uživatele): fence seed maska `olive_ruian_img` jen druh 5 (zahrada),
-  ne 13 (`str(druhpozemkukod)=="5"`); druh 13 zůstává v 520 olivové. LS regen 215 plotů (jen zahrady).
 - [~] Procedurální generátor OB map — **přestavba „znovu a lépe" (Sez. 11):** vrstvy stavíme po jedné s důrazem na vizuální věrnost. HOTOVO: vrstevnice (§4.5) + bodové symboly extrémů **109/110/111** (§4.10, ISOM 2017-2 Rev 6 — Sez. 13 oprava ze zastaralých 112/113/115) + **terénní cesty (§9, Dijkstra least-cost, ISOM 503/505, `mask_paths.png`)** + vektor 101/102 + **`.omap` template-based** (Sez. 14 — věrná geometrie bodů 110 elipsa / 111 oblouk + plná ISOM knihovna z `template_classic.omap`) + reálný terén `--terrain real` + **reálné cesty `--paths real`** (Sez. 16 — ZABAGED REST, ISOM 502-506) + **reálná voda `--water real`** (Sez. 17 — ZABAGED toky 304/305/306 + plochy 301 vč. `Pozemní_nádrž`/koupaliště Sez. 27, `mask_water.png`) + **reálné budovy `--buildings real`** (Sez. 18 — ZABAGED `Budova_..._plocha_` → ISOM 521, `mask_buildings.png`; **RAW půdorys od Sez. 27** — generalizace i displacement smazány, kresleno jako voda) + **el. vedení + lanovka/vlek `--powerlines real`** (Sez. 24 + 55, ISOM 510 „Power line, cableway or skilift") + **řopíky `--ropiky real`** (Sez. 27, asset, orientace k hranici) + **logging** (Sez. 27, INFO průběh+souhrn) + **železnice `--railways real`** (Sez. 28+31, `Železniční_trať`+`_vlečka`+`Tramvajová dráha` → ISOM 509, kombinovaný symbol; oprava float bugu v `_draw_dashed`; tramvaj doplněna Sez. 31 — Sez. 28 ji vynechala jako „urbánní", chyběla točna LS) + **kolejiště `--paved real`** (Sez. 28, `Kolejiště` → ISOM 501 Paved area, kombinovaný s obrysem) + **pomocné vrstevnice `--terrain real`** (Sez. 29, ISOM 103 form lines — heuristika z DMR: mírný svah AND zakřivený terén, sklon+Laplacián; min. délka 3 mm bez „fousků"; `mask_formlines.png`; NL 108) + **skály/balvany `--rocks real`** (Sez. 30, ZABAGED `Osamělý_balvan`→204 / `Skupina_balvanů__bod_`→207 / `Skalní_útvary`→206; KISS vrstva→jeden symbol, hybridní 202/206 podle plochy i Chaikin smoothing zavrženy „bez datového podkladu"; `mask_rocks.png` 3-class; Hrubá Skála 585). **Sez. 31 také:** rozšíření `DEV_LOCATIONS` na per-lokalita rozměr (5-tuple) → 5. lokalita NV `Novina` PORTRAIT 3×5 km (testuje různé formáty výseků); HS `Hrubá Skála` z landscape 6×4 na **SQUARE 5×5 km** centrovaný na midpoint Kacanovy↔Doubravice. **mosty/tunely/lávky `--bridges real` → 512/512.2** (Sez. 31-33; finální Sez. 33: most = 2 paralely 512 + buffer crop pod mostem, tunel = 512 otočené 90° na vjezdech + passage crop trati projekcí, lávka = 512.2; `mask_bridges.png`) + **`--location` → výstup do složky lokality** (Sez. 33, název = SSoT sdílený se `stats.py`) + **lesní průseky `--rides real`** (Sez. 36, `Lesní průsek` id 16 → ISOM 508 Narrow ride, černá čárkovaná dash 3,0/0,375 mm, KISS vždy 508, bez runnability pozadí = vegetace UC5; `mask_rides.png`; SV 46/NL 119/LS 20/HS 16/NV 44) + **plošný pokryv `--surfaces real`** (Sez. 41, open land louka/park/pole/sad → ISOM 401 žlutá KISS + hřbitov → 520 olivová; parkoviště → 501; z-order vespod; `mask_surfaces.png` multi-class; SV 269/NL 34/LS 1105/HS 365/NV 103) + **udržovaná zeleň → 402/402.1** (Sez. 53, štěpení `typ_pudy_k`: park/okrasná zahrada `PO` → 402 žlutá+bílé tečky, ostatní zeleň `UZ` → 402.1 žlutá+zelené tečky; `SURFACE_DOT` per-symbol rozestup; tříds 4/5; 402.1 = první scattered-bushes zeleň z dat, gate neporušuje) + **bodové vodní/terénní + mokřady `--landmarks`/`--marsh` (Sez. 44, dávka 4):** pramen→312 (modré „U" ústím nahoru), jeskyně/šachta→203.2 (černá „Λ" stříška hrot nahoru), nádrž→311 (modrý čtverec) do `--landmarks`; bažina+rašeliniště→308 Marsh (modrá vodorovná šrafa) jako nový `--marsh` (+ **310 Indistinct** pseudo split ~55 %, přerušovaná šrafa, Sez. 99). **+ AUDIT VĚRNOSTI RENDERU (Sez. 44):** opraveno 203.2 cave (Λ ne plný trojúhelník) + 312 spring (∪ ústí nahoru) + 104 sráz (hnědá ne černá); root cause = špatná konvence omap osy y (+y=DOLŮ, NEflipovat) → paměť `omap-symbol-y-axis-down`; 111/207 byly správně (falešný poplach stažen). **+ komín → 524 High tower** (Sez. 52, `--landmarks`, mirror věží) **+ zábrana → 519 Crossing point** (Sez. 52, nový `--barriers`: bod na zdi 513 → branka, orientace = tangenta zdi, zeď se pod brankou přeruší; jen 2/66 na LS = řídká vrstva, závory na cestách zahozeny). ZAHOZENO: vegetace/paseky/bažiny/balvany (uměle); **L1 generalizace + L2 displacement budov (Sez. 27 — komolily tvar/polohu)**.
 - [ ] *(nález Sez. 26)* **Q duplicita budovy** — uživatel označil markerem 704 místo s podezřením na dvojitou budovu; můj paper→S-JTSK přepočet polohy markeru byl nepřesný (ZABAGED dotaz mířil vedle) → nedořešeno, NEhádáno. Dořešit s přesným přepočtem. (Pozn.: počet budov 1078 REST + 70 řopíků sedí → generátor neduplikuje. Od Sez. 27 budovy RAW = věrný footprint, žádné umělé obdélníky.)
 - [ ] *(odloženo Sez. 23)* NoData masking u hranic: DMR vrací 0 m mimo území ČR → artefaktová změť vrstevnic (Soví vrch 5×4 km zasáhl hranici). Nekreslit vrstevnice tam, kde elev = NoData → robustní výseky u hranic. Dnes obejito posunem středu (0,44 km).
@@ -288,29 +168,12 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   skupinách (per-vrstva masky gen + rasterizace real `.omap`) — rozbít „black" na cesty/stavby/skály, „shoda symbolu" ne
   jen barvy; (d) STAT 2 je barevná, tol 4 m = placement, ne přesná poloha.
   **(Stale DROP Sez. 69** — viselo 9× jako vedlejší carry; zůstává jako nález, přestane se navrhovat v Příště.)
-- [x] *(feature, nápad uživatele Sez. 37 — METADATA CESTA HOTOVA Sez. 112)* **Grivace v generátoru.** Tři vrstvy:
-  (A) `--grivation <deg>` ruční → `.omap` georef `declination=grivation` (Local, izomorf skenu) + meta `north=magnetic`;
-  (B) `_gen_sep` čte grivaci ZE SKENU (`_scan_grivation`) → resources gen.omap lícuje s bg_scan; (C) konektor
-  `connectors/magnetic.py` (pygeomag WMM offline + pyproj konvergence; znaménko `decl−pyproj_conv` ověřeno proti skenům)
-  + CLI `--grivation-auto`/`--grivation-date`. Geometrie i rastr zůstávají v gridu (volba: jen georef metadata). Detail
-  DONE Sez. 112. **ZBÝVÁ (curtains, odloženo):** **rotace rastru `rgb.png` o grivaci** — až rastrový konzument
-  (reconstructor) potřebuje magnetic-north sken; patří na úroveň augmentace/dlaždice (transformuje X i Y zároveň), ne
-  do `generate_map` (Sez. 112 Příště).
-- [x] *(UC5 korpus — HOTOVO Sez. 70-71, detail v DONE)* **Livelox korpus 268 reálných OB map** (`livelox.py`
-  `search_events`/`download_corpus`, `allEvents`→`SearchEvents` reverz, WGS84 fallback, backoff) **+ kurace
-  → 216 keep classic** (`curate.py` taxonomie discipline+tagy, `_curation.json`) + olivová 520 → label 0 (čistota GT).
-  Tréninkové jádro = 216 foot-O map. Legalizace (ČSOS) až pokud model funguje — do té doby privátní repo + TDM výjimka.
 - [~] *(Sez. 110 stahování + Sez. 111 GT HOTOVO, kurace/split carry)* **Korpus + GT na ntbhej.** `livelox batch` stáhl
   **57 → 264 map**, GT **264/264** (Sez. 111 chunked classify odblokoval 6 obřích). **ZBÝVÁ:** (a) **kurace + split
   rozhodnout** — `_curation.json`/`_split.json` na ntbhej NEJSOU (gitignored, ruční vizuální tagy Sez. 71 žijí na HAL3000)
   → buď **zkopírovat z HAL3000** (zachová tréninkový split, doporučeno), nebo auto-`curate`+`split` tady (rozejde se
   s HAL3000). Pozn.: `build_pair`/trénink je stejně CUDA-vázané (HAL3000) — ntbhej korpus slouží měření / `build_pair`
   E2E ověření / rozšíření tréninkového setu po přenosu na HAL3000.
-- [x] *(HOTOVO Sez. 111 — chunked classify, NE downscale)* **`map_gt.segment_gt` zvládne obří mapy.** Měřením doloženo,
-  že RAM blowup je JEN v `_classify` (`(N,13,3) int32` ~5,5 GiB @ 35 Mpx) → přepsán na **chunked** řez po pixelovém
-  rozpočtu (`_CLASSIFY_CHUNK_PX=4 Mpx`), **byte-identický** (per-pixel argmin nezávislý). Zvolen místo downscalu výstupu,
-  protože ten by rozbil invariant `gt.shape==map.shape` (`livelox.py` guard + affine). 6 obřích map (35–97 Mpx) → GT;
-  korpus na ntbhej **264/264**. Detail DONE Sez. 111.
 - [ ] *(ověření, Sez. 109; ořez povýšen Sez. 114)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `cut.clip_omap_to_quad`
   přidán do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
   plný běh na ntbhej blokován syrovým korpusem (0 gt). Ověřit na HAL3000: že páry mají ořezané .omap+render (bez
@@ -350,16 +213,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     (`separate.TARGET_MPP` + `separate_areas(src_mpp)` + `pairs` předá `effectiveMppX`; polygony ×f zpět na grid,
     behavior-preserving, ověřeno Soví vrch 16,5×), **(B) `max_km` strop** hotovo Sez. 84, **(C) finální nářez =
     reuse `model/tile.py`** (existuje @1,33/512/stride256). **Degradér fáze II HOTOVO Sez. 86** — `build_pair`
-    teď s `degrade=True` produkuje i `scan.png` (= X páru, sken). **Branžež verify + noční batch HOTOVO Sez. 90:**
+    dnes produkuje čistý `rgb.png`; degradace je on-the-fly v loaderu. **Branžež verify + noční batch HOTOVO Sez. 90:**
     `build_pair(1005002)` worst-case 93 Mpx **357 s** (downscale drží), `_map_affine` na rotovaném quadu lícuje
     (vizuál); sanity `batch 10` 9/9 OK **~51 s/mapa** → noční `build_pairs batch` 207 ČR **SPUŠTĚN** (resume). Vedlejší:
     `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpus malý → neakutní).
   - [x] **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
     bbox prefilter behavior-preserving, regrese 0).
-- [x] *(enabler fáze II — HOTOVO Sez. 86)* **omap2png = de-facto hotové** — `generate_map` produkuje `rgb.png`
-  vedle `.omap` (verify `pairs.py:7`, Sez. 82 volba C „náš rastr"). C++ headless OOM až měřený doménový gap
-  dokáže potřebu (reconstructor selže na reálných OOM/tištěných mapách). „omap2png" v doslovném smyslu (parsovat
-  libovolnou `.omap`) jen pro OOM věrnost = cesta A, neakutní.
 - [~] **Fáze II/III degradér `generator/degrade.py` — MVP HOTOVO Sez. 86, PŘESUNUT do augmentace Sez. 103.**
   `degrade(rgb, seed)` 4 fotometrické sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG),
   čistě fotometrické (Y se nemění). **Sez. 103: odstraněn z `build_pair` (zapékal `scan.png` do páru = chyba,
@@ -373,7 +232,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`; dekompozice podle typu geometrie ISOM = tři CV
   úlohy, GT zdarma z `.omap`). Pořadí (foundations): Area → Point → Line. Detail IDEAS „Tři fáze I/II/III".
   - [x] **`Png2Area` HOTOVO Sez. 87-91 — PRVNÍ funkční reconstructor** (plný detail DONE Sez. 87/88/90/91):
-    Y-pipeline `omap_raster.py` (**16 area kódů + pozadí**, statický z-order, díry per-objekt) → loader/tile/train
+    Y-pipeline `omap_raster.py` (**17 ISOM kódů + pozadí = `N_AREA 18`**, statický z-order, díry per-objekt) → loader/tile/train
     `model/png2area/{tile,dataset,train}.py` (512/stride256 BEZ rejection, U-Net bez ignore_index, median-freq váhy)
     → overfit gate (nález **tvar > velikost**: tenké třídy se downsamplingem rozpustí) → **plný trénink test mIoU
     0,621→0,640, val 0,654** (cap vah @10 v train.py + cosine LR, loss-spiky zmizely); budovy 521 zachráněny
@@ -426,28 +285,6 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   ostrými hranami písma vs plošný organický porost; (b) kurace — vyřadit/cropnout mapy s titulkem v poli (titulek bývá dole/v rohu →
   cílený crop spodního pruhu? riziko ořezu mapy); (c) měřit ROZSAH (kolik z 205 párů nese text-v-poli). Souvisí s follow-up detektor
   control-description mřížky (níže, Sez. 73 known limitation). **Pozn.: nezdržuje dnešní voda re-trénink** (946084 je test split; patří do zrání korpusu, směr PO re-tréninku).
-- [x] *(GT kvalita / ořez — HOTOVO Sez. 122)* **Crop gen na bbox REÁLNÉHO mapového obsahu, ne na celý Livelox quad.**
-  `resources/livelox/856040/gen` {A}: reálná mapa „Mezi silnicemi" je NEPRAVIDELNÝ tvar s velkým bílým okolím; Livelox quad (obdélník)
-  je VĚTŠÍ → generátor generuje i tam, kde `map.png` nemá obsah → mimo reálnou mapu separace nemá co separovat → kreslí jen syrová
-  ZABAGED (bílý les, žádné zelené areas). Vizuál gen render POTVRZEN: věrohodná vegetace jen ve středu (kde byla předloha), zbytek quadu
-  = syrová žlutá ZABAGED. **Řešení (volba uživatele): crop na OBDÉLNÍK s podkladem `map.png`** — detekovat bbox ne-bílé/mapové oblasti
-  (**reuse `_detect_map_area` Sez. 73**, už barevně detekuje mapové pole) → crop extent místo Livelox quadu (mechanika `cut.cut_box` existuje,
-  jen jiný extent; volá se v `pairs.build_pair` před rasterizací Y). **Bonus:** odřízne i layout MIMO pole (titulek/legenda MH-SK) → částečně
-  řeší layout nález výše (SAXBO text UVNITŘ pole ale zůstává na strukturní detektor). Nuance: bbox obdélník nechá rohy s bílou/ZABAGED (mapa
-  nepravidelná) — pro úplnou čistotu crop na MASKU tvaru (nad KISS, až kdyby vadily rohy). **Implementace Sez. 122:**
-  `pairs._content_quad_sjtsk` vezme bbox `gt_labels != IGNORE`, transformuje jej přes `_map_affine` do S-JTSK
-  a použije pro extent i finální `clip_omap_to_quad` před rasterizací Y.
-- [x] *(úklid, conceptual integrity — HOTOVO Sez. 93)* **Legacy „forest_age" názvosloví v predict cestě
-  přejmenováno na neutrální `veg_area`** — sdílené nosiče predict separace i archiv věku (proměnné
-  `veg_area_*` / soubor `mask_veg_area.png` / meta klíč `real_sections["veg_area"]` / `omap_export`
-  kwarg+counter) napříč generator/omap_export/separate/stats. Zůstaly legit `FOREST_AGE_*` konstanty
-  (archiv-zeleň), `--forest-age` flag, `forest.py` konektor. Behavior-preserving (noise proc 63=63). Detail DONE.
-- [x] **Kroky 0-4 HOTOVO (Sez. 74-78, detail v DONE) — celá datová+model pipeline.** Krok 0 smoke test
-  (`torch cu128` na Blackwell) · krok 1 GATE 1 zarovnané páry `build_georef_pair` + georef QC (medián 1,33 m,
-  prošel) · krok 2 ČR/DE filtr (207 ČR/9 cizí) + class distribution + median-freq váhy · krok 3 geosplit
-  `split.py` (145/31/31, bez leaku) + 207 párů · krok 4 baseline `model/dataset.py`+`train.py` (U-Net/ResNet34,
-  BF16): **val mIoU 0,259 / test 0,223**, křivka = **generalizační strop** (RGB-only málo, runnability = podrost
-  shora nevidět). Trénink jen `mrkla` (RTX 5070).
 - [×ARCHIV] **Krok 5 (zlepšení baseline) → ARCHIVOVÁNO Sez. 79.** Směr `ortofoto→runnability` je doložená slepá
   ulička (reframe výše) → nahrazeno `generator()` predict částí. Původní nápady (diagnostika / ablace bohatšího
   vstupu DMR-sklon/forest-age / recency korpus) zůstávají jako možný *budoucí* vstup, kdyby se k ortofoto vstupu
@@ -459,10 +296,6 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [ ] *(kurace follow-up Sez. 71, před tréninkem)* **recency osa** — `meta.json` neukládá datum eventu → časový
   nesoulad vstup(ortofoto recent)×GT(starý) NELZE měřit. Uložit datum eventu do `meta.json` při `download_map`
   (z `event["timeInterval"]["start"]`) + volitelně doplnit re-dotazem na existující 268. Pak řez „posledních N let".
-- [x] *(GT kvalita, strukturální — HOTOVO Sez. 72-73, detail v DONE)* **přetisk + layout crop → label 255 ignore.**
-  Část A: fialový přetisk tratě → ignore (`map_gt.py`, 2 purpurové odstíny + dilatace, 31 % keep map; OOB šrafa
-  709 taky). Část B: layout mimo mapu → ignore přes **barevný** detektor `_detect_map_area` (mapa = sytá ISOM
-  paleta, okraj = černobílé/papír; konzervativní, bez false-cropu terénu). Known limitation → follow-up níže.
 - [ ] *(GT kvalita follow-up, known limitation Sez. 73)* **detektor mřížky control-description tabulek** —
   layout-ignore Sez. 73 (barevnost) tabulku s barevnými ISOM symboly blízko mapy nezachytí. Cílený detektor na
   PRAVIDELNOU MŘÍŽKU černých čar (projekční profil / periodicita černých pixelů v pravoúhlém bloku) by ji vyřízl

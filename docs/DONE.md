@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 127 (2026-06-15) — cleanup + bezpečné checkpointy + uzavření auditních dluhů
+Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-127--cleanup--bezpečné-checkpointy--uzavření-auditních-dluhů-hal3000).
+- [x] **%CALIBRATE + %AUDIT:DOCS + TODO/IDEAS pruning.** Opraveno směrování maker na
+  `~/AGENTS.md` + `~/.claude/PROMPTS.md`, lokální Claude allowlist zkrácen na 11
+  pravidel, README status nahrazen aktuálním snapshotem, DIARY rozdělen na posledních
+  10 sezení + archiv, doplněna chybějící coverage DONE a sjednocen kontrakt Png2Area
+  (17 ISOM kódů + pozadí = `N_AREA=18`, X=`rgb.png`, degradace on-the-fly).
+- [x] **(CODE-C2) Bezpečné checkpointy obou živých reconstructorů.** Nový
+  `model/checkpoints.py` ukládá každý běh do `runs/<run_id>/` s manifestem,
+  historií, křivkou, seed/EMA konfigurací, selection/test metrikou a fingerprintem
+  dat. `unet_best.pt` mění jen explicitní `--promote`; checkpoint i promote jsou
+  atomické. Overfit a rozpracovaný běh nelze povýšit.
+- [x] **(CODE-D3) `cut.py` už nemá silent fallback na poškozeném `.omap`.**
+  Chybějící `<objects>`, párový objekt bez `<coords>`, prázdné nebo nečíselné
+  souřadnice vyhazují `OmapFormatError` s cestou a identitou objektu. Verify:
+  35 904 objektů v šesti referenčních `.omap` prošlo přísným parserem.
+- [x] **(CODE-K1) Fialová trať skutečně generuje 5–12 kontrol.** Původní
+  `n_ctrl + 1` bodů znamenalo start + jen 4–11 kontrol + cíl; nový helper vytváří
+  `n_controls + 2` bodů. Regresní test ověřuje oba krajní počty.
+- [x] **Ověření:** 8 unit testů, `compileall connectors generator model tests`,
+  72 Markdown souborů bez rozbitých odkazů a `git diff --check`.
+
 ## Sezení 126 (2026-06-14) — MPP fix (audit C1/K1): kanonické měřítko dlaždice 1,33 → Png2Area test mIoU 0,537 → 0,683
 Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-126--mpp-fix-audit-c1k1-kanonické-měřítko-dlaždice--png2area-test-miou-0537--0683-hal3000).
 - [x] **(DOCS-K1 = CODE-C1, KRITICKÉ) Nesoulad fyzického rozlišení vyřešen var. a1.** Kořen: dlaždice 2,18 m/px,
@@ -43,6 +65,12 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
   proti zdroji: nesoulad rozlišení 2,18 vs 1,33 m/px (symboly 1,64× velké) → `[!]` TODO (designové rozhodnutí).
   Opraveno: `eval_real._OUT.mkdir` (D2), hardcoded „0,897" v eval_real (D1), `cut.py` docstring (K2), GLOSSARY
   soft mIoU↔pixel-acc (DOCS-C1). Zbytek → TODO audit blok + %END/ntbhej.
+
+## Sezení 124 (2026-06-13) — A2a Png2Area: purpurová augmentace snížila dopad tratě
+Detail: [diary/2026-06-13.md](diary/2026-06-13.md#sezení-124--a2a-re-trénink-png2area-s-purpura-augmentací-dopad-fialové-49--12-pb-hal3000).
+- [x] Png2Area přetrénován s fialovým course-overprintem pouze ve vstupu X. Na témže modelu
+  klesl dopad vložené tratě z −4,9 na −1,2 pb (clean mIoU 0,566 → purple 0,554);
+  nejvíc se zacelily třídy 501.1 a 301. Produkční kód se v tomto sezení neměnil.
 
 ## Sezení 123 (2026-06-13) — A2a fialový přetisk tratě do augmentace obou reconstructorů
 - [x] **A2a (Fable5 audit) — purpurový course overprint do `_augment` obou modelů.** Nový sdílený
@@ -146,6 +174,12 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
   doplněny, B2 [x]; AUDIT status sekce (PŘIJATO/VYŘEŠENO/ČÁSTEČNĚ). A1 reálný benchmark = next.
 - [x] **Rozhodnutí:** KPI<0,95 jako gate na páry vyvrácen (Png2Area konzumuje jen plochy, voda byl BUG); dohoda
   STOP na modelech → zpět ke zrání generátoru.
+
+## Sezení 118 (2026-06-12) — Png2Area voda 301 + auditní reakce a nálezy generátoru
+Detail: [diary/2026-06-12.md](diary/2026-06-12.md#sezení-118--png2area-re-trénink-voda-301-fix-mf1--miou--6-testovacích-nálezů--reakce-na-fable5-audit-hal3000).
+- [x] Po opravě stale kódu `301.1`→`301` prošel celý řetězec regen 205 párů, re-tile a
+  trénink: test mIoU 0,537, voda 301 IoU 0,65. Doplněna no-draw zásada vody,
+  `docs/kb/isom-colour-order.md` a šest konkrétních nálezů generátoru do TODO.
 
 ## Sezení 117 (2026-06-12) — Meta-audit Fable 5: prompt + audit + úkoly + %BEGIN zapojení (HAL3000, docs-only)
 - [x] **`docs/AUDIT_FABLE5_PROMPT.md`** — opakovatelné zadání meta-auditu (role/postup/struktura/omezení;
@@ -1651,6 +1685,11 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
 
 - [x] **Sezení 48 — přesun pracovních dokumentů root → `docs/`** — `git mv` 6 souborů (TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY) do `docs/` (zachována historie); v rootu zůstaly jen `README.md` + `CLAUDE.md` (GitHub/harness konvence). Odkazy opraveny v živých dokumentech (README layout + Docs sekce, PROMPTS %BEGIN kontext); diáře needitovány (historie). *(Kultura pole 412 / sad 413 — kód hotov, ale plný render-verify nedokončen → zůstává `[~]` v TODO, dotáhnout Sez. 49.)*
 
+## Sezení 48 (2026-05-30) — kultura 412/413 a přesun pracovních dokumentů do `docs/`
+Detail: [diary/2026-05-30.md](diary/2026-05-30.md#sezení-48--druhá-vlna-land-cover-pole-412--sad-413-kód-hotov-verify-nedokončen--přesun-docs).
+- [x] Přidána druhá vlna land-cover (pole 412, tehdy sad 413; význam sadu byl opraven
+  v Sez. 49) a šest pracovních dokumentů bylo přesunuto z kořene do `docs/`.
+
 ## Sezení 46 (2026-05-30) — %AUDIT:DOCS (zralý audit dokumentace)
 - [x] **%AUDIT:DOCS** (+11 sez od Sez. 34, práh 10). Přečteno 27 `.md` (fan-out 3 paralelní Explore agenti
       po oblastech, nálezy kriticky profiltrovány — část byla šum/halucinace). **0 kritických nálezů** —
@@ -1907,6 +1946,11 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
 - [x] **Verify:** syntax OK ×5, proc baseline 65 drží, most vizuálně OK (Novina výřez), všech 5 lokalit
       přegenerováno + STATISTICS (jen 306 název + časy, počty drží). A1 monolit (2623 ř.) = úvaha, neřešeno.
 
+## Sezení 34 (2026-05-28) — `%AUDIT:DOCS` + pruning + `%CALIBRATE`
+Detail: [diary/2026-05-28.md](diary/2026-05-28.md#sezení-34--tři-audity-najednou-auditdocs--ideastodo-pruning--calibrate).
+- [x] Opraven WFS→REST drift a chybějící propagace vrstev, prořezány dozrálé IDEAS a
+  `%END` dostal propagační checklist napříč vrstvami dokumentace a call-sites.
+
 ## Sezení 33 (2026-05-28) — Mosty/tunely DOKONČENY (OOM verify na NTBHEJ21) + out_dir do adresářů
 - [x] **Nožičky 512 mostu — orientace ven** (Sez. 32 7. iter byla obráceně, neověřená). Diagnóza měřením
       `Most.omap` dema (ne hádáním): demo má levá strana osy reversed / pravá forward, kód zrcadlově →
@@ -1928,6 +1972,11 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
 - [x] **Úklid + DRY.** Smazány dead `_segment_intersection_pt`, `_crop_line_at_cutters`, `_apply_cut_zones`;
       vytaženy `_split_by_zones_interp`/`_emit_512_line`/`_point_on_line_px`/`_interp_grid_at`/`_project_to_line`.
       proc 65 drží; všech 5 lokalit přegenerováno do adresářů + STATISTICS 24/24.
+
+## Sezení 32 (2026-05-28) — iterace mostů, tunelů a lávek
+Detail: [diary/2026-05-28.md](diary/2026-05-28.md#souhrn-sez-32--kompletní-průběh-přesun-mrkla--ntbhej21).
+- [x] Po rollbacku proběhlo sedm iterací geometrie mostů/tunelů/lávek podle uživatelského
+  dema, fotografie a OOM šablony; finální OOM verify následoval v Sez. 33.
 
 ## Sezení 31 (2026-05-28) — Mosty 512 + Lávky 512.2 + oprava tramvaje 509 + DEV_LOCATIONS refaktor
 - [x] **Mosty `--bridges real`** (`Most` id=73 → ISOM 512, linie+V-křídla; render = středová linie 0,18 mm
@@ -2167,6 +2216,11 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
 - [x] **Nález → příští fokus (uživatel): pravoúhlost budov** (L1 tvar) — lidská obydlí ≈ 99 % obdélníky,
       na mapě splňuje sotva polovina. Orthogonalizace footprintu, nezávislé na L2. → TODO `[!]`.
 
+## Sezení 21 (2026-05-26) — `%THINK` displacementu budov + měření kolizí
+Detail: [diary/2026-05-26.md](diary/2026-05-26.md#sezení-21--think-displacement-l2-generalizace--krok-0-změřit-rozsah-kolizí).
+- [x] Měření ukázalo, že dominují kolize budova↔cesta, nikoli shluky budov. Návrh byl
+  proto zúžen na jednoduché kolmé odsazení od pevné sítě; později byl celý směr zavržen.
+
 ## Sezení 20 (2026-05-26) — batch.py → reálné vrstvy (P1) + zrušení dělení resources
 - [x] **`batch.py` → plná realita** (P1 nález %AUDIT:CODE Sez. 19): reálná sada (`--terrain real`) teď
       kreslí reálné cesty/vodu/budovy ze ZABAGED (Sez. 16-18), ne jen terén + **procedurální** cesty.
@@ -2184,6 +2238,11 @@ Detail: [diary/2026-06-14.md](diary/2026-06-14.md#sezení-125--a2a-png2point-re-
       Smazán **duplikát** `resources/template_classic.omap` (bit-identický; kanonická tracked kopie zůstává
       v `sandbox/generator-poc/`, kde ji čte `omap_export.py` — `resources/` je gitignored). `data-sources.md`
       conceptual-integrity oprava (trénink = syntetika, reálné mapy = verify; dělení zrušeno).
+
+## Sezení 19 (2026-05-26) — `%AUDIT:CODE` + `%AUDIT:DOCS`
+Detail: [diary/2026-05-26.md](diary/2026-05-26.md#sezení-19--auditcode--auditdocs-foundations-úklid-oba-audity-najednou).
+- [x] Opraven drift z-order komentářů a ISOM 505, extrahovány souřadnicové helpery,
+  doplněny budovy do živých docs a sjednocena migrace na ArcGIS REST.
 
 ## Sezení 18 (2026-05-26) — Reálné budovy (ZABAGED→521) + kartografická generalizace L1 + OOM draw order
 - [x] **`connectors/zabaged.py` +budovy** (real-půlka, izomorfní s vodní plochou): `BUILDING_AREA_LAYERS`,

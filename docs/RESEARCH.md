@@ -86,7 +86,7 @@ vektorizací rastru.
 - Segmentace ploch (U-Net) — viz Pic2Omap ML pilot (mean IoU 0.666 within-domain).
 - Color separation (palette-based, LAB nearest) — Pic2Omap `color_separator.py`.
 - Generování map (UC4-I) — **PoC hotov** (procedurální, viz „Datové cesty" výše).
-  Restaurace/inpainting (UC3) — TBD.
+  Restaurování map / inpainting (UC3) — TBD.
 
 ## Otevřené otázky průzkumu
 

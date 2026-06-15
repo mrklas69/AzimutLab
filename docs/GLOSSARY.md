@@ -303,7 +303,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak). **Dva
   konzumenti (Sez. 88):** (a) archiv `model/runnability/tile.py` (Sez. 77, ortofoto→runnability) — Y=runnability,
   dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu/layout) → `resources/tiles/`; (b) Png2Area
-  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png` 16 area kódů + pozadí, **BEZ rejection** (scan.png je plný render,
+  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png`, 17 ISOM kódů +
+  pozadí (`N_AREA=18`), **BEZ rejection** (`rgb.png` je plný render,
   pozadí 0 = legitimní třída, ne IGNORE) → `resources/area_tiles/`. Oba gitignored + `_tiles.json` (počty/class%/váhy).
   ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
 
@@ -312,8 +313,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   jejich průměr. UC5 měří per-class (průměr by maskoval, že vzácná 410 fight je ignorována). Počítá se
   z confusion matice, [[IGNORE]] (255) px se vynechá. `model/{runnability,png2area,png2point}/train.py`. Archiv
   runnability baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90,
-  první funkční model) → stabilizace Sez. 91 test 0,640 → **přetrénován N_AREA 18 (Sez. 103): test mIoU 0,568 ≈
-  val 0,571** (pokles = víc vzácných tříd + degradace-augmentace; vizuál predikce≈GT). Png2Point měří **mF1**
+  první funkční model) → stabilizace Sez. 91 test 0,640 → N_AREA 18 Sez. 103
+  test 0,568 → **MPP fix Sez. 126 test mIoU 0,683**. Png2Point měří **mF1**
   (detekce bodů, ne IoU): test mF1 **0,888** (medián 3 seedů, stabilní po focal bias initu Sez. 125; 0,897
   Sez. 106 byl nereprodukovatelný single-run).
 
@@ -395,9 +396,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   headless OOM až s důkazem gapu.
 - **`omap_raster` / `area_labels.png`** (Sez. 87, `generator/omap_raster.py`) — Y-pipeline páru: rasterizace
   plošných (Area) ISOM symbolů z `.omap` → **label rastr** (`area_labels.png` = **Y** pro [[reconstructor|`Png2Area`]]).
-  **Y odvozeno z `.omap`, NE z render masek `mask_*.png`** — reconstructor se učí na páru [scan, `.omap`], Y z téže
+  **Y odvozeno z `.omap`, NE z render masek `mask_*.png`** — reconstructor se
+  učí na páru [`rgb.png`, `.omap`], Y z téže
   `.omap` → pár **self-konzistentní** (nezávisí na render artefaktech). **Per-ISOM-kód** (volba Sez. 87): `CODE_TO_LABEL`
-  16 area kódů → label 0..16 (0=pozadí; +403 Sez. 92); **statický** (konzistence napříč korpusem), seskupení tříd = modelové
+  **17 ISOM kódů + pozadí = `N_AREA 18`, labely 0..17**; **statický**
+  (konzistence napříč korpusem), seskupení tříd = modelové
   rozhodnutí NAD rasterizací (DRY, izomorf s [[degradér|`tile.py`]] labely). **Z-order statický ISOM** zdola nahoru
   (501.1/520 base … 521 budovy), **díry per-objekt** (vyříznuté jen v rámci objektu → odhalí nižší vrstvu).
   Transformace paper µm→px triviální z `meta.json`: `px=(paper/pw+0.5)·W`, `pw=world_m·1e6/scale` (měřeno Sez. 87,
@@ -412,8 +415,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   ortofoto → vysoký strop), **Point** druhý (generátor má přesné polohy bodů → GT + libovolně instancí; „bodová
   větev" posed/pramen/vývrat), **Line** poslední (nejtěžší — vektorizace linií, segmentace+skeletonizace).
   **`Png2Area` model HOTOVO Sez. 88** (`model/png2area/{tile,dataset,train}.py`, izomorf s archivem
-  `model/runnability/`): dlaždice [scan.png, area_labels.png] → `AreaTileDataset` (D4+ImageNet) → U-Net/ResNet34
-  **18 ISOM area kódů + pozadí** (label 0..18 ze [[omap_raster]], bez ignore_index — Y je celé validní). **Plný trénink
+  `model/runnability/`): dlaždice [`rgb.png`, `area_labels.png`] →
+  `AreaTileDataset` (D4 + on-the-fly degradace + ImageNet) → U-Net/ResNet34,
+  **17 ISOM kódů + pozadí = 18 výstupních labelů 0..17** ze
+  [[omap_raster]], bez ignore_index. **Plný trénink
   Sez. 90-91:** test mIoU 0,621→0,640 (cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
   208/501/301.1 = datový strop → class-balanced expansion. **Přetrénován N_AREA 18 (Sez. 103, +310): test mIoU
   0,568 ≈ val 0,571.** Trénink = mrkla.
@@ -428,6 +433,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   kanonickém měřítku 1,33; 0,888 bylo na starém měřítku se symboly 1,64× velkými; 204 ~0,92 / 210 ~0,86): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
+- **Checkpoint run / promote** (CODE-C2, Sez. 127) — plný trénink živého
+  reconstructoru nikdy nezapisuje přímo do kanonického `unet_best.pt`. Sdílený
+  `model/checkpoints.py` založí `resources/{area,point}_model/runs/<run_id>/`
+  s `best.pt`, `manifest.json`, `history.csv` a `curve.png`; metadata drží seed,
+  konfiguraci, epochu, selection/test metriku a fingerprint dat. Teprve
+  `model/png2{area,point}/train.py --promote <run_id>` atomicky nahradí
+  kanonický checkpoint a zapíše `promoted.json`. Rozpracovaný či overfit běh
+  nelze povýšit.
 - **`point_base`** (Sez. 106) — render lokality BEZ jediného bodového symbolu (`generate_map(point_base=True)`:
   master flag vynutí `rocks/landmarks/barriers="off"` + vynechá terénní extrémy 109/110/111). Podklad pro
   [[reconstructor|`Png2Point`]] trénink: model detekuje INJEKTOVANÉ ikonky, takže podklad nesmí mít vlastní body
