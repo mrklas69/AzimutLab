@@ -75,6 +75,10 @@ class PointClass:
     color     — barva kresby (204/210 černá, 417/419 zelená).
     n_range   — (min,max) počtu instancí na dlaždici (single), resp. počtu POLÍ (field). Náhoda v rozsahu;
                 u řídkých tříd ZÁMĚRNĚ vysoké kvůli focal balancu (nález Sez. 106, viz inject_tile docstring).
+    peak_thr  — práh detekce peaku v predikované heatmapě PER TŘÍDA (sweep Sez. 129). Globální 0,30 byl vždy
+                kompromis: zelené 417/419 soupeří s porostem o FP → chtějí VYŠŠÍ práh (417 přestřeloval P 0,38),
+                černé 204/210 NIŽŠÍ. Jeden práh nešel sladit (posun pomohl jedněm, uškodil druhým) → per-class.
+                Hodnoty z robustní (ploché) části F1 křivky, ne ostré in-sample optimum (3 skeny = malý vzorek).
     """
     code: str
     name: str
@@ -84,6 +88,7 @@ class PointClass:
     kind: str = "dot"
     color: tuple = _BLACK
     n_range: tuple = (40, 120)
+    peak_thr: float = 0.30
 
 
 # Pořadí = index kanálu heatmapy (0..N_POINT-1). Start 204+210 (největší díry kompasu Sez. 104:
@@ -94,11 +99,13 @@ class PointClass:
 # (rozestup ~9 px) → 2,0: dost velký na naučení, dost malý ať se sousední peaky nesplynou (< rozestup/2).
 # 417/419 jsou VÝRAZNÉ zelené symboly (footprint 13,5 m) → širší peak (3,5 / 4,0; X 419 je rozměrnější).
 # n_range u 417/419 nižší než 204 (reálně řidší), ale dost vysoké, ať je focal nezdusí vedle hustého 210.
+# peak_thr (sweep Sez. 129, agreg. 3 reálné skeny): 204→0,30 (= optimum), 210→0,20 (kolabuje, nižší práh
+# vrátí pár teček), 417→0,45 (přestřel: 0,30 F1 0,46 → 0,45 F1 0,54, P 0,38→0,57), 419→0,40 (0,74→0,76).
 POINT_CLASSES: list[PointClass] = [
-    PointClass(code="204", name="Boulder",                  radius_mm=0.40, sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120)),
-    PointClass(code="210", name="Stony ground",             radius_mm=0.15, sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2)),
-    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(20, 60)),
-    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60, sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45)),
+    PointClass(code="204", name="Boulder",                  radius_mm=0.40, sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120), peak_thr=0.30),
+    PointClass(code="210", name="Stony ground",             radius_mm=0.15, sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
+    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(20, 60),  peak_thr=0.45),
+    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60, sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}

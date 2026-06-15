@@ -57,7 +57,7 @@ from checkpoints import (   # noqa: E402
 _CKPT_DIR = _REPO_ROOT / "resources" / "point_model"
 ENCODER = "resnet34"
 TOL_PX = 3           # tolerance matchingu peak↔GT (px) — 204 r≈3, stony rozestup ≈9 → 3 nehrne sousedy
-PEAK_THR = 0.3       # práh detekce peaku v predikované heatmapě (laditelný, --peak-thr)
+# Práh detekce peaku je PER TŘÍDA v registru (POINT_CLASSES[c].peak_thr, Sez. 129); --peak-thr = globální override.
 _CODES = [pc.code for pc in POINT_CLASSES]
 
 
@@ -139,11 +139,14 @@ def _match_counts(pred_xy: np.ndarray, gt_xy: np.ndarray, tol: float) -> tuple[i
 
 # ------------------------------------------------------------------------- metriky
 @torch.no_grad()
-def evaluate(model, loader, device, thr: float = PEAK_THR) -> tuple[list[dict], float]:
+def evaluate(model, loader, device, thr: float | None = None) -> tuple[list[dict], float]:
     """Projde loader, vrátí (per-class {tp,fp,fn,precision,recall,f1}, mean F1). BF16 autocast.
 
-    GT centra = NMS peaky GT heatmapy (gt==1). Pred peaky = NMS sigmoid(logits) > thr."""
+    GT centra = NMS peaky GT heatmapy (gt==1). Pred peaky = NMS sigmoid(logits) > práh.
+    thr=None → PER-TŘÍDA práh z registru (POINT_CLASSES[c].peak_thr, Sez. 129); float → globální
+    override pro všechny třídy (sweep / experiment přes --peak-thr)."""
     model.eval()
+    thrs = [pc.peak_thr for pc in POINT_CLASSES] if thr is None else [thr] * N_POINT
     tp = np.zeros(N_POINT, np.int64)
     fp = np.zeros(N_POINT, np.int64)
     fn = np.zeros(N_POINT, np.int64)
@@ -156,7 +159,7 @@ def evaluate(model, loader, device, thr: float = PEAK_THR) -> tuple[list[dict], 
         B = pred.shape[0]
         for b in range(B):
             for c in range(N_POINT):
-                p_xy = _peaks_xy(pred[b, c], thr)
+                p_xy = _peaks_xy(pred[b, c], thrs[c])
                 g_xy = _peaks_xy(gt_nms[b, c], 0.99)
                 t, f, n = _match_counts(p_xy, g_xy, TOL_PX)
                 tp[c] += t; fp[c] += f; fn[c] += n
@@ -240,7 +243,7 @@ class _EMA:
 
 
 # -------------------------------------------------------------------------- trénink
-def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEAK_THR,
+def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | None = None,
           seed: int | None = None, ema: bool = False, ema_decay: float = 0.998,
           run_id: str | None = None) -> float | None:
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla/HAL3000, RTX 5070)"
@@ -296,7 +299,7 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float = PEA
         "batch": batch,
         "lr": lr,
         "overfit": overfit,
-        "peak_thr": thr,
+        "peak_thr": thr if thr is not None else [pc.peak_thr for pc in POINT_CLASSES],
         "seed": seed,
         "ema": ema,
         "ema_decay": ema_decay if ema else None,
@@ -394,7 +397,9 @@ if __name__ == "__main__":
     ap.add_argument("--lr", type=float, default=1e-4,
                     help="learning rate (AdamW, cosine decay). Nález Sez. 105: heatmapa konverguje "
                          "až s ~1e-3 (gate spouštěj --lr 1e-3); 1e-4 default pro klidnější plný trénink")
-    ap.add_argument("--peak-thr", type=float, default=PEAK_THR, help=f"práh detekce peaku (default {PEAK_THR})")
+    ap.add_argument("--peak-thr", type=float, default=None,
+                    help="globální override prahu detekce peaku pro VŠECHNY třídy (sweep/experiment). "
+                         "Bez něj per-třída práh z registru POINT_CLASSES[c].peak_thr (Sez. 129).")
     ap.add_argument("--seed", type=int, default=None,
                     help="fixní seed → reprodukovatelný běh (Sez. 125). Bez něj nedeterministický jako dřív.")
     ap.add_argument("--ema", action="store_true",

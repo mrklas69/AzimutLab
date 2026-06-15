@@ -59,7 +59,7 @@ _CODES = [pc.code for pc in POINT_CLASSES]
 # --- detekční konstanty + helpery (SSoT = model/png2point/train.py; sem zkopírováno ať netáhneme
 #     matplotlib/dataset import jen kvůli třem čistým funkcím — izomorfní s png2area/eval_real) ---
 TOL_PX = 3           # tolerance matchingu peak↔GT (px) — shodně s train.TOL_PX
-PEAK_THR = 0.3       # práh detekce peaku (shodně s train.PEAK_THR)
+# Práh detekce = PER TŘÍDA z registru (POINT_CLASSES[c].peak_thr, Sez. 129) — SSoT shodné s train.evaluate.
 
 
 def _local(tag):
@@ -163,9 +163,11 @@ def _load_model(dev):
     return model
 
 
-def predict_peaks(arr, model, dev, thr=PEAK_THR):
+def predict_peaks(arr, model, dev, thr=None):
     """Pustí model na downscalovaný sken (arr H,W,3, tiled 512/384), akumuluje sigmoid heatmapu přes
-    překryvy → NMS peak + práh → list[(K,2) xy] per třída. (Detekce jako train.evaluate, jen na celém skenu.)"""
+    překryvy → NMS peak + práh → list[(K,2) xy] per třída. (Detekce jako train.evaluate, jen na celém skenu.)
+
+    thr=None → per-třída práh z registru (POINT_CLASSES[c].peak_thr, Sez. 129); float → globální override."""
     MEAN = np.array([0.485, 0.456, 0.406], np.float32)
     STD = np.array([0.229, 0.224, 0.225], np.float32)
     H, W = arr.shape[:2]
@@ -184,7 +186,8 @@ def predict_peaks(arr, model, dev, thr=PEAK_THR):
     # NMS na celé heatmapě (na dev pro rychlost) → peaky per třída
     ht = torch.from_numpy(heat).unsqueeze(0).to(dev)           # (1,N_POINT,H,W)
     nms = _nms(ht)[0].cpu().numpy()
-    return [_peaks_xy(nms[c], thr) for c in range(N_POINT)]
+    thrs = [pc.peak_thr for pc in POINT_CLASSES] if thr is None else [thr] * N_POINT
+    return [_peaks_xy(nms[c], thrs[c]) for c in range(N_POINT)]
 
 
 def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
