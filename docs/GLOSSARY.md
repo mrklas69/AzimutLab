@@ -433,6 +433,23 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   kanonickém měřítku 1,33; 0,888 bylo na starém měřítku se symboly 1,64× velkými; 204 ~0,92 / 210 ~0,86): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
+  **`Png2Line` KROK 1 HOTOVO Sez. 130-131 — TŘETÍ funkční reconstructor** (`model/png2line/{tile,dataset,train,
+  eval_real}.py`, izomorf s Png2Area: reuse U-Net/loss/IoU/degrade/purple/checkpoints): per-class **segmentace
+  linií** (NE vektorizace — ta je odložený sdílený „.omap assembly" krok, architektura A rozhodnuta Sez. 130).
+  GT je **dilatovaná** (`GT_LINE_WIDTH_PX=3`) proti rozpouštění tenkých linií. Krok 1 = watercourse 304/305
+  (`N_LINE=2`): **plný trénink test mIoU 0,774 / IoU 0,55** (Sez. 131). **Reálný transfer PROKÁZÁN** (`eval_real`,
+  dvojí metrika strict IoU + relaxed [[completeness/correctness]]): **completeness 0,85–0,93** = model trasuje
+  reálné toky (žádný kolaps jako Png2Point 210); slabina precision (přestřel na cesty) → **conf_thr práh 0,95**
+  (IoU 0,251→0,409, F1 0,773). Trénink = mrkla/HAL3000.
+- **`LineClass` / `conf_thr`** (Sez. 131) — registr liniových tříd v [[omap_raster]] (`LINE_CLASSES`), dataclass
+  izomorfní s `PointClass` (png2point): `name`, `codes` (ISOM → label), **`conf_thr`** = per-class práh softmax
+  konfidence při INFERENCI (`LINE_CONF_THR` SSoT; watercourse 0,95). Holý argmax (=0,5 u 2 tříd) přestřeluje
+  (model fíruje na tenkou linii obecně) → vyšší práh ořeže FP. NEpoužívá se v tréninku (`train.evaluate` jede
+  argmax) — jen `eval_real.predict_scan` / budoucí vektorizace. Izomorf rozhodnutí `PointClass.peak_thr` (Sez. 129).
+- **completeness / correctness** (Sez. 131, Wiedemann 1998) — relaxovaná metrika extrakce liniových prvků:
+  completeness (recall) = podíl GT pixelů do tolerančního bufferu od predikce; correctness (precision) = podíl
+  pred pixelů do bufferu od GT. Robustní vůči ~1px georef/šířkovému posunu (na který je strict pixel IoU u tenké
+  linie krutě citlivá) → poctivá odpověď „trasuje model linii?". Dvojice se strict IoU = izomorf strict+soft Png2Area.
 - **Checkpoint run / promote** (CODE-C2, Sez. 127) — plný trénink živého
   reconstructoru nikdy nezapisuje přímo do kanonického `unet_best.pt`. Sdílený
   `model/checkpoints.py` založí `resources/{area,point}_model/runs/<run_id>/`

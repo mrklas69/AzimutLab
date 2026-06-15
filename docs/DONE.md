@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 131 (2026-06-16) — Png2Line krok 1: plný trénink + reálný transfer + conf_thr práh
+Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-131--png2line-krok-1-plný-trénink--reálný-transfer--conf_thr-práh-hal3000).
+- [x] **Png2Line krok 1 — PLNÝ TRÉNINK** (`train.py --seed 0`, 40 ep, ~2 h): **test mIoU 0,774 /
+  watercourse IoU 0,55**, best val 0,751 @ ep37, čistá konvergence. Promotnut `line_model/unet_best.pt`.
+- [x] **Reálný transfer — nový `model/png2line/eval_real.py`** (georef reuse png2area, maska pole,
+  dvojí metrika strict IoU + relaxed completeness/correctness Wiedemann). **Transfer PROKÁZÁN:
+  completeness 0,90–0,96** (model trasuje reálné toky, žádný kolaps jako Png2Point 210); slabina =
+  precision (přestřel 2–4,5× GT px, fíruje na „tenkou linii" obecně — cesty/ploty). Strukturně jako 417.
+- [x] **conf_thr práh — measure-first sweep** (`temp/sweep_thr_line.py`): monotónní, F1 vrchol τ≈0,95.
+  **Volba 0,95** (ploché plató, ne in-sample špička). Dopad vs argmax: **strict IoU 0,251→0,409 (+63 %)**,
+  correctness 0,513→0,718, relaxed F1 0,659→**0,773**, bez re-tréninku.
+- [x] **Práh zabudován do produkce** (izomorf `PointClass.peak_thr`): `generator/omap_raster.py`
+  `LINE_CLASSES` → dataclass **`LineClass(name, codes, conf_thr)`** + `LINE_CONF_THR` SSoT; `eval_real.
+  predict_scan` aplikuje per-class práh při inferenci (NE v tréninku — `train.evaluate` jede argmax).
+  Caveat: in-sample (optimistické) + symptom-fix (cure = krok 2 / re-trénink). 8/8 testů, compile OK.
+- [x] **Regenerace 5 DEV map** (přání uživatele, test v OOM) — SV/NL/LS/HS/NV plné real vrstvy, 5/5 exit 0,
+  vizuál Hrubá Skála ověřen. Pozn.: `generate_map` výstup se dnešní reconstructor-prací nemění.
+
 ## Sezení 130 (2026-06-15) — Png2Line: %THINK + rešerše → krok 1 segmentace watercourse
 Detail: [diary/2026-06-15.md](diary/2026-06-15.md#sezení-130--png2line-think--rešerše--krok-1-segmentace-watercourse-gate-prošel-hal3000).
 - [x] **(A7) Png2Line %THINK + rešerše PŘED implementací** — rešerše 4 branžových rodin (segmentace+

@@ -5,10 +5,12 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I/UC5
-`generator()`, and two live reconstructors. Generator KPI is **58.6%**. `Png2Area`
-has test mIoU **0.683** and `Png2Point` a 3-seed median mF1 **0.874**; real-domain
-transfer remains the limiting metric and `Png2Line` is not implemented. Current work
-is tracked in [TODO](docs/TODO.md); history is in [DONE](docs/DONE.md) and
+`generator()`, and **three live reconstructors**. Generator KPI is **58.6%**. `Png2Area`
+has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.874**, and `Png2Line` step 1
+(watercourse) test mIoU **0.774**. Real-domain transfer is the limiting metric: `Png2Line`
+reads real scans (completeness **0.85–0.93**, no collapse), strict IoU **0.409** after a
+per-class confidence threshold; vectorization (mask→polyline) and dashed-line step 2 are next.
+Current work is tracked in [TODO](docs/TODO.md); history is in [DONE](docs/DONE.md) and
 [DIARY](docs/DIARY.md).
 
 ## What this is
@@ -98,7 +100,7 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
   omap_raster.py       #   Y-pipeline: rasterize area ISOM symbols from .omap → label raster (Y for Png2Area; per-code, z-order, holes; session 87)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
-model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Three subdirs, two live reconstructors:
+model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Four subdirs, three live reconstructors:
   checkpoints.py       #   shared run_id checkpoints: atomic best.pt + manifest + explicit promote to canonical unet_best.pt
   runnability/         #   ARCHIVED ortho→runnability model (dead-end session 79; git-moved here session 88)
     tile.py            #     pre-tiling (X,Y) pairs → 512×512 (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights
@@ -112,6 +114,11 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
     train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px → mF1 0.874; real 210 F1 0.11–0.18)
+  png2line/            #   LIVE Png2Line reconstructor step 1 (sessions 130–131): map scan → line segmentation, third of the 3 CV tasks
+    tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; watercourse 304/305 (N_LINE=2), dilated GT
+    dataset.py         #     PyTorch loader (D4 + degrade + purple augmentation; reuse png2area pattern)
+    train.py           #     U-Net/ResNet34, N_LINE labels, BF16; isolated runs/<run_id>/, --promote; test mIoU 0.774 / watercourse IoU 0.55
+    eval_real.py       #     real-scan benchmark: strict IoU + relaxed completeness/correctness; per-class conf_thr (LineClass) → real IoU 0.409
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)

@@ -96,7 +96,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
 >
 > **2. KPI — reálný doménový gap (Sez. 120–121, re-benchmark Sez. 126 po MPP fixu, Fable5 A1):** KPI výše měří jen
-> FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point}/eval_real.py` na
+> FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point,line}/eval_real.py` na
 > kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
 > **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
 > mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **4 třídy 204/210/417/419 od Sez. 128**): synt **0,827**
@@ -104,6 +104,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **419 Prom. veg. feature SILNÝ 0,67–0,76** (líp než 204, výrazný zelený X + bílá svatozář), **417 Prom. large tree
 > 0,52–0,55** (per-class práh 0,45 srazil přestřel P 0,38→0,40–0,68), 204 stabilní 0,44–0,73, **210 pořád kolabuje
 > 0,00–0,25** (drobné tečky). Práh detekce je **per třída v registru `PointClass.peak_thr`** (zelené chtějí vyšší).
+> **Png2Line krok 1 watercourse 304/305 (Sez. 131, NOVÝ 3. reconstructor; pixel IoU / relaxed completeness/correctness):**
+> synt test mIoU 0,774 / IoU 0,55 · **realita: completeness 0,85–0,93 = model TRASUJE reálné toky** (žádný kolaps
+> jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr `LineClass.conf_thr`, izomorf `peak_thr`;
+> argmax přestřeloval na cesty → IoU 0,251→0,409). Strukturální cure zbylé precision = krok 2 (víc liniových tříd).
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
 > **Stav Sez. 127 (%BEGIN přeměření): KPI 58,6 %** (Bedř 52,3 / Blatná 59,2 /
@@ -274,12 +278,16 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).
-  - [ ] **`Png2Line`** (poslední, nejtěžší; přístup ROZHODNUT Sez. 130, IDEAS „Png2Line — segmentace + odložená
-    vektorizace"). MVP = **per-class segmentace linií** (U-Net izomorfní s `png2area`, GT z injekce + `.omap`
-    rasterizace, **dilatovaná GT** proti rozpouštění tenkých linií, skeletonizace zpět na 1px). Maska→polyline
-    = odložený sdílený „.omap assembly" krok (crude skeletonize+RDP, dashed/crossing = měřené known limitations).
-    **Krok 1: souvislá linie** (505/506 cesta nebo 304/305 tok) — de-risk pipeline. **Krok 2: dashed 508 + 516.**
-    Reuse `tile.py`/`dataset.py`/`degrade`/`purple`/`eval_real`. CUDA-vázané (HAL3000/mrkla).
+  - [~] **`Png2Line` — TŘETÍ funkční reconstructor, KROK 1 HOTOVO Sez. 130-131** (přístup ROZHODNUT Sez. 130,
+    IDEAS „Png2Line — segmentace + odložená vektorizace"). Per-class segmentace linií (U-Net izomorfní s
+    `png2area`, GT z `.omap` rasterizace, **dilatovaná GT** proti rozpouštění tenkých linií). **Krok 1 watercourse
+    304/305 (`N_LINE=2`): plný trénink test mIoU 0,774 / IoU 0,55** (Sez. 131); **reálný transfer PROKÁZÁN**
+    (`model/png2line/eval_real.py`, completeness 0,90–0,96 = trasuje reálné toky, žádný kolaps; slabina precision).
+    **conf_thr práh 0,95** (registr `LineClass`, izomorf `peak_thr`) srazil přestřel: real IoU 0,251→0,409,
+    F1 0,659→0,773. **ZBÝVÁ:** (a) **vektorizace maska→polyline** (sdílený „.omap assembly": skeletonize+RDP;
+    dashed/crossing = known limitations); (b) **krok 2 dashed 508 + 516** (top-5 KPI díra; zároveň strukturální
+    cure zbylých FP — víc tříd naučí odlišit tok od cesty/plotu). Reuse `tile`/`dataset`/`degrade`/`purple`.
+    CUDA-vázané (HAL3000/mrkla).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)

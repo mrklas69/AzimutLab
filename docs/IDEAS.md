@@ -70,6 +70,11 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
     (doložený nejtěžší případ: „line-tracing nefunguje na dashed"). Dvě iterace, každá de-riskuje další.
   - **Doložená rizika:** dashed linie (508/516) tříští trasování → potřeba gap-bridging; text/anotace dělají
     díry (náš layout-bleed Sez. 118); tenké třídy se v U-Netu downsamplingem rozpustí (proto dilatovaná GT).
+  - **KROK 1 HOTOVO (Sez. 130-131), architektura A potvrzena funkční:** watercourse 304/305 plný trénink
+    (test mIoU 0,774 / IoU 0,55) → reálný transfer **completeness 0,85–0,93** (model trasuje reálné toky,
+    žádný kolaps jako Png2Point 210; segmentace-only stačí), slabina precision přestřel na cesty → **conf_thr
+    práh 0,95** (registr `LineClass`, izomorf `peak_thr`): IoU 0,409 / F1 0,773. Detail DONE/diář Sez. 131.
+    ZBÝVÁ: (B) vektorizace maska→polyline (sdílený krok) + krok 2 dashed 508/516 (i strukturální cure precision).
 - **Patternové area třídy.** Nearest-color rozliší odstín, ne mřížku, tečky,
   diagonály a směrové čárky. Každá nová jemná třída musí současně splnit:
   generátor ji umí vytvořit, render nese viditelný signál a
