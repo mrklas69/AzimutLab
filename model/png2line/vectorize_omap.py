@@ -53,6 +53,7 @@ paper_to_scan_px = _line_eval.paper_to_scan_px
 scan_px_to_paper = _line_eval._area_eval.scan_px_to_paper
 
 from vectorize import mask_to_polylines, rasterize_polylines               # noqa: E402
+from north_grid import filter_north_grid                                   # noqa: E402
 from omap_raster import LINE_CLASSES, GT_LINE_WIDTH_PX                      # noqa: E402
 from omap_export import TEMPLATE_PATH, _parse_symbol_ids                   # noqa: E402
 
@@ -139,11 +140,18 @@ def main(name):
     to_paper = scan_px_to_paper(omap, pgw)
     code = LINE_CLASSES[0].codes[0]                       # watercourse → "304" (primární kód třídy)
     polylines_paper = [[to_paper(x / f, y / f) for (x, y) in poly] for poly in polylines_px]
+    polylines_paper, north_grid = filter_north_grid(polylines_paper)
     out_omap = _OUT / f"vecline_{name}.omap"
     n_obj = build_omap(polylines_paper, omap, out_omap, code)
 
     n_verts = sum(len(p) for p in polylines_px)
     print(f"{name}: {len(polylines_px)} polyline / {n_verts} vrcholů → {out_omap.name} ({n_obj} obj, kód {code})")
+    if north_grid.removed_ids:
+        print(
+            f"    [NORTH GRID] odstraněno {len(north_grid.removed_ids)} poledníkových fragmentů "
+            f"na {len(north_grid.grid_centers_um)} liniích "
+            f"(úhel {north_grid.target_angle_deg:.1f}°, spacing {north_grid.spacing_median_um:.0f} µm)"
+        )
     print(f"    [RASTER baseline] IoU {iou_b:.3f}  comp {comp_b:.3f}  corr {corr_b:.3f}  F1 {f1_b:.3f}")
     print(f"    [VEKTOR        ]  IoU {iou_v:.3f}  comp {comp_v:.3f}  corr {corr_v:.3f}  F1 {f1_v:.3f}")
     print(f"    ztráta vektorizace: ΔIoU {iou_v-iou_b:+.3f}  ΔF1 {f1_v-f1_b:+.3f}")
