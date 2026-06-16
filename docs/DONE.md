@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 133 (2026-06-16) — Png2Line krok 2 (508+516) → měřením zavržen, revert
+Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-133--png2line-krok-2-508516--měřením-zavržen-revert-na-watercourse-only-hal3000).
+- [x] **(Png2Line krok 2 — ZKOUŠEN, MĚŘENÍM ZAVRŽEN)** Dashed 508 narrow ride + 516 fence (`N_LINE 2→4`).
+  Pokrytí v párech dost (508 3815 obj / 198 map, 516 2176 / 160; `temp/probe_line_codes.py`), overfit gate
+  prošel (ride 0,83 / fence 0,78), plný trénink synt test mIoU 0,499. **Reálný transfer (eval_real + conf_thr
+  sweep `temp/sweep_line_thr.py`) ho zavřel: (1) 508/516 DOMÉNOVÝ GAP — completeness strop 0,14–0,22, prahem
+  neřešitelný (model dashed černé linie na reálu netrasuje; vzor 210); (2) multi-class ZHORŠIL watercourse —
+  i po optimu thr 0,99 jen IoU 0,311 vs krok 1 single-class 0,409 (−24 %).** Hypotéza „víc kontrastních tříd
+  → lepší diskriminace" nepotvrzena.
+- [x] **Revert na watercourse-only (ověřený):** `omap_raster.LINE_CLASSES` → N_LINE=2, negativní nález do
+  komentáře registru; krok 1 model `runs/krok1_watercourse_s0` (test_miou 0,774) promotnut zpět; `eval_real`
+  verify **watercourse IoU 0,409 / F1 0,773** (= Sez. 131, žádná degradace); line_tiles re-tiled na N_LINE=2.
+- [x] **`eval_real.py` zobecněn na per-class loop** (ze single-class watercourse) + per-class souhrn —
+  čisté vylepšení, revert přežívá (funguje pro N_LINE=2 i víc, DRY).
+- **Nález pro krok 2 v2:** dashed linie chtějí jiný přístup než přidání třídy (verify gen renderu dashed vs
+  realita / dashed-specifická augmentace / morfologické přemostění přerušení). 18/18 testů OK.
+
 ## Sezení 132 (2026-06-16) — Png2Line vektorizace maska→polyline→.omap + Buschdörfl
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-132--png2line-vektorizace-maskapolylineomap--buschdörfl--nález-poledníků-hal3000).
 - [x] **(Png2Line B) Vektorizace maska→polyline — sdílený „.omap assembly" krok** (`model/vectorize.py`,

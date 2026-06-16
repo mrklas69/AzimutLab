@@ -287,10 +287,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     F1 0,659→0,773. **(a) vektorizace maska→polyline HOTOVO Sez. 132** (`model/vectorize.py` skeletonize→graf→RDP +
     `rasterize_polylines`; `scan_px_to_paper` inverze georef SSoT; `model/png2line/vectorize_omap.py` predikce→
     vektorizace→`.omap` klon georef + měření; **ztráta ΔIoU −0,039 / ΔF1 −0,028** = drží strukturu; +scikit-image;
-    `tests/test_vectorize.py` 6 testů; Buschdörfl NĚMECKÁ Livelox 98 % vektoru na modrých tocích). **ZBÝVÁ:**
-    (b) **krok 2 dashed 508 + 516** (top-5 KPI díra; zároveň strukturální cure zbylých FP — víc tříd naučí
-    odlišit tok od cesty/plotu); (c) **gap-bridging u junkcí** (vektorizace tříští toky na uzlech — Velbloud 197 /
-    Buschdörfl 143 polyline; crude junction handling). Reuse `tile`/`dataset`/`degrade`/`purple`. CUDA-vázané (HAL3000/mrkla).
+    `tests/test_vectorize.py` 6 testů; Buschdörfl NĚMECKÁ Livelox 98 % vektoru na modrých tocích).
+    **Krok 2 dashed 508+516 ZKOUŠEN A ZAVRŽEN Sez. 133** (DONE): měření (eval_real + conf_thr sweep) doložilo
+    DVA negativní nálezy — 508/516 doménový gap (completeness strop 0,14–0,22, prahem neřešitelný, vzor 210)
+    + multi-class zhoršil watercourse (thr 0,99 jen 0,311 vs krok 1 0,409). Revert na N_LINE=2. **ZBÝVÁ:**
+    (b2) **krok 2 v2 — dashed JINÝM přístupem** (ne přidání třídy): verify gen renderu dashed vs realita /
+    dashed-specifická augmentace (přerušení v X) / morfologické přemostění přerušení před segmentací;
+    (c) **gap-bridging u junkcí** (vektorizace tříští toky na uzlech — Velbloud 197 / Buschdörfl 143 polyline;
+    crude junction handling). Reuse `tile`/`dataset`/`degrade`/`purple`. CUDA-vázané (HAL3000/mrkla).
   - [ ] *(nález uživatele Sez. 132, doložen na Buschdörfl)* **Poledníkový detektor — svébytný modul, NE filtr na
     vodstvo.** Magnetické poledníky (modré rovné rovnoběžné čáry na sever) Png2Line bere jako watercourse 304/305.
     **Korekce uživatele: geometrický filtr na watercourse výstupu NELZE** — rovný vodní kanál ‖ severu by se smazal.
