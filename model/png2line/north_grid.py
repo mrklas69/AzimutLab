@@ -6,8 +6,6 @@ soustavě. Osamělá rovná voda ale nesmí zmizet. Proto filtrujeme až po vekt
 a diskriminátor je členství v pravidelném gridu, ne samotná rovnost.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import math
 
@@ -16,14 +14,21 @@ import numpy as np
 
 @dataclass(frozen=True)
 class NorthGridConfig:
-    """Prahy v paper µm. Defaulty jsou měřené na Buschdörfl, ale záměrně konzervativní."""
+    """Prahy v paper µm. Záměrně konzervativní; rozestup gridu se NEhardcoduje.
+
+    Rozestup poledníků závisí na měřítku mapy (300 m v terénu = 30 mm @ 1:10000,
+    20 mm @ 1:15000, 40 mm @ 1:7500). Pevná konstanta by tiše selhala na jiném
+    měřítku, proto periodu odvozujeme z naměřených offsetů (medián mezer mezi
+    clustery) a tolerujeme ji RELATIVNĚ (`spacing_rel_tol`). `min_spacing_um` je
+    jen sanity floor proti degenerovanému mikro-gridu ze splývajících fragmentů.
+    """
 
     seed_angle_tol_deg: float = 4.0
     seed_min_straightness: float = 0.97
     seed_min_len_um: float = 8_000.0
     offset_cluster_tol_um: float = 4_000.0
-    expected_spacing_um: float = 30_000.0
-    spacing_tol_um: float = 7_000.0
+    spacing_rel_tol: float = 0.25      # mezera smí být ±25 % odvozené periody
+    min_spacing_um: float = 4_000.0    # pod tímto rozestupem grid neuznáváme
     min_grid_lines: int = 3
     assign_offset_tol_um: float = 800.0
     assign_max_dev_um: float = 800.0
@@ -196,11 +201,25 @@ def _cluster_center(cluster: list[_PolyStats]) -> float:
 
 
 def _spacing_runs(centers: list[float], config: NorthGridConfig) -> list[list[int]]:
+    """Najdi nejdelší běhy clusterů s KONZISTENTNÍM rozestupem.
+
+    Periodu neznáme předem — odvodíme ji z dat jako medián mezer mezi sousedními
+    clustery (robustní proti občasné odlehlé mezeře). Pak hledáme souvislé běhy,
+    kde každá mezera leží v relativním pásmu kolem té periody. Tím detektor
+    funguje napříč měřítky map, místo aby tiše minul grid s jiným rozestupem.
+    """
+    if len(centers) < config.min_grid_lines:
+        return []
+    gaps = [centers[i] - centers[i - 1] for i in range(1, len(centers))]
+    period = float(np.median(gaps))         # perioda z dat, ne z konstanty
+    if period < config.min_spacing_um:
+        return []
+    tol = config.spacing_rel_tol * period
     runs: list[list[int]] = []
-    current = [0] if centers else []
+    current = [0]
     for i in range(1, len(centers)):
         gap = centers[i] - centers[i - 1]
-        if abs(gap - config.expected_spacing_um) <= config.spacing_tol_um:
+        if abs(gap - period) <= tol:
             current.append(i)
         else:
             if len(current) >= config.min_grid_lines:

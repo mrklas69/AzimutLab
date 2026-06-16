@@ -63,6 +63,26 @@ class NorthGridTest(unittest.TestCase):
         self.assertEqual(kept, polylines)
         self.assertEqual(stats.removed_ids, ())
 
+    def test_grid_with_non_default_spacing_is_detected(self) -> None:
+        """Rozestup 20 mm (≈ 1:15000) musí grid najít — periodu bereme z dat.
+
+        Dřívější pevné okno 30 mm ±7 mm by tento grid tiše minulo. Test hlídá,
+        že detektor funguje napříč měřítky, ne jen na měřeném Buschdörfl 30 mm.
+        """
+        angle = 88.0
+        polylines = [
+            _line(angle, -20_000.0, -20_000.0, 20_000.0),
+            _line(angle, 0.0, -20_000.0, 20_000.0),
+            _line(angle, 20_000.0, -20_000.0, 20_000.0),
+            _line(angle, 40_000.0, -20_000.0, 20_000.0),
+        ]
+
+        kept, stats = filter_north_grid(polylines)
+
+        self.assertEqual(stats.removed_ids, (0, 1, 2, 3))
+        self.assertEqual(kept, [])
+        self.assertAlmostEqual(stats.spacing_median_um, 20_000.0, delta=1.0)
+
     def test_parallel_lines_without_regular_spacing_are_kept(self) -> None:
         angle = 90.0
         polylines = [
