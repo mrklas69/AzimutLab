@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 134 (2026-06-16) — Poledníkový detektor: ověření + data-driven rozestup
+Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-134--poledníkový-detektor-ověření--data-driven-rozestup-hal3000).
+- [x] **(nález Sez. 132, Png2Line) Poledníkový detektor — OVĚŘEN + zrobustněn.** Filtr `model/png2line/north_grid.py`
+  napsal mezi-sezeními Codex (commit `ac953ab`), ale nepropsal do docs (vzor `parallel-threads-verify-shared-docs`)
+  → ověřeno a dotaženo. Diskriminátor = členství v pravidelné rovnoběžné SOUSTAVĚ (správně dle zadání, ne „rovná ∧
+  modrá ∧ ‖ sever"); osamělý kanál ‖ severu se nemaže.
+- [x] **Ověření na reálu (Buschdörfl, scratch `temp/probe_buschdorfl_north_lines.py`):** filtr najde 5-liniový grid
+  (úhel **77,4°** = pod grivací, ne 90°; rozestup ~30 mm, std 75 µm = extrémně pravidelný), odstraní **27
+  poledníkových fragmentů** (10 dlouhých seedů + 17 krátkých přerušených), vody zachová. Doloženo měřením i vizuálně
+  (source overlay/crop: červené = jen rovné diagonály, klikaté modré toky bez překryvu).
+- [x] **Gen render poledníky NEKRESLÍ** (grep `generator/*.py` + vizuál `maps/Buschdörfl/rgb.png` vs reálný sken
+  `Buschdörfl.jpeg`): grivace je jen georef metadata, žádná geometrie poledníků v rastru → **doménový gap** (model je
+  v tréninku nevidí → na realitě je bere jako watercourse) → post-vectorization filtr je legitimní náplast.
+- [x] **Rozestup data-driven (volba uživatele, splnil zadání + odstranil tiché selhání):** Codex zafixoval
+  `expected_spacing_um=30 mm ±7` — vyšlo na Buschdörfl shodou (1:10000), ale 1:15000→20 mm / 1:7500→40 mm = mimo okno
+  → tiché selhání (porušení `no silent fallback`). `_spacing_runs` přepsán: perioda = **medián mezer mezi clustery**
+  + relativní tolerance (`spacing_rel_tol=0,25`, `min_spacing_um` sanity floor). Buschdörfl výsledek beze změny
+  (27 odstraněno, ověřeno produkčním modulem), nový test pro 20 mm grid (scénář 1:15000) doloží účel napříč měřítky.
+- [x] **Drobnost:** odstraněn `from __future__ import annotations` z `north_grid.py` (Codex porušil
+  `python314-no-future-annotations`). **19/19 testů** (test_north_grid 5 + vectorize 6 + cut 5 + purple 1 + checkpoints 2).
+
 ## Sezení 133 (2026-06-16) — Png2Line krok 2 (508+516) → měřením zavržen, revert
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-133--png2line-krok-2-508516--měřením-zavržen-revert-na-watercourse-only-hal3000).
 - [x] **(Png2Line krok 2 — ZKOUŠEN, MĚŘENÍM ZAVRŽEN)** Dashed 508 narrow ride + 516 fence (`N_LINE 2→4`).

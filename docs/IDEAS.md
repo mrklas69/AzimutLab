@@ -80,6 +80,11 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
     `model/png2line/vectorize_omap.py` (predikce → vektorizace → `.omap` klon georef + linie 304 + měření).
     **Ztráta vektorizace malá: ΔIoU −0,039 / ΔF1 −0,028** (3 mapy) → skeletonize+RDP drží strukturu. +scikit-image.
     Buschdörfl (NĚMECKÁ Livelox, 4. mapa): 98 % vektoru do 3 px od modrých pixelů skenu (nefíruje na cesty).
+- **Poledníkový detektor — IMPLEMENTOVÁN + OVĚŘEN (Sez. 134).** `model/png2line/north_grid.py` (Codex `ac953ab`,
+  dotažen Sez. 134): post-vectorization filtr, diskriminátor = členství v pravidelné soustavě. Buschdörfl: 5-liniový grid
+  77,4° (pod grivací) / rozestup 30 mm → 27 poledníků odstraněno, vody zachovány. Gen render poledníky NEKRESLÍ (grivace
+  jen georef metadata) = doménový gap. **Rozestup data-driven** (medián mezer + rel. tolerance, ne fixní 30±7 mm → funguje
+  napříč měřítky). Follow-up: napojit do produkční cesty + 2. mapa (viz TODO). Původní záměr níže ↓.
 - **Poledníkový detektor (nález uživatele Sez. 132) — svébytný modul, NE filtr na vodstvo.** Magnetické poledníky
   (modré rovné rovnoběžné čáry orientující mapu na sever) Png2Line bere jako watercourse 304/305 (modré + liniové).
   **Klíč (korekce uživatele): NELZE řešit geometrickým filtrem na watercourse výstupu** — rovný vodní KANÁL

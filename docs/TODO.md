@@ -295,13 +295,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     dashed-specifická augmentace (přerušení v X) / morfologické přemostění přerušení před segmentací;
     (c) **gap-bridging u junkcí** (vektorizace tříští toky na uzlech — Velbloud 197 / Buschdörfl 143 polyline;
     crude junction handling). Reuse `tile`/`dataset`/`degrade`/`purple`. CUDA-vázané (HAL3000/mrkla).
-  - [ ] *(nález uživatele Sez. 132, doložen na Buschdörfl)* **Poledníkový detektor — svébytný modul, NE filtr na
-    vodstvo.** Magnetické poledníky (modré rovné rovnoběžné čáry na sever) Png2Line bere jako watercourse 304/305.
-    **Korekce uživatele: geometrický filtr na watercourse výstupu NELZE** — rovný vodní kanál ‖ severu by se smazal.
-    Diskriminátor = **členství v pravidelné rovnoběžné SOUSTAVĚ** (≥3 čáry, konst. kolmý rozestup, směr = grivace
-    z georef), ne „rovná ∧ modrá ∧ ‖ sever". Metoda: projekce kolmo na magnetický sever → periodické peaky
-    (autokorelace/FFT) = grid; osamělý kanál = ojedinělý peak. Globální nad skenem. Edge: grivace ≠ 0 (úhel z georef,
-    ne svislice), černé poledníky (watercourse nebere). Ověřit: kreslí gen render poledníky do X? Detail IDEAS.
+  - [ ] *(follow-up Sez. 134; poledníkový detektor HOTOV + OVĚŘEN — DONE Sez. 134)* **Napojit `north_grid` filtr do
+    produkční cesty + ověřit na 2. mapě.** Detektor `model/png2line/north_grid.py` (Codex `ac953ab`, dotažen Sez. 134:
+    data-driven rozestup) ověřen na Buschdörfl (5-liniový grid 77,4°, 27 poledníků odstraněno, vody zachovány); gen render
+    poledníky nekreslí = doménový gap. **ZBÝVÁ:** (a) dnes filtr volá jen `vectorize_omap.main` (verify nástroj) — zvážit
+    napojení do `eval_real`/budoucí inference; (b) ověřit na 2. reálné mapě s poledníky (jediný doložený případ = Buschdörfl);
+    (c) edge případ černé poledníky (watercourse je nebere, ale budoucí liniové třídy ano).
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)
