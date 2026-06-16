@@ -452,6 +452,9 @@ ISOM_HIGH_TOWER = 524
 ISOM_CAIRN = 526
 ISOM_PROM_RING = 530
 ISOM_LARGE_TREE = 417
+# 419 Prom. vegetation feature — ZELENÝ X (Sez. 136). NEMÁ ZABAGED zdroj (na rozdíl od 417 stromu) →
+# jen pseudo injekce (_generate_pseudo_veg_points); sdílí render+.omap+meta cestu landmarků (proto zde).
+ISOM_VEG_FEATURE = 419
 # Sez. 44 (katalog dávka 4): pramen / nádrž / jeskyně. Geometrie z template (id 72/71/31):
 #   312 Spring  — MODRÉ „U"/oblouk, ústí NAHORU (template: oblouk r≈0,54 mm, width 0,27 mm, color Blue)
 #   311 Well    — MODRÝ čtverec (obrys, ½ strany 0,465 mm, width 0,27 mm) — well/fountain/water tank
@@ -467,10 +470,11 @@ ISOM_CAVE = "203.2"
 LANDMARK_NAME = {ISOM_HIGH_TOWER: "High tower", ISOM_CAIRN: "Cairn",
                  ISOM_PROM_RING: "Prominent man-made feature", ISOM_LARGE_TREE: "Prominent large tree",
                  ISOM_SPRING: "Spring", ISOM_WELL: "Well, fountain or water tank",
-                 ISOM_CAVE: "Cave or rocky pit"}
+                 ISOM_CAVE: "Cave or rocky pit",
+                 ISOM_VEG_FEATURE: "Prominent vegetation feature"}
 # ISOM kód → třída v mask_landmarks.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
 LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4,
-                  ISOM_SPRING: 5, ISOM_WELL: 6, ISOM_CAVE: 7}
+                  ISOM_SPRING: 5, ISOM_WELL: 6, ISOM_CAVE: 7, ISOM_VEG_FEATURE: 8}
 # Render parametry (px-tuned pro viditelnost; .omap věrný ze symbolu). µm × PX_PER_MM/1000:
 LANDMARK_RING_R_PX = max(3, round(0.36 * PX_PER_MM))    # kroužek 530/526 (r ≈ 0,36 mm → ~2 px → min 3)
 LANDMARK_TREE_R_PX = max(3, round(0.40 * PX_PER_MM))    # kroužek 417 (r ≈ 0,40 mm)
@@ -481,6 +485,19 @@ LANDMARK_WELL_HALF_PX = max(2, round(0.465 * PX_PER_MM))  # ½ strany čtverce 3
 LANDMARK_CAVE_APEX_PX = max(3, round(0.735 * PX_PER_MM))  # hrot „Λ" 203.2 NAD středem (0,735 mm)
 LANDMARK_CAVE_TOP_PX = max(2, round(0.465 * PX_PER_MM))   # dolní konce „Λ" POD středem (0,465 mm)
 LANDMARK_CAVE_HALF_PX = max(2, round(0.525 * PX_PER_MM))  # ½ rozevření „Λ" (0,525 mm)
+LANDMARK_VEGFEAT_R_PX = max(3, round(0.60 * PX_PER_MM))   # polodélka ramene X 419 (≈0,60 mm, izomorf inject)
+
+# --- Pseudo injekce vegetačních bodů 417/419 (Sez. 136, FÁZE 2 pseudorealistic) ---
+# Princip kamenů (Sez. 107): doložené ZABAGED stromy 417 jsou ŘÍDKÉ (~3 % reálné hustoty) → dosypeme
+# je na reálnou hustotu; 419 nemá ZABAGED zdroj vůbec → čistě pseudo. Hustota MĚŘENA z kartografových
+# .omap (eval_real GT/plocha, Sez. 136): medián 417 ~27/km², 419 ~18/km² (rozptyl 4–46 dle terénu).
+# Umístění (volba uživatele): náhodně MIMO vodu + MIMO doloženou skalnatost (strom neroste v balvanitém
+# poli; voda = no-draw zóna). Hustota LOSOVANÁ per mapa z rozsahu → rozmanitější tréninková sada.
+PSEUDO_TREE_PER_KM2 = (15.0, 40.0)      # 417 Prominent large tree — cílová hustota (doplnit reálné ZABAGED na ni)
+PSEUDO_VEGFEAT_PER_KM2 = (10.0, 28.0)   # 419 Prominent vegetation feature — čistě pseudo
+# ISOM: bodové symboly se NESMÍ překrývat (Sez. 136, nález uživatele {A} Nová Louka — dva symboly přes
+# sebe). Minimální vzdálenost STŘEDŮ dvou pseudo veg bodů = součet jejich poloměrů + mezera (žádný dotyk).
+PSEUDO_VEG_MIN_GAP_MM = 0.20            # mezera mezi okraji symbolů (rezerva nad „nedotýkat se")
 
 
 # ---------- Crossing point (Sez. 52, real-půlka, bodová ORIENTOVANÁ vrstva) ----------
@@ -1551,6 +1568,14 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         r = LANDMARK_TREE_R_PX
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=C_GREEN3, width=1)
         mdraw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=cls, width=1)
+    elif code == ISOM_VEG_FEATURE:                      # 419 Prom. vegetation feature — zelený X
+        # Dvě zelené diagonály (mirror inject._stamp_cross; generátorový styl bez bílé svatozáře,
+        # konzistentní s 417 kroužkem — svatozář kreslí až degradér/realita, ne čistý gen render).
+        r = LANDMARK_VEGFEAT_R_PX
+        draw.line([(cx - r, cy - r), (cx + r, cy + r)], fill=C_GREEN3, width=1)
+        draw.line([(cx - r, cy + r), (cx + r, cy - r)], fill=C_GREEN3, width=1)
+        mdraw.line([(cx - r, cy - r), (cx + r, cy + r)], fill=cls, width=1)
+        mdraw.line([(cx - r, cy + r), (cx + r, cy - r)], fill=cls, width=1)
     elif code == ISOM_SPRING:                           # 312 Spring — modré „U", ústí NAHORU
         # Template (omap +y = DOLŮ): volné konce na omap y=-351 → NAHOŘE, oblouk dole → ústí
         # nahoru (∪). Stejný tvar jako 111 depression, jen modrá. PIL arc(0,180) = spodní půlkruh = ∪.
@@ -2784,6 +2809,27 @@ def _rasterize_water_grid(water_area_features: list | None) -> "np.ndarray | Non
     return arr if arr.any() else None
 
 
+def _build_forbid_px(forbid_imgs: list | None, dilate_px: int) -> "np.ndarray | None":
+    """Sjednoť GT masky (budovy/cesty/zpevněné, px W×H „L") → jedna bool PX maska zakázaných míst,
+    dilatovaná o poloměr symbolu (aby se ani OKRAJ bodu nedotkl prvku).
+
+    PX rozlišení záměrně (NE grid jako voda/skály): cesty 502-506 a zpevněné 501 pásy jsou TENKÉ (pár px)
+    → na hrubém gridu by zmizely a body by na ně padly částečně zakryté (Sez. 136 nález uživatele — kameny
+    i 417/419 na 501 pásech podél cest). None = nic k vyloučení."""
+    if not forbid_imgs:
+        return None
+    import scipy.ndimage as ndi
+    acc = None
+    for img in forbid_imgs:
+        a = np.asarray(img) > 0                            # multi-class „L" maska: >0 = prvek
+        acc = a if acc is None else (acc | a)
+    if acc is None or not acc.any():
+        return None
+    if dilate_px > 0:
+        acc = ndi.binary_dilation(acc, iterations=int(dilate_px))
+    return acc
+
+
 def _clip_fences_off_water(fence_features: list, water_area_features: list | None) -> list:
     """Vyřízni úseky plotu 516 nad vodní plochou (301) — plot na hladině = nesmysl (Sez. 113 Nová Louka).
 
@@ -2817,7 +2863,8 @@ def _clip_fences_off_water(fence_features: list, water_area_features: list | Non
 def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                               rock_point_features: list, rock_area_features: list,
                               rng: np.random.Generator,
-                              water_area_features: list | None = None) -> list[tuple]:
+                              water_area_features: list | None = None,
+                              forbid_imgs: list | None = None) -> list[tuple]:
     """Pseudo injekce bodů 204 Boulder + 210 Stony ground (FÁZE 2, Sez. 107).
 
     ZABAGED tyto body nevede v reálné hustotě (kompas: 204 gen 3/orig 1064, 210 gen 0/orig 975) →
@@ -2831,6 +2878,8 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
     rock_area_features  — [(grid_rings, code)] (206 plochy z DMR + 208 pole) — bereme jen 206 jako seed.
     water_area_features — [(grid_rings, code)] vodní plochy (301) — VYLOUČENY z masky i z 210 teček
                           (balvan na hladině = nesmysl, Sez. 113 Nová Louka). Outer = voda, holes (ostrovy) = souš.
+    forbid_imgs         — GT masky budovy/cesty/zpevněné (px) → kámen NEumístit na 501 pás podél cesty
+                          (Sez. 136 nález uživatele {A} Soví vrch: kameny pod cestou zakryté). PX rozlišení.
     Vrací pseudo point_features [(gx, gy, code)] (204 + 210.1); render + maska = side-effect.
     """
     import scipy.ndimage as ndi                          # dilatace masky (jako rock_relief)
@@ -2866,11 +2915,22 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
         gy_c, gx_c = cand[rng.integers(len(cand))]
         return gx_c + rng.uniform(-0.5, 0.5), gy_c + rng.uniform(-0.5, 0.5)
 
+    # px maska budovy/cesty/zpevněné, dilatovaná o poloměr kamene → kámen ani okrajem na 501/cestu (Sez. 136)
+    forbid_px = _build_forbid_px(forbid_imgs, dilate_px=BOULDER_RADIUS_PX + 1)
+    fh, fw = (forbid_px.shape if forbid_px is not None else (0, 0))
+
+    def _forbidden(px: float, py: float) -> bool:
+        """True = px pozice leží na budově/cestě/zpevněné (kde se kámen zakryje)."""
+        ix, iy = int(px), int(py)
+        return forbid_px is not None and 0 <= iy < fh and 0 <= ix < fw and bool(forbid_px[iy, ix])
+
     # 204 Boulder — jednotlivé kruhy rozseté po masce
     n_boulder = round(area_km2 * PSEUDO_BOULDER_PER_KM2)
     for _ in range(n_boulder):
         gx, gy = _rand_cell_grid()
         px, py = _grid_to_px(gx, gy)
+        if _forbidden(px, py):                          # kámen na budově/cestě/zpevněné → přeskoč (Sez. 136)
+            continue
         _draw_boulder(draw, mdraw, px, py)
         pts.append((gx, gy, str(ISOM_BOULDER)))         # "204"
 
@@ -2899,10 +2959,104 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
                     if water_cell is not None and water_cell[int(round(ggy)), int(round(ggx))]:
                         gx_px += sp
                         continue
+                    if _forbidden(jx, jy):              # tečka na budově/cestě/zpevněné → přeskoč (Sez. 136)
+                        gx_px += sp
+                        continue
                     _draw_stony_dot(draw, mdraw, jx, jy)
                     pts.append((ggx, ggy, "210.1"))
                 gx_px += sp
             gy_px += sp
+    return pts
+
+
+def _generate_pseudo_veg_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                                rock_area_features: list,
+                                water_area_features: list | None, n_real_417: int,
+                                rng: np.random.Generator,
+                                forbid_imgs: list | None = None) -> list[tuple]:
+    """Pseudo injekce bodů 417 Prominent large tree + 419 Prom. vegetation feature (FÁZE 2, Sez. 136).
+
+    Princip kamenů (Sez. 107): 417 má jen ŘÍDKÝ doložený zdroj (ZABAGED Významný strom, ~3 % reálné
+    hustoty), 419 žádný → dosypeme oba na reálnou MĚŘENOU hustotu (kartografovy .omap / eval_real GT:
+    medián 417 ~27/km², 419 ~18/km², losováno per mapa pro rozmanitost). NENÍ projekce dat — poloha
+    v rámci masky náhodná (reframe Sez. 79), maska jen vylučuje nemožná místa.
+
+    Umístění (volba uživatele): MIMO vodu (no-draw zóna, CLAUDE.md) + MIMO hustou skalnatost (strom
+    neroste v balvanitém poli) + MIMO budovy/cesty/zpevněné plochy (Sez. 136 nález — symbol pod liniovým/
+    plošným prvkem se zakryje). Skalní maska = 206 plochy z DMR sklonu (rock_relief, Sez. 63), dilatované.
+    Budovy/cesty/zpevněné se berou z hotových GT masek (forbid_imgs, px → grid).
+
+    ISOM rozestup (Sez. 136, nález uživatele {A}): bodové symboly se NESMÍ překrývat → rejection sampling,
+    nový bod zahozen, pokud je blíž než (r_a + r_b + mezera) ke kterémukoli už umístěnému.
+
+    rock_area_features  — [(grid_rings, code)] (206 plochy + 208) — seed skalní masky (bere jen 206).
+    water_area_features — vodní plochy 301 (vyloučeny z masky).
+    n_real_417          — počet reálných ZABAGED 417 už nakreslených → odečte se od pseudo cíle (DOPLNĚNÍ
+                          na hustotu, ne zdvojení). 419 reálné nemá → plná pseudo hustota.
+    forbid_imgs         — list PIL „L" GT masek (budovy/cesty/zpevněné, px W×H; 0 = pozadí) → resamplují
+                          se na grid a vyloučí (None/prázdné = nic navíc nevyloučit).
+    mdraw = GT maska landmarků (LANDMARK_CLASS); render = side-effect do draw (rgb) + mdraw.
+    Vrací pseudo point_features [(gx, gy, code)] (417 + 419).
+    """
+    import scipy.ndimage as ndi
+    # --- skalní maska = 206 plochy (z DMR sklonu), dilatovaná o okolí (suť kolem stěn) ---
+    rock = Image.new("L", (GW, GH), 0)
+    rdraw = ImageDraw.Draw(rock)
+    for grid_rings, code in rock_area_features:
+        if int(float(code)) == ISOM_GIGANTIC_BOULDER and len(grid_rings[0]) >= 3:
+            rdraw.polygon([(gx, gy) for gx, gy in grid_rings[0]], fill=1)
+    rock_mask = np.asarray(rock, dtype=bool)
+    if rock_mask.any():
+        rock_mask = ndi.binary_dilation(rock_mask, iterations=max(1, round(PSEUDO_ROCK_DILATE_M / M_PER_CELL)))
+    # --- kandidátní maska = CELÉ pole MINUS skály MINUS voda MINUS budovy/cesty/zpevněné ---
+    mask = ~rock_mask                                     # bool (GH,GW), True = lze umístit
+    water_cell = _rasterize_water_grid(water_area_features)
+    if water_cell is not None:
+        mask &= ~water_cell
+    cand = np.argwhere(mask)                              # [(gy, gx)] kandidátní buňky (mimo vodu/skály)
+    if not len(cand):
+        return []                                         # celé pole zakázané (nemělo by nastat)
+    area_km2 = len(cand) * (M_PER_CELL / 1000.0) ** 2
+
+    def _rand_cell_grid() -> tuple[float, float]:
+        """Náhodná buňka z masky + jitter uvnitř buňky → (gx, gy) v grid souřadnicích."""
+        gy_c, gx_c = cand[rng.integers(len(cand))]
+        return gx_c + rng.uniform(-0.5, 0.5), gy_c + rng.uniform(-0.5, 0.5)
+
+    gap_px = PSEUDO_VEG_MIN_GAP_MM * PX_PER_MM
+    r_of = {ISOM_LARGE_TREE: float(LANDMARK_TREE_R_PX), ISOM_VEG_FEATURE: float(LANDMARK_VEGFEAT_R_PX)}
+    # px maska budov/cest/zpevněných, dilatovaná o poloměr → ani OKRAJ symbolu se nedotkne tenkého pásu
+    forbid_px = _build_forbid_px(forbid_imgs, dilate_px=round(max(r_of.values()) + gap_px))
+    fh, fw = (forbid_px.shape if forbid_px is not None else (0, 0))
+    # hustota losovaná per mapa z rozsahu; 417 = doplnit na cíl MÍNUS reálné ZABAGED (max 0 = už dost)
+    n_tree = max(0, round(area_km2 * rng.uniform(*PSEUDO_TREE_PER_KM2)) - n_real_417)
+    n_veg = round(area_km2 * rng.uniform(*PSEUDO_VEGFEAT_PER_KM2))
+    # rejection sampling: drž px pozice + poloměry umístěných (rostoucí numpy buffer)
+    placed_xy: list[tuple[float, float]] = []
+    placed_r: list[float] = []
+    pts: list[tuple[float, float, str]] = []
+    for code, n in ((ISOM_LARGE_TREE, n_tree), (ISOM_VEG_FEATURE, n_veg)):
+        r_new = r_of[code]
+        placed = attempts = 0
+        budget = n * 25 + 50                             # strop pokusů (plná mapa → část se zahodí, OK)
+        while placed < n and attempts < budget:
+            attempts += 1
+            gx, gy = _rand_cell_grid()
+            px, py = _grid_to_px(gx, gy)
+            ix, iy = int(px), int(py)
+            # mimo budovy/cesty/zpevněné (px rozlišení — zachytí i tenké 501/cesty pásy, Sez. 136)
+            if forbid_px is not None and 0 <= iy < fh and 0 <= ix < fw and forbid_px[iy, ix]:
+                continue
+            if placed_xy:                                 # min. vzdálenost středů ≥ r_a+r_b+mezera (žádný překryv)
+                pxy = np.asarray(placed_xy)
+                d2 = (pxy[:, 0] - px) ** 2 + (pxy[:, 1] - py) ** 2
+                if (d2 < (np.asarray(placed_r) + r_new + gap_px) ** 2).any():
+                    continue
+            _draw_landmark(draw, mdraw, px, py, code)
+            pts.append((gx, gy, str(code)))
+            placed_xy.append((px, py))
+            placed_r.append(r_new)
+            placed += 1
     return pts
 
 
@@ -3841,6 +3995,10 @@ def generate_map(
     # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
     # Jen --rocks real. Body 204/207 + linie 208 ze ZABAGED (KISS vrstva → jeden symbol); plocha 206
     # z DMR sklonu (rock_relief, Sez. 63) — nahradila generalizovaný ZABAGED Skalní_útvary.
+    # vyloučení pseudo bodů (kameny 204/210 I veg 417/419) z budov/cest/zpevněných (Sez. 136, nález
+    # uživatele {A}): hotové GT masky (px). path vždy; building/paved mohou být None (vrstva off).
+    # Sdíleno boulders i veg call (DRY). Tady je dostupné vše (budovy/cesty/zpevněné už proběhly).
+    forbid_imgs = [m for m in (building_mask_img, path_mask_img, paved_mask_img) if m is not None]
     rock_point_features: list[tuple] = []
     rock_area_features: list[tuple] = []
     rocks_info: list[dict] = []
@@ -3872,7 +4030,7 @@ def generate_map(
                 "pseudo_boulders",
                 lambda: _generate_pseudo_boulders(draw, rdraw_rocks,
                                                   rock_point_features, rock_area_features, rng,
-                                                  water_area_features),
+                                                  water_area_features, forbid_imgs),
                 [], tolerant, layer_errors)
             rock_point_features = list(rock_point_features) + pseudo_pts
             n204 = sum(1 for *_, c in pseudo_pts if c == "204")
@@ -3909,6 +4067,30 @@ def generate_map(
             _log.info("  orient. prvky: %d (%s)", len(landmarks_info), ", ".join(parts))
         else:
             _log.info("  orient. prvky: 0")
+
+        # PSEUDO injekce vegetačních bodů 417/419 (FÁZE 2, Sez. 136 — princip kamenů): doložené stromy
+        # 417 jsou řídké (~3 % reálné hustoty), 419 ZABAGED zdroj nemá → dosypeme na reálnou MĚŘENOU
+        # hustotu MIMO vodu + hustou skalnatost. Gated `pseudorealistic` (visí na landmarks="real", jako
+        # pseudo boulders na rocks → point_base/only_real ji vypnou). Body → landmark_features (→ .omap
+        # přes landmark_omap_features) + landmarks_info (→ meta.json, izomorf pseudo 204/210 do rocks_info).
+        if pseudorealistic:
+            n_real_417 = sum(1 for *_, c in landmark_features if int(float(c)) == ISOM_LARGE_TREE)
+            # forbid_imgs (budovy/cesty/zpevněné) sdílené s pseudo boulders, definované u rocks bloku (Sez. 136)
+            pseudo_veg = _try_layer(
+                "pseudo_veg",
+                lambda: _generate_pseudo_veg_points(draw, ldraw_lm, rock_area_features,
+                                                    water_area_features, n_real_417, rng,
+                                                    forbid_imgs),
+                [], tolerant, layer_errors)
+            landmark_features = list(landmark_features) + pseudo_veg
+            for *_, c in pseudo_veg:                       # pseudo i do meta (stats/STATISTICS to čte)
+                ci = int(c)
+                landmarks_info.append({"symbol": ci, "symbol_name": LANDMARK_NAME[ci],
+                                       "kind": "point", "layer": "pseudo (Sez. 136)"})
+            if pseudo_veg:
+                n417 = sum(1 for *_, c in pseudo_veg if c == "417")
+                n419 = sum(1 for *_, c in pseudo_veg if c == "419")
+                _log.info("  pseudo veg body: 417:%d, 419:%d", n417, n419)
 
     # --- zábrany na zdi: PRE-FETCH (Sez. 52) ---
     # Spočítat brány JEDNOU, před linefeatures: (a) zeď 513 se pod nimi přeruší (break_px),
