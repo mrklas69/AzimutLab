@@ -120,6 +120,28 @@ def paper_to_scan_px(omap_path, pgw_path, flip_y=True, rot_sign=-1.0):
     return to_px
 
 
+def scan_px_to_paper(omap_path, pgw_path, flip_y=True, rot_sign=-1.0):
+    """Inverze paper_to_scan_px: FULL sken px (col,row) → paper µm. Pro vektorizaci → .omap (Sez. 132).
+
+    sken px → world m (pgw forward affine) → paper µm (inverze rotace = transpozice + dělení scale).
+    Stejná georef (scale/griv/ref + rot_sign=−1/flip_y), jen opačný směr — SSoT vedle paper_to_scan_px (DRY).
+    POZOR: očekává FULL sken px; polyline z downscaled gridu (×f) podělit f PŘED voláním."""
+    scale, griv, rx, ry = _omap_georef(omap_path)
+    A, D, B, E, C, F = [float(v) for v in Path(pgw_path).read_text().split()]   # .pgw: A D B E C F
+    s = scale * 1e-6
+    th = np.radians(rot_sign * griv)
+    ct, st = np.cos(th), np.sin(th)
+    sy = -1.0 if flip_y else 1.0
+    def to_paper(col, row):
+        wx = A * col + B * row + C                       # px → world (pgw forward)
+        wy = D * col + E * row + F
+        ex, ey = wx - rx, wy - ry                        # posun od ref bodu
+        ux = ct * ex + st * ey                           # inverze rotace (R⁻¹ = Rᵀ pro ortogonální R)
+        uy = -st * ex + ct * ey
+        return ux / s, uy / (s * sy)                     # world m → paper µm (děl scale, odflipuj y)
+    return to_paper
+
+
 def rasterize_Y(areas, to_px, f, W, H):
     """Area objekty → Y label rastr (H,W). Z-order = label pořadí (= AREA_ZORDER index); holes carve."""
     Y = np.zeros((H, W), np.uint8)
