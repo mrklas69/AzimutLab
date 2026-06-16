@@ -9,6 +9,11 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
    prací — jinak sezení běží na zastaralém stavu. (Stalo se 2026-05-25: klon byl
    20 commitů pozadu → redundantní sezení odhalené až při pushi v %END.)
    Pozor: `git status` „clean" ≠ up-to-date.
+0.5. **Načti `docs/ROADMAP.md` — etapa + zákazy (antidrift).** Měj od první minuty v hlavě,
+   v jaké ETAPĚ projekt je (`Generator()` vs `Rekonstruktor()`) a co jsou ZAKÁZANÁ SLOVA
+   (dnes: `Rekonstruktor()` + „degradace" — jsme v etapě Generator()). **Self-check u KAŽDÉHO
+   návrhu fokusu:** „je tohle max vytěžení / plnění KOMPASu, nebo degradace / leštění modelu /
+   rekonstruktor?" → druhé = STOP (špatná fáze). Důvod existence: opakované sklouznutí (~6×).
 1. Načti kontext: README.md (root), `docs/architecture.md`, `docs/TODO.md`, `docs/DIARY.md` +
    poslední 1–2 diáře (docs/diary/), `docs/IDEAS.md` dle potřeby.
    (Pracovní dokumenty TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY žijí v `docs/` od Sez. 47;

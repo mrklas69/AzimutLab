@@ -127,10 +127,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   morfologické **closing seed masky** PŘED dissolve (vyplní úzké zářezy mezi RÚIAN parcelami). **Oponuji convex hullu** (uživatelovo „vnější
   body" by mohl znamenat hull) — ztratil by legitimní konkávní tvary velkých pozemků (zálivy) a mohl by plotem pohltit sousední ne-privátní
   oblast. RDP/closing drží tvar, jen hladí. Riziko (Sez. 98): vyšší práh komolí malé bloky → ladit s `FENCE_MIN_AREA_M2` na očích.
-- [ ] *(vizuál Soví vrch, nález uživatele Sez. 116)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové plochy podél komunikací** —
-  symboly jsou pak často zakryté nebo částečně zakryté liniovým symbolem cesty/silnice. Souvisí s pseudo body maskou
-  (`_generate_pseudo_boulders`) — analogie k vyloučení vody (`_clip_fences_off_water`/`_rasterize_water_grid`, Sez. 113):
-  vyloučit z pseudo masky úzké plošky/koridory podél cest (erodovat masku o okolí cest, nebo min. vzdálenost bodu od linie cesty).
+- [x] *(vizuál Soví vrch, nález uživatele Sez. 116; HOTOVO Sez. 136)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové
+  plochy podél komunikací** — řešeno sdíleným `_build_forbid_px` (px maska budovy/cesty/zpevněné, dilatovaná o poloměr;
+  PX rozlišení — tenké 501/cesty pásy by grid neviděl). Aplikováno na pseudo boulders 204/210 I pseudo veg 417/419.
+  Verify z `.omap`: 0 bodů na cestách/budovách/zpevněných. (DONE Sez. 136.)
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
@@ -271,13 +271,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     `POINT_CLASSES` (Png2Point) — registr generalizován (kind/color/n_range/**peak_thr**), zelený prstenec 417 + X 419
     s bílou knockout svatozáří (verify ISOM 2017-2). Synt medián 3 seedů mF1 0,827; **reálný transfer (eval_real, audit
     A1): 419 SILNÝ 0,67–0,76, 417 0,48–0,57** (Sez. 129 práh + Sez. 135 řidší injekce). **ZBÝVÁ:** (a) **KPI pseudo injekce do
-    generátoru (půlka 2)** — VĚDOMĚ ODLOŽENA Sez. 128: 417/419 nejsou v geodatech doložené → fabrikace polohy = Goodhart
-    (A3); informovaná transferem (419 by stálo za to, ale chybí doložený zdroj umístění — 417 má řídký `Významný_strom`
-    ZABAGED, 419 ne); (b) **417 precision — HOTOVO: Sez. 129 symptom-práh + Sez. 135 PŘÍČINA** (cause-fix: injekce
+    generátoru (půlka 2) — HOTOVO Sez. 136** (volba uživatele: pseudorealistická dekorace, ne KPI honba): `_generate_pseudo_veg_points`
+    (princip kamenů, 417 doplnit řídký ZABAGED na reálnou hustotu / 419 čistě pseudo; mimo voda/skály/budovy/cesty/zpevněné +
+    ISOM rozestup). KPI 58,6 → 61,1 % (POKRYTÍ; proporčně Goodhart-citlivé — vědomě, měřítko zůstává reálný transfer);
+    (b) **417 precision — HOTOVO: Sez. 129 symptom-práh + Sez. 135 PŘÍČINA** (cause-fix: injekce
     ⌀40/dlaždici = 2–3× nad reálnou hustotou ~12–20 → `inject.py n_range (20,60)→(10,30)`; re-trénink `s135_417sparse_s0`
-    synt 417 F1 0,90 R0,98 / **real F1 0,48–0,57** — nad Sez. 128 pásmem, ale ~neutrální vůči prahu, hodnota =
-    principiální hustota + bez recall kolapsu; sweep `temp/sweep_thr_417.py`; multiseed = volitelný follow-up);
-    (c) **418** (odloženo: malý, riziko kolapsu jako 210); (d) pak 109/111/112/115.
+    synt 417 F1 0,90 R0,98 / **real F1 0,48–0,57**);
+    (c) **418 Prominent bush — doložená KOMPAS díra (orig 178/gen 0), Sez. 136 → Příště** (malý zelený plný bod, stejná
+    mašinérie jako 417/419); (d) pak 109/111/112/115.
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).

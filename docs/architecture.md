@@ -114,8 +114,10 @@ bodových, liniových i plošných ISOM symbolů.
 > linie (→ Png2Line) + body (→ Png2Point) → cesta k 90 % vede přes ně, ne přes leštění ploch.
 > **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125, na kanonickém měřítku Sez. 126, scope rozšířen 204/210→+417/419
 > Sez. 128** (test mF1 0,827 medián 3 seedů na MPP 1,33; reálný transfer 419 silný 0,67–0,76 / 417 střední 0,40–0,49),
-> pseudo body 204/210 integrovány do generátoru Sez. 107 (KPI 50,3 → 59,1 %; pseudo 417/419 vědomě odloženo Sez. 128,
-> data-gate→Goodhart); zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
+> pseudo body 204/210 integrovány do generátoru Sez. 107 (KPI 50,3 → 59,1 %), **pseudo 417/419 integrovány Sez. 136**
+> (princip kamenů: 417 doplní řídký ZABAGED na reálnou hustotu, 419 čistě pseudo; mimo voda/skály/budovy/cesty/zpevněné,
+> ISOM rozestup; KPI 58,6 → 61,1 %, KOMPAS pokrytí — proporčně Goodhart-citlivé, jako POKRYTÍ legitimní);
+> zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
 > **separaci** (reálná produkční cesta párů
 > `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).

@@ -442,6 +442,17 @@ Výskyt: pramen Σ65 (přesně sedí na probe), jeskyně+šachta Σ9, nádrž Σ
 Sez. 44):** OOM `.omap` symbol coords mají osu **+y = DOLŮ** — rastrový render NEFLIPUJE (`screen_y = cy + omap_y`);
 opačný předpoklad zrcadlil cave/spring → paměť `omap-symbol-y-axis-down`.
 
+**Sez. 136 (pseudo body 417/419, FÁZE 2 `pseudorealistic`)** — `_generate_pseudo_veg_points`, izomorf pseudo
+boulders (Sez. 107). Asymetrie: Png2Point **čte** 417/419, ale generátor je skoro nekreslil (417 jen řídce z ZABAGED
+`Významný_strom`, 419 vůbec). Princip kamenů: **417 doplnit** na reálnou hustotu (cíl − reálné ZABAGED), **419 čistě
+pseudo**. Hustota MĚŘENA z kartografových `.omap` (medián 417 ~27/km², 419 ~18/km²), losovaná per mapa. **Umístění**
+(volba uživatele): MIMO vodu + MIMO 206 skály (strom neroste v balvanitém poli) + MIMO budovy/cesty/zpevněné
+(`_build_forbid_px`, **px rozlišení** — tenké 501/cesty pásy by se na gridu ztratily, symbol pod nimi zakryt; sdíleno
+s pseudo boulders, DRY). **ISOM rozestup** (symboly se nepřekrývají): rejection sampling, min. vzdálenost středů
+≥ r_a+r_b+mezera. Render `_draw_landmark` (417 zelený kroužek; **419 = zelený X**, mirror inject `_stamp_cross`).
+Gated `pseudorealistic` (visí na `landmarks="real"`), pseudo → `landmarks_info` (meta) i `.omap`. KPI 58,6 → 61,1 %
+(POKRYTÍ; proporčně Goodhart-citlivé — poloha pseudo). 418 = doložená KOMPAS díra (Příště).
+
 ### 4.9l Mokřady (real-půlka, Sez. 44, dávka 4)
 **✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**
 (`zabaged.map_marsh_to_isom`, KISS vždy crossable 308 — data nenesou atribut překonatelnosti, NE 307 uncrossable).

@@ -2,7 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
-## Sezení 135 (2026-06-16) — 417 re-trénink: řidší injekce (příčina přestřelu) + %AUDIT:CODE
+## Sezení 136 (2026-06-17) — pseudo body 417/419 do generátoru (princip kamenů) + ROADMAP + fázová závora
+Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-136--pseudo-body-417419-do-generátoru-princip-kamenů--roadmap--fázová-závora-hal3000).
+- [x] **Pseudo vrstva 417/419 v generátoru** (`generator/generator.py` `_generate_pseudo_veg_points`, gated
+  `pseudorealistic`, izomorf `_generate_pseudo_boulders`). Princip kamenů (Sez. 107): 417 doplnit řídký ZABAGED
+  `Významný_strom` na reálnou hustotu, 419 čistě pseudo. **Měření first** (crosswalk-aware `parse_carto_points`):
+  medián 417 ~27/km², 419 ~18/km². Maska = pole MINUS voda MINUS 206 skály; hustota losovaná per mapa.
+  `ISOM_VEG_FEATURE=419` + `LANDMARK_NAME/CLASS[419]`; render `_draw_landmark` (419 = nový zelený X, mirror inject
+  `_stamp_cross`); `omap_export` „419" do `USED_CODES`; pseudo do `landmarks_info` (meta) i `.omap`.
+- [x] **Bod 1 — ISOM rozestup** (nález uživatele {A} Nová Louka: dva symboly přes sebe). Rejection sampling:
+  nový bod zahozen, je-li blíž než r_a+r_b+`PSEUDO_VEG_MIN_GAP_MM` k umístěnému. Verify: 0 párů pod floor.
+- [x] **Bod 2 — nekreslit na budovách/cestách/zpevněných** (nález {A} Soví vrch: kameny na 501 pásech podél cest
+  zakryté). Grid maska SELHALA (tenké cesty zmizí → 160 px na cestách) → **px rozlišení + dilatace o poloměr**:
+  sdílený helper `_build_forbid_px` (DRY). Aplikováno na **veg 417/419 I kameny 204/210**. Verify z `.omap`
+  (paper→px): VŠECHNY čtyři třídy **0 na cestách/budovách/zpevněných**.
+- [x] **KPI 58,6 → 61,1 %** — KOMPAS se sám zaktualizoval (cache invalidace na čas kódu): 417 gen 0→199,
+  419 gen 0→230 (z `·` na `✓`). Proporčně Goodhart-citlivé, jako pokrytí legitimní (2 nové typy).
+- [x] **ROADMAP.md** (z uživatelova `ROADMAP.txt`, formalizováno + fázová závora + antidrift; `.txt` smazán) +
+  **`%BEGIN` krok 0.5** (číst ROADMAP, self-check fáze). **Zakázaná slova:** `Rekonstruktor()` + „degradace"
+  (jsme v etapě `Generator()`, rozhodnutí uživatele).
+- [x] **Nález: 418 je doložená KOMPAS díra** (orig 178 / gen 0) — dřívější tvrzení „není díra" vyvráceno → Příště.
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-135--417-re-trénink-řidší-injekce-příčina-přestřelu--reálný-transfer--audit-kódu-hal3000).
 - [x] **`%AUDIT:CODE`** (commit `a1cc450`) — mrtvý kód, konvence, docs-drift, struktura; nálezy a opravy v commitu.
 - [x] **(Png2Point, námitka follow-up 417 (b) — PŘÍČINA přestřelu dořešena.** Sez. 129 srazil 417 přestřel jen
