@@ -241,6 +241,13 @@ class LineClass:
 
 LINE_CLASSES: list[LineClass] = [
     LineClass(name="watercourse", codes=["304", "305"], conf_thr=0.95),   # plná modrá linie vodního toku
+    # KROK 2 (Sez. 133) ZAVRŽEN měřením: přidání dashed 508 narrow ride + 516 fence reálně NEPŘINESLO hodnotu.
+    # Měření (eval_real + conf_thr sweep, 3 kartografovy skeny): (a) 508/516 mají DOMÉNOVÝ GAP — completeness
+    # strop 0,14–0,22, prahem neřešitelný (model dashed černé linie na reálném skenu netrasuje; vzor 210 =
+    # přerušované/málo výrazné symboly se nepřenášejí); (b) multi-class ZHORŠIL watercourse — i po prahové
+    # optimalizaci (thr 0,99) jen IoU 0,311 vs krok 1 single-class 0,409 (−24 %). Dashed linie potřebují JINÝ
+    # přístup (verify gen renderu dashed vs realita / dashed-specifická augmentace / morfologické přemostění),
+    # ne prosté přidání třídy. Doložený negativní nález (jako forest-age archiv) → návrat k watercourse-only.
 ]
 LINE_CODE_TO_LABEL = {code: i + 1 for i, lc in enumerate(LINE_CLASSES) for code in lc.codes}
 LINE_LABEL_NAME = {0: "pozadí", **{i + 1: lc.name for i, lc in enumerate(LINE_CLASSES)}}
@@ -254,7 +261,8 @@ N_LINE = len(LINE_CLASSES) + 1   # + pozadí (label 0)
 # dost úzká ať se sousední linie nesplynou (vrstevnice/hustá síť toků).
 GT_LINE_WIDTH_PX = 3
 
-# Vizualizační barvy linií (verify overlay) — modrá pro watercourse (přibližná ISOM, ne render).
+# Vizualizační barvy linií (verify overlay) — modrá pro watercourse (přibližná ISOM, ne render). Registr je
+# rozšiřitelný: nová třída = nový klíč (krok 2 dashed 508/516 zkoušen Sez. 133, zavržen měřením — viz výše).
 LINE_LABEL_VIS = {0: (255, 255, 255), 1: (30, 110, 210)}
 
 

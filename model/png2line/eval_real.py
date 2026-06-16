@@ -211,46 +211,49 @@ def main(name):
     scan_arr = np.asarray(scan_img)
 
     lines = parse_carto_lines(omap)
-    print(f"{name}: {len(lines)} liniových objektů watercourse; ver {detect_version(str(omap))}; "
-          f"sken {W0}x{H0}→{W}x{H}")
+    print(f"{name}: {len(lines)} liniových objektů (scope {sorted(set(LINE_CODE_TO_LABEL))}); "
+          f"ver {detect_version(str(omap))}; sken {W0}x{H0}→{W}x{H}")
 
     to_px = paper_to_scan_px(omap, pgw)                  # rot_sign=−1, flip_y=True (default, ověřeno Sez. 120)
     Y = rasterize_line_Y(lines, to_px, f, W, H)
     pred = predict_scan(scan_arr)
-
     field = _map_area_mask(scan_arr)
-    gt = (Y == 1) & field                                # watercourse GT uvnitř mapového pole
-    pr = (pred == 1) & field                             # predikce watercourse uvnitř pole
-    dropped = int(((pred == 1) & ~field).sum())          # halucinace mimo pole (info)
 
-    if gt.sum() == 0:
-        print(f"    watercourse: GT prázdné (0 px) — mapa nemá toky 304/305 ve scope, přeskakuji metriku")
-        _overlay(scan_img, gt, pr).save(_OUT / f"realline_{name}_overlay.png")
-        return None
-
-    # (1) PŘÍSNÉ pixel IoU (stejná optika jako train.evaluate) — srovnatelné se syntetikou
-    inter = int((gt & pr).sum())
-    union = int((gt | pr).sum())
-    iou = inter / union if union else 0.0
-
-    # (2) RELAXOVANÉ completeness/correctness (buffer BUFFER_PX, Wiedemann 1998)
+    # KROK 2 (Sez. 133): měříme KAŽDOU foreground liniovou třídu (1..N_LINE-1) zvlášť. Třída s prázdným
+    # GT (mapa ji nemá ve scope) se přeskočí, ostatní se měří dál (no silent fallback: vypíšeme proč).
     se = _disk(BUFFER_PX)
-    gt_d = binary_dilation(gt, se)
-    pr_d = binary_dilation(pr, se)
-    completeness = int((gt & pr_d).sum()) / int(gt.sum())            # recall: GT pokryté predikcí
-    correctness = (int((pr & gt_d).sum()) / int(pr.sum())) if pr.sum() else 0.0   # precision: pred u GT
-    rf1 = (2 * completeness * correctness / (completeness + correctness)
-           if (completeness + correctness) else 0.0)
-
-    print(f"    watercourse: GT={int(gt.sum()):>7} px  pred={int(pr.sum()):>7} px (−{dropped} mimo pole)")
-    print(f"    [PŘÍSNÉ]    pixel IoU {iou:.3f}  (vs syntetika 0,55)")
-    print(f"    [RELAXOVANÉ buffer {BUFFER_PX}px]  completeness {completeness:.3f}  "
-          f"correctness {correctness:.3f}  F1 {rf1:.3f}")
+    per_class: dict[str, dict] = {}                       # label_name → metriky (jen třídy s neprázdným GT)
+    for lab in range(1, N_LINE):
+        lab_name = LINE_LABEL_NAME[lab]
+        gt = (Y == lab) & field                          # GT této třídy uvnitř mapového pole
+        pr = (pred == lab) & field                       # predikce této třídy uvnitř pole
+        dropped = int(((pred == lab) & ~field).sum())    # halucinace mimo pole (info)
+        if gt.sum() == 0:
+            print(f"    {lab_name}: GT prázdné (0 px) — mapa nemá tuto třídu ve scope, přeskakuji metriku")
+            continue
+        # (1) PŘÍSNÉ pixel IoU (stejná optika jako train.evaluate) — srovnatelné se syntetikou
+        inter = int((gt & pr).sum())
+        union = int((gt | pr).sum())
+        iou = inter / union if union else 0.0
+        # (2) RELAXOVANÉ completeness/correctness (buffer BUFFER_PX, Wiedemann 1998)
+        gt_d = binary_dilation(gt, se)
+        pr_d = binary_dilation(pr, se)
+        completeness = int((gt & pr_d).sum()) / int(gt.sum())            # recall: GT pokryté predikcí
+        correctness = (int((pr & gt_d).sum()) / int(pr.sum())) if pr.sum() else 0.0   # precision: pred u GT
+        rf1 = (2 * completeness * correctness / (completeness + correctness)
+               if (completeness + correctness) else 0.0)
+        print(f"    {lab_name}: GT={int(gt.sum()):>7} px  pred={int(pr.sum()):>7} px (−{dropped} mimo pole)")
+        print(f"    [PŘÍSNÉ]    pixel IoU {iou:.3f}")
+        print(f"    [RELAXOVANÉ buffer {BUFFER_PX}px]  completeness {completeness:.3f}  "
+              f"correctness {correctness:.3f}  F1 {rf1:.3f}")
+        per_class[lab_name] = {"iou": iou, "completeness": completeness,
+                               "correctness": correctness, "f1": rf1}
 
     colorize_lines(Y).save(_OUT / f"realline_{name}_Y.png")
     colorize_lines(pred).save(_OUT / f"realline_{name}_pred.png")
-    _overlay(scan_img, gt, pr).save(_OUT / f"realline_{name}_overlay.png")
-    return {"iou": iou, "completeness": completeness, "correctness": correctness, "f1": rf1}
+    # Overlay = všechny foreground třídy dohromady (georef verify; per-class chyby vidím v _Y/_pred barvených)
+    _overlay(scan_img, (Y > 0) & field, (pred > 0) & field).save(_OUT / f"realline_{name}_overlay.png")
+    return per_class or None
 
 
 if __name__ == "__main__":
@@ -260,14 +263,23 @@ if __name__ == "__main__":
         pass
     # diakritický argv padá v harness (gotcha Sez. 119) → názvy hardcoded, bez argv
     targets = [sys.argv[1]] if len(sys.argv) > 1 else ["Velbloud", "Blatná", "Bedřichovka"]
-    res = []
+    res = []                                              # [(name, per_class dict)]
     for nm in targets:
         print("=" * 70)
         r = main(nm)
         if r:
             res.append((nm, r))
-    if len(res) > 1:
+    if len(res) >= 1:
         print("=" * 70)
-        mi = float(np.mean([r["iou"] for _, r in res]))
-        mf = float(np.mean([r["f1"] for _, r in res]))
-        print(f"[SOUHRN] {len(res)} map  průměr pixel IoU {mi:.3f}  relaxované F1 {mf:.3f}")
+        # Souhrn PER TŘÍDA: každou liniovou třídu průměrujeme přes mapy, kde má neprázdné GT (počet se liší
+        # — fence se na všech skenech vyskytovat nemusí). Izomorf png2point eval_real per-class souhrnu.
+        from collections import defaultdict
+        agg: dict[str, list] = defaultdict(list)
+        for _, pc in res:
+            for cls, m in pc.items():
+                agg[cls].append(m)
+        print(f"[SOUHRN] {len(res)} map, per třída (průměr přes mapy s neprázdným GT):")
+        for cls, ms in agg.items():
+            mi = float(np.mean([m["iou"] for m in ms]))
+            mf = float(np.mean([m["f1"] for m in ms]))
+            print(f"    {cls:<12} ({len(ms)} map)  pixel IoU {mi:.3f}  relaxované F1 {mf:.3f}")
