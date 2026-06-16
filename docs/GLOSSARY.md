@@ -450,6 +450,19 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   completeness (recall) = podíl GT pixelů do tolerančního bufferu od predikce; correctness (precision) = podíl
   pred pixelů do bufferu od GT. Robustní vůči ~1px georef/šířkovému posunu (na který je strict pixel IoU u tenké
   linie krutě citlivá) → poctivá odpověď „trasuje model linii?". Dvojice se strict IoU = izomorf strict+soft Png2Area.
+- **vektorizace / „.omap assembly"** (Sez. 132, `model/vectorize.py`) — sdílený postprocess [[reconstructor]]u
+  převádějící masku linií (výstup segmentace [[reconstructor|Png2Line]]) na vektorové polyline: `skeletonize`
+  (skimage, Zhang-Suen/Lee) → graf kostry (stupeň přes 8-sousedství: uzel = deg≠2) → trasování řetězců mezi
+  uzly → **vlastní RDP** (Ramer–Douglas–Peucker). Čistá geometrie (žádný torch) → sdílitelné area/point/line.
+  `scan_px_to_paper` (SSoT inverze [[generator|paper_to_scan_px]]) převede polyline na paper µm → `build_omap`
+  zapíše `.omap` (klon georef + linie). **Ztráta vs raster baseline malá (ΔIoU −0,039)** = drží strukturu.
+  Krok 1 (architektura A Sez. 130): model JEN segmentuje, vektorizace je odložený samostatný krok. Známá
+  omezení: junkce tříští toky (crude), dashed (508) rozpad → gap-bridging = follow-up.
+- **poledník / magnetic north line** (nález uživatele Sez. 132) — modré (i černé) rovné rovnoběžné čáry
+  orientující OB mapu na magnetický sever. [[reconstructor|Png2Line]] je bere jako [[watercourse]] 304/305
+  (modré + liniové). **Vlastní detektor** (TODO/IDEAS): diskriminátor = členství v pravidelné rovnoběžné
+  SOUSTAVĚ (konst. rozestup, směr = grivace), NE „rovná ∧ modrá ∧ ‖ sever" — rovný vodní kanál ‖ severu by
+  geometrickým filtrem padl (korekce uživatele). Soustava ho nezahrne (osamělá linie).
 - **Checkpoint run / promote** (CODE-C2, Sez. 127) — plný trénink živého
   reconstructoru nikdy nezapisuje přímo do kanonického `unet_best.pt`. Sdílený
   `model/checkpoints.py` založí `resources/{area,point}_model/runs/<run_id>/`

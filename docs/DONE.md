@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 132 (2026-06-16) — Png2Line vektorizace maska→polyline→.omap + Buschdörfl
+Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-132--png2line-vektorizace-maskapolylineomap--buschdörfl--nález-poledníků-hal3000).
+- [x] **(Png2Line B) Vektorizace maska→polyline — sdílený „.omap assembly" krok** (`model/vectorize.py`,
+  čistá geometrie bez torch): `skeletonize` (skimage) → graf kostry (deg≠2 = uzel) → trasování řetězců →
+  **vlastní iterativní RDP** + `rasterize_polylines` (zpět na masku pro měření). +scikit-image do requirements.
+- [x] **Georef inverze + `.omap` assembly** (`model/png2line/vectorize_omap.py`): `scan_px_to_paper`
+  (inverze `paper_to_scan_px`, SSoT vedle ní v png2area, round-trip ~1e-8 µm); `build_omap` (čistý template +
+  naklonovaný georef kartografovy mapy + linie kód 304, string-based). Měření vektor vs raster baseline.
+  **Ztráta vektorizace ΔIoU −0,039 / ΔF1 −0,028** (Velbloud/Blatná/Bedř) = skeletonize+RDP drží strukturu.
+- [x] **Buschdörfl (přání uživatele, 4. mapa — NĚMECKÁ Livelox, `maps/` struktura)**: georef sestaven z
+  `projectedBoundingQuadrilateral` (rovnoběžník → afinní `.pgw`, mpp 1,333 ✓); paper↔world přes meta bbox
+  (gen.omap nemá ref_point). **143 polyline → `vecline_source_livelox.omap`. 98 % vektoru do 3 px od modrých
+  pixelů skenu** (model nefíruje na cesty; correctness vs gen.omap 0,27 neférová — GT generovaná).
+- [x] **6 testů `tests/test_vectorize.py`** (RDP, trasování L-tvar, prázdná maska, completeness, meze) → **14/14 OK**.
+- [x] **Oprava zvonku** (vedlejší): 3 zdroje (globální wav + projektový beep + manuální mp3) → JEDEN
+  (`service-bell.wav` na Stop+Notification). Smazán manuální zvonek z `CLAUDE.md` + projektový beep hook + mp3
+  permission. Volba uživatele. Paměť `bell-via-hook-not-manual`.
+- [+] **Nález uživatele → IDEAS+TODO** (NE hotovo): modré magnetické **poledníky** → Png2Line je bere jako
+  watercourse. **Vlastní poledníkový detektor** (soustava ne osamělá linie — kanál ‖ severu nesmí padnout).
+
 ## Sezení 131 (2026-06-16) — Png2Line krok 1: plný trénink + reálný transfer + conf_thr práh
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-131--png2line-krok-1-plný-trénink--reálný-transfer--conf_thr-práh-hal3000).
 - [x] **Png2Line krok 1 — PLNÝ TRÉNINK** (`train.py --seed 0`, 40 ep, ~2 h): **test mIoU 0,774 /

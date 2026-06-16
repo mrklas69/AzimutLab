@@ -284,10 +284,20 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     304/305 (`N_LINE=2`): plný trénink test mIoU 0,774 / IoU 0,55** (Sez. 131); **reálný transfer PROKÁZÁN**
     (`model/png2line/eval_real.py`, completeness 0,90–0,96 = trasuje reálné toky, žádný kolaps; slabina precision).
     **conf_thr práh 0,95** (registr `LineClass`, izomorf `peak_thr`) srazil přestřel: real IoU 0,251→0,409,
-    F1 0,659→0,773. **ZBÝVÁ:** (a) **vektorizace maska→polyline** (sdílený „.omap assembly": skeletonize+RDP;
-    dashed/crossing = known limitations); (b) **krok 2 dashed 508 + 516** (top-5 KPI díra; zároveň strukturální
-    cure zbylých FP — víc tříd naučí odlišit tok od cesty/plotu). Reuse `tile`/`dataset`/`degrade`/`purple`.
-    CUDA-vázané (HAL3000/mrkla).
+    F1 0,659→0,773. **(a) vektorizace maska→polyline HOTOVO Sez. 132** (`model/vectorize.py` skeletonize→graf→RDP +
+    `rasterize_polylines`; `scan_px_to_paper` inverze georef SSoT; `model/png2line/vectorize_omap.py` predikce→
+    vektorizace→`.omap` klon georef + měření; **ztráta ΔIoU −0,039 / ΔF1 −0,028** = drží strukturu; +scikit-image;
+    `tests/test_vectorize.py` 6 testů; Buschdörfl NĚMECKÁ Livelox 98 % vektoru na modrých tocích). **ZBÝVÁ:**
+    (b) **krok 2 dashed 508 + 516** (top-5 KPI díra; zároveň strukturální cure zbylých FP — víc tříd naučí
+    odlišit tok od cesty/plotu); (c) **gap-bridging u junkcí** (vektorizace tříští toky na uzlech — Velbloud 197 /
+    Buschdörfl 143 polyline; crude junction handling). Reuse `tile`/`dataset`/`degrade`/`purple`. CUDA-vázané (HAL3000/mrkla).
+  - [ ] *(nález uživatele Sez. 132, doložen na Buschdörfl)* **Poledníkový detektor — svébytný modul, NE filtr na
+    vodstvo.** Magnetické poledníky (modré rovné rovnoběžné čáry na sever) Png2Line bere jako watercourse 304/305.
+    **Korekce uživatele: geometrický filtr na watercourse výstupu NELZE** — rovný vodní kanál ‖ severu by se smazal.
+    Diskriminátor = **členství v pravidelné rovnoběžné SOUSTAVĚ** (≥3 čáry, konst. kolmý rozestup, směr = grivace
+    z georef), ne „rovná ∧ modrá ∧ ‖ sever". Metoda: projekce kolmo na magnetický sever → periodické peaky
+    (autokorelace/FFT) = grid; osamělý kanál = ojedinělý peak. Globální nad skenem. Edge: grivace ≠ 0 (úhel z georef,
+    ne svislice), černé poledníky (watercourse nebere). Ověřit: kreslí gen render poledníky do X? Detail IDEAS.
 - [~] **(doložený směr Sez. 90, ROZSAH po 1. tréninku) Granularita area tříd — pattern vs odstín.** Měření
   401/403: **403 (bledá žlutá Rough open) je v ČR mapách běžné rozlišení** (vizuál `690592` doložil), sloučení
   403→401 v generátoru = doložená ztráta. Detail + metoda + dvě osy (ODSTÍN nearest-color umí / PATTERN jen CNN)

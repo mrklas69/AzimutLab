@@ -6,10 +6,6 @@ je v `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md +
 `docs/architecture.md` (ne sem).
 
 ## Doménové pracovní zásady
-- **Zvonek před čekáním na uživatele.** Těsně před otázkou, žádostí o schválení
-  nebo jiným krokem, po kterém agent čeká na vstup uživatele, přehraj
-  `C:\Users\mrkla\.codex\resources\servant-bell-ring.mp3`. Pokud soubor není
-  dostupný, řekni to nahlas; nepředstírej úspěch.
 - **Foundations before curtains — tvrdě.** Projekt je deštník nad 5 UC (DAG, ne
   seznam). Enablery (UC2 data / UC5 modely) jdou před aplikacemi (UC3/UC4).
   Než sáhneš na aplikaci, ověř, že enabler pod ní stojí. Scope creep je

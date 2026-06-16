@@ -75,6 +75,22 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
     žádný kolaps jako Png2Point 210; segmentace-only stačí), slabina precision přestřel na cesty → **conf_thr
     práh 0,95** (registr `LineClass`, izomorf `peak_thr`): IoU 0,409 / F1 0,773. Detail DONE/diář Sez. 131.
     ZBÝVÁ: (B) vektorizace maska→polyline (sdílený krok) + krok 2 dashed 508/516 (i strukturální cure precision).
+  - **(B) vektorizace HOTOVO Sez. 132:** `model/vectorize.py` (skeletonize → graf kostry → trasování → vlastní
+    RDP + `rasterize_polylines`), `scan_px_to_paper` inverze georef (SSoT vedle `paper_to_scan_px`),
+    `model/png2line/vectorize_omap.py` (predikce → vektorizace → `.omap` klon georef + linie 304 + měření).
+    **Ztráta vektorizace malá: ΔIoU −0,039 / ΔF1 −0,028** (3 mapy) → skeletonize+RDP drží strukturu. +scikit-image.
+    Buschdörfl (NĚMECKÁ Livelox, 4. mapa): 98 % vektoru do 3 px od modrých pixelů skenu (nefíruje na cesty).
+- **Poledníkový detektor (nález uživatele Sez. 132) — svébytný modul, NE filtr na vodstvo.** Magnetické poledníky
+  (modré rovné rovnoběžné čáry orientující mapu na sever) Png2Line bere jako watercourse 304/305 (modré + liniové).
+  **Klíč (korekce uživatele): NELZE řešit geometrickým filtrem na watercourse výstupu** — rovný vodní KANÁL
+  orientovaný na magnetický sever by se smazal. Diskriminátor poledníku = **členství v pravidelné rovnoběžné
+  SOUSTAVĚ** (≥3 rovné čáry, konstantní kolmý rozestup, směr = grivace z georef), ne „rovná ∧ modrá ∧ ‖ sever".
+  Osamělý kanál ‖ severu netvoří soustavu → detektor ho nechá být. **Metoda:** promítnout linie do směru kolmého
+  na magnetický sever → poledníky = PERIODICKÉ peaky (rozestup ověřitelný autokorelací/FFT); kanál = ojedinělý peak.
+  Grid je GLOBÁLNÍ vlastnost mapy → detektor běží nad celým skenem (ne per-pixel třída). Edge cases: grivace ≠ 0
+  (poledníky pod úhlem — brát směr z georef, ne svislici); poledníky bývají i ČERNÉ (pak watercourse nebere).
+  Otevřené k ověření: kreslí gen render poledníky do X párů? (pokud reálné Livelox je mají a trénink ne →
+  doménový gap). Doložení nálezu Sez. 132: Buschdörfl ostrý peak 22 polyline na 90° (4× nad pozadím), vizuál.
 - **Patternové area třídy.** Nearest-color rozliší odstín, ne mřížku, tečky,
   diagonály a směrové čárky. Každá nová jemná třída musí současně splnit:
   generátor ji umí vytvořit, render nese viditelný signál a
