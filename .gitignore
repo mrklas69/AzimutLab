@@ -40,6 +40,8 @@ resources/
 # Claude / IDE lokální
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+# Codex = paralelní AI nástroj (Sez. 134); jeho lokální config do našeho repa nepatří (symetrie .claude).
+.codex/
 .idea/
 .vscode/
 

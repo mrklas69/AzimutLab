@@ -28,7 +28,6 @@ Merge (re-run): auto pole se PŘEPÍŠOU z aktuálních dat/pravidel; ruční (v
 Spouštět z kořene repa (sys.path skript, fáze B — ne balík).
 """
 import json
-import os
 import re
 from pathlib import Path
 
@@ -126,10 +125,13 @@ def build_curation(merge: bool = True) -> dict:
         if not d.is_dir() or d.name.startswith("_"):
             continue
         cid = d.name
+        # no silent fallback (Sez. 135 audit): mapu s chybějícím/poškozeným meta.json nebo gt_labels.png
+        # NEVYNECHÁVEJ mlčky — vypiš ji, ať je vidět, že nějaká vypadla z manifestu (vzor measure_dod).
         try:
             meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
             green = _green_pct(d)
-        except Exception:
+        except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
+            print(f"  [curate] VYNECHÁNO {cid}: {type(e).__name__} ({e})")
             continue
         name = meta.get("name") or ""
         scale = meta.get("mapScale")

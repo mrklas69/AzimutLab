@@ -5,8 +5,6 @@ Každý trénink zapisuje do vlastního ``runs/<run_id>/``. Kanonický
 checkpointů i malých JSON manifestů probíhají přes dočasný soubor ve stejném
 adresáři a atomický ``os.replace``.
 """
-from __future__ import annotations
-
 import hashlib
 import json
 import os

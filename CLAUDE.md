@@ -53,7 +53,7 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
 - `connectors/` — UC2 konektory reálných geodat: `dmr.py` (výškopis), `zabaged.py` (cesty/voda/budovy/…),
   `ruian.py` (katastr, Sez. 42), `ortofoto.py` (podklad); REST sourozenci sdílí `arcgis.py` transport
-  (Sez. 42). (Predikční zeleň jde ze separace, ne z dat — `forest.py` proxy archiv Sez. 102.)
+  (Sez. 42). (Predikční zeleň jde ze separace, ne z dat — `forest.py` proxy SMAZÁN Sez. 102, cesta zavržena.)
   UC5 korpus: `livelox.py` (stahování reálných OB map
   + páry X,Y `build_pairs`) + `map_gt.py` (runnability GT segmentace) + `curate.py` (kurace korpusu →
   `_curation.json`, 216 keep classic, Sez. 71) + `split.py` (ČR/DE filtr 207 ČR + geografický train/val/test

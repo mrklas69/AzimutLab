@@ -22,11 +22,14 @@ Geometrie ikonek = ze spec/template_classic.omap (verify-against-source Sez. 105
   204 Boulder           — plný černý kruh, r 0,4 mm (template id=32, point_symbol; gen BOULDER_RADIUS_PX).
   210 Stony ground      — pole jednotlivých teček 210.1, r 0,15 mm, rozestup ~1,2 mm (template area pattern
                           id na ř. 419: inner_radius=150 µm, line/point_distance=1200 µm; reálné = type=point).
+  417 Prominent large tree   — zelený PRSTENEC (kroužek), zeleň ISOM color 3 (Sez. 128, scope rozšířen).
+  419 Prom. vegetation feat. — zelený X s bílou knockout svatozáří (Sez. 128). Plné rozměry/barvy = registr
+                          POINT_CLASSES níže (verify-against-source ISOM 2017-2).
 
 Sys.path skript (fáze B, ne balík). Self-test (vizuál) dole: `python model/png2point/inject.py`.
 """
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np

@@ -154,7 +154,6 @@ def overprint_course(rgb: np.ndarray, seed: int) -> np.ndarray:
 
 if __name__ == "__main__":
     # self-check: nakresli trať na bílou i na šedý podklad, ulož vizuál do temp/ (proaktivní vizuál)
-    import sys
     from pathlib import Path
     try:
         sys.stdout.reconfigure(encoding="utf-8")

@@ -1081,12 +1081,6 @@ def _nearest_wall_tangent(p: tuple[float, float],
     return best_d, best_t
 
 
-def map_barrier_to_isom(layer: str) -> int | None:
-    """Zábrana (`Zábrana` = závora/brána) → ISOM 519 Crossing point (Sez. 52). KISS vrstva → vždy 519.
-    Filtr „jen na nosné zdi 513" dělá fetch_barriers (viz BARRIER_* konstanty); tady jen kód symbolu."""
-    return 519 if layer in BARRIER_LAYERS else None
-
-
 def fetch_barriers(lat: float, lon: float, gw: int, gh: int,
                    tile_m: float = 1000.0,
                    cache_dir: str | Path | None = None) -> list[tuple[float, float, float, float]]:

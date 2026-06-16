@@ -1,8 +1,9 @@
 """degrade.py — fáze II: degradace čistého renderu na „sken" (UC5, Sez. 86).
 
-Vstup = `rgb.png` (čistý render z generate_map, X-zdroj páru), výstup = degradovaný „sken" PNG
-= X v páru [sken, .omap]. Y (.omap) se NEmění → pár zůstává konzistentní. Reconstructor() se pak
-učí číst reálně vypadající tištěnou/naskenovanou mapu, ne hladký rastr (doložený domain gap, Sez. 82).
+Vstup = `rgb.png` (čistý render z generate_map). Degradace je AUGMENTACE volaná on-the-fly v loaderech
+(model/png2{area,point,line}/dataset.py._augment), NE krok výroby párů — X páru zůstává čistý `rgb.png`
+(Sez. 103, [[no-degradation-in-generator-phase]]). Y (.omap) se nikdy nemění → pár konzistentní.
+Reconstructor() se tak učí číst reálně vypadající tištěnou/naskenovanou mapu, ne hladký rastr (Sez. 82).
 
 Degradace je VÝHRADNĚ fotometrická (barva/šum/blur/komprese) — geometrii (rotace/warp) řeší
 augmentace v model/png2area/dataset.py (D4, Sez. 78), kde se transformuje X i Y zároveň. Neduplikovat (DRY/SLAP).

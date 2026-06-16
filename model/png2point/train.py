@@ -272,6 +272,9 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | Non
         train_ds = PointTileDataset("train", augment=True)
         val_ds = PointTileDataset("val", augment=False)
 
+    # num_workers=0 ZÁMĚRNĚ (na rozdíl od png2area/png2line s NW=4): PointTileDataset si v __init__
+    # přednačítá VŠECHNY mapy do RAM (~1,7 GB, dataset.py ř. 100) → random-crop je pak levný bez workerů.
+    # Na Windows (spawn) by každý worker tu RAM duplikoval → OOM; tady tedy 0 negraví GPU jako jinde.
     train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=0,
                           drop_last=not overfit)
     val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=0)

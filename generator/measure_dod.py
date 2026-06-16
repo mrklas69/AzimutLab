@@ -410,7 +410,6 @@ def run_kpi() -> None:
     inkrementálnímu progresu (dissolve 520 9×→1,3×, marsh 310 ho nehnuly). KPI dává partial credit
     za přibližování proporcí + je robustní vůči obal-artefaktu (proporce ruší rozdíl plochy)."""
     cw, v2000, v2017 = _load_crosswalk()
-    GEOM_CZ = {"area": "plocha", "line": "linie", "point": "bod"}
     per_map = []                                              # (name, kpi, sub{geom: kpi})
     agg_orig, agg_gen, agg_names = Counter(), Counter(), {}   # agregát pro žebříček děr
     for name in MAPS:
