@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 135 (2026-06-16) — 417 re-trénink: řidší injekce (příčina přestřelu) + %AUDIT:CODE
+Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-135--417-re-trénink-řidší-injekce-příčina-přestřelu--reálný-transfer--audit-kódu-hal3000).
+- [x] **`%AUDIT:CODE`** (commit `a1cc450`) — mrtvý kód, konvence, docs-drift, struktura; nálezy a opravy v commitu.
+- [x] **(Png2Point, námitka follow-up 417 (b) — PŘÍČINA přestřelu dořešena.** Sez. 129 srazil 417 přestřel jen
+  per-class prahem (symptom). Příčina = injekce 417 do tréninku `n_range (20,60)` ⌀40 symbolů/dlaždici, ale **reálná
+  hustota ~12–20** (měřeno z eval_real GT/plocha: Velbloud ~20 / Blatná ~12 / Bedř ~12) → staré ⌀40 = **2–3× nad
+  realitou** → model fíroval 417 na porost. Umělá hustota kvůli focal balancu je po focal-prior-bias-init (Sez. 125)
+  zbytečná. Fix `model/png2point/inject.py`: `n_range` 417 **(20,60) → (10,30)** (419 ponecháno).
+- [x] **Re-trénink + promote** (`s135_417sparse_s0`, 40 ep, seed 0): synt **test mF1 0,856** (204 0,83 / 210 0,77 /
+  **417 0,90 R0,98** / 419 0,93) — řidší injekce NEsrazila recall (obava vyvrácena). Promotnut na `unet_best.pt`,
+  záloha předchozího = `unet_best_presez135_baseline.bak`.
+- [x] **Reálný transfer (`eval_real`, 3 skeny):** 417 F1 **0,549 / 0,484 / 0,573** (P 0,66 / 0,39 / 0,65). Cause-fix
+  potvrzen (nad syrovým Sez. 128 pásmem 0,40–0,49, precision na horní hraně), ale **~neutrální vůči Sez. 129 prahu**
+  (0,52–0,55) — hodnota = principiální reálná hustota + bez recall kolapsu, ne metrický skok. Poctivá poznámka v diáři.
+- [x] **Gotcha zaznamenán:** prázdný log = blokově bufferovaný stdout (`python … > log`); příště `python -u`.
+
 ## Sezení 134 (2026-06-16) — Poledníkový detektor: ověření + data-driven rozestup
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-134--poledníkový-detektor-ověření--data-driven-rozestup-hal3000).
 - [x] **(nález Sez. 132, Png2Line) Poledníkový detektor — OVĚŘEN + zrobustněn.** Filtr `model/png2line/north_grid.py`

@@ -102,7 +102,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **4 třídy 204/210/417/419 od Sez. 128**): synt **0,827**
 > (medián 3 seedů: 417 0,85 / 419 0,86 / 204 0,77 / 210 0,84) / **realita mean 0,43–0,57** (per-class práh Sez. 129):
 > **419 Prom. veg. feature SILNÝ 0,67–0,76** (líp než 204, výrazný zelený X + bílá svatozář), **417 Prom. large tree
-> 0,52–0,55** (per-class práh 0,45 srazil přestřel P 0,38→0,40–0,68), 204 stabilní 0,44–0,73, **210 pořád kolabuje
+> 0,48–0,57** (Sez. 135 cause-fix: injekce na reálnou hustotu `n_range (20,60)→(10,30)`, re-trénink; ~neutrální vůči
+> Sez. 129 prahu, ale bez recall kolapsu; P 0,39–0,66), 204 stabilní 0,44–0,73, **210 pořád kolabuje
 > 0,00–0,25** (drobné tečky). Práh detekce je **per třída v registru `PointClass.peak_thr`** (zelené chtějí vyšší).
 > **Png2Line krok 1 watercourse 304/305 (Sez. 131, NOVÝ 3. reconstructor; pixel IoU / relaxed completeness/correctness):**
 > synt test mIoU 0,774 / IoU 0,55 · **realita: completeness 0,85–0,93 = model TRASUJE reálné toky** (žádný kolaps
@@ -269,11 +270,13 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [~] *(registr rozšíření, IDEAS B1; DETEKCE HOTOVO Sez. 128, decoupling)* bodové třídy **417/419** přidány do
     `POINT_CLASSES` (Png2Point) — registr generalizován (kind/color/n_range/**peak_thr**), zelený prstenec 417 + X 419
     s bílou knockout svatozáří (verify ISOM 2017-2). Synt medián 3 seedů mF1 0,827; **reálný transfer (eval_real, audit
-    A1): 419 SILNÝ 0,67–0,76, 417 0,52–0,55** (po per-class prahu Sez. 129). **ZBÝVÁ:** (a) **KPI pseudo injekce do
+    A1): 419 SILNÝ 0,67–0,76, 417 0,48–0,57** (Sez. 129 práh + Sez. 135 řidší injekce). **ZBÝVÁ:** (a) **KPI pseudo injekce do
     generátoru (půlka 2)** — VĚDOMĚ ODLOŽENA Sez. 128: 417/419 nejsou v geodatech doložené → fabrikace polohy = Goodhart
     (A3); informovaná transferem (419 by stálo za to, ale chybí doložený zdroj umístění — 417 má řídký `Významný_strom`
-    ZABAGED, 419 ne); (b) **417 precision — SYMPTOM HOTOVO Sez. 129** (per-class práh 0,45 v registru, F1 0,46→0,54,
-    P 0,38→0,40–0,68; sweep `temp/sweep_thr_417.py`); ZBÝVÁ příčina = re-trénink (řidší/distinktivnější injekce 417);
+    ZABAGED, 419 ne); (b) **417 precision — HOTOVO: Sez. 129 symptom-práh + Sez. 135 PŘÍČINA** (cause-fix: injekce
+    ⌀40/dlaždici = 2–3× nad reálnou hustotou ~12–20 → `inject.py n_range (20,60)→(10,30)`; re-trénink `s135_417sparse_s0`
+    synt 417 F1 0,90 R0,98 / **real F1 0,48–0,57** — nad Sez. 128 pásmem, ale ~neutrální vůči prahu, hodnota =
+    principiální hustota + bez recall kolapsu; sweep `temp/sweep_thr_417.py`; multiseed = volitelný follow-up);
     (c) **418** (odloženo: malý, riziko kolapsu jako 210); (d) pak 109/111/112/115.
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
@@ -352,6 +355,22 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   module-level globálech `GW/GH/W/H` (mutované `_apply_extent`), jejich přesun = přepsat globály na předávaný
   stav = velký refaktor proti fázi B (sys.path skripty, ne balík; KISS). Sledovat jako podmínku, nepsat do
   „Příště", dokud bolest nenastane (Stale check ≥5 sez, Sez. 40). Spouštěč splitu = přechod na balík (fáze A).
+- [ ] *(DRY dluhy, %AUDIT:CODE Sez. 135 — neopravené, evidováno pro fázi A)* **Sdílené moduly mezi reconstructory.**
+  Audit našel dozrálé DRY duplicity, vědomě NEopravené teď (riziko v živém kódu reconstructorů / fáze B sys.path;
+  „generalizuj s důkazem" splněn — 3.+ konzument existuje, spouštěč extrakce = přechod na balík fáze A):
+  - **tiling** `png2area/tile.py` ≈ `png2line/tile.py` (`make_preview`/`_positions`/`_crop`/`_median_freq_weights`/
+    `_write_tiles_json`) — v kódu dokumentovaný dluh „extrakce až 3. konzument"; `png2line` NYNÍ existuje = naplněno.
+  - **eval_real downscale** (pgw→src_mpp→resize, ~5 ř.) duplikováno 4× (`png2{area,point,line}/eval_real.py` +
+    `vectorize_omap.py`) → helper do `mpp.py` (kde žije `CANONICAL_MPP`).
+  - **`_map_area_mask`** identický v `png2point`+`png2line` eval_real (prahy 25/200) → sdílet (png2line už
+    importuje `paper_to_scan_px` z png2area, cesta existuje).
+  - **`PX_PER_MM`/`MAP_SCALE`** duplikát `inject.py`+`purple.py` (oba importují `CANONICAL_MPP`) → `mpp.py` SSoT.
+  - drobné (fáze A, komentář drží sync): `_point_in_ring` 2 verze v `generator.py`; `BRIDGE/TUNNEL 750µm`
+    `generator`↔`omap_export`.
+- [ ] *(no-silent-fallback, NEJISTÉ, %AUDIT:CODE Sez. 135)* **`split.py:72` tichý default `nw.get(d.name, 1.0)`** —
+  mapa chybějící v `_cz_filter.json` je bez varování „cizí" → po rozšíření korpusu se tréninkový pool tiše zmenší.
+  Nízké riziko (default konzervativní), NEopraveno (riziko regrese ve splitu = reprodukovatelnost mIoU). Doladit:
+  hlásit `cid` chybějící ve filtru, až bude loader sahat na potenciálně stale `_cz_filter`.
 - [ ] *(drobnost, doladění mostů/tunelů Sez. 33)* laděné konstanty `BRIDGE_CROP_HALFWIDTH_MM` (1,25), `BRIDGE_CARRIED_PARALLEL_DEG` (25°), `TUNNEL_PORTAL_HALF_UM` (750), passage `near_mm` (2,0) — ověřit i na LS silničním tunelu a hustší síti; případně tunelu cropovat i vodu (dnes jen železnice/cesty).
 - [ ] *(drobnost, nález Sez. 31)* **Podjezd ZABAGED** — `Podjezd (bod)` id=64 + `Podjezd (linie)` id=77; tematická skupina s Most/Tunel. Mapování → 519 Underpass? Verify-against-source spec před implementací (paměť `isom-spec-before-render`).
 - [ ] *(drobnost, nález Sez. 31)* **tramvaj LS verify v OOM** — 25 nových liniových objektů 509 (Tramvajová dráha včetně točny Lidové sady, LS celkem 40 železničních linií). Vykreslí OOM kombinovaný symbol 509 (čárky + bílý knockout) korektně i přes městskou síť?
