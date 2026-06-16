@@ -101,13 +101,16 @@ class PointClass:
 # rozmaže globálně) → floor ~2,5. 204 řídký → 3,0 (širší peak, snadno se ostří). 210 husté POLE teček
 # (rozestup ~9 px) → 2,0: dost velký na naučení, dost malý ať se sousední peaky nesplynou (< rozestup/2).
 # 417/419 jsou VÝRAZNÉ zelené symboly (footprint 13,5 m) → širší peak (3,5 / 4,0; X 419 je rozměrnější).
-# n_range u 417/419 nižší než 204 (reálně řidší), ale dost vysoké, ať je focal nezdusí vedle hustého 210.
+# n_range 417 (Sez. 135): sníženo (20,60)→(10,30) na REÁLNOU hustotu (měřeno z eval_real GT/plocha:
+# Velbloud ~20 / Blatná ~12 / Bedř ~12 stromů na dlaždici; staré ⌀40 = 2–3× nad realitou → model fíroval
+# 417 na porost = přestřel FP). Umělá hustota kvůli focal balancu (jako 204) je dnes zbytečná: focal prior
+# bias init (Sez. 125) drží řídké třídy bez nafouknutí. 419 ponecháno (transfer 0,67–0,76, funguje).
 # peak_thr (sweep Sez. 129, agreg. 3 reálné skeny): 204→0,30 (= optimum), 210→0,20 (kolabuje, nižší práh
 # vrátí pár teček), 417→0,45 (přestřel: 0,30 F1 0,46 → 0,45 F1 0,54, P 0,38→0,57), 419→0,40 (0,74→0,76).
 POINT_CLASSES: list[PointClass] = [
     PointClass(code="204", name="Boulder",                  radius_mm=0.40, sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120), peak_thr=0.30),
     PointClass(code="210", name="Stony ground",             radius_mm=0.15, sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
-    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(20, 60),  peak_thr=0.45),
+    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(10, 30),  peak_thr=0.45),
     PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60, sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
 ]
 N_POINT = len(POINT_CLASSES)
