@@ -34,8 +34,15 @@ přesah bboxu = okolní sídla. **Neatline border (Sez. 138 E2):** `cut._emit_ar
 uzavírací segment s flagem **16** → OOM nekreslí černý border podél umělé řezné hrany
 (single-run; multi-run je doložený limit). `gen_backgrounds.py` (Sez. 104/109) = OOM bg
 podklady do `gen.omap` (`add_backgrounds` Livelox pár / `add_resources_scan_background`
-měřicí mapa). Podklady DMR hillshade + ortofoto: `attach_dmr_hillshade`/`attach_ortho`
-(Sez. 138, OOM *Templates* toggle).
+měřicí mapa). Podklady DMR hillshade + ortofoto + Livelox sken: `attach_dmr_hillshade` /
+`attach_ortho` / `attach_livelox_scan` (Sez. 138/140, OOM *Templates* toggle; `_resolve_omap`
+sdílí `gen.omap`/`<složka>.omap` resolution). **Orchestrátor `attach_verify_backgrounds(map_dir,
+cid_dir=None)` (Sez. 140):** doplní k hotové `maps/` mapě DMR + (je-li `cid_dir`) Livelox sken;
+ortofoto připíná `generate_map(ortho=True)` už při renderu. Volá se jen z **CLI cest** (lidská
+verify mapa) — tréninkové páry v `resources/livelox/<cid>/gen/` podklady NEdostávají (model čte
+rgb+labels). **`pairs.py map <classId> <název>`** (`make_map`, Sez. 140) = celý řetězec jedním
+krokem (download → `segment_gt` → `build_pair` ortho=True → DMR+sken) → `maps/<název>` prohlížecí
+mapa. `generator.py` CLI (DEV `--location`/ruční) dostane auto DMR po `cut_box` (`--no-backgrounds` vypne).
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):

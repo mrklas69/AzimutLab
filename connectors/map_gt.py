@@ -144,6 +144,11 @@ _OVERPRINT_DILATE = 2
 _TILE_DIV = 120
 _MAP_TILE_FRAC = 0.04
 _MAP_MERGE_DIL = 3
+# Layout text MAPOVOU barvou (zelená „kategorie"/legenda) tvoří malý izolovaný ostrov dlaždic;
+# scelovací dilatace ho jinak přilepí k mapě → falešný porost v separaci (Sez. 140, Borný).
+# Před dilatací zahodíme ostrovy menší než tento zlomek největší komponenty (mapa je vždy
+# největší). Černý text padá už dřív (černá není mapová barva); tohle řeší jen barevný layout.
+_MAP_ISLAND_FRAC = 0.10
 
 
 def _classify(rgb: np.ndarray) -> np.ndarray:
@@ -183,6 +188,13 @@ def _detect_map_area(mappix: np.ndarray) -> np.ndarray:
     # podíl mapově-barevných pixelů v každé dlaždici (ořež na násobek T, reshape, průměr)
     frac = mappix[:th * T, :tw * T].reshape(th, T, tw, T).mean((1, 3))
     maptile = frac > _MAP_TILE_FRAC
+    # zahoď malé izolované ostrovy mapových dlaždic PŘED scelovací dilatací (barevný layout text
+    # — zelená „kategorie" — by se jinak přilepil k mapě, Sez. 140). Mapa = vždy největší ostrov.
+    lab0, n0 = ndimage.label(maptile)
+    if n0 > 1:
+        sizes0 = ndimage.sum(np.ones_like(lab0), lab0, range(1, n0 + 1))
+        keep0 = np.flatnonzero(sizes0 >= _MAP_ISLAND_FRAC * sizes0.max()) + 1
+        maptile = np.isin(lab0, keep0)
     # dilatace přimkne řídké okrajové oblasti mapy, pak největší komponenta + fill holes
     dil = ndimage.binary_dilation(maptile, iterations=_MAP_MERGE_DIL)
     lab, n = ndimage.label(dil)

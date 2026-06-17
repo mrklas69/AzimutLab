@@ -4532,6 +4532,9 @@ def main() -> None:
     p.add_argument("--ortho-mpp", type=float, default=0.5,
                    help="rozlišení ortofoto podkladu [m/px] (default 0,5; menší = ostřejší, ale "
                         "větší soubor i RAM v OOM; konektor dlaždicuje nad 4096 px)")
+    p.add_argument("--no-backgrounds", dest="backgrounds", action="store_false",
+                   help="nepřikládat verify podklady (DMR hillshade) k hotové maps/ mapě (default = "
+                        "připnout; jen s --terrain real, kde je georef). Ortofoto řídí --no-ortho zvlášť")
     p.add_argument("--grivation", type=float, default=None,
                    help="grivace [°] = úhel grid(S-JTSK)→magnetický sever; zapíše se do .omap georef "
                         "(declination=grivation), OOM zobrazí mapu natočenou na magnetic-north (geometrie "
@@ -4589,6 +4592,16 @@ def main() -> None:
         kept, removed = cut_box(out, out.name)
         _log.info("ořez na papír (cut_box): %d objektů po ořezu (%d celých mimo papír odstraněno; "
                   "linie/plochy přes hranu geometricky oříznuty)", kept, removed)
+        # verify podklady k lidské maps/ mapě: DMR hillshade (ortofoto už připnul generate_map ortho=True).
+        # Jen CLI cesta (main) — funkční volání (batch/measure/pairs) je nedostává (Sez. 104/140 oddělení).
+        # No silent fallback: selhání podkladu jen varuje, hotovou mapu nezabíjí (podklad = doplněk).
+        if args.backgrounds:
+            try:
+                from gen_backgrounds import attach_verify_backgrounds
+                r = attach_verify_backgrounds(out)          # cid_dir None = DEV bez Livelox skenu (jen DMR)
+                _log.info("verify podklady: %s", r["added"])
+            except Exception as e:                          # noqa: BLE001 — podklad nesmí shodit render
+                _log.warning("verify podklady NEpřipnuty (mapa je hotová): %s", e)
 
 
 if __name__ == "__main__":

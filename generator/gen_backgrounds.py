@@ -119,6 +119,16 @@ def _affine_inverse(pgw: tuple):
     return f
 
 
+def _resolve_omap(map_dir: pathlib.Path, omap_name: str | None = None) -> pathlib.Path:
+    """Najde .omap mapy ve složce: explicitní `omap_name` > `gen.omap` (Livelox pár) > `<složka>.omap`
+    (DEV/KPI). Sdílené tří attach_* funkcemi (DRY) — všechny tři generační cesty pojmenovávají jinak."""
+    if omap_name:
+        return map_dir / omap_name
+    if (map_dir / "gen.omap").exists():
+        return map_dir / "gen.omap"
+    return map_dir / f"{map_dir.name}.omap"
+
+
 def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | None = None,
                     opacity: float = _BG_OPACITY) -> dict:
     """Warpne dostupné podklady do gen gridu a vloží je jako background templates do gen.omap.
@@ -335,12 +345,7 @@ def attach_dmr_hillshade(map_dir: str | pathlib.Path, omap_name: str | None = No
     rgb = map_dir / "rgb.png"
     rgb_pgw = map_dir / "rgb.pgw"
     meta_p = map_dir / "meta.json"
-    if omap_name:
-        omap = map_dir / omap_name
-    elif (map_dir / "gen.omap").exists():
-        omap = map_dir / "gen.omap"
-    else:                                                  # DEV/KPI: <složka>.omap
-        omap = map_dir / f"{map_dir.name}.omap"
+    omap = _resolve_omap(map_dir, omap_name)
     for req in (rgb, rgb_pgw, meta_p, omap):
         if not req.exists():
             raise FileNotFoundError(f"{map_dir}: chybí {req.name} (mapa není hotová)")
@@ -381,12 +386,7 @@ def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
     sken/hillshade). No silent fallback: chybí-li vstup, raisuje. Vrací {"added":[...], "skipped":[...]}."""
     map_dir = pathlib.Path(map_dir)
     rgb, rgb_pgw, meta_p = map_dir / "rgb.png", map_dir / "rgb.pgw", map_dir / "meta.json"
-    if omap_name:
-        omap = map_dir / omap_name
-    elif (map_dir / "gen.omap").exists():
-        omap = map_dir / "gen.omap"
-    else:
-        omap = map_dir / f"{map_dir.name}.omap"
+    omap = _resolve_omap(map_dir, omap_name)
     for req in (rgb, rgb_pgw, meta_p, omap):
         if not req.exists():
             raise FileNotFoundError(f"{map_dir}: chybí {req.name} (mapa není hotová)")
@@ -412,6 +412,65 @@ def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
     return {"added": ["bg_ortho.png"], "skipped": []}
 
 
+def attach_livelox_scan(map_dir: str | pathlib.Path, cid_dir: str | pathlib.Path,
+                        omap_name: str | None = None, opacity: float = _BG_OPACITY) -> dict:
+    """Připne ORIGINÁLNÍ Livelox sken (`<cid_dir>/map.png`) jako podkladový template do `.omap` mapy.
+
+    Izomorf `attach_dmr_hillshade`/`attach_ortho`, ale zdroj = sken kartografovy mapy a georef = rotovaný
+    Livelox quad (`_scan_inverse` z `<cid_dir>/meta.json`), ne axis-aligned bbox. Účel: vizuální verify —
+    uživatel přepne sken přes vygenerovanou vektorovou mapu a vidí, kde se generátor trefil. APPEND
+    (zachová ortofoto/hillshade). No silent fallback: chybí-li sken/meta, zaloguj a vrať bez připnutí
+    (sken nemusí existovat u DEV `--location` map → orchestrátor ho jen vynechá, ne raise)."""
+    map_dir = pathlib.Path(map_dir)
+    cid_dir = pathlib.Path(cid_dir)
+    rgb, rgb_pgw, meta_p = map_dir / "rgb.png", map_dir / "rgb.pgw", map_dir / "meta.json"
+    omap = _resolve_omap(map_dir, omap_name)
+    scan, cid_meta = cid_dir / "map.png", cid_dir / "meta.json"
+    for req in (rgb, rgb_pgw, meta_p, omap, scan, cid_meta):
+        if not req.exists():
+            print(f"⚠ {map_dir.name}: chybí {req.name} → Livelox sken NEpřipnut", file=sys.stderr)
+            return {"added": [], "skipped": [("bg_scan.png", f"chybí {req.name}")]}
+
+    with Image.open(rgb) as im:
+        gW, gH = im.size
+    gpgw = _read_pgw(rgb_pgw)
+    scale = int(json.loads(meta_p.read_text(encoding="utf-8"))["scale"].split(":")[1])
+    mpp_x, mpp_y = abs(gpgw[0]), abs(gpgw[4])
+    pw, ph = gW * mpp_x * 1e6 / scale, gH * mpp_y * 1e6 / scale     # paper µm (mirror add_backgrounds)
+
+    g = _georef_grid(json.loads(cid_meta.read_text(encoding="utf-8")))
+    with Image.open(scan) as im:
+        Wm, Hm = im.size
+        src = np.asarray(im.convert("RGB"), dtype=np.uint8)
+    scan_inv = _scan_inverse(g["quad"], Wm, Hm)                     # S-JTSK → sken px (rotovaný quad)
+    out_w, out_h = _bg_out_size(gW, gH)
+    warped = _warp_to_gen(src, scan_inv, gpgw, gW, gH, out_w, out_h)
+    Image.fromarray(warped).save(map_dir / "bg_scan.png")
+
+    template = {"name": "bg_scan.png", "sx": pw / 1000.0 / out_w, "sy": ph / 1000.0 / out_h, "opacity": opacity}
+    doc = append_image_templates(omap.read_text(encoding="utf-8"), [template])
+    omap.write_text(doc, encoding="utf-8")
+    return {"added": ["bg_scan.png"], "skipped": []}
+
+
+def attach_verify_backgrounds(map_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | None = None,
+                              omap_name: str | None = None) -> dict:
+    """Doplní k hotové `maps/` mapě verify podklady: DMR hillshade + (je-li `cid_dir`) Livelox sken.
+
+    Volá se z generačních CLI cest (`generator.main` DEV `--location`, `pairs.py map`) po renderu —
+    `maps/` = lidská prohlížecí mapa (verify), proto podklady; tréninkové páry v `resources/livelox/`
+    je NEdostávají (model čte rgb+labels, ne podklady; Sez. 104 oddělení). Ortofoto NEřeší — to připíná
+    `generate_map(ortho=True)` (default) už při renderu; tento orchestrátor doplňuje zbytek. `cid_dir`
+    None = DEV mapa bez Livelox skenu (jen DMR). Slučuje výsledky obou attach_* (added/skipped)."""
+    res = {"added": [], "skipped": []}
+    r = attach_dmr_hillshade(map_dir, omap_name=omap_name)
+    res["added"] += r["added"]; res["skipped"] += r["skipped"]
+    if cid_dir is not None:
+        r = attach_livelox_scan(map_dir, cid_dir, omap_name=omap_name)
+        res["added"] += r["added"]; res["skipped"] += r["skipped"]
+    return res
+
+
 if __name__ == "__main__":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -428,6 +487,10 @@ if __name__ == "__main__":
         # `ortho <maps/složka>` = připni ČÚZK ortofoto obdélník (mapy bez ortofota, např. KPI)
         r = attach_ortho(sys.argv[2])
         print(f"{sys.argv[2]}: ortofoto {r['added']}")
+    elif arg == "scan":
+        # `scan <maps/složka> <classId>` = připni originální Livelox sken (verify nad gen mapou)
+        r = attach_livelox_scan(sys.argv[2], _CORPUS / sys.argv[3])
+        print(f"{sys.argv[2]}: Livelox sken {r['added']} {r['skipped']}")
     else:
         r = add_backgrounds(_CORPUS / arg / "gen")
         print(f"{arg}: přidáno {r['added']}, přeskočeno {r['skipped']}")

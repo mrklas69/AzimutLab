@@ -171,6 +171,29 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     return res
 
 
+def make_map(cid, name: str) -> pathlib.Path:
+    """Vyrobí PROHLÍŽECÍ OB mapu z Livelox classId do `maps/<name>/` se VŠEMI podklady (Sez. 140).
+
+    Kompletní řetězec jedním krokem: stáhni Livelox sken → segmentuj GT → build_pair (real ČÚZK +
+    separace vegetace ze skenu + ortofoto, ořez na quad) → doplň DMR hillshade + originální sken jako
+    verify podklady. `maps/` = lidská prohlížecí mapa (verify), na rozdíl od tréninkových párů
+    v `resources/livelox/<cid>/gen/` (ty podklady NEdostávají — model čte rgb+labels, Sez. 104).
+    Idempotentní (download/segment přeskočí hotové). Vrací cestu k mapě."""
+    from livelox import download_map          # noqa: E402 — connectors na path (ř. 28)
+    from map_gt import segment_gt             # noqa: E402
+    from generator import MAPS_DIR            # noqa: E402
+    from gen_backgrounds import attach_verify_backgrounds  # noqa: E402
+    cid = str(cid)
+    cid_dir = download_map(int(cid))                          # map.png + meta.json (idempotentní)
+    if not (cid_dir / "gt_labels.png").exists():
+        segment_gt(cid_dir / "map.png")                      # runnability GT (separace vegetace ho čte)
+    out_dir = str(MAPS_DIR / name)
+    build_pair(cid, out_dir=out_dir, ortho=True, labels=True)
+    r = attach_verify_backgrounds(out_dir, cid_dir=cid_dir)  # DMR hillshade + Livelox sken
+    print(f"  podklady: {r['added']}" + (f"  (přeskočeno {r['skipped']})" if r["skipped"] else ""))
+    return pathlib.Path(out_dir)
+
+
 def _cr_keep_cids() -> list:
     """ČR keep mapy = klíče _split.json (split.py drží 207 ČR keep classic, geo-split train/val/test).
 
@@ -251,7 +274,11 @@ if __name__ == "__main__":
     except Exception:
         pass
     arg = sys.argv[1] if len(sys.argv) > 1 else "1088447"
-    if arg == "batch":
+    if arg == "map":
+        # `map <classId> <název>` = prohlížecí mapa do maps/<název> se všemi podklady (Sez. 140)
+        path = make_map(sys.argv[2], sys.argv[3])
+        print(f"prohlížecí mapa → {path}")
+    elif arg == "batch":
         # `batch` = celý ČR keep set; `batch <N>` = jen prvních N (sanity vzorek před nočním během)
         cids = _cr_keep_cids()
         if len(sys.argv) > 2:
