@@ -111,9 +111,9 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > argmax přestřeloval na cesty → IoU 0,251→0,409). Strukturální cure zbylé precision = krok 2 (víc liniových tříd).
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 127 (%BEGIN přeměření): KPI 58,6 %** (Bedř 52,3 / Blatná 59,2 /
-> Velbloud 64,2; plocha 69,5 / linie 58,9 / bod 52,8). **Žebříček děr:**
-> **417 / 419 / 508 / 409 / 202**. Další velká strukturální páka zůstává Png2Line;
+> **Stav Sez. 137: KPI 61,7 %** (Bedř 53,6 / Blatná 62,2 / Velbloud 69,4; plocha 69,5 /
+> linie 58,9 / bod 62,4). **Žebříček děr:** **508 / 403 / 409 / 202** (417/418/419 vytěženy
+> pseudo body Sez. 136-137). Další velká strukturální páka zůstává Png2Line;
 > KPI je kompas děr, ne cílová funkce (ověřovat dopad na reálném benchmarku).
 >
 > **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
@@ -277,8 +277,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     (b) **417 precision — HOTOVO: Sez. 129 symptom-práh + Sez. 135 PŘÍČINA** (cause-fix: injekce
     ⌀40/dlaždici = 2–3× nad reálnou hustotou ~12–20 → `inject.py n_range (20,60)→(10,30)`; re-trénink `s135_417sparse_s0`
     synt 417 F1 0,90 R0,98 / **real F1 0,48–0,57**);
-    (c) **418 Prominent bush — doložená KOMPAS díra (orig 178/gen 0), Sez. 136 → Příště** (malý zelený plný bod, stejná
-    mašinérie jako 417/419); (d) pak 109/111/112/115.
+    (c) **418 Prominent bush — pseudo injekce do generátoru HOTOVO Sez. 137** (zelený plný disk, stejná mašinérie jako
+    417/419 → třetí třída do `_generate_pseudo_veg_points`; čistě pseudo, hustota měřena ~17,8/km² → `(8,26)`; `USED_CODES += 418`;
+    KPI 61,1 → 61,7 %, KOMPAS orig 178/gen 90 ✓; POZN. 418 mimo Png2Point scope = generátor kreslí pro budoucí trénink);
+    (d) pak 109/111/112/115.
   - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).

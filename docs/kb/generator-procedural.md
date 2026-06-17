@@ -451,7 +451,15 @@ pseudo**. Hustota MĚŘENA z kartografových `.omap` (medián 417 ~27/km², 419 
 s pseudo boulders, DRY). **ISOM rozestup** (symboly se nepřekrývají): rejection sampling, min. vzdálenost středů
 ≥ r_a+r_b+mezera. Render `_draw_landmark` (417 zelený kroužek; **419 = zelený X**, mirror inject `_stamp_cross`).
 Gated `pseudorealistic` (visí na `landmarks="real"`), pseudo → `landmarks_info` (meta) i `.omap`. KPI 58,6 → 61,1 %
-(POKRYTÍ; proporčně Goodhart-citlivé — poloha pseudo). 418 = doložená KOMPAS díra (Příště).
+(POKRYTÍ; proporčně Goodhart-citlivé — poloha pseudo).
+
+**Sez. 137 (+418 Prominent bush or tree)** — třetí pseudo veg třída do téhož `_generate_pseudo_veg_points` (izomorf
+417/419). Čistě pseudo (keře/buše ZABAGED nemapuje, jako 419). Hustota MĚŘENA stejnou crosswalk-aware metodou
+(medián ~17,8/km², rozsah 6,6–25,3 → losovaný rozsah `(8, 26)`). Render `_draw_landmark` = **zelený PLNÝ disk**
+(template id=103 `outer_color=3`, vnější r 0,375 mm) — vizuálně odlišný od 417 (dutý kroužek) i 419 (X). Sdílí
+forbid masku + rejection sampling. `USED_CODES += "418"`, `LANDMARK_CLASS=9`. KPI 61,1 → 61,7 % (bod 59,2 → 62,4),
+KOMPAS 418 z díry (orig 178/gen 0) na pokryté (gen 90). POZN.: 418 **NENÍ** ve scope Png2Point detekce — generátor
+ho kreslí, aby se reconstructor jednou mohl naučit (pokrytí = strop, paměť `generator-coverage-is-the-ceiling`).
 
 ### 4.9l Mokřady (real-půlka, Sez. 44, dávka 4)
 **✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**

@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 137 (2026-06-17) — pseudo bod 418 Prominent bush or tree do generátoru (vytěžení)
+Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-137--pseudo-bod-418-prominent-bush-or-tree-do-generátoru-vytěžení-hal3000).
+- [x] *(registr 417/419 bod (c); A3 vytěžení)* **Pseudo bod 418 v generátoru** — třetí pseudo veg třída do
+  `_generate_pseudo_veg_points` (izomorf 417/419 ze Sez. 136). 418 = `Prominent bush or tree`, render `_draw_landmark`
+  **zelený plný disk** (template id=103 `outer_color=3`, r 0,375 mm) — odlišný od 417 (kroužek) i 419 (X). Čistě
+  pseudo (keře/buše ZABAGED nemapuje). Sdílí `_build_forbid_px` + rejection sampling. 7 míst: `generator.py`
+  (`ISOM_PROM_BUSH=418`, `LANDMARK_NAME/CLASS[418]=9`, `LANDMARK_BUSH_R_PX`, `PSEUDO_BUSH_PER_KM2`, render,
+  losovací smyčka, log, docstringy) + `omap_export.USED_CODES += "418"`.
+- [x] **Měření first** (`temp/measure_418_density.py`, crosswalk-aware jako Sez. 136): metoda zkalibrována
+  (417 → 26,7/km² proti uváděným ~27 ✓, 419 → 21,8 ✓), **418 medián 17,8/km², rozsah 6,6–25,3** →
+  `PSEUDO_BUSH_PER_KM2 = (8.0, 26.0)`. Hustota kotvena na realitu, ne na KPI (Goodhart A3).
+- [x] **Verify** (Nová Louka, seed 0): `.omap` 418 **0 → 398 objektů**; forbid px rozpad budovy=0 / zpevněné=0 /
+  cesty 3 px / voda hrana (grid, jako 204/210/417/419); vizuál tři rozlišitelné symboly (disk/kroužek/X).
+- [x] **KPI 61,1 → 61,7 %** (bod 59,2 → 62,4) — KOMPAS 418 z díry `·` (orig 178/gen 0) na `✓` (gen 90, vědomý
+  podstřel — hustota reálná, ne KPI-honěná). POZN.: 418 **mimo Png2Point scope** (jen generátor → pokrytí = strop
+  pro budoucí trénink; detekce = samostatný krok jako Sez. 128 pro 417/419).
+
 ## Sezení 136 (2026-06-17) — pseudo body 417/419 do generátoru (princip kamenů) + ROADMAP + fázová závora
 Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-136--pseudo-body-417419-do-generátoru-princip-kamenů--roadmap--fázová-závora-hal3000).
 - [x] **Pseudo vrstva 417/419 v generátoru** (`generator/generator.py` `_generate_pseudo_veg_points`, gated
