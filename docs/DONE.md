@@ -2,6 +2,35 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 140 (2026-06-17) — Prohlížecí mapy z Liveloxu + automatizace verify podkladů (ntbhej)
+Detail: [diary/2026-06-17.md](diary/2026-06-17.md).
+- [x] **`maps/Hamr na Jezeře`** z Livelox classId 1116300 (URL uživatele) — verify mapa se všemi reálnými
+  ČÚZK vrstvami + separace vegetace ze skenu + 3 podklady (ortofoto + DMR hillshade + Livelox sken).
+  Řetězec dnes ručně: `download_map` → `map_gt.segment_gt` (chyběl `gt_labels.png`) → `build_pair(out_dir=maps/…,
+  ortho=True)` → `attach_dmr_hillshade` + ad-hoc sken warp. **Verify nález:** classId OCAD-jméno „Uprchlík 260510",
+  georef ~3 km V od obce Hamr (UTM33N); „Hamr na Jezeře" = uživatelův název složky (classId autoritativní).
+- [x] **Automatizace podkladů (přání uživatele „ať generátor nových map automaticky přikládá podklady").**
+  Designové rozhodnutí: podklady jen v **CLI cestách** (lidská `maps/` mapa = verify), NE ve funkčních voláních
+  (batch/measure/`pairs batch` tréninkové páry — model čte rgb+labels, ne podklady; Sez. 104 oddělení).
+  - **`gen_backgrounds.py`:** `attach_livelox_scan(map_dir, cid_dir)` (extrakce ad-hoc skenu z Hamr — warp přes
+    rotovaný quad `_scan_inverse`, append, no-silent-fallback skip když chybí sken) + `attach_verify_backgrounds`
+    (orchestrátor: DMR + je-li `cid_dir` Livelox sken; ortofoto řeší `generate_map(ortho=True)`) + `_resolve_omap`
+    helper (DRY: `gen.omap`/`<složka>.omap`, přepojeno `attach_ortho`+`attach_dmr_hillshade`) + CLI `scan`.
+  - **`pairs.py`:** `make_map(cid, name)` + CLI **`pairs.py map <classId> <název>`** = celý řetězec jedním krokem
+    (download → GT → build_pair ortho=True → DMR + sken). Idempotentní.
+  - **`generator.py` main:** DEV `--location`/ruční CLI dostane auto DMR po `cut_box` (ortofoto z `ortho=True`);
+    flag **`--no-backgrounds`**; tolerantní (selhání podkladu jen varuje, mapu nezabíjí).
+  - **E2E ověřeno:** `pairs.py map 1024666 "Borecké skály"` (Č. ráj, 1,32×1,65 km, 3 podklady, .omap pojmenován,
+    templates bez duplikátů) + `generator.py` ruční výsek (2 podklady, bez skenu). KPI netknuto (jen tooling/podklady).
+- [x] **Várka 3 map** (`make_map`): Rovné skály / Borný / Doksy (městská sprint 1:4000) — Borný retry po tranzientním
+  ČÚZK timeoutu (tolerantní loop fungoval). `maps/` na ntbhej: 7 → **12 map** (5 nových dnes).
+- [x] **Layout text → falešná vegetace (kus TODO [!] Sez. 90/118)** — nález uživatele přes nový sken overlay: Borný měl
+  v separaci **zelený porost ve tvaru „kategorie"**. Příčina (verify): `segment_gt._detect_map_area` (Sez. 73) maskuje layout
+  podle mapových barev; **zelený layout text JE mapová barva** → scelovací dilatace `_MAP_MERGE_DIL` ho přilepí k mapě
+  (černý text padá, protože černá není v `_MAP_COLOR_KEYS`). **Fix `connectors/map_gt.py`:** před dilatací zahodit malé izolované
+  ostrovy mapových dlaždic (`_MAP_ISLAND_FRAC=0.10`). **Ověřeno 11 map:** Borný +2,1 (kategorie), 1009535 +13,4 (chytil i barevnou
+  legendu „Všechny barvy světa", necíleno), ostatní ±0 — žádná neztratila hlavní pole. Borný re-gen → porost pryč.
+
 ## Sezení 139 (2026-06-17) — %AUDIT:DOCS (5 agentů) + sladění architektury s ROADMAP + IDEAS/TODO pruning
 Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-139--auditdocs-5-agentů--sladění-architektury-s-roadmap--ideastodo-pruning-ntbhej).
 - [x] **`%AUDIT:DOCS`** (5 paralelních agentů: hlavní dokumenty / TODO-DONE-DIARY / KB / modulová README / jazyk).

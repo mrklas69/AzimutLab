@@ -129,8 +129,26 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   segment** + flag **16** (hole bez close bitu 2) → OOM border na řezné hraně nekreslí, výplň drží (probe v2 ověřen uživatelem; `omap_raster`
   dělí ringy na bitu 16 → area_labels netknuté). **ZBÝVÁ multi-run limit:** plocha dotýkající se hrany na **2+ místech** ({X} Novina: voda 301
   se dvěma horními úseky) → potlačí se jen NEJDELŠÍ úsek, ostatní zbydou. Mid-ring hole NEJDE (probe v3 ověřen: rozseče path → bez výplně; OOM
-  hole = oddělovač pod-cest, ne border-gap). Robustní fix = **oddělit výplň (area) + border (liniové objekty jen na reálných březích)** →
-  vyžaduje template změnu (fill-only + shoreline symbol) → **odloženo jako nepoměrné** (volba uživatele Sez. 138: přijmout single-run zisk).
+  hole = oddělovač pod-cest, ne border-gap). **ZAŘAZENO JAKO FOKUS (volba uživatele Sez. 140)** — nová instance: **roh** Borný (Máchovo
+  jezero v levém dolním rohu = DVA řezné úseky, svislá + vodorovná hrana mapy; `_neatline_to_close` vezme jen nejdelší, druhý zbyde; spojit
+  nejde — uzavírací segment je přímka → diagonála přes roh by uřízla výplň). **Řešení = uživatelův algoritmus doslova:** (1) ořízni mapu;
+  (2) prochází-li řez ohraničenou plochou, hranice v místě řezu BEZ obrysu. Implementace = **oddělit výplň od obrysu** v template: ohraničená
+  plocha (301/520/521/lom) = **fill-only symbol** + **samostatný obrysový liniový symbol** (301 břeh / 520·521·lom obrys); `cut._emit_area`
+  emituje obrysovou linii JEN na segmentech mimo `_on_clip_edge` (reálné břehy) → funguje pro libovolný počet řezů (roh/multi-run) automaticky.
+  Verify vizuální v OOM. Vlastní sezení (středně velký kus, template + cut emit + per-symbol fill/border split).
+- [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
+  Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
+  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419**. KPI dopad: přestřel KPI SNIŽUJE
+  (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
+  změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
+- [ ] *(vytěžení, nové body, nález uživatele Sez. 140)* **Bodové symboly 523.1 / 525 / 527 / 531** (523/524/526/530 už máme —
+  Rozvalina/věže/Cairn/kříž ze ZABAGED `--landmarks`/`--buildings`). Čisté vytěžení (rozšíří KOMPAS). **Než kreslit:** (a) ověřit
+  ISOM definice 523.1/525/527/531 proti spec (paměť [[isom-spec-before-render]] — nehádat čísla); (b) measure-first — vedou je ZABAGED?
+  (paměť [[measure-coverage-source-on-dod-first]]) → jinak pseudo nebo skip.
+- [ ] *(vytěžení/Etapa 2, nález uživatele Sez. 140)* **Oplocenky = uzavřené linie 516–518.** ZABAGED ploty NEvede (doložený SKIP Sez. 57,
+  katalog sekce 11) → data gap. Dvě cesty: **(a) pseudo** (Etapa 1) — umístit oplocenky procedurálně na okraje lesa/školky (dekorace,
+  losovaná hustota); **(b) Png2Line ze skenu** (Etapa 2, za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup než watercourse
+  (topologie uzávěru) + dashed 516 už narazila na doménový gap (Sez. 133).
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
