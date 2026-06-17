@@ -207,6 +207,11 @@ SAXBO/Oybin/Olbersee) je ČÚZK mimo území → **GeoSN** (Staatsbetrieb Geobas
 Vermessung Sachsen) je plný ekvivalent, dokonce v jemnějším výškopisu. Portál „Offene Geodaten":
 `https://www.geodaten.sachsen.de/`. **Schválený směr (uživatel Sez. 87), zatím NEimplementováno.**
 
+Referenční cíl dema: Livelox mapa Oybin/„Hölle" **classId 1138425** (SAXBO 2026, 1:7500, EPSG 32633/UTM33;
+bbox WGS84 lat 50,8198–50,8472 / lon 14,7121–14,7462). Obsah celý v DE → ČÚZK NeNI (jen separace ploch
+z PNG). Dříve `maps/Jonsdorf/` (README + reference sken), smazáno Sez. 138 jako re-download-recoverable
+(plné demo čeká na `saxony.py`).
+
 | GeoSN produkt | ČÚZK protějšek (`connectors/`) | pozn. |
 |---|---|---|
 | **DGM1** (model terénu 1 m, GeoTIFF) + DOM1/nDOM/raw LSC LiDAR | `dmr.py` DMR 5G | **1 m grid = jemnější** než DMR 5G |

@@ -2,6 +2,34 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 138 (2026-06-17) — podklady (ortofoto+DMR) + E1/E3 boulder fixy + #1 KOMPAS sloupce + E2 neatline border + duplikáty
+Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-138--podklady-ortofotodmr--e1e3-boulder-fixy--1-kompas-sloupce--e2-neatline-border--duplikáty-hal3000).
+- [x] **Podklady (background templates)** — `gen_backgrounds.attach_dmr_hillshade` (ESRI hillshade z DMR 5G, slunce SZ
+  315°/45°, 2,5 m/px) + `attach_ortho` (ČÚZK ortofoto obdélník) + `omap_export.append_image_templates` (přidá podklad
+  k UŽ existujícím `<templates>`, ne jen prázdné count=0; idempotentní). Post-process jen z `rgb.pgw`+`meta.json` (společný
+  jmenovatel 3 cest). Všech 9 map: ortofoto+DMR (5 DEV); +sken (3 KPI); plný set scan/mobile/ortho/gt/dmr (Buschdörfl).
+  OOM *Templates* toggle. Verify-against-source tooling (oko = source).
+- [x] *(E1, {A} Novina)* **Balvany na železničním koridoru** — `_build_forbid_px` (ř. 4022) měl jen budovy/cesty/zpevněné,
+  chyběla `railway_mask_img` → přidána. Verify z `.omap`: 204/210 na železnici 0. Rozšiřuje forbid ze Sez. 136.
+- [x] *(E3, {C} Novina)* **Překryté balvany 204** — `_generate_pseudo_boulders` neměl rejection sampling (veg 417/419 ho
+  dostaly Sez. 136, balvany vypadly) → přidán (seed = reálné 204/207, min střed 2·r_b+mezera, izomorf veg). Rešerše ISOM
+  2017-2 + O-Map Wiki: bodové symboly se nepřekrývají, těsná skupina → cluster **207** / pole **208**. Verify: min vzdálenost
+  5,0 px ≥ práh 4,9, **0** dvojic. Pozn.: rejection-while dotahuje na cílovou hustotu (retry místo skip) → SV 2998→3375 balvanů.
+- [x] *(#1, Příště Sez. 137; ROADMAP g2 SSoT)* **KOMPAS sloupce** — `measure_dod --table` + `zdroj · věrohodnost · provedení`.
+  Registr `KOMPAS_SOURCE` (51 kódů, ukotveno proti `USED_CODES`) + `_provedeni` AUTO ze **SHARE** orig:gen (Goodhart-aware,
+  memory `kpi-overshoot-dilutes-not-counts`): ok/přestřel/podstřel/chybí/jen gen. `proved.` nahradil `✓/·/+` (subsumuje).
+  Rozliší `chybí`+`–` (strukturální díra) vs `chybí`+zdroj (mechanismus máme, 0 = datová mezera). Odhalil díru registru 416 → doplněno.
+- [x] *(E2, {A}-{X} Novina; SINGLE-RUN HOTOVO)* **Neprůnikový border na řezné hraně plochy** — `cut._emit_area`: detekuje
+  neatline úsek (`_on_clip_edge`), přerotuje na **uzavírací segment** + flag **16** (hole bez close bitu 2) → OOM border na
+  řezné hraně nekreslí, výplň drží. Probe v2 ověřen uživatelem (OOM = arbiter); `omap_raster` dělí ringy na bitu 16 →
+  area_labels netknuté; 5/5 cut testů OK; všech 9 map regenerováno. **Multi-run NEJDE** (probe v3 ověřen: mid-ring hole rozseče
+  path → bez výplně; OOM hole = oddělovač pod-cest, ne border-gap) → {X} (voda 301 se 2 horními úseky) = TODO limit.
+- [x] **Úklid duplikátů maps/** — Jonsdorf SMAZÁN (jen reference Oybin/Hölle, re-download-recoverable; classId 1138425 →
+  `data-sources.md` GeoSN); Buschdörfl `gen.omap` → `Buschdörfl.omap` (konsolidace: byly identické Sez. 132, regeneracemi se
+  rozešly). Pravidlo „jeden `<name>.omap`, žádné `gen.omap`, platí pro VŠECHNY mapy" → paměť `maps-single-omap-no-duplicates`.
+- [x] **KPI 61,7 → 60,7 %** — pokles = vědomý důsledek E3 (ISOM-korektní nepřekrývání balvanů; Velbloud −2,4 nejskalnatější;
+  plocha 69,5 / linie 58,9 beze změny — E1/E3 jen body; bod 62,4→62,0). E2 nesahá na počty (border flagy). Žebříček děr: 508 / 403.
+
 ## Sezení 137 (2026-06-17) — pseudo bod 418 Prominent bush or tree do generátoru (vytěžení)
 Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-137--pseudo-bod-418-prominent-bush-or-tree-do-generátoru-vytěžení-hal3000).
 - [x] *(registr 417/419 bod (c); A3 vytěžení)* **Pseudo bod 418 v generátoru** — třetí pseudo veg třída do

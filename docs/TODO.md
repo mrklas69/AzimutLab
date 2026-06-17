@@ -111,10 +111,12 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > argmax přestřeloval na cesty → IoU 0,251→0,409). Strukturální cure zbylé precision = krok 2 (víc liniových tříd).
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 137: KPI 61,7 %** (Bedř 53,6 / Blatná 62,2 / Velbloud 69,4; plocha 69,5 /
-> linie 58,9 / bod 62,4). **Žebříček děr:** **508 / 403 / 409 / 202** (417/418/419 vytěženy
-> pseudo body Sez. 136-137). Další velká strukturální páka zůstává Png2Line;
-> KPI je kompas děr, ne cílová funkce (ověřovat dopad na reálném benchmarku).
+> **Stav Sez. 138: KPI 60,7 %** (Bedř 53,6 / Blatná 61,5 / Velbloud 67,0; plocha 69,5 /
+> linie 58,9 / bod 62,0). Pokles z 61,7 % (Sez. 137) = **vědomý důsledek E3** (rejection sampling balvanů =
+> ISOM-korektní nepřekrývání; Velbloud nejskalnatější −2,4; plocha/linie beze změny). **Žebříček děr:**
+> **508 / 403 / 409 / 202** (417/418/419 vytěženy pseudo body Sez. 136-137). **KOMPAS `--table` má nově
+> sloupce `zdroj · věrohodnost · provedení`** (Sez. 138, registr `KOMPAS_SOURCE` 51 kódů + `_provedeni` AUTO
+> ze share orig:gen). Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
 >
 > **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
 > smíšený podstřel +0,34, 404/407/409 = vegetace gate). Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
@@ -130,16 +132,19 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [x] *(vizuál Soví vrch, nález uživatele Sez. 116; HOTOVO Sez. 136)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové
   plochy podél komunikací** — řešeno sdíleným `_build_forbid_px` (px maska budovy/cesty/zpevněné, dilatovaná o poloměr;
   PX rozlišení — tenké 501/cesty pásy by grid neviděl). Aplikováno na pseudo boulders 204/210 I pseudo veg 417/419.
-  Verify z `.omap`: 0 bodů na cestách/budovách/zpevněných. (DONE Sez. 136.)
+  Verify z `.omap`: 0 bodů na cestách/budovách/zpevněných. (DONE Sez. 136.) **Sez. 138: + železnice 509** ({A} Novina —
+  `railway_mask_img` chyběla ve forbid) **+ rejection sampling balvanů** ({C} Novina — překryté 204; ISOM legibilita, skupina→207).
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
-- [ ] *(vizuál, ořez `cut.py`, nález uživatele Sez. 118)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
-  když `cut_area` (Sutherland-Hodgman) ořízne plochu, která má tučný černý obrys (impassable boundary, např. budova 521 / olivová
-  520 / lom), OOM vykreslí border kolem CELÉHO oříznutého prstenu → obrys se domaluje i na umělou řeznou hranu (linii střihu).
-  Vypadá to divně (uměle vzniklá „neproniknutelná" hrana na okraji výseku). Řešení (%THINK, neimplementovat teď): body vzniklé
-  řezem (leží na clip-linii) označit OOM gap/dash flagem, aby se obrys na řezném segmentu nekreslil — vyžaduje rozlišit řezné body
-  od původních v `cut_area` a ověřit OOM interpretaci flagu pro area border (verify-against-source: jak OOM přerušuje border line).
+- [~] *(vizuál, ořez `cut.py`, nález uživatele Sez. 118; **SINGLE-RUN HOTOVO Sez. 138**)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
+  když `cut_area` ořízne plochu s tučným černým obrysem (521 / 520 / lom / voda 301), OOM vykreslí border kolem CELÉHO prstenu → obrys i na
+  umělou řeznou hranu. **HOTOVO single-run Sez. 138:** `cut._emit_area` detekuje neatline úsek (`_on_clip_edge`), přerotuje ho na **uzavírací
+  segment** + flag **16** (hole bez close bitu 2) → OOM border na řezné hraně nekreslí, výplň drží (probe v2 ověřen uživatelem; `omap_raster`
+  dělí ringy na bitu 16 → area_labels netknuté). **ZBÝVÁ multi-run limit:** plocha dotýkající se hrany na **2+ místech** ({X} Novina: voda 301
+  se dvěma horními úseky) → potlačí se jen NEJDELŠÍ úsek, ostatní zbydou. Mid-ring hole NEJDE (probe v3 ověřen: rozseče path → bez výplně; OOM
+  hole = oddělovač pod-cest, ne border-gap). Robustní fix = **oddělit výplň (area) + border (liniové objekty jen na reálných březích)** →
+  vyžaduje template změnu (fill-only + shoreline symbol) → **odloženo jako nepoměrné** (volba uživatele Sez. 138: přijmout single-run zisk).
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
