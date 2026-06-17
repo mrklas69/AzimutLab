@@ -68,7 +68,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "401", "403", "520",       # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu) + 403 rough open (separace Sez. 92)
               "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
               "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
-              "524", "526", "530", "417", "419",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom) + 419 veg. feature (pseudo Sez. 136)
+              "524", "526", "530", "417", "418", "419",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom) + 419 veg. feature (pseudo Sez. 136) + 418 bush/tree (pseudo Sez. 137)
               "104", "107", "513", "516",  # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď) + plot 516 (Sez. 98)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
