@@ -1,5 +1,9 @@
 # %AUDIT:CODE — AzimutLab — 2026-06-14
 
+> **⚠ ARCHIV (Sez. 139).** Nálezy vypořádány v Sez. 125-127 (vč. MPP C1 → kanonické měřítko
+> 1,33 Sez. 126). Řádkové reference do `docs/IDEAS.md` apod. míří do prořezaných docs (Sez. 127)
+> → mohou neplatit. Historický artefakt; nejnovější audit kódu = `%AUDIT:CODE` commit `a1cc450` (Sez. 135).
+
 Audit byl proveden pouze čtením a ověřovacími příkazy; produkční kód ani řídicí
 dokumentace nebyly měněny. Rozsah: `connectors/`, `generator/`, `model/`,
 aktuální řídicí dokumenty a lokálně dostupné artefakty v `resources/`.

@@ -40,10 +40,23 @@ podrostu = runnability. CHM lze spočítat i přímo z laspy (bez lasertool). �
 | ISOM symbol DB (parser) | produkční | `Pic2Omap/omap_parser.py` |
 | Procedurální generátor (skalární pole → vrstvy + GT masky + vektor + .omap) | pilíř (od Sez. 4; `generator/` od Sez. 39) | `generator/` |
 
+## Modely / metody (UC5 reconstructory — živé, `model/`)
+
+| Co | Stav | Umístění |
+|----|------|----------|
+| `Png2Area` (U-Net resnet34, sken → plošný ISOM label rastr, 18 tříd) | živý (Sez. 88-126; test mIoU 0,683) | `model/png2area/` |
+| `Png2Point` (U-Net + CenterNet heatmapy, bodové symboly 204/210/417/419) | živý (Sez. 105-128; medián mF1 0,827) | `model/png2point/` |
+| `Png2Line` (U-Net segmentace linií + vektorizace, watercourse 304/305) | živý krok 1 (Sez. 130-132; test mIoU 0,774) | `model/png2line/` |
+| `ORTO → runnability` baseline | ARCHIV (slepá ulička Sez. 79, val mIoU strop ~0,25) | `model/runnability/` |
+
 ## Stack
 
-- **PoC generátor** (Sez. 4): Python 3.14 + numpy + contourpy (marching squares) +
-  Pillow + pyproj (jen `--terrain real`, WGS84→S-JTSK). Venv v kořeni repa (`.venv`).
-  `scikit-image` vynechán (KISS + jistota wheelů na 3.14).
-- **Zděděno z Pic2Omap** (až bude konzument): numpy, opencv. ML: torch / smp /
-  albumentations (odděleně, GPU box).
+SSoT závislostí = `requirements.txt` (runtime) + `requirements-train.txt` (trénink, plánováno B4).
+
+- **Runtime generátor + konektory:** Python (3.12 na ntbhej / 3.14 cp314 na mrkla) + numpy +
+  contourpy (marching squares) + Pillow + pyproj (WGS84→S-JTSK) + **scipy** (morfologie
+  `rock_relief`) + **scikit-image** (skeletonize, Png2Line .omap assembly Sez. 132) +
+  **pygeomag** (grivace WMM offline, Sez. 112). Venv v kořeni repa (`.venv`).
+  (Pozn.: dřívější „scikit-image vynechán" už neplatí — přidán Sez. 132.)
+- **Trénink (jen `mrkla`, GPU):** torch (cu128 Blackwell, mimo PyPI) + **segmentation-models-pytorch**
+  + **matplotlib** (křivky). Detail strojů: `hardware.md`.

@@ -1,5 +1,12 @@
 # HANDOFF v2: Detekce skalních útvarů z lidaru (DMR 5G)
 
+> **⚠ ARCHIV / SPLNĚNO (Sez. 139 audit).** Algoritmus byl absorbován do
+> **`generator/rock_relief.py`** (Sez. 63 — práh 46° / `ANALYSIS_RES=0.5` / morfologické
+> scelení / Chaikin sedí 1:1) a dále vylepšen **density gate** (Sez. 116, `DENSITY_GATE_PCT`
+> — fix over-detection 206, commit `92f373a`). Samostatná Streamlit appka `temp/rockcore/`
+> už neexistuje a „zlatý regresní vzorek 48 polygonů" je po density gate neaktuální (gate
+> změnil chování). Dokument se drží jako historický předávací artefakt, **není živý úkol.**
+
 > **Předávací dokument pro novou AI session (nahrazuje HANDOFF v1).**
 > Cíl: navázat na hotovou aplikaci a neopakovat chyby, které předchozí AI
 > udělaly a uživatel je musel opravovat. Před první odpovědí si projdi celý

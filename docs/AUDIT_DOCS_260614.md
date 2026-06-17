@@ -1,5 +1,10 @@
 # %AUDIT:DOCS - AzimutLab - 2026-06-14
 
+> **⚠ ARCHIV (Sez. 139).** Nálezy tohoto auditu byly vypořádány v Sez. 125-127 (vč. MPP
+> nesouladu K1 → kanonické měřítko 1,33 zavedeno Sez. 126). Nahrazen novým `%AUDIT:DOCS`
+> Sez. 139 (záznam v diáři 2026-06-17). Řádkové reference níže míří do mezitím prořezaných
+> docs (Sez. 127 pruning) → mohou neplatit. Drží se jako historický artefakt.
+
 ## Rozsah a metoda
 
 Audit zahrnul projektové Markdown soubory v kořeni repozitáře a v adresářích

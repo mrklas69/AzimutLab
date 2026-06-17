@@ -94,7 +94,7 @@ vektorizací rastru.
   DOLOŽENO MĚŘENÍM (Sez. 59)** — DMP 1G je 100 % single-return (jen koruny). Viz „Vegetace gate".
 - **Existuje JINÝ reálný podklad pro alespoň PLOCHU obecného hustníku (ne plnou runnability škálu)?**
   Neprozkoumáno (Sez. 59): ÚHÚL věk/zakmenění porostu / Copernicus HRL Tree Cover Density /
-  multi-temporal ortofoto (paseka→porost). Probnout — při selhání všech zaprotokolovat vegetaci mimo real část.
+  multi-temporal ortofoto (paseka→porost). Ověřit probou — při selhání všech zaprotokolovat vegetaci mimo real část.
 - Jaké generativní přístupy dávají „realisticky vyhlížející" orienťácké mapy (UC4-I)?
 - Jaký je state-of-the-art v de-creasing / dewarping fotografií dokumentů (UC3)?
 

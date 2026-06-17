@@ -4,14 +4,15 @@ A lab for cartography & orienteering map intelligence — tools, experiments, an
 knowledgebase. **Not one application: a set of them**, sharing a common understanding
 of what an orienteering map *is*.
 
-**Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I/UC5
-`generator()`, and **three live reconstructors**. Generator KPI is **58.6%**. `Png2Area`
-has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.874**, and `Png2Line` step 1
-(watercourse) test mIoU **0.774**. Real-domain transfer is the limiting metric: `Png2Line`
-reads real scans (completeness **0.85–0.93**, no collapse), strict IoU **0.409** after a
-per-class confidence threshold; vectorization (mask→polyline) and dashed-line step 2 are next.
-Current work is tracked in [TODO](docs/TODO.md); history is in [DONE](docs/DONE.md) and
-[DIARY](docs/DIARY.md).
+**Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I
+`generator()`, and **three live reconstructors**. Generator KPI is **60.7%** (session 138).
+`Png2Area` has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.827** (4 classes
+204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**. Real-domain
+transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
+no collapse), strict IoU **0.409** after a per-class confidence threshold. **Direction &
+phase gate live in [ROADMAP.md](docs/ROADMAP.md)** (`Generator()` → `Rekonstruktor()`; we
+are in the `Generator()` phase). Current work is tracked in [TODO](docs/TODO.md); history is
+in [DONE](docs/DONE.md) and [DIARY](docs/DIARY.md).
 
 ## What this is
 
@@ -33,19 +34,23 @@ The five use cases are **not a flat list — they form a dependency DAG.** Enabl
 META     UC1  Knowledgebase + Sandbox            ← where everything is recorded
           │
 ENABLER  UC2  Data connectors    UC5  Models that "understand maps"
-         (LIDAR/ortofoto/ČÚZK)        (palette separation, symbol classification)
+         (LIDAR/ortofoto/ČÚZK)        (reconstructors: Png2Area/Point/Line, scan→.omap)
           │                            │
 APP      UC3  Restoration         UC4  Generators (I random / II inspired / III pic2omap)
          (de-purple, de-crease)
 ```
 
+Direction & phase gate are the SSoT of [ROADMAP.md](docs/ROADMAP.md): one axis
+`Generator()` → `Rekonstruktor()` (scan → vector `.omap`). The 5-UC DAG below is the static
+structure; where they differ, ROADMAP wins.
+
 | UC | Name | Scope | Status |
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.41-0.54** — **419 strong 0.67-0.76**, 417 moderate 0.40-0.49, 204 stable, 210 still collapses. `Png2Line` is the missing final reconstructor. Pseudo points 204/210 **and 417/419** (Sez. 136, boulder principle) drawn into the generator off water/rock/buildings/paths/paved with ISOM spacing. Generator KPI **61.1%** (was 58.6 — 417/419 now covered). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
+| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.43-0.57** — **419 strong 0.67-0.76**, 417 moderate 0.48-0.57, 204 stable, 210 still collapses. `Png2Line` step 1 watercourse 304/305 live (test mIoU 0.774; dashed step 2 tried & dropped Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **60.7%** (session 138). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
-| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 58.6 %; III = Pic2Omap) |
+| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 60.7 %; III = Pic2Omap) |
 
 UC4-III is the project's summit and currently lives in Pic2Omap. Full UC4-I
 (plausible-random, not a random pile of ISOM symbols) is still the hardest goal — but as a
@@ -67,11 +72,13 @@ CLAUDE.md              # thin project overlay (AI rules only — facts live here
 README.md              # this file — identity, DAG, status
 docs/
   PROMPTS.md           # %BEGIN / %END macros
+  ROADMAP.md           # SSoT of direction & phase gate: Generator() → Rekonstruktor() (session 136)
   AUDIT_FABLE5_*.md    # meta-audit by the strongest model: _PROMPT = repeatable assignment, dated issues (session 117)
   architecture.md      # canonical DAG: layers, UC dependencies, Pic2Omap relationship
   diary/YYYY-MM-DD.md  # session log
   TODO.md / DONE.md    # work tracking
-  DIARY.md             # session index
+  DIARY.md             # session index (active window; older in DIARY-archive.md)
+  DIARY-archive.md     # archived session index (sessions 1–122)
   IDEAS.md             # the 5 UC as a DAG, MVP cut, pending decisions
   RESEARCH.md          # survey of existing tools / methods
   GLOSSARY.md          # project terminology
@@ -113,7 +120,7 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
-    train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px → mF1 0.874; real 210 F1 0.11–0.18)
+    train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px, 4 classes → median mF1 0.827; real 210 F1 0.11–0.18)
   png2line/            #   LIVE Png2Line reconstructor step 1 (sessions 130–131): map scan → line segmentation, third of the 3 CV tasks
     tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; watercourse 304/305 (N_LINE=2), dilated GT
     dataset.py         #     PyTorch loader (D4 + degrade + purple augmentation; reuse png2area pattern)
@@ -131,6 +138,7 @@ since session 47; only README.md and CLAUDE.md stay at the repo root.)
 
 Working documents are in Czech (per the global conventions):
 
+- [docs/ROADMAP.md](docs/ROADMAP.md) — direction & phase gate (read every `%BEGIN`)
 - [docs/architecture.md](docs/architecture.md) — canonical UC DAG & layering
 - [docs/GLOSSARY.md](docs/GLOSSARY.md) — project terminology
 - [docs/IDEAS.md](docs/IDEAS.md) — design brainstorm

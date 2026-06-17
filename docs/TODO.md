@@ -32,13 +32,13 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   rozšíření = získat 3–5 dalších kartografických `.omap` (kluby/vlastní mapy) do `resources/`.
   (c) Zvážit oživení per-symbol prostorové metriky (`compare_real_vs_gen.py`, stale-drop Sez. 69) jako
   negamovatelný druhý pohled — až po (a), neotvírat metodologickou frontu navíc.
-- [ ] *(A4; ntbhej, docs-only sezení, bez kódu)* **Revize architektury — splatit odklad „plné revize"
-  ze Sez. 79 (~37 sezení).** `architecture.md` vede UC5 jako „palette separation/klasifikace" a
-  reconstructor jen jako reframe-poznámku; taxonomie UC se rozjela s mentálním modelem uživatele
-  (rekonstrukci sken→vektor nazývá „UC3", docs ji vedou jako UC4-III/Pic2Omap). Překreslit DAG kolem osy
-  generator() → reconstructor (Png2Area/Point/Line) → aplikace (de-purple, Pic2Omap); taxonomii
-  UC3↔UC4-III↔reconstructor rozhodnout S UŽIVATELEM (AskUserQuestion, ne fait accompli); propsat
-  README + GLOSSARY + IDEAS (conceptual integrity, všechny vrstvy najednou).
+- [~] *(A4; taxonomie VYŘEŠENA ROADMAPem + Sez. 139 audit; zbývá kosmetická revize statického DAGu)*
+  **Revize architektury — odklad „plné revize" ze Sez. 79.** **Taxonomie směru rozhodnuta:** ROADMAP
+  (Sez. 136) dal osu `Generator()` → `Rekonstruktor()`, `%AUDIT:DOCS` Sez. 139 ji sladil do `architecture.md`
+  (UC5 = tři reconstructory Png2Area/Point/Line, ne „palette separation"; status hlavička odkazuje ROADMAP
+  jako SSoT směru; KPI/Png2Line drift opraven) + README + GLOSSARY + IDEAS. **ZBÝVÁ jen kosmetická revize
+  statického 5-UC DAGu:** umístění de-purple (UC3) a Pic2Omap absorpce (UC4-III) v rámci `Rekonstruktor()`
+  etapy — neblokuje, není to „rozhodnout taxonomii", jen dorovnat APP boxy DAGu na osu ROADMAP.
 - [ ] *(A5; kdekoli, bez CUDA)* **5 invariantních smoke testů** — automatizace dnešních ručních rituálů,
   NE plná test suite (over-engineering proti fázi B): (1) noise-mode checksum (proc 65 byte-identický);
   (2) golden Šulcák 48 polygonů / 2,56 ha, tol ±2/±5 % (potřebuje ČÚZK fetch nebo `.dmr_cache`);
@@ -52,14 +52,6 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   `resources/*.pgw` (Velbloud na ntbhej). Malé textové soubory BEZ copyright obsahu → commitnout
   (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
   artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
-- [x] *(A7; %THINK + rešerše HOTOVO Sez. 130 — detail IDEAS „Png2Line — segmentace + odložená vektorizace")*
-  **Png2Line — %THINK + rešerše PŘED implementací.** Rešerše doložila 4 branžové rodiny (segmentace+skeletonizace
-  dominantní / graph-based RoadTracer-Sat2Graph / LETR transformer / symbol-reconstruction = validace injekčního
-  triku, Chiang 2022). Probe: injekční trik se přenáší JEN ČÁSTEČNĚ — Png2Line = dvě ortogonální podúlohy
-  **(A) per-class segmentace** (izomorfní Png2Area, GT z injekce) + **(B) maska→polyline vektorizace** (nová práce).
-  **Rozhodnuto s uživatelem (architektura A):** neuronový Png2Line = JEN segmentace (dilatovaná GT proti rozpouštění
-  tenkých linií, skeletonizace zpět), vektorizace = sdílený downstream „.omap assembly" krok. **Scope:** souvislá
-  distinktivní linie první (505/506 nebo 304/305), pak dashed 508 + 516. Implementace = nová [ ] položka níže.
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
   nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
   Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
@@ -73,10 +65,9 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 - [ ] *(B7, proces)* **Deep research fázovat.** 103 agentů uťatých session limitem (Sez. 110) = nehospodárné. Příště:
   scout → cílený fan-out, průběžně sklízet do RESEARCH.md, ať i uťatý běh zanechá plnou stopu.
 
-## ChatGPT audity (2026-06-14, Sez. 125) — DOCS + CODE → úkoly
-Zdroj: [`AUDIT_DOCS_260614.md`](AUDIT_DOCS_260614.md) +
-[`AUDIT_CODE_260614.md`](AUDIT_CODE_260614.md).
-Nálezy OVĚŘENY proti zdroji (Sez. 93/110: nález agenta ≠ fakt). Hotové v Sez. 125 níže.
+*(ChatGPT audity 2026-06-14 / Sez. 125 — DOCS+CODE: nálezy vypořádány Sez. 125-127, zdroje
+`AUDIT_DOCS_260614.md` / `AUDIT_CODE_260614.md` archivovány Sez. 139.)*
+
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
@@ -129,11 +120,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   morfologické **closing seed masky** PŘED dissolve (vyplní úzké zářezy mezi RÚIAN parcelami). **Oponuji convex hullu** (uživatelovo „vnější
   body" by mohl znamenat hull) — ztratil by legitimní konkávní tvary velkých pozemků (zálivy) a mohl by plotem pohltit sousední ne-privátní
   oblast. RDP/closing drží tvar, jen hladí. Riziko (Sez. 98): vyšší práh komolí malé bloky → ladit s `FENCE_MIN_AREA_M2` na očích.
-- [x] *(vizuál Soví vrch, nález uživatele Sez. 116; HOTOVO Sez. 136)* **Kameny/balvany (204/210) NEumisťovat na tenké liniové
-  plochy podél komunikací** — řešeno sdíleným `_build_forbid_px` (px maska budovy/cesty/zpevněné, dilatovaná o poloměr;
-  PX rozlišení — tenké 501/cesty pásy by grid neviděl). Aplikováno na pseudo boulders 204/210 I pseudo veg 417/419.
-  Verify z `.omap`: 0 bodů na cestách/budovách/zpevněných. (DONE Sez. 136.) **Sez. 138: + železnice 509** ({A} Novina —
-  `railway_mask_img` chyběla ve forbid) **+ rejection sampling balvanů** ({C} Novina — překryté 204; ISOM legibilita, skupina→207).
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
@@ -333,10 +319,9 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   ostrými hranami písma vs plošný organický porost; (b) kurace — vyřadit/cropnout mapy s titulkem v poli (titulek bývá dole/v rohu →
   cílený crop spodního pruhu? riziko ořezu mapy); (c) měřit ROZSAH (kolik z 205 párů nese text-v-poli). Souvisí s follow-up detektor
   control-description mřížky (níže, Sez. 73 known limitation). **Pozn.: nezdržuje dnešní voda re-trénink** (946084 je test split; patří do zrání korpusu, směr PO re-tréninku).
-- [×ARCHIV] **Krok 5 (zlepšení baseline) → ARCHIVOVÁNO Sez. 79.** Směr `ortofoto→runnability` je doložená slepá
-  ulička (reframe výše) → nahrazeno `generator()` predict částí. Původní nápady (diagnostika / ablace bohatšího
-  vstupu DMR-sklon/forest-age / recency korpus) zůstávají jako možný *budoucí* vstup, kdyby se k ortofoto vstupu
-  vrátilo — dnes mimo hlavní směr.
+- *(ARCHIV Sez. 79)* **Krok 5 (zlepšení `ortofoto→runnability` baseline)** = doložená slepá ulička, nahrazena
+  `generator()` predict částí; archiv `model/runnability/`. Případné budoucí nápady (ablace DMR-sklon, recency korpus)
+  jen kdyby se k ortofoto vstupu vrátilo. Detail DONE/architecture.
 - [ ] *(integrace, deferred Sez. 76)* **ČR/DE filtr do `kept_dirs`** — dnes `_cz_filter.json` je jen měřicí
   artefakt (nemění `keep`). Tréninkový loader jede přes `split.dirs_for()` (už ČR-only), takže neakutní;
   doladit, až loader vznikne (krok 4) — buď číst split, nebo přidat filtr do `curate.keep`.
@@ -393,10 +378,12 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   patří na úroveň dlaždice (transformuje X i Y zároveň) vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)
-- [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo) — pozn.: generátor je první kód mimo Pic2Omap, kandidát na úvahu. **Sez. 16: `connectors/` = první sdílená kódová složka mimo sandbox (drobný krok B→A); spouštěč „balík" stále otevřen — až 2. konzument konektorů. Sez. 39: generátor opustil sandbox (`generator/`), sandbox zrušen — krok B→A, ale pořád sys.path skripty, ne balík.**
-- [ ] První aplikační kandidát: UC3 de-purple vs jiný — pozn.: UC5 má teď datovou cestu (C) syntetika → váhy se posunuly k UC5
+- [ ] Kvantifikovat spouštěč B→A (který konkrétní sdílený modul povýší na monorepo). `connectors/`+`generator/`+
+  `model/` jsou sdílené složky mimo sandbox (krok B→A), ale pořád sys.path skripty, ne balík; spouštěč „balík" otevřen.
+- [ ] První aplikační kandidát UC3 de-purple vs jiný — detail IDEAS. Pozn.: po ROADMAP je de-purple součást
+  `Rekonstruktor()` etapy (zmrazena za fázovou závorou, jsme v `Generator()`).
 
 ## Backlog (vzdálené, nezačínat)
-- [ ] UC5 jádro (palette separation jako první střípek)
-- [ ] UC3 / UC4 aplikace
+- [ ] `Rekonstruktor()` etapa (sken→.omap) — za fázovou závorou ROADMAP, až bude KPI/KOMPAS dost
+- [ ] UC3 de-purple / UC4-II inspired aplikace
 - [ ] Zobecnění domény (OSM/Google) — vědomě odložené

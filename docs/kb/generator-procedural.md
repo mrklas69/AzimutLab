@@ -447,6 +447,8 @@ boulders (Sez. 107). Asymetrie: Png2Point **čte** 417/419, ale generátor je sk
 `Významný_strom`, 419 vůbec). Princip kamenů: **417 doplnit** na reálnou hustotu (cíl − reálné ZABAGED), **419 čistě
 pseudo**. Hustota MĚŘENA z kartografových `.omap` (medián 417 ~27/km², 419 ~18/km²), losovaná per mapa. **Umístění**
 (volba uživatele): MIMO vodu + MIMO 206 skály (strom neroste v balvanitém poli) + MIMO budovy/cesty/zpevněné
++ **MIMO železnici 509** (Sez. 138 E3 {A} Novina — balvany 204/210 padaly na žel. koridor; `railway_mask_img`
+doplněna do `_build_forbid_px`)
 (`_build_forbid_px`, **px rozlišení** — tenké 501/cesty pásy by se na gridu ztratily, symbol pod nimi zakryt; sdíleno
 s pseudo boulders, DRY). **ISOM rozestup** (symboly se nepřekrývají): rejection sampling, min. vzdálenost středů
 ≥ r_a+r_b+mezera. Render `_draw_landmark` (417 zelený kroužek; **419 = zelený X**, mirror inject `_stamp_cross`).
@@ -548,8 +550,9 @@ samo přestřeluje 147/596 % obvodu). Algoritmus `_predict_veg_boundaries` (gene
 třídy z `veg_area_mask_img` (`PREDICT_AREA_CLASS` rastr) → per-bod prstenu klasifikuj, je-li v okolí JINÁ veg
 vyšší třídy (dedup B>A, ať hrana A↔B jen jednou) → souvislé mezitřídní úseky → práh → RDP → polyline. Render
 `_draw_boundary` (černá tečkovaná, izomorf `_draw_ride` 508); .omap přes `linefeature_features` (sym 416 z
-template, **0 změna omap_export**); `mask_boundaries.png`. **LINIE → bez Y-area dluhu** (Png2Line neexistuje;
-.omap stačí pro KPI/kompas). Stejný typ problému jako marsh 310 (data nediskriminují), ale heuristika
+template, **0 změna omap_export**); `mask_boundaries.png`. **LINIE → bez Y-area dluhu** (v době Sez. 101
+Png2Line ještě neexistoval; .omap stačí pro KPI/kompas. Png2Line vznikl Sez. 130-132 — viz `model/png2line/`,
+scope zatím watercourse 304/305, 416 jím není pokryto). Stejný typ problému jako marsh 310 (data nediskriminují), ale heuristika
 MEZITŘÍDNÍ je doménově věrná. **KPI 46,1 → 49,3 %** (+3,2 pb; sub-linie 47,7 → 58,3). Zásada „neleštit": gen 416
 je 0,24× reálného (per-mapa plató), nedoháníme na 1,0× (přestřel by KPI snižoval přes `min`).
 

@@ -4,7 +4,10 @@ Třetí top-level složka kódu LABu, sourozenec `connectors/` a `generator/` (S
 **`reconstructor()`** = sken OB mapy → `.omap` (reframe Sez. 79; feeder = `generator()` páry X,Y).
 Dekompozice podle typu geometrie ISOM → tři CV úlohy, GT zdarma z `.omap`.
 
-## Tři reconstructory + archiv (každý vlastní `{tile,dataset,train,eval_real}.py`, izomorfní)
+## Tři reconstructory + archiv (typicky `{tile,dataset,train,eval_real}.py`, izomorfní)
+
+> Výjimky z čtveřice: `png2point/` nemá `tile.py` (injekce běží on-the-fly v `dataset.py`, ne pre-tiling);
+> archiv `runnability/` nemá `eval_real.py` (vznikl až s živými reconstructory).
 
 | Podadresář | Stav | Úloha |
 |------------|------|-------|

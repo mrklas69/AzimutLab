@@ -315,8 +315,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   runnability baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90,
   první funkční model) → stabilizace Sez. 91 test 0,640 → N_AREA 18 Sez. 103
   test 0,568 → **MPP fix Sez. 126 test mIoU 0,683**. Png2Point měří **mF1**
-  (detekce bodů, ne IoU): test mF1 **0,888** (medián 3 seedů, stabilní po focal bias initu Sez. 125; 0,897
-  Sez. 106 byl nereprodukovatelný single-run).
+  (detekce bodů, ne IoU): živý 4-třídový model (204/210/417/419 od Sez. 128) test mF1 **0,827** (medián 3 seedů
+  na kanonickém měřítku 1,33; stabilní po focal bias initu Sez. 125). Starší 2-třídové hodnoty 0,888 (Sez. 125,
+  staré měřítko) / 0,874 (Sez. 126, MPP fix) jsou superseded — menší symboly, nesrovnatelné. Png2Line měří mIoU/IoU
+  + relaxed completeness/correctness: test mIoU **0,774** (krok 1 watercourse, Sez. 131).
 
 - **Generalizační strop** — když při tréninku **train loss klesá, ale validační metrika se nehýbe**
   (UC5 Sez. 78: val mIoU plochá ~0,25 od 1. epochy). Signál, že limit není v délce tréninku/hyperparametrech,
@@ -363,11 +365,15 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   54 %) a slepý k inkrementální práci. **Přesah-ořez** (Sez. 104, `_clipped_gen_counts`): gen kreslí obdélníkový
   výsek, reálná mapa je nepravidelný blob → ČÚZK objekty přesahují → DISPROPORČNÍ přestřel, který proporce
   NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →
-  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; **Sez. 107: 59,1 %** (plocha
-  69,2 / linie 59,3 / bod 18,4 → **54,3** po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb).
+  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; Sez. 107: 59,1 % (plocha
+  69,2 / linie 59,3 / bod 18,4 → 54,3 po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb);
+  Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; **Sez. 138: 60,7 %** (plocha 69,5 / linie 58,9 /
+  bod 62,0; pokles z 61,7 = vědomý důsledek E3 rejection sampling balvanů = ISOM-korektní nepřekrývání).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).
+  **Sloupce `zdroj · věrohodnost · provedení`** (Sez. 138): registr `KOMPAS_SOURCE` (51 kódů) drží zdroj
+  (ZABAGED/DMR/separace/pseudo/mix) + věrohodnost; `provedení` je AUTO ze share orig:gen (ok/přestřel/podstřel/chybí).
 - **`reconstructor()`** — pojem-agent **obalující funkci `reconstruct_map()`** (dříve navrženo `mapper()`).
   Ze **skenu existující** OB mapy (i opotřebené / pomačkané) vyrobí `.omap`. Pro **stejnou lokalitu a čas**
   znovu opatří **real část** přes [[generator]] (tvrdé vrstvy přesně z mapových služeb) a zkombinuje ji
@@ -429,8 +435,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
   Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
   má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
-  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125, MPP fix Sez. 126 — test mF1 0,874** (medián 3 seedů na
-  kanonickém měřítku 1,33; 0,888 bylo na starém měřítku se symboly 1,64× velkými; 204 ~0,92 / 210 ~0,86): `point_base` render +
+  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125, MPP fix Sez. 126, scope rozšířen 204/210→+417/419 Sez. 128 —
+  živý 4-třídový test mF1 0,827** (medián 3 seedů na kanonickém měřítku 1,33; starší 2-třídové 0,888/0,874 superseded —
+  menší/správné symboly, nesrovnatelné): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
   **`Png2Line` KROK 1 HOTOVO Sez. 130-131 — TŘETÍ funkční reconstructor** (`model/png2line/{tile,dataset,train,
@@ -563,7 +570,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   + po MPP fixu) / realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
   F1 0,38–0,68: plný kruh přežije injekce→sken), **210 Stony KOLABUJE** (F1 ~0,04: drobné tečky splývají
   s rastrem skenu). 90 %+ halucinace 210 mimo mapové pole = striping artefakt (jako Png2Area) → maska
-  pole nutná pro poctivý výpočet.
+  pole nutná pro poctivý výpočet. *(Čísla = stav Sez. 121, 2-třídový model na starém měřítku; aktuální
+  4-třídový reálný transfer mean 0,43–0,57 — 419 silný 0,67–0,76, 417 0,48–0,57, 210 stále kolabuje — viz heslo `Png2Point`.)*
 - **Sim-to-real** — předtrénink na syntetice (cesta C) + fine-tuning/validace na reálných
   mapách (cesta B); reálný terén (A) dosazený do generátoru.
 - **Cesty A / B / C** — datové zdroje pro UC5: (A) geodata ČÚZK, (B) reálné korpusy map,

@@ -1,8 +1,8 @@
 # generator
 
-Generátor výseku mapy pro orientační běh — **pilíř Laboratoře** (UC4-I/UC5
-enabler-feeder), ne sandbox experiment (povýšen ze `sandbox/generator-poc/`
-v Sez. 39 — 2600+ LOC / 24 vrstev už dávno není „PoC"). Konzumuje konektory
+Generátor výseku mapy pro orientační běh — **pilíř Laboratoře**, `Generator()` etapa
+ROADMAP (enabler-feeder párů `[render, .omap]`), ne sandbox experiment (povýšen ze
+`sandbox/generator-poc/` v Sez. 39 — 4000+ LOC `generator.py` už dávno není „PoC"). Konzumuje konektory
 reálných dat z `connectors/` (UC2). (Pozn.: UC5 **model** žije v samostatném `model/`,
 sourozenec `generator/`/`connectors/` — ne uvnitř generátoru; viz README repa „Repository layout".)
 **UC5 továrna párů (Sez. 82/83):** `separate.py` (`separate_areas`) separuje predikční plochy (vegetace
@@ -24,6 +24,18 @@ pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL`: **17 ISOM kódů +
 pozadí, `N_AREA=18`, labely 0–17**), statický z-order zdola nahoru a díry per
 objekt. `pairs` volá s `labels=True`. Pár = **[`rgb.png` (X),
 `area_labels.png` (Y)]**; degradace X probíhá až on-the-fly v loaderu.
+
+**Post-process `.omap` (string/regex, NE ET — ten by rozbil inject regex i OOM):**
+`cut.py` (Sez. 114) = geometrický ořez `.omap` (primitiva `cut_point`/`cut_line`/`cut_area`
+Sutherland-Hodgman → orchestrátor `clip_omap` přepíše `<coords>` se zachováním flagů →
+wrappery `cut_box` papír [CLI `--location`] / `clip_omap_to_quad` Livelox quad); odstraní
+přesah bboxu = okolní sídla. **Neatline border (Sez. 138 E2):** `cut._emit_area` detekuje
+řeznou hranu plochy s neproniknutelným obrysem (voda 301 / 520 / 521) a přerotuje ji na
+uzavírací segment s flagem **16** → OOM nekreslí černý border podél umělé řezné hrany
+(single-run; multi-run je doložený limit). `gen_backgrounds.py` (Sez. 104/109) = OOM bg
+podklady do `gen.omap` (`add_backgrounds` Livelox pár / `add_resources_scan_background`
+měřicí mapa). Podklady DMR hillshade + ortofoto: `attach_dmr_hillshade`/`attach_ortho`
+(Sez. 138, OOM *Templates* toggle).
 
 Realizuje **MVP řez** specifikace
 [`docs/kb/generator-procedural.md`](../docs/kb/generator-procedural.md):
@@ -64,7 +76,14 @@ Realizuje **MVP řez** specifikace
   nahradila generalizovaný ZABAGED `Skalní_útvary` (jeden blob → věrná členitost věží/průchodů, ověřeno proti Mapy.com).
   **Pseudo body 204/210 (Sez. 107, jen `pseudorealistic`):** `_generate_pseudo_boulders` injektuje 204 Boulder
   + 210.1 Stony ground (pole teček) na masku DOLOŽENÉ skalnatosti (206 plochy + reálné 204/207 body, dilatace),
-  kalibrováno na share → KPI bodů 18,4 → 54,3 % (mirror inject geometrie Png2Point, ne model),
+  kalibrováno na share → KPI bodů 18,4 → 54,3 % (mirror inject geometrie Png2Point, ne model). **Sez. 138 E3:**
+  rejection sampling balvanů (ISOM-korektní nepřekrývání; skupina → 207),
+  **Pseudo veg body 417/418/419 (Sez. 136-137, jen `pseudorealistic`):** `_generate_pseudo_veg_points`
+  (princip kamenů): **417** Prominent large tree (zelený kroužek, doplní řídký ZABAGED `Významný_strom` na
+  reálnou hustotu ~27/km²) / **418** Prominent bush (plný zelený disk, čistě pseudo ~18/km²) / **419** Prominent
+  veg. feature (zelený X, čistě pseudo ~18/km²). Umístění MIMO voda/206 skály/budovy/cesty/zpevněné/**železnice
+  509** (sdílený `_build_forbid_px`, px rozlišení; railway doplněna Sez. 138 E3) + ISOM rozestup (rejection
+  sampling). 417/419 jsou ve scope Png2Point detekce, 418 ne (generátor kreslí pro budoucí trénink),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,

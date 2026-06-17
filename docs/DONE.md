@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 139 (2026-06-17) — %AUDIT:DOCS (5 agentů) + sladění architektury s ROADMAP + IDEAS/TODO pruning
+Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-139--auditdocs-5-agentů--sladění-architektury-s-roadmap--ideastodo-pruning-ntbhej).
+- [x] **`%AUDIT:DOCS`** (5 paralelních agentů: hlavní dokumenty / TODO-DONE-DIARY / KB / modulová README / jazyk).
+  Konsolidace **4 kritické + 9 doporučených + kosmetika**. Konstanty v kódu (N_AREA=18, N_LINE=2, peak_thr, USED_CODES)
+  sedí — drift jen v popisu stavu.
+- [x] **C0/C2 — sladění `architecture.md` s ROADMAP** (volba uživatele, odhaleno dotazem „četl jsi ROADMAP?"):
+  status hlavička → ROADMAP jako SSoT směru/etap; DAG diagram + UC5 sekce přepsány z „palette separation" na tři
+  reconstructory; separace = feeder fáze I. **Uzavřen A4 dluh** (~37 sezení) — taxonomie rozhodnuta ROADMAPem,
+  TODO A4 → `[~]` (zbývá jen kosmetická revize statického DAGu).
+- [x] **C1** „Png2Line neexistuje" opraveno 3× (architecture 2× + generator-procedural) + plný popis 3. reconstructoru.
+  **C3** KPI 60,7 % do README/architecture/GLOSSARY (bod 52,8→62,0). **C4** vložen chybějící nadpis `## Sezení 135` do DONE.
+- [x] **Doporučené (9/9):** generator/README (cut.py/gen_backgrounds.py/pseudo veg 417/418/419/railway forbid/LOC);
+  Png2Point mF1 0,827 4-třídový (README+GLOSSARY); ROADMAP+DIARY-archive do README; tools-models stack sync
+  s requirements (scikit-image/scipy/pygeomag) + tři reconstructory; railway 509 do spec §4.9k; [x] položky z TODO;
+  HANDOFF_v2 + oba 260614 audity archivní baner; IDEAS hotová práce (−56 ř.) na pointer.
+- [x] **IDEAS/TODO pruning (≥12):** ChatGPT-audity hlavička → 1 řádek; `[×ARCHIV]` Krok 5 zkrácen; Backlog/Rozhodnutí
+  sladěny s ROADMAP. **16 souborů celkem (+163/−123 ř.); KPI 60,7 % beze změny** (jen docs, generátor netknut).
+
 ## Sezení 138 (2026-06-17) — podklady (ortofoto+DMR) + E1/E3 boulder fixy + #1 KOMPAS sloupce + E2 neatline border + duplikáty
 Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-138--podklady-ortofotodmr--e1e3-boulder-fixy--1-kompas-sloupce--e2-neatline-border--duplikáty-hal3000).
 - [x] **Podklady (background templates)** — `gen_backgrounds.attach_dmr_hillshade` (ESRI hillshade z DMR 5G, slunce SZ
@@ -67,6 +85,8 @@ Detail: [diary/2026-06-17.md](diary/2026-06-17.md#sezení-136--pseudo-body-41741
   **`%BEGIN` krok 0.5** (číst ROADMAP, self-check fáze). **Zakázaná slova:** `Rekonstruktor()` + „degradace"
   (jsme v etapě `Generator()`, rozhodnutí uživatele).
 - [x] **Nález: 418 je doložená KOMPAS díra** (orig 178 / gen 0) — dřívější tvrzení „není díra" vyvráceno → Příště.
+
+## Sezení 135 (2026-06-16) — 417 re-trénink (řidší injekce, příčina přestřelu) + %AUDIT:CODE
 Detail: [diary/2026-06-16.md](diary/2026-06-16.md#sezení-135--417-re-trénink-řidší-injekce-příčina-přestřelu--reálný-transfer--audit-kódu-hal3000).
 - [x] **`%AUDIT:CODE`** (commit `a1cc450`) — mrtvý kód, konvence, docs-drift, struktura; nálezy a opravy v commitu.
 - [x] **(Png2Point, námitka follow-up 417 (b) — PŘÍČINA přestřelu dořešena.** Sez. 129 srazil 417 přestřel jen

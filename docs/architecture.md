@@ -1,10 +1,18 @@
 # Architektura — AzimutLab
 
 **Status**: Deštník fáze B; první reálný kód (Sezení 4, 2026-05-23) — syntetický
-generátor (`generator/`) jako UC4-I/UC5 enabler-feeder; UC2 konektory reálných
+generátor (`generator/`) jako enabler-feeder; UC2 konektory reálných
 geodat (`connectors/`, Sez. 16–18) běží. Kanonický popis UC DAGu a vrstvení.
-**Zdroj pravdy**: tento soubor. README shrnuje, IDEAS brainstormuje, implementace
-(`generator/`) z něj vychází.
+**Zdroj pravdy pro statickou strukturu** (UC vrstvení, vztah k Pic2Omap): tento soubor.
+README shrnuje, IDEAS brainstormuje, implementace (`generator/`) z něj vychází.
+
+> **SSoT směru a etap = `docs/ROADMAP.md`** (Sez. 136), čtený každým `%BEGIN` (krok 0.5).
+> ROADMAP drží **osu `Generator()` → `Rekonstruktor()`** a fázovou závoru (jsme v Etapě 1
+> `Generator()`; „degradace"/„rekonstruktor" = zatím zakázaná slova). Tenhle soubor popisuje
+> statické UC vrstvení; **kde se rozcházejí, platí ROADMAP.** Mapování os: `Generator()` =
+> UC4-I enabler-feeder; `Rekonstruktor()` (sken → `.omap`) = cílový produkt, dříve roztříštěný
+> přes UC3 (de-purple) + UC4-III (Pic2Omap) + UC5 modely — dnes ho nesou tři reconstructory
+> (Png2Area/Point/Line, viz UC5).
 
 AzimutLab není jedna aplikace — je to **deštník nad pěti use-casy, které tvoří
 orientovaný graf závislostí (DAG), ne plochý seznam.** Tahle struktura určuje pořadí
@@ -22,9 +30,9 @@ prací: enablery před aplikacemi.
 ┌───────▼───────────────────┐          ┌───────────────────▼─────────┐
 │ ENABLER  UC2  Data        │          │ ENABLER  UC5  Modely        │
 │   konektory               │          │   „rozumí mapám"            │
-│   LIDAR / ortofoto /      │          │   palette separation,       │
-│   QGIS / ČÚZK ZABAGED /   │          │   klasifikace bod/linie/    │
-│   geoportál               │          │   plocha (ISOM)             │
+│   LIDAR / ortofoto /      │          │   reconstructory sken→.omap │
+│   QGIS / ČÚZK ZABAGED /   │          │   Png2Area / Png2Point /    │
+│   geoportál               │          │   Png2Line (ISOM geometrie) │
 └───────┬───────────────────┘          └───────────┬─────────────────┘
         │                                           │
         └────────────────────┬──────────────────────┘
@@ -93,16 +101,21 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   `.omap` per Livelox classId (provenance real/predict) — UC5 továrna párů.
 
 ### UC5 — Modely „rozumí mapám" (ENABLER)
-Sada modelů, které mapám rozumí: 100% separace barev použité palety; klasifikace
-bodových, liniových i plošných ISOM symbolů.
+Sada modelů, které mapám rozumí. **Dnešní podoba (= `Rekonstruktor()` v ROADMAP): tři
+reconstructory `sken → ISOM geometrie .omap`** podle typu symbolu — **Png2Area** (plošné),
+**Png2Point** (bodové), **Png2Line** (liniové). Trénují se na párech `[render, .omap]`
+z `Generator()`. (Separace barev palety přežívá jen jako pomocník fáze I generátoru —
+`generator/separate.py` krmí Png2Area —, NE jako cíl UC5 modelu; historický rámec „palette
+separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
 
-> **⟲ Reframe Sez. 79 (částečná propagace, plná revize = A1).** „Rozumí mapám" = **`reconstructor()`**
+> **⟲ Reframe Sez. 79 (propagace dokončena Sez. 139 — sladěno s ROADMAP).** „Rozumí mapám" = **`reconstructor()`**
 > (sken → `.omap`, dříve pracovně „mapper"), trénovaný na párech z **`generator()`** (real + **predict**
 > část — vegetace procedurálně, viz GLOSSARY). Model **`ORTO → 4 barvy`** popsaný níže (Sez. 74-78) narazil
 > na strop val mIoU ~0,25 → **archivovaná odbočka**, NE hlavní směr (nemazat — doloženo). Foundations:
 > nejdřív `generator()` predict část, pak `reconstructor()`. Datová pipeline (páry, GT, split, dlaždice)
-> zůstává užitečná. **Plná revize UC3 / UC4-III / fázový plán / Pic2Omap absorpce odložena (A1).** Pojmy:
-> GLOSSARY `generator()` / `reconstructor()`.
+> zůstává užitečná. **Taxonomie směru rozhodnuta `ROADMAP.md` (osa Generator()→Rekonstruktor(), Sez. 136);
+> sladěno do této sekce Sez. 139.** Zbývá jen kosmetická revize statického UC3/UC4-III/Pic2Omap rámce
+> (umístění de-purple a Pic2Omap absorpce v 5-UC DAGu) — neblokuje. Pojmy: GLOSSARY `generator()` / `reconstructor()`.
 >
 > **DoD generátoru (Sez. 91):** `generator()` je strop tréninku — co nenakreslí do `.omap`, to se
 > `reconstructor()` nenaučí. **Fáze výroby hotová až při ≥ 90 % pokrytí ISOM mapových symbolů 5 vzorových map
@@ -118,7 +131,9 @@ bodových, liniových i plošných ISOM symbolů.
 > +418 Sez. 137** (princip kamenů: 417 doplní řídký ZABAGED na reálnou hustotu, 418/419 čistě pseudo; 418 = plný zelený
 > disk / 417 kroužek / 419 X; mimo voda/skály/budovy/cesty/zpevněné, ISOM rozestup; KPI 58,6 → 61,7 %, KOMPAS pokrytí —
 > proporčně Goodhart-citlivé, jako POKRYTÍ legitimní; 418 NENÍ ve scope Png2Point detekce — generátor kreslí pro budoucí trénink);
-> zbývá už jen **Png2Line** (neexistuje). DoD baseline přepnut z forest_age proxy na
+> **Png2Line HOTOVÝ Sez. 130-132** (krok 1 watercourse 304/305, test mIoU 0,774, reálný transfer prokázán —
+> completeness 0,85–0,93, strict IoU 0,409 po conf_thr 0,95; vektorizace maska→polyline Sez. 132; krok 2 dashed
+> 508+516 zkoušen a zavržen Sez. 133). DoD baseline přepnut z forest_age proxy na
 > **separaci** (reálná produkční cesta párů
 > `pairs.build_pair`; forest_age proxy 410 byl fabrikace — souvislé 410 v mapách nejsou, viz Sez. 95 měření).
 - Sdílené jádro (DRY) — krmí UC3 (poznat fialovou = klasifikace) i UC4-III (pic2omap).
@@ -198,7 +213,17 @@ bodových, liniových i plošných ISOM symbolů.
   symboly se přenášejí" (paměť [[png2point-inject-clean-base]]) potvrzena. KPI pseudo injekce odložena (Goodhart).
   Stejný checkpoint kontrakt jako Area: běh je izolovaný v
   `resources/point_model/runs/<run_id>/` a kanonický `unet_best.pt` se mění jen
-  explicitním `--promote`. Zbývá už jen **Png2Line** (poslední, nejtěžší — neexistuje).
+  explicitním `--promote`.
+- **Png2Line reconstructor — TŘETÍ FUNKČNÍ MODEL (Sez. 130-132), `model/png2line/{tile,dataset,train}.py`:**
+  třetí ze tří CV úloh (liniové ISOM → per-class segmentace). Architektura A (rozhodnuta Sez. 130):
+  model = jen segmentace (dilatovaná GT proti rozpouštění tenkých linií), vektorizace = sdílený downstream
+  „.omap assembly" (`model/vectorize.py` skeletonize→graf→RDP, Sez. 132). **Krok 1 watercourse 304/305
+  (`N_LINE=2`): test mIoU 0,774 / IoU 0,55** (Sez. 131); reálný transfer PROKÁZÁN (completeness 0,85–0,93 =
+  trasuje reálné toky, žádný kolaps jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr
+  `LineClass.conf_thr`, izomorf `peak_thr`). **Krok 2 dashed 508+516 zkoušen a ZAVRŽEN měřením (Sez. 133):**
+  doménový gap (completeness strop 0,14–0,22) + multi-class zhoršil watercourse → revert na N_LINE=2. Stejný
+  checkpoint kontrakt (`--promote`). Poledníkový detektor `north_grid.py` (Sez. 132/134) filtruje falešné toky
+  z modrých magnetických poledníků.
 - **Checkpoint kontrakt živých modelů (CODE-C2, Sez. 127):**
   `model/checkpoints.py` je SSoT pro Png2Area i Png2Point. `best.pt`,
   `history.csv`, `curve.png` a `manifest.json` patří jednomu `run_id`;
@@ -208,11 +233,11 @@ bodových, liniových i plošných ISOM symbolů.
   povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
-  **Stav Sez. 127: 58,6 %** (plocha 69,5 / linie 58,9 / bod 52,8);
-  největší díry 417/419/508/409/202. Cíl plošná ~55 % (splněn), s reconstructory
-  ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch se ověřuje také na
-  reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
-  `--table` kompas). Detail TODO/DONE.
+  **Stav Sez. 138: 60,7 %** (plocha 69,5 / linie 58,9 / bod 62,0; per-mapa Bedř 53,6 / Blatná 61,5 /
+  Velbloud 67,0); největší díry 508/403/409/202 (417/418/419 vytěženy pseudo body Sez. 136-137).
+  Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
+  se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
+  `--table` kompas — sloupce `zdroj · věrohodnost · provedení`, Sez. 138). Detail TODO/DONE.
 
 ### UC3 — Restaurování map (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních
