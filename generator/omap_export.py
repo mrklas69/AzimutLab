@@ -162,6 +162,51 @@ def inject_image_templates(doc: str, templates: list[dict]) -> str:
     return doc
 
 
+def append_image_templates(doc: str, templates: list[dict]) -> str:
+    """Přidá podkladové image templates k UŽ EXISTUJÍCÍM (na rozdíl od `inject_image_templates`,
+    který vyžaduje prázdné `count="0"` bloky a raisuje jinak).
+
+    Použití: připnout DMR hillshade / další podklad k `.omap`, která už ortofoto/sken template má
+    (DEV mapy mají count=1 z `--ortho`, KPI mapy z `add_resources_scan_background`). ZACHOVÁ existující
+    (append, ne replace), nové dostanou indexy C..C+M-1, `first_front_template` se zvedne na nový součet
+    (= všechny zůstávají pod mapou). Idempotence: template, jehož `name=` v doc už je, se přeskočí
+    (opakovaný běh nezdvojuje). Raise když bloky nesedí (ochrana proti tichému no-op).
+
+    templates = [{name, sx, sy, opacity}], formát elementu viz `_image_template_element`."""
+    # idempotence: nepřidávej podklad, který už v .omap je (opakovaný attach)
+    templates = [t for t in templates if f'name="{t["name"]}"' not in doc]
+    if not templates:
+        return doc
+    m = len(templates)
+    new_defs = "".join(_image_template_element(t["name"], t["sx"], t["sy"]) for t in templates)
+    # prázdný <view> blok je self-closing (`count="0"/`) → znormalizuj na párový, ať append najde </templates>
+    doc = doc.replace('<templates count="0"/>', '<templates count="0"></templates>')
+
+    # <map> blok (má first_front_template): <templates count="C" first_front_template="F">DEFS</templates>
+    def _map(mt: "re.Match") -> str:
+        tot = int(mt.group("c")) + m
+        return (f'<templates count="{tot}" first_front_template="{tot}">'
+                f'{mt.group("body")}{new_defs}</templates>')
+    doc, n_def = re.subn(
+        r'<templates count="(?P<c>\d+)" first_front_template="\d+">(?P<body>.*?)</templates>',
+        _map, doc, count=1, flags=re.DOTALL)
+
+    # <view> blok (bez first_front_template): <templates count="C">REFS</templates>
+    def _view(mt: "re.Match") -> str:
+        c = int(mt.group("c"))
+        new_refs = "".join(
+            f'<ref template="{c + i}" visible="true" opacity="{t.get("opacity", 0.5):g}"/>'
+            for i, t in enumerate(templates))
+        return f'<templates count="{c + m}">{mt.group("body")}{new_refs}</templates>'
+    doc, n_ref = re.subn(
+        r'<templates count="(?P<c>\d+)">(?P<body>(?:(?!<templates).)*?)</templates>',
+        _view, doc, count=1, flags=re.DOTALL)
+
+    if n_def != 1 or n_ref != 1:
+        raise ValueError(f"append_image_templates: <templates> bloky nesedí (map={n_def}, view={n_ref})")
+    return doc
+
+
 def write_omap(contour_features: list[tuple], path_features: list[tuple],
                point_symbols: list[dict], water_features: list[tuple],
                building_features: list[tuple], powerline_features: list[tuple],

@@ -32,9 +32,13 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "connectors"))
 sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
+from pyproj import Transformer  # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
-from omap_export import inject_image_templates  # noqa: E402
+from omap_export import inject_image_templates, append_image_templates  # noqa: E402
+from dmr import fetch_elevation_grid  # noqa: E402  (DMR 5G hillshade podklad)
 from map_gt import IGNORE as _GT_IGNORE, SEMANTIC_LABEL_VIS as _GT_VIS  # noqa: E402
+
+_SJTSK_TO_WGS84 = Transformer.from_crs("EPSG:5514", "EPSG:4326", always_xy=True)
 
 _GT_IGNORE_RGB = _GT_VIS[_GT_IGNORE]   # (255,0,255) magenta = oblast mimo Livelox mapu v gt_grid_vis
 
@@ -276,6 +280,138 @@ def add_backgrounds_batch(cids=None, skip_existing: bool = True) -> dict:
     return summary
 
 
+_DMR_BG_MPP = 2.5          # cílové rozlišení hillshade podkladu [m/px]; DMR 5G native ~2 m → jemnější = interpolace
+_DMR_BG_MAX_PX = 4000      # strop strany fetche (ČÚZK exportImage limit + RAM); velké výseky downsamplují
+
+
+def _hillshade(elev: np.ndarray, mpp: float,
+               azimuth_deg: float = 315.0, altitude_deg: float = 45.0) -> np.ndarray:
+    """Šedý hillshade (H×W×3 uint8) z výškového pole — standardní ESRI vzorec (Lambert + směr světla).
+
+    `mpp` = m/px (izotropní), `azimuth_deg` = odkud svítí (315° = SZ, kartografická konvence — slunce
+    vlevo nahoře, ať reliéf nevypadá invertovaně), `altitude_deg` = výška slunce nad obzorem.
+    NaN (mimo ČR / DMR díra u hranic) → bílá (papír; v OOM neviditelné). Bez SciPy — jen np.gradient."""
+    nan = ~np.isfinite(elev)
+    if nan.all():                                          # celý výsek mimo DMR → samý papír
+        return np.full(elev.shape + (3,), 255, np.uint8)
+    e = np.where(nan, float(np.nanmedian(elev)), elev).astype(np.float64)  # NaN → medián (jen kvůli gradientu)
+    dzdy, dzdx = np.gradient(e, mpp)                       # parciální derivace [m/m]; row = S-J, col = V-Z
+    slope = np.arctan(np.hypot(dzdx, dzdy))                # sklon [rad]
+    aspect = np.arctan2(dzdy, -dzdx)                       # orientace svahu [rad] (ESRI konvence)
+    zenith = np.radians(90.0 - altitude_deg)              # zenitový úhel slunce
+    az = np.radians(360.0 - azimuth_deg + 90.0)           # azimut → matematický úhel
+    shaded = (np.cos(zenith) * np.cos(slope)
+              + np.sin(zenith) * np.sin(slope) * np.cos(az - aspect))
+    g = (np.clip(shaded, 0.0, 1.0) * 255).astype(np.uint8)
+    rgb = np.dstack([g, g, g])
+    rgb[nan] = 255                                         # mimo DMR → bílá
+    return rgb
+
+
+def _bbox_from_pgw(gpgw: tuple, gW: int, gH: int) -> tuple[float, float, float, float, float, float]:
+    """Axis-aligned S-JTSK bbox výseku z rgb.pgw (A,B,C,D,E,F) + rozměru gridu. Vrací
+    (xmin, ymin, xmax, ymax, cx, cy). Předpoklad: gen grid je osově zarovnaný (B=D=0) — platí pro
+    všechny tři cesty (DEV/KPI/Buschdörfl kreslí osově, Livelox quad se jen ořezává, ne rotuje pgw)."""
+    A, B, C, D, E, F = gpgw
+    mpp_x, mpp_y = abs(A), abs(E)
+    xmin = C - mpp_x / 2.0                                 # (C,F) = střed px (0,0) = SZ roh gridu
+    xmax = C + (gW - 0.5) * mpp_x
+    ymax = F + mpp_y / 2.0                                 # E < 0 (sever nahoře)
+    ymin = F - (gH - 0.5) * mpp_y
+    return xmin, ymin, xmax, ymax, (xmin + xmax) / 2.0, (ymin + ymax) / 2.0
+
+
+def attach_dmr_hillshade(map_dir: str | pathlib.Path, omap_name: str | None = None,
+                         opacity: float = _BG_OPACITY, target_mpp: float = _DMR_BG_MPP) -> dict:
+    """Připne DMR 5G hillshade jako podkladový template do `.omap` mapy (DEV/KPI/Buschdörfl).
+
+    Pracuje JEN z obsahu složky (`rgb.pgw` + `rgb.png` + `meta.json` + `.omap`) → společný jmenovatel
+    všech tří generačních cest. Z pgw odvodí S-JTSK bbox, stáhne DMR (cache `.dmr_cache`), vyrenderuje
+    hillshade a APPENDne ho k existujícím podkladům (`append_image_templates` — zachová ortofoto/sken).
+
+    `omap_name` None → najde `gen.omap`, jinak `<složka>.omap`. No silent fallback: chybí-li vstup,
+    raisuje (ne náhradní cesta). Vrací {"added": [...], "skipped": [...]}."""
+    map_dir = pathlib.Path(map_dir)
+    rgb = map_dir / "rgb.png"
+    rgb_pgw = map_dir / "rgb.pgw"
+    meta_p = map_dir / "meta.json"
+    if omap_name:
+        omap = map_dir / omap_name
+    elif (map_dir / "gen.omap").exists():
+        omap = map_dir / "gen.omap"
+    else:                                                  # DEV/KPI: <složka>.omap
+        omap = map_dir / f"{map_dir.name}.omap"
+    for req in (rgb, rgb_pgw, meta_p, omap):
+        if not req.exists():
+            raise FileNotFoundError(f"{map_dir}: chybí {req.name} (mapa není hotová)")
+
+    with Image.open(rgb) as im:
+        gW, gH = im.size
+    gpgw = _read_pgw(rgb_pgw)
+    scale = int(json.loads(meta_p.read_text(encoding="utf-8"))["scale"].split(":")[1])
+    mpp_x, mpp_y = abs(gpgw[0]), abs(gpgw[4])
+    xmin, ymin, xmax, ymax, cx, cy = _bbox_from_pgw(gpgw, gW, gH)
+    world_w, world_h = xmax - xmin, ymax - ymin
+    lon, lat = _SJTSK_TO_WGS84.transform(cx, cy)           # střed výseku → WGS84 (fetch_elevation_grid čeká lat/lon)
+
+    # jemný grid pro hillshade (≈target_mpp), strop _DMR_BG_MAX_PX; aspekt = world_w/world_h, ať bbox sedí
+    gw_f = max(1, min(_DMR_BG_MAX_PX, round(world_w / target_mpp)))
+    gh_f = max(1, min(_DMR_BG_MAX_PX, round(world_h / target_mpp)))
+    eff_mpp = world_h / gh_f                               # skutečné m/px po stropu (pro hillshade gradient)
+    elev = fetch_elevation_grid(lat, lon, gw_f, gh_f, tile_m=world_h)   # (gh_f, gw_f), sever nahoře
+    hs = _hillshade(elev, eff_mpp)
+    Image.fromarray(hs).save(map_dir / "bg_dmr.png")
+
+    pw = gW * mpp_x * 1e6 / scale                          # paper µm výseku (mirror add_backgrounds)
+    ph = gH * mpp_y * 1e6 / scale
+    template = {"name": "bg_dmr.png", "sx": pw / 1000.0 / gw_f, "sy": ph / 1000.0 / gh_f, "opacity": opacity}
+    doc = append_image_templates(omap.read_text(encoding="utf-8"), [template])
+    omap.write_text(doc, encoding="utf-8")
+    return {"added": ["bg_dmr.png"], "skipped": []}
+
+
+_ORTHO_BG_MPP = 1.0        # rozlišení ortofoto podkladu [m/px]; 1 m stačí na verify (menší = ostřejší + větší)
+
+
+def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
+                 opacity: float = 0.5, target_mpp: float = _ORTHO_BG_MPP) -> dict:
+    """Připne ČÚZK ortofoto obdélník jako podkladový template do `.omap` mapy (izomorf
+    `attach_dmr_hillshade`). Pro mapy bez ortofota (KPI měřicí mapy — `measure_dod` je dělá s
+    ortho=False); DEV mapy ho už mají z `--ortho`, Buschdörfl z `add_backgrounds`. APPEND (zachová
+    sken/hillshade). No silent fallback: chybí-li vstup, raisuje. Vrací {"added":[...], "skipped":[...]}."""
+    map_dir = pathlib.Path(map_dir)
+    rgb, rgb_pgw, meta_p = map_dir / "rgb.png", map_dir / "rgb.pgw", map_dir / "meta.json"
+    if omap_name:
+        omap = map_dir / omap_name
+    elif (map_dir / "gen.omap").exists():
+        omap = map_dir / "gen.omap"
+    else:
+        omap = map_dir / f"{map_dir.name}.omap"
+    for req in (rgb, rgb_pgw, meta_p, omap):
+        if not req.exists():
+            raise FileNotFoundError(f"{map_dir}: chybí {req.name} (mapa není hotová)")
+
+    from ortofoto import fetch_ortofoto                    # lokální import (síťový konektor)
+    with Image.open(rgb) as im:
+        gW, gH = im.size
+    gpgw = _read_pgw(rgb_pgw)
+    scale = int(json.loads(meta_p.read_text(encoding="utf-8"))["scale"].split(":")[1])
+    mpp_x, mpp_y = abs(gpgw[0]), abs(gpgw[4])
+    _, _, _, _, cx, cy = _bbox_from_pgw(gpgw, gW, gH)
+    world_w, world_h = gW * mpp_x, gH * mpp_y
+    lon, lat = _SJTSK_TO_WGS84.transform(cx, cy)
+    o_w = max(1, min(_DMR_BG_MAX_PX, round(world_w / target_mpp)))  # sdílí strop s DMR (ČÚZK + RAM)
+    o_h = max(1, min(_DMR_BG_MAX_PX, round(world_h / target_mpp)))
+    arr = fetch_ortofoto(lat, lon, gW, gH, world_h, o_w, o_h)       # bbox = build_bbox(...,tile_m=world_h)
+    Image.fromarray(arr).save(map_dir / "bg_ortho.png")
+
+    pw, ph = gW * mpp_x * 1e6 / scale, gH * mpp_y * 1e6 / scale     # paper µm
+    template = {"name": "bg_ortho.png", "sx": pw / 1000.0 / o_w, "sy": ph / 1000.0 / o_h, "opacity": opacity}
+    doc = append_image_templates(omap.read_text(encoding="utf-8"), [template])
+    omap.write_text(doc, encoding="utf-8")
+    return {"added": ["bg_ortho.png"], "skipped": []}
+
+
 if __name__ == "__main__":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -284,6 +420,14 @@ if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) > 1 else "1088447"
     if arg == "batch":
         add_backgrounds_batch()
+    elif arg == "dmr":
+        # `dmr <maps/složka>` = připni DMR hillshade na jednu hotovou mapu (DEV/KPI/Buschdörfl)
+        r = attach_dmr_hillshade(sys.argv[2])
+        print(f"{sys.argv[2]}: DMR hillshade {r['added']}")
+    elif arg == "ortho":
+        # `ortho <maps/složka>` = připni ČÚZK ortofoto obdélník (mapy bez ortofota, např. KPI)
+        r = attach_ortho(sys.argv[2])
+        print(f"{sys.argv[2]}: ortofoto {r['added']}")
     else:
         r = add_backgrounds(_CORPUS / arg / "gen")
         print(f"{arg}: přidáno {r['added']}, přeskočeno {r['skipped']}")

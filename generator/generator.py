@@ -2941,15 +2941,30 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
         ix, iy = int(px), int(py)
         return forbid_px is not None and 0 <= iy < fh and 0 <= ix < fw and bool(forbid_px[iy, ix])
 
-    # 204 Boulder — jednotlivé kruhy rozseté po masce
+    # 204 Boulder — jednotlivé kruhy rozseté po masce. ISOM: bodové symboly se NESMÍ překrývat
+    # (legibilita; těsná skupina balvanů → cluster 207) → rejection sampling vůči REÁLNÝM balvanům
+    # i už umístěným pseudo (Sez. 138, nález uživatele {C} Novina: dva překryté 204). Mirror veg 417/419.
+    gap_px = PSEUDO_VEG_MIN_GAP_MM * PX_PER_MM           # sdílená ISOM min. mezera mezi bodovými symboly
+    r_b = float(BOULDER_RADIUS_PX)
+    placed_xy: list[tuple[float, float]] = [             # seed = reálné 204/207 → pseudo se s nimi nepřekryje
+        _grid_to_px(gx, gy) for gx, gy, _ in rock_point_features]
     n_boulder = round(area_km2 * PSEUDO_BOULDER_PER_KM2)
-    for _ in range(n_boulder):
+    placed = attempts = 0
+    budget = n_boulder * 25 + 50                         # strop pokusů (hustá maska → část se zahodí, OK)
+    while placed < n_boulder and attempts < budget:
+        attempts += 1
         gx, gy = _rand_cell_grid()
         px, py = _grid_to_px(gx, gy)
-        if _forbidden(px, py):                          # kámen na budově/cestě/zpevněné → přeskoč (Sez. 136)
+        if _forbidden(px, py):                          # kámen na budově/cestě/zpevněné/železnici → přeskoč
             continue
+        if placed_xy:                                   # min. vzdálenost středů ≥ 2·r_b + mezera (žádný překryv)
+            pxy = np.asarray(placed_xy)
+            if ((pxy[:, 0] - px) ** 2 + (pxy[:, 1] - py) ** 2 < (2 * r_b + gap_px) ** 2).any():
+                continue
         _draw_boulder(draw, mdraw, px, py)
         pts.append((gx, gy, str(ISOM_BOULDER)))         # "204"
+        placed_xy.append((px, py))
+        placed += 1
 
     # 210 Stony ground — POLE teček (každá tečka = samostatný bodový objekt 210.1, nález Sez. 96/106).
     # Elipsovitá oblast vyplněná tečkami na jittered gridu (rozestup spec 1,2 mm) — mirror inject._sample_field.
@@ -4016,10 +4031,12 @@ def generate_map(
     # vizuálně dominantní → musí být vidět. V plochém terénu (NL, SV) = 0 prvků (žádný šum).
     # Jen --rocks real. Body 204/207 + linie 208 ze ZABAGED (KISS vrstva → jeden symbol); plocha 206
     # z DMR sklonu (rock_relief, Sez. 63) — nahradila generalizovaný ZABAGED Skalní_útvary.
-    # vyloučení pseudo bodů (kameny 204/210 I veg 417/419) z budov/cest/zpevněných (Sez. 136, nález
-    # uživatele {A}): hotové GT masky (px). path vždy; building/paved mohou být None (vrstva off).
-    # Sdíleno boulders i veg call (DRY). Tady je dostupné vše (budovy/cesty/zpevněné už proběhly).
-    forbid_imgs = [m for m in (building_mask_img, path_mask_img, paved_mask_img) if m is not None]
+    # vyloučení pseudo bodů (kameny 204/210 I veg 417/419) z budov/cest/zpevněných/ŽELEZNIC (Sez. 136/138,
+    # nálezy uživatele {A}): hotové GT masky (px). path vždy; building/paved/railway mohou být None (vrstva
+    # off). Sdíleno boulders i veg call (DRY). Tady je dostupné vše (budovy/cesty/zpevněné/železnice už proběhly).
+    # Sez. 138 ({A} Novina): železnice 509 doplněna — kámen na úzkém železničním koridoru se zakrýval jako u cest.
+    forbid_imgs = [m for m in (building_mask_img, path_mask_img, paved_mask_img, railway_mask_img)
+                   if m is not None]
     rock_point_features: list[tuple] = []
     rock_area_features: list[tuple] = []
     rocks_info: list[dict] = []

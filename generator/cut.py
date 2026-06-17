@@ -269,16 +269,90 @@ def _emit_line(pts: list, attrs: str) -> str:
     return f'<object{attrs}><coords count="{len(pts)}">{cs}</coords></object>'
 
 
-def _emit_area(rings: list, attrs: str) -> str:
+def _on_clip_edge(p: tuple, clip_poly: list, tol: float) -> int:
+    """Index hrany `clip_poly`, na níž bod `p` leží (kolmá vzdálenost ≤ tol µm A uvnitř segmentu), jinak -1.
+
+    Řezné body (`_line_line_pt`) leží přesně na clip-hraně (neatline) → odliší je od původních vnitřních."""
+    px, py = p
+    n = len(clip_poly)
+    for j in range(n):
+        ax, ay = clip_poly[j]
+        bx, by = clip_poly[(j + 1) % n]
+        ex, ey = bx - ax, by - ay
+        L2 = ex * ex + ey * ey
+        if L2 == 0:
+            continue
+        t = ((px - ax) * ex + (py - ay) * ey) / L2          # projekce na hranu (0..1 = uvnitř segmentu)
+        if t < -1e-9 or t > 1 + 1e-9:
+            continue
+        cx, cy = ax + t * ex, ay + t * ey
+        if (px - cx) ** 2 + (py - cy) ** 2 <= tol * tol:
+            return j
+    return -1
+
+
+def _neatline_to_close(ring: list, clip_poly: list, tol: float = 1.0) -> tuple:
+    """Leží-li část prstenu na clip-hraně (NEATLINE = umělá řezná hrana, ne reálný obrys plochy),
+    přerotuj prsten tak, aby ten úsek byl UZAVÍRACÍ segment (poslední→první), a slouč kolineární
+    vnitřní body úseku. Volající pak dá poslednímu vrcholu flag 16 (hole, BEZ close bitu 2) → OOM
+    NEkreslí border na uzavíracím segmentu, ale výplň zůstane (probe ověřen Sez. 138; `omap_raster`
+    dělí ringy na bitu 16, takže area_labels se nerozbijí). Vrací (ring, suppress: bool).
+
+    Řeší JEDEN nejdelší souvislý úsek na hraně (roh papíru = dva úseky → druhý ponechá border; vzácné).
+    suppress=False → beze změny (žádný neatline úsek, nebo jen bodové dotyky)."""
+    n = len(ring)
+    edge = [_on_clip_edge(p, clip_poly, tol) for p in ring]
+    if not any(e >= 0 for e in edge):
+        return list(ring), False
+    # rotuj start tam, kde se hrana mění → souvislé běhy nejsou rozseknuté přes konec seznamu
+    pivot = next((i for i in range(n) if edge[i] != edge[(i - 1) % n]), None)
+    if pivot is None:                                        # všechny body na téže hraně = degenerát
+        return list(ring), False
+    r = ring[pivot:] + ring[:pivot]
+    e = edge[pivot:] + edge[:pivot]
+    runs = []                                                # (délka, i0, i1) souvislé úseky téže hrany (e>=0)
+    i = 0
+    while i < n:
+        if e[i] >= 0:
+            j = i
+            while j + 1 < n and e[j + 1] == e[i]:
+                j += 1
+            if j > i:                                        # >=2 sousední body = segment na neatline
+                runs.append((j - i, i, j))
+            i = j + 1
+        else:
+            i += 1
+    if not runs:                                             # jen bodové dotyky hrany, žádný segment
+        return list(ring), False
+    _, i0, i1 = max(runs)                                     # nejdelší úsek
+    A, B = r[i0], r[i1]                                       # krajní body úseku (vnitřek = kolineární, zahodíme)
+    new_ring = [B] + r[i1 + 1:] + r[:i0] + [A]                # uzavírací segment A->B = neatline
+    if len(new_ring) < 3:
+        return list(ring), False
+    return new_ring, True
+
+
+def _emit_area(rings: list, attrs: str, clip_poly: list) -> str:
     """Plošný objekt (type=1, close/hole flagy) z prstenů — mirror omap_export.area_object konvence:
-    poslední bod prstenu nese 18 (16 hole + 2 close), poslední z VÍCE prstenů jen 2."""
+    poslední bod prstenu nese 18 (16 hole + 2 close), poslední z VÍCE prstenů jen 2.
+
+    NEATLINE (Sez. 138, nález uživatele {A}-{C} Novina): single-ring plocha ořezaná clip-hranou dostane
+    řeznou hranu jako UZAVÍRACÍ segment + flag 16 (BEZ close 2) → OOM nekreslí neprůnikový border na
+    umělé řezné hraně (kartograf ho tam taky nekreslí — mapa končí, plocha ne). Multi-ring (s dírou)
+    ponechán beze změny (probe ověřen jen single-ring)."""
     valid = [r for r in rings if len(r) >= 3]
     if not valid:
         return ""
+    suppress = False
+    if len(valid) == 1:
+        valid[0], suppress = _neatline_to_close(valid[0], clip_poly)
     parts, total, last = [], 0, len(valid) - 1
     for ri, ring in enumerate(valid):
         rp = [f"{round(x)} {round(y)}" for x, y in ring]
-        rp[-1] += " 2" if (ri == last and last > 0) else " 18"
+        if ri == last and last > 0:
+            rp[-1] += " 2"                                    # poslední z více prstenů = jen close
+        else:
+            rp[-1] += " 16" if (ri == 0 and suppress) else " 18"  # 16 = neatline (border off na close), jinak 18
         parts.extend(rp)
         total += len(ring)
     cs = ";".join(parts) + ";"
@@ -343,7 +417,7 @@ def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
             if cur:
                 rings.append(cur)
             clipped = cut_area(rings, clip_poly)
-            out = _emit_area(clipped, attrs)
+            out = _emit_area(clipped, attrs, clip_poly)
             if out:
                 stats["kept"] += 1
                 return out
