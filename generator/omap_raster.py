@@ -67,6 +67,12 @@ AREA_ZORDER = [
     "521",    # Building (budovy) — nahoře
 ]
 CODE_TO_LABEL = {code: i + 1 for i, code in enumerate(AREA_ZORDER)}
+# Alias 301.1 → vodní třída (Sez. 142): klipnutá voda 301 dostane od `cut._emit_bordered_area` fill-only
+# symbol 301.1 (combined 301 by na řezné hraně nakreslil černý břeh — fill/border split). 301.1 NENÍ
+# samostatná třída → mapuj na touž vodní třídu jako 301 (NEpřidávat do AREA_ZORDER: N_AREA zůstává, jen
+# se nesmí tiše zahodit z Y — drift Sez. 110). Břehová linie 301.4 je type-line → parse_area_objects ji
+# přeskočí (kód mimo CODE_TO_LABEL), do Png2Line LINE_CLASSES taky nepatří.
+CODE_TO_LABEL["301.1"] = CODE_TO_LABEL["301"]
 LABEL_NAME = {0: "pozadí", **{i + 1: code for i, code in enumerate(AREA_ZORDER)}}
 N_AREA = len(AREA_ZORDER) + 1   # + pozadí (label 0)
 

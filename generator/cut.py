@@ -221,6 +221,17 @@ def cut_area(rings: list, clip_poly: list) -> list:
 
 _OBJECTS_RE = re.compile(r'(<objects count=")(\d+)(">)(.*?)(</objects>)', re.DOTALL)
 _TYPE_RE = re.compile(r'<object type="(\d)"')
+_SYMBOL_RE = re.compile(r'symbol="(\d+)"')
+_SYMBOLS_DEF_RE = re.compile(r'<symbol\b[^>]*\bid="(\d+)"[^>]*\bcode="([^"]+)"')   # id PŘED code (jako omap_export._parse_symbol_ids)
+
+# Ohraničené plochy = combined symbol (fill + obrysová linie kolem CELÉHO prstenu). Při ořezu by OOM
+# nakreslil obrys i na umělé řezné hraně (kartograf ho tam nekreslí). FILL/BORDER SPLIT (Sez. 142,
+# zadání uživatele Sez. 140): klipnutou plochu emituj jako fill-only symbol + obrysovou linii JEN na
+# reálných úsecích (mimo řeznou hranu) → roh i multi-run automaticky, nahrazuje flag-16 trik
+# `_neatline_to_close`. Mapa kód → (fill kód, border-linie kód); id se resolvuje z <symbols> daného `.omap`.
+# Dnes JEN voda 301 (jediná emitovaná combined ohraničená plocha; 520/521 jsou fill-only = bez borderu,
+# 501 odloženo — jeho fill 501.1 koliduje s base-fill třídou v omap_raster, chce vlastní symbol).
+_BORDERED_AREA = {"301": ("301.1", "301.4")}
 
 
 def _object_identity(attrs: str) -> str:
@@ -359,6 +370,64 @@ def _emit_area(rings: list, attrs: str, clip_poly: list) -> str:
     return f'<object{attrs}><coords count="{total}">{cs}</coords></object>'
 
 
+def _border_runs(ring: list, clip_poly: list, tol: float = 1.0) -> list:
+    """Maximální souvislé běhy segmentů prstenu, které NELEŽÍ na clip-hraně = reálný břeh (kreslí se
+    obrys). Segment ring[i]→ring[(i+1)%n] je řezný (border OFF), když oba krajní body leží na TÉŽE
+    clip-hraně (řezné body `_line_line_pt` leží přesně na ní). Vrací list polylinií (každá ≥2 body).
+    Prsten je uzavřený (n segmentů, wrap přes konec)."""
+    n = len(ring)
+    if n < 2:
+        return []
+    # Klasifikace per SEGMENT podle jeho STŘEDU (ne krajních bodů): rohový vrchol leží na dvou clip-hranách
+    # současně a `_on_clip_edge` vrátí jen první → „oba konce na téže hraně" by sousední clip-segment v rohu
+    # mylně označil za reálný (dostal by border). Střed segmentu je jednoznačný (roh Borný, Sez. 142).
+    mid = lambda a, b: ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+    seg_clip = [_on_clip_edge(mid(ring[i], ring[(i + 1) % n]), clip_poly, tol) >= 0 for i in range(n)]
+    if all(seg_clip):                                # celý prsten na hraně (degenerát) → žádný reálný břeh
+        return []
+    if not any(seg_clip):                            # nic na hraně (vnitřní prsten/ostrov) → uzavřená smyčka břehu
+        return [list(ring) + [ring[0]]]
+    start = next(i for i in range(n) if seg_clip[i] and not seg_clip[(i + 1) % n])  # přechod řezný→reálný
+    runs, cur = [], []
+    for k in range(n):
+        i = (start + 1 + k) % n
+        if seg_clip[i]:
+            if cur:
+                runs.append(cur); cur = []
+        else:
+            if not cur:
+                cur = [ring[i]]
+            cur.append(ring[(i + 1) % n])
+    if cur:
+        runs.append(cur)
+    return [r for r in runs if len(r) >= 2]
+
+
+def _emit_bordered_area(rings: list, attrs: str, clip_poly: list,
+                        fill_id: int, border_id: int, tol: float = 1.0) -> tuple:
+    """Klipnutá ohraničená plocha (combined fill+border, dnes voda 301) → fill-only objekt (symbol
+    `fill_id`, normální close flagy) PLUS samostatné obrysové linie (symbol `border_id`) JEN na reálných
+    úsecích břehu (`_border_runs`, mimo řeznou hranu). Řeší roh i libovolný multi-run (Sez. 142, nahrazuje
+    flag-16 trik pro ohraničené plochy). Vrací (xml, n_objects)."""
+    valid = [r for r in rings if len(r) >= 3]
+    if not valid:
+        return "", 0
+    fill_attrs = _SYMBOL_RE.sub(f'symbol="{fill_id}"', attrs, count=1)
+    parts, total, last = [], 0, len(valid) - 1
+    for ri, ring in enumerate(valid):
+        rp = [f"{round(x)} {round(y)}" for x, y in ring]
+        rp[-1] += " 2" if (ri == last and last > 0) else " 18"   # poslední z více prstenů = jen close; jinak close+hole
+        parts.extend(rp); total += len(ring)
+    out = f'<object{fill_attrs}><coords count="{total}">{";".join(parts)};</coords></object>'
+    n = 1
+    border_attrs = _SYMBOL_RE.sub(f'symbol="{border_id}"', attrs, count=1)   # type="1" path, bez close flagů = linie
+    for ring in valid:
+        for run in _border_runs(ring, clip_poly, tol):
+            out += _emit_line(run, border_attrs)
+            n += 1
+    return out, n
+
+
 def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
     """Geometrický ořez VŠECH mapových objektů uvnitř `<objects>` bloku na clip_poly (v PAPER µm =
     native prostor `<coords>`; wrappery `cut_box`/`clip_omap_to_quad` ho do paper µm převedou).
@@ -371,6 +440,15 @@ def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
     `<symbols>` netknuta). String/regex, NE ET (rozbil by inject_image_templates — paměť omap-edit-string-not-et)."""
     omap_path = pathlib.Path(omap_path)
     doc = omap_path.read_text(encoding="utf-8")
+    # code → symbol id z <symbols> (objekty referují symbol právě tímto id) → ohraničené plochy
+    # (fill/border split): id objektu → (fill id, border-linie id). Resolvováno z dokumentu, ne hardcode.
+    id_by_code: dict[str, int] = {}
+    for m in _SYMBOLS_DEF_RE.finditer(doc):
+        id_by_code.setdefault(m.group(2), int(m.group(1)))
+    bordered_ids: dict[int, tuple] = {}
+    for code, (fill_c, border_c) in _BORDERED_AREA.items():
+        if code in id_by_code and fill_c in id_by_code and border_c in id_by_code:
+            bordered_ids[id_by_code[code]] = (id_by_code[fill_c], id_by_code[border_c])
     om = _OBJECTS_RE.search(doc)
     if om is None:
         raise OmapFormatError(f"{omap_path}: chybí podporovaný <objects count=\"…\"> blok")
@@ -417,6 +495,16 @@ def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
             if cur:
                 rings.append(cur)
             clipped = cut_area(rings, clip_poly)
+            sm = _SYMBOL_RE.search(attrs)
+            sym_id = int(sm.group(1)) if sm else -1
+            if sym_id in bordered_ids:                    # ohraničená plocha (voda 301) → fill/border split
+                fill_id, border_id = bordered_ids[sym_id]
+                out, n = _emit_bordered_area(clipped, attrs, clip_poly, fill_id, border_id)
+                if out:
+                    stats["kept"] += n
+                    return out
+                stats["removed"] += 1
+                return ""
             out = _emit_area(clipped, attrs, clip_poly)
             if out:
                 stats["kept"] += 1
