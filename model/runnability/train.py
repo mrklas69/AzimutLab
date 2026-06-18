@@ -5,7 +5,7 @@ train.py — trénink UC5 runnability modelu (Sez. 78, krok 4).
 (val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
 (je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
 viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. U-Net/loss/IoU/křivka učení jsou ale
-znovupoužitelné pro budoucí modely (Png2Polygon = mapa→plochy, reuse tohoto skeletu).
+znovupoužitelné pro budoucí modely (Png2Area = mapa→plochy, reuse tohoto skeletu).
 
 Segmentační síť ortofoto RGB → runnability (5 tříd ISOM): 0 průchodný, 1 = 406 slow,
 2 = 408 walk, 3 = 410 fight, 4 = open. Label 255 (přetisk tratě + layout mimo mapu) je

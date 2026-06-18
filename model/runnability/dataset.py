@@ -5,7 +5,7 @@ dataset.py — PyTorch loader nad tréninkovými dlaždicemi UC5 runnability mod
 (val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
 (je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
 viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. Loader/augmentace je ale
-znovupoužitelná pro budoucí modely (Png2Polygon aj.).
+znovupoužitelná pro budoucí modely (Png2Area aj.).
 
 `model/runnability/tile.py` (Sez. 77) předkrájel páry (X=ortho RGB, Y=label 0-4/255) na 512×512
 PNG dlaždice do `resources/tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu

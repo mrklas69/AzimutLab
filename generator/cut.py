@@ -176,6 +176,8 @@ def _line_line_pt(p0: tuple, p1: tuple, a: tuple, b: tuple) -> tuple:
     hranu clip_poly, d≠0)."""
     x1, y1 = p0; x2, y2 = p1; x3, y3 = a; x4, y4 = b
     d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if abs(d) < 1e-12:                       # degenerát (úsečka ‖ hraně / kolineární vrchol na hraně)
+        return (x2, y2)                      # fallback na koncový bod místo NaN/explose (Sez. 143)
     t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / d
     return (x1 + t * (x2 - x1), y1 + t * (y2 - y1))
 

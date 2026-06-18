@@ -266,7 +266,7 @@ def main(name, flip_y=True, rot_sign=-1.0):
     # (1) PŘÍSNÁ per-odstín mIoU (stejný kód jako train.evaluate) — srovnatelná se syntetikou
     pc = _iou_from_cm(cm, present)
     miou = float(np.mean([v for _, v, _ in pc])) if pc else 0.0
-    print(f"  [PŘÍSNÁ per-odstín] mIoU {miou:.3f} ({len(pc)} tříd v Y) vs syntetická 0,537")
+    print(f"  [PŘÍSNÁ per-odstín] mIoU {miou:.3f} ({len(pc)} tříd v Y) vs syntetická 0,683 (Sez. 126 MPP fix)")
     print("    " + "  ".join(f"{LABEL_NAME[c]}={v:.2f}" for c, v, _ in pc))
 
     # (2) confusion dump — kam pixely utíkají (test hypotézy odstínové záměny)

@@ -484,13 +484,13 @@ ISOM_SPRING = 312
 ISOM_WELL = 311
 ISOM_CAVE = "203.2"
 LANDMARK_NAME = {ISOM_HIGH_TOWER: "High tower", ISOM_CAIRN: "Cairn",
-                 ISOM_PROM_RING: "Prominent man-made feature", ISOM_LARGE_TREE: "Prominent large tree",
+                 ISOM_PROM_RING: "Prominent man-made feature: o", ISOM_LARGE_TREE: "Prominent large tree",
                  ISOM_SPRING: "Spring", ISOM_WELL: "Well, fountain or water tank",
                  ISOM_CAVE: "Cave or rocky pit",
                  ISOM_VEG_FEATURE: "Prominent vegetation feature",
                  ISOM_PROM_BUSH: "Prominent bush or tree",
                  ISOM_FODDER: "Fodder rack", ISOM_SMALL_TOWER: "Small tower",
-                 ISOM_PROM_X: "Prominent man-made feature"}
+                 ISOM_PROM_X: "Prominent man-made feature: x"}
 # ISOM kód → třída v mask_landmarks.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
 LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4,
                   ISOM_SPRING: 5, ISOM_WELL: 6, ISOM_CAVE: 7, ISOM_VEG_FEATURE: 8,
@@ -3081,8 +3081,9 @@ def _generate_pseudo_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDra
 
     Umístění (volba uživatele): MIMO vodu (no-draw zóna, CLAUDE.md) + MIMO hustou skalnatost (strom
     neroste v balvanitém poli; krmelec/posed ve skalním poli taky ne) + MIMO budovy/cesty/zpevněné
-    plochy (Sez. 136 nález — symbol pod liniovým/plošným prvkem se zakryje). Skalní maska = 206 plochy
-    z DMR sklonu (rock_relief, Sez. 63), dilatované. Budovy/cesty/zpevněné z hotových GT masek (forbid_imgs).
+    plochy + železnice 509 (Sez. 136/138 nález — symbol pod liniovým/plošným prvkem se zakryje, balvany
+    padaly na žel. koridor). Skalní maska = 206 plochy z DMR sklonu (rock_relief, Sez. 63), dilatované.
+    Budovy/cesty/zpevněné/železnice z hotových GT masek (forbid_imgs).
 
     ISOM rozestup (Sez. 136, nález uživatele {A}): bodové symboly se NESMÍ překrývat → rejection sampling,
     nový bod zahozen, pokud je blíž než (r_a + r_b + mezera) ke kterémukoli už umístěnému.

@@ -14,6 +14,9 @@ maps/
 output/
 output_*/
 temp/
+# Scratch pracovní složka pro rozpoznávání ISOM (testovací Livelox sken + specs) — copyright, ponecháno
+# na disku, mimo git (Sez. 143; pravidlo B3 „žádné výřezy Livelox v commitech").
+isom_scan/
 
 # Velká binární data (mapy, rastry, LIDAR) — do gitu nepatří, odkaz v KB
 *.tif

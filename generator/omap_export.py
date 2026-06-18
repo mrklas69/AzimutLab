@@ -74,7 +74,8 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
               "308", "310", "406",       # mokřady Sez. 44 (308 Marsh) + 310 Indistinct (pseudo Sez. 99) + stromořadí Sez. 45 (406)
-              "408", "410")              # věk porostu Sez. 62 (406/408/410 zeleň z AOPK porostních skupin, PROXY)
+              "408", "410",              # věk porostu Sez. 62 (406/408/410 zeleň z AOPK porostních skupin, PROXY)
+              "416", "416.1")            # hranice porostů Sez. 101 (416 černá tečk. / 416.1 zelená čárk.; emitováno přes linefeat, doplněno do SSoT Sez. 143)
 # 523 Ruin (Sez. 43): zřícenina jde v building_features jako uzavřený area_object se symbolem 523
 # (line_symbol dashed v template) → OOM nakreslí čárkovaný obrys po obvodu (bez výplně; 523 nemá
 # area component, proto NENÍ v AREA_CODES — close flag jen uzavře geometrii).

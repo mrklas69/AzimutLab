@@ -5,7 +5,7 @@ tile.py — příprava tréninkových dlaždic UC5 runnability modelu (Sez. 77, 
 (val mIoU strop ~0,25, Sez. 78: podrost pod korunami z ortofota shora nevidět). Kód NEMAZÁN
 (je to doložený nález „tudy ne"). Aktuální směr Laboratoře = `reconstructor()` (sken → `.omap`),
 viz GLOSSARY `generator()`/`reconstructor()` + docs/TODO. Dlaždicová/split/GT pipeline ale
-zůstává znovupoužitelná pro budoucí modely (Png2Polygon aj.).
+zůstává znovupoužitelná pro budoucí modely (Png2Area aj.).
 
 Páry (X=ortho.png, Y=gt_grid.png) z Livelox korpusu jsou různě velké (~800–4000 px)
 a U-Net jede na fixní dlaždici. Tenhle skript nakrájí každý pár na 512×512 dlaždice

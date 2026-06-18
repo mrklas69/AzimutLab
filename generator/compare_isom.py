@@ -29,7 +29,6 @@ except Exception:
 
 _REPO = Path(__file__).resolve().parents[1]   # generator/ je 1 pod kořenem (Sez. 39)
 _CRT = _REPO / "docs" / "kb" / "ISOM2000-ISOM2017-2.crt"   # autoritativní crosswalk (KB Sez. 37-40)
-_TEMPLATE = Path(__file__).resolve().parent / "template_classic.omap"   # plná ISOM 2017-2 knihovna
 
 # OOM `<symbol type=N>` → geometrie (doloženo distribucí v template, Sez. 95):
 # 1=Point, 2=Line, 4=Area, 8=Text, 16=Combined. Geometrie určuje, který reconstructor kód umí.

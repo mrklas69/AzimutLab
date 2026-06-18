@@ -81,16 +81,30 @@ AREA_CLASSES = {
 # papír zachytí (nearest == 3, ne 0) → 403 zůstane jen na skutečně bledě žlutých plochách.
 YELLOW_REFS = np.array([(254, 222, 154), (255, 200, 58), (227, 168, 118), (255, 255, 255)], dtype=np.int32)
 
+# Velikost řádkového chunku pro nearest-color klasifikaci (px), aby dočasné (N,refs,3) int32 pole
+# nepřeteklo RAM na plném skenu (Sez. 143; izomorf connectors/map_gt._CLASSIFY_CHUNK_PX).
+_CLASSIFY_CHUNK_PX = 4_000_000
+
 
 def _is_pale_yellow(rgb: np.ndarray) -> np.ndarray:
     """Bool maska (H,W): pixel je bledá žlutá (403), tj. nejbližší z YELLOW_REFS je index 0.
 
     Nearest-color mezi žlutooranžovými odstíny + bílou — předpokládá, že volající už zúžil na „open"
     plochu (gt == 4), takže zeleň/modř sem nepřijdou; rozhoduje se bledá vs sytá vs cesta vs papír.
-    Sytá (401)/cesta jsou real část → nevektorizují se, bílá = papír (záchyt), slouží jen k odlišení."""
-    flat = rgb.reshape(-1, 3).astype(np.int32)
-    d = ((flat[:, None, :] - YELLOW_REFS[None, :, :]) ** 2).sum(2)
-    return (d.argmin(1) == 0).reshape(rgb.shape[:2])
+    Sytá (401)/cesta jsou real část → nevektorizují se, bílá = papír (záchyt), slouží jen k odlišení.
+
+    Řez po řádcích (chunk ~_CLASSIFY_CHUNK_PX, izomorf map_gt._classify, Sez. 143): dočasné pole
+    (N,4,3) int32 by na plném skenu přeteklo RAM (~1,4 GiB @ 30 Mpx → strop ntbhej). Per-pixel argmin
+    je nezávislý → chunking je byte-identický s celorázovým výpočtem, jen drží peak konstantní."""
+    H, W = rgb.shape[:2]
+    out = np.empty((H, W), dtype=bool)
+    rows = max(1, _CLASSIFY_CHUNK_PX // max(W, 1))
+    for y0 in range(0, H, rows):
+        y1 = min(y0 + rows, H)
+        flat = rgb[y0:y1].reshape(-1, 3).astype(np.int32)   # int32: 255²·3 přeteče int16
+        d = ((flat[:, None, :] - YELLOW_REFS[None, :, :]) ** 2).sum(2)
+        out[y0:y1] = (d.argmin(1) == 0).reshape(y1 - y0, W)
+    return out
 
 # Cílové rozlišení separace (Sez. 85): downscale vstupu na ~1,33 m/px PŘED vektorizací. Dva důvody:
 #   1) VÝKON — separace je O(n² prstenců); na jemném skenu (Branžež 0,56 mpp = 93 Mpx) trvá minuty.
