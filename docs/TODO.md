@@ -47,9 +47,9 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   (5) mini `build_pair`/rasterizace fixture → Y má nenulové px pro každý area kód přítomný v `.omap`
   (chytá 301/301.1 dynamicky). Jeden soubor `tests/smoke.py`, spustitelný `python tests/smoke.py`
   (bez pytest závislosti, KISS); do `docs/PROMPTS.md` %END přidat „měnil-li se kód: spusť smoke".
-- [ ] *(A6; HAL3000)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
+- [!] *(A6; HAL3000 → priorita zvednuta %CALIBRATE Sez. 145)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
   neopakovatelná lidská práce), `_split.json` (bez něj jsou všechna mIoU neporovnatelná), chybějící
-  `resources/*.pgw` (Velbloud na ntbhej). Malé textové soubory BEZ copyright obsahu → commitnout
+  `resources/*.pgw` (**Velbloud na ntbhej — bez něj nejde měřit KPI default sada na ntbhej ani po C1 fixu; blokuje B2 „měř hned po pokrytí"**). Malé textové soubory BEZ copyright obsahu → commitnout
   (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
   artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
@@ -174,7 +174,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `segment_gt` blokátoru) + disk. Otevřít `Borný_v142.omap` v OOM, ověřit roh Máchova jezera bez černého obrysu na obou řezných hranách.
 - [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
   Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
-  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419**. KPI dopad: přestřel KPI SNIŽUJE
+  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419** + **527/531 (změřeno Sez. 145: 527 přestřel 11×, 531 3,3×)**. KPI dopad: přestřel KPI SNIŽUJE
   (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
   změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
 - [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
@@ -185,10 +185,19 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   size — ODLOŽENO** (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní
   (buildings vrací area, 523.1 je point → cross-pipeline změna signatury/render/omap) → reálná páka ≈ 0. Když se
   bude dělat: footprint < ISOM min 0,8×0,8 mm (144 m²) → bodový čtverec 523.1 místo zanikajícího obrysu 523.
-- [ ] *(KPI verify, carry Sez. 141 — ntbhej RAM limit)* **Přeměřit KPI/KOMPAS dopad pseudo bodů 527/525/531** na
-  HAL3000/mrkla. `measure_dod` na ntbhej padá na `ArrayMemoryError` (`map_gt.segment_gt` separace skenu Bedřichovky
-  3,4 Mpx × 13 barev; known >~100 Mpx limit) + chybí Velbloud.pgw. Ověřit, že 3 nové man-made typy zaplnily KOMPAS
-  díry (orig>0 z crosswalku) + dopad na KPI (60,7 % Sez. 138).
+- [x] *(KPI verify — ZMĚŘENO Sez. 145 na ntbhej, C1 odblokoval)* **Přeměřeno KPI/KOMPAS dopad pseudo bodů
+  527/525/531 + 517/518.** C1 fix (Sez. 143) reálně odblokoval `measure_dod` na ntbhej (rozpor diáře 141/143
+  rozřešen: `segment_gt` na downscalovaném skenu RAM nepřekročí). KPI 2-mapová sada **55,3 %** (Bedř 49,4 / Blatná
+  61,2; Velbloud.pgw chybí → hlasitě vynechán, NEsrovnatelné s 3-map 60,7 % — Velbloud byl nejvyšší 67,0). KOMPAS
+  provedení (Bedř+Blatná agregát): **527 PŘESTŘEL 11× (orig 7 / gen 79), 531 přestřel 3,3× (6/20)** → sráží Bedř
+  bod na 40,9 %; **525 podstřel (27/6), 517 podstřel (17/1), 516 podstřel (24/6), 518 ok (16/6)**. Plný carry → ↓.
+- [!] *(KPI kalibrace, nález Sez. 145 měření)* **Přeměřit pseudo hustoty crosswalk-aware + kalibrovat 527/531 dolů.**
+  Nasazené `PSEUDO_FODDER_PER_KM2=(3,13)` med ~7,7 / `PSEUDO_PROM_X=(0.5,3)` med ~1,3 pocházejí ze Sez. 141 měření,
+  které si SAMO vytklo Censure (crosswalk-slepé) → **pravděpodobně VADNÁ**: crosswalk-aware orig na Bedř+Blatná (~11,6 km²)
+  = 527 jen **0,6/km²** (10× pod nasazenou), 531 0,5/km². Medián 5 map je robustní → 7,7 nemůže koexistovat s 0,6 na
+  2 z těch map. **NEkalibrovat slepě na 2 mapy** (Goodhart A3 + overfit) → nejdřív **doplnit Velbloud.pgw** (A6 [!]) +
+  přeměřit hustoty crosswalk-aware přes plnou sadu, PAK snížit 527/531 (a zvýšit 525/517 podstřel). Spojit s „Přestřel
+  hustoty 204/210" výše (táž páka kpi-fill-undershoot-dilutes, balvany + pseudo body).
 - [ ] *(robustnost měření, nález Sez. 141)* **`compare_isom.detect_version` — trojí realita místo binární.** Dnes
   vrací jen „2000"/„2017-2" (podle Building 526/521), ale existují TŘI číslovací sady: ISOM2000 / OOM-2017 (524-531) /
   OCAD-2017 (535-540, Building=526 → mylně detekováno „2000"). Funguje náhodou pro OCAD mapy (crosswalk pravý sloupec
@@ -202,7 +211,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   Sez. 57), váhy z measure-first (5/5 ČR map Σ 113/42/115 → 0,42/0,16/0,42). Verify: render LS .omap 80/39/108, vizuál
   rozlišitelný, KPI měří crosswalk-aware správně (522/523/524↔516/517/518). **ZBÝVÁ (b) Png2Line ze skenu** (Etapa 2,
   za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup (topologie uzávěru) + dashed už narazila na
-  doménový gap (Sez. 133). **+ Carry: KPI/KOMPAS přeměření dopadu 517/518** na HAL3000/mrkla (ntbhej RAM + chybí Velbloud.pgw).
+  doménový gap (Sez. 133). **+ KPI/KOMPAS dopad 517/518 ZMĚŘEN Sez. 145** (na ntbhej, C1 odblokoval): 517 podstřel
+  (orig 17 / gen 1), 518 ok (16/6), 516 podstřel (24/6) — kalibrace plotů → položka „pseudo hustoty" výše.
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde

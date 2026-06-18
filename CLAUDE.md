@@ -12,6 +12,12 @@ je v `docs/PROMPTS.md`. Stav/architektura/UC DAG: README.md +
   primární riziko — vždy se ptej „je tohle MVP, nebo záclona?".
 - **Verify-against-source.** Zděděno z Pic2Omap: `.omap`/`.ocd` XML a spec
   (ISOM/ISSprOM) jsou pravda; než uvěříš agregátu, koukni do geometrie/dat.
+- **Výskyt/hustotu ISOM symbolu měř JEN přes `measure_dod`/`compare_isom` mašinérii, ne ad-hoc probe.**
+  Dvojí číslování (OOM 524-531 vs OCAD 535-540) dělá naivní měření slepým — ad-hoc skript už 2× vyrobil
+  falešné „0 → skip": Sez. 141 crosswalk-slepý `grep code="527"` (Bedřichovka kóduje 538), Sez. 144 probe
+  porovnal int `516` se string setem `{"516"}`. `measure_dod._resolve_targets` crosswalk řeší správně —
+  volej ho, nepiš vlastní. Než uvěříš „symbol nevede", verify přímým objekt-countem. Paměti
+  [[isom-dual-numbering-oom-ocad]] + [[verify-data-not-assume]].
 - **KB je živá, ne archiv.** Každý zdroj dat (UC2) nese v `docs/kb/` i licenci.
   Stavět UC4-II/III na datech bez vyjasněné licence = chyba.
 - **Pic2Omap je sourozenec, ne kopie.** Dokud jsme deštník (fáze B), Pic2Omap

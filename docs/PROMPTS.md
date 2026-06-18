@@ -86,6 +86,10 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
   - **Po `%END` ověř:** každé `## Sezení N` v diáři má řádek v `DIARY.md` indexu **i** v `DONE.md`
     (Sez. 30 vypadlo z obou — audit Sez. 34).
 - Identita sezení = datum + pořadí v daném dni.
+- **Přidal-li jsi nové ISOM pokrytí** (nový symbol/kód v generátoru) **a jsi na stroji s `resources/*.pgw`:
+  změř KPI dopad HNED** (aspoň Bedř/Blatná přes `measure_dod`, nečekej na plnou sadu ani na CUDA okno) —
+  jinak se hromadí NEMĚŘENÉ pokrytí a nevíš, zda plníš díry nebo přidáváš přestřel ([[kpi-fill-undershoot-dilutes]]).
+  Nález %CALIBRATE Sez. 145: KPI stálo 7 sezení (138→144) přes 4 nové typy + carry „přeměření" 4×.
 - Měnil-li se kód: dva commity (feat/fix → docs(session)), pak push. V deštníkové
   fázi je „kód" často jen KB/docs → jeden commit `docs(session)` stačí.
 - **Cleanup (Sez. 25):** maž jen scratch výstupy — `temp/`, `output_*/` (jednorázové rendery,

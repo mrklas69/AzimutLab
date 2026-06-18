@@ -72,4 +72,6 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
   startovní bod tréninku. **Reálná páka = silnější pretrained BACKBONE** (dnes `encoder_weights="imagenet"`
   resnet34 ve všech třech `train.py` — transfer learning UŽ těžíme; změna `ENCODER` na resnet50/efficientnet
   /SAM-encoder-jako-feature-extractor = levný experiment, může zvednout mIoU bez nových dat). Až za fázovou
-  závorou ROADMAP (Etapa 2 / model), ne teď.
+  závorou ROADMAP (Etapa 2 / model), ne teď. **Empirický test té ~5 % hypotézy = `isom_scan/` benchmark**
+  (fixní prompt + JSON výstup, oddělený `score.py` proti GT, `results.csv` napříč cloud i lokálními modely;
+  headline `point_F1`). Detaily/úkoly v TODO „ISOM-scan benchmark".

@@ -94,6 +94,8 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks/tree rows/chimneys/barriers (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real
   ruian.py             #   ČÚZK RÚIAN cadastre parcels by land-use → private land → olive 520 (session 42)
   arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian, session 42)
+  ortofoto.py          #   ČÚZK ortophoto basemap under generated map (ČÚZK sibling of dmr/zabaged, session 42)
+  magnetic.py          #   grivation (S-JTSK grid → magnetic-north angle) for point+date → magnetic meridians (session 132)
   livelox.py           #   UC5 corpus: real OB maps from Livelox → map.png + meta.json (georef, epsg from data) + blend.png (session 68)
   map_gt.py            #   UC5 corpus: runnability ground-truth (gt_labels/gt_vis) from real map via ISOM colour segmentation (session 68; olive 520 → label 0, session 71; purple course overprint → label 255 ignore, session 72; off-map layout — legend/table/title/paper — → label 255 ignore via colour detector, session 73 part B)
   curate.py            #   UC5 corpus: curation taxonomy + manifest (_curation.json) → keep set for training (session 71: 268 → 216 keep classic)
@@ -106,9 +108,22 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
   degrade.py           #   phase II: degrade clean render → "scan" (CMYK misregistration/blur/paper/noise/JPEG; session 86)
   omap_raster.py       #   Y-pipeline: rasterize area ISOM symbols from .omap → label raster (Y for Png2Area; per-code, z-order, holes; session 87)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
+  omap_export.py       #   inserts generator output into user's clean ISOM 2017-2 template (USED_CODES set)
+  cut.py               #   geometric clip of gen output (.omap + render) to real map field (rotated quad / axis box; Sutherland-Hodgman; sessions 109/114/142)
+  gen_backgrounds.py   #   switchable OOM basemaps into corpus gen.omap (session 104)
+  measure_dod.py       #   KPI/KOMPAS driver: histogram-intersection of ISOM distribution gen vs sample maps (--table/--dod; primary quantifier, session 100)
+  compare_isom.py      #   ISOM symbol coverage: our gen .omap vs real OB map (crosswalk + detect_version; session 91)
+  compare_real_vs_gen.py #  machine compare of generator vs hand-mapped OB map (verify-against-source; session 37, stale-drop 69)
+  stats.py             #   aggregates meta.json of all DEV_LOCATIONS → STATISTICS.md table
+  batch.py             #   batch generation of mini dataset + preview mosaic; noise vs real modes via --terrain
+  palette.py           #   generator colour palette — SINGLE SOURCE OF TRUTH (DRY); ISOM 2017-2 screen approximation
+  project_config.py    #   strictly-validated global config (azimutlab.toml loader, e.g. 416/416.1 variant)
                        #   template_classic.omap: clean ISOM 2017-2 template for .omap export
 model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Four subdirs, three live reconstructors:
   checkpoints.py       #   shared run_id checkpoints: atomic best.pt + manifest + explicit promote to canonical unet_best.pt
+  mpp.py               #   canonical training-tile resolution (SSoT) + resample to it (session 126 MPP fix)
+  purple.py            #   purple course-overprint augmentation (ISOM) for both reconstructors (Fable5 A2a; session 123)
+  vectorize.py         #   shared reconstructor postprocess: line mask → polyline (session 132)
   runnability/         #   ARCHIVED ortho→runnability model (dead-end session 79; git-moved here session 88)
     tile.py            #     pre-tiling (X,Y) pairs → 512×512 (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights
     dataset.py         #     PyTorch loader over tiles + augmentation (D4 + brightness/contrast); ImageNet norm (session 78)

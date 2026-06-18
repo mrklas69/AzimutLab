@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 145 (2026-06-18) — %CALIBRATE (od Sez. 127) + KPI přeměření na ntbhej (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
+- [x] **%CALIBRATE meta-audit** (práh ≥15 překročen o 3). Context hygiene SOLIDNÍ (CLAUDE.md 90→88 ř. stabilní,
+  memory index 31/31 bez driftu). **4 odsouhlasené opravy (kód NETKNUT, jen docs/config):** **C1** tvrdá konvence
+  „výskyt/hustotu ISOM měř JEN přes `measure_dod`, ne ad-hoc probe" (past se opakovala Sez. 141+144) → CLAUDE.md
+  doménové zásady + paměť `isom-dual-numbering-oom-ocad` · **A2** `Bash(wc *)`/`Bash(awk *)` → settings.json allow
+  (25→27) · **B2** %END konvence „přidal-li jsi pokrytí a máš `.pgw`, měř KPI hned" → PROMPTS.md + Velbloud.pgw na
+  `[!]` (A6) · **A3** README „Repository layout" doplněn o 15 chybějících souborů (D8 drift; popisy z docstringů).
+  Zbytek (B3 TODO pruning hlídat, B1 cadence info) = záznam.
+- [x] **KPI/KOMPAS přeměřeno na ntbhej** (TODO carry Sez. 141, druhý fokus). **C1 fix (Sez. 143) reálně odblokoval
+  `measure_dod` na ntbhej** — rozpor diáře 141/143 rozřešen empiricky (downscale na `TARGET_MPP` před `segment_gt`
+  drží RAM; měření proběhlo bez `ArrayMemoryError`). KPI 2-mapová **55,3 %** (Bedř 49,4 / Blatná 61,2; Velbloud.pgw
+  chybí → `_missing_pgw` hlasitě vynechal, nesrovnatelné s 60,7 % 3-map). **KOMPAS provedení 5 nových typů:** 527
+  PŘESTŘEL 11× (orig 7/gen 79), 531 přestřel 3,3× (6/20), 525 podstřel (27/6), 517 podstřel (17/1), 516 podstřel
+  (24/6), 518 ok (16/6). **Nález: pseudo hustoty Sez. 141 VADNÉ** (crosswalk-slepé měření — 527 nasazeno ~7,7/km²
+  vs crosswalk-aware orig 0,6/km²) → přestřel sráží Bedř bod na 40,9 %. Kalibrace = carry `[!]` (nekalibrovat slepě
+  na 2 mapy, Goodhart A3; nejdřív Velbloud.pgw + plná sada).
+
 ## Sezení 144 (2026-06-18) — Pseudo ploty 516/517/518 (varianta plotu) (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
 - [x] **Oplocenky 516/517/518 (a) pseudo HOTOVO** (Příště #1 Sez. 143, vytěžení 2 nových typů). Existující 516
