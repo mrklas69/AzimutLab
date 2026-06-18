@@ -369,6 +369,7 @@ KOMPAS_SOURCE: dict[int, tuple[str, str]] = {
     502: ("ZABAGED", "data"), 503: ("ZABAGED", "data"), 504: ("ZABAGED", "data"),
     505: ("ZABAGED", "data"), 506: ("ZABAGED", "data"), 508: ("ZABAGED", "data"),
     104: ("ZABAGED", "data"), 107: ("ZABAGED", "data"), 513: ("ZABAGED", "data"), 516: ("RÚIAN", "data"),
+    517: ("RÚIAN", "pseudo"), 518: ("RÚIAN", "pseudo"),   # Sez. 144: poloha ze zahrad, TYP losován (Ruined/Impassable)
     # voda (ZABAGED)
     301: ("ZABAGED", "data"), 304: ("ZABAGED", "data"), 305: ("ZABAGED", "data"), 306: ("ZABAGED", "data"),
     312: ("ZABAGED", "data"), 311: ("ZABAGED", "data"),

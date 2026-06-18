@@ -70,7 +70,7 @@ USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
               "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
               "524", "526", "530", "417", "418", "419",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom) + 419 veg. feature (pseudo Sez. 136) + 418 bush/tree (pseudo Sez. 137)
               "527", "525", "531",       # man-made body Sez. 141 (527 krmelec / 525 posed / 531 Prom. feature x) — čistě pseudo, ZABAGED nevede
-              "104", "107", "513", "516",  # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď) + plot 516 (Sez. 98)
+              "104", "107", "513", "516", "517", "518",  # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď) + ploty 516/517/518 (Sez. 98/144: Fence/Ruined/Impassable)
               "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
               "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
               "308", "310", "406",       # mokřady Sez. 44 (308 Marsh) + 310 Indistinct (pseudo Sez. 99) + stromořadí Sez. 45 (406)

@@ -596,16 +596,31 @@ EARTHBANK_TICK_LEN_PX = max(2, round(0.35 * PX_PER_MM))      # délka ticku (jed
 # s příčkami vedení. Liniový symbol 516 Fence (template id 131, type 2). Render 1px černá jako 513
 # (na rozlišení rastru je 1px minimum; .omap dostane věrný symbol 516 z definice). Vlastní GT maska
 # zatím NE — linie nejsou v plošném Png2Area Y a Png2Line neexistuje (generalizuj jen s důkazem).
+# Tři typy plotu (Sez. 144 rozšíření 516 → 516/517/518; verify-against-source template id 131/132/133):
+#   516 Fence (běžný)        — plná 210 µm + 1 tick
+#   517 Ruined fence (rozpadlý) — ČÁRKOVANÁ (dash 3,0 / break 0,525 mm) + 1 tick
+#   518 Impassable fence (vysoký) — silnější 375 µm plná + DVOJITÝ tick
 ISOM_FENCE = 516
-FENCE_NAME = "Fence"
-FENCE_WIDTH_PX = 1
+ISOM_FENCE_RUINED = 517
+ISOM_FENCE_IMPASSABLE = 518
+FENCE_NAME = {516: "Fence", 517: "Ruined fence", 518: "Impassable fence"}
+FENCE_TYPES = (516, 517, 518)
+# Stochastické váhy typu per pozemek — measure-first Sez. 144 (Σ objektů 5/5 ČR map: 516≈113 / 517≈42 /
+# 518≈115 → ~0,42 / 0,16 / 0,42). Reframe Sez. 79: umístění nemusí být geograficky pravdivé, model se
+# učí ROZPOZNAT symbol; věrný je render + proporce typů. Typ losován deterministicky z geometrie pozemku.
+FENCE_TYPE_WEIGHTS = (0.42, 0.16, 0.42)
+# Render per typ (rastr hrubší než .omap — ten dostane věrný symbol z definice; izomorf 516 komentář níže):
+FENCE_WIDTH_PX = {516: 1, 517: 1, 518: max(2, round(0.375 * PX_PER_MM))}   # 518 silnější (375 vs 210 µm)
+FENCE_DASH = {516: None, 517: (round(3.0 * PX_PER_MM), round(0.525 * PX_PER_MM)), 518: None}  # 517 (dash,break) px
+FENCE_TICKS = {516: 1, 517: 1, 518: 2}                    # 518 dvojitý tick (template id 133 má 2 mid-elementy)
+FENCE_TICK_DBL_OFF = max(1, round(0.3 * PX_PER_MM))       # rozestup dvojtiku podél linie (~0,3 mm, jen 518)
 # Plot jen kolem SOUVISLÉ zástavby ≥ 0,5 ha (measure-first Sez. 98): bez prahu plot přestřeloval
 # 6,7× (kompas gen 160 / orig 24) — kreslil se kolem každého domku se zahradou (medián bloku ~190 m²).
 # Práh 5000 m² → Bedřichovka 159→21 ≈ orig 24. Kartograf plotuje jen větší souvislé oplocené areály.
 FENCE_MIN_AREA_M2 = 5000
 # Obvod z contourpy masky je pixelově členitý → RDP narovná na přímé spojnice vrcholů (Sez. 98).
 FENCE_SIMPLIFY_M = 5.0
-# ISOM 516 „tags inside" (spec template): krátké ticky kolmo DOVNITŘ ohraničeného pozemku.
+# ISOM „tags inside" (spec template): krátké ticky kolmo DOVNITŘ ohraničeného pozemku.
 FENCE_TICK_SPACING_PX = max(4, round(3.0 * PX_PER_MM))   # rozestup ticků (~3 mm, ISOM 516 segment)
 FENCE_TICK_LEN_PX = max(2, round(0.5 * PX_PER_MM))        # délka ticku dovnitř (~0,5 mm)
 
@@ -983,7 +998,8 @@ def _draw_dashed(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
                 ax, ay = x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0
                 bx, by = x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1
                 draw.line([ax, ay, bx, by], fill=color, width=width)
-                mdraw.line([ax, ay, bx, by], fill=cls, width=width)
+                if mdraw is not None:                  # plot 517 nemá GT masku (Sez. 144) → kreslí jen na mapu
+                    mdraw.line([ax, ay, bx, by], fill=cls, width=width)
             d += step
             pos += step
 
@@ -2496,19 +2512,26 @@ def _dissolve_mask_to_polys(mask: np.ndarray) -> list:
     return out
 
 
-def _draw_fence_line(draw: ImageDraw.ImageDraw, ring_px) -> None:
-    """Plot 516 po obvodu bloku zástavby: tenká černá linie + ticky DOVNITŘ pozemku (Sez. 98).
+def _draw_fence_line(draw: ImageDraw.ImageDraw, ring_px, fence_type: int = ISOM_FENCE) -> None:
+    """Plot 516/517/518 po obvodu bloku zástavby: linie + ticky DOVNITŘ pozemku (Sez. 98/144).
 
-    ISOM 516 „tags inside" (spec template). Strana ticku se určuje per-tick testem `_point_in_ring`
-    (robustní, nezávislé na orientaci ringu): z bodu na lince zkusíme krok podél normály — která
-    strana padne dovnitř ringu, tam tick míří. Ring má být už narovnaný (RDP) a uzavřený."""
+    Typ-aware render (verify-against-source template id 131/132/133): 516 plná + 1 tick · 517 ČÁRKOVANÁ
+    (rozpadlý) + 1 tick · 518 silnější plná + DVOJITÝ tick. ISOM „tags inside" (spec template). Strana
+    ticku se určuje per-tick testem `_point_in_ring` (robustní, nezávislé na orientaci ringu): z bodu na
+    lince zkusíme krok podél normály — která strana padne dovnitř ringu, tam tick míří. Ring narovnaný (RDP)."""
     from rock_relief import _point_in_ring
     pts = [(float(x), float(y)) for x, y in ring_px]
     if pts and pts[0] != pts[-1]:
         pts.append(pts[0])
     if len(pts) < 3:
         return
-    draw.line(pts, fill=C_BLACK, width=FENCE_WIDTH_PX, joint="curve")
+    width = FENCE_WIDTH_PX[fence_type]
+    dash = FENCE_DASH[fence_type]
+    n_ticks = FENCE_TICKS[fence_type]
+    if dash is None:                                     # 516/518 plná linie
+        draw.line(pts, fill=C_BLACK, width=width, joint="curve")
+    else:                                                # 517 rozpadlý → čárkovaná (bez GT masky, mdraw=None)
+        _draw_dashed(draw, None, pts, C_BLACK, 0, dash=dash[0], gap=dash[1], width=width)
     ring = np.asarray(pts)
     acc = 0.0                                            # ujetá délka podél obvodu → rovnoměrné ticky
     for (ax, ay), (bx, by) in zip(pts[:-1], pts[1:]):
@@ -2521,8 +2544,12 @@ def _draw_fence_line(draw: ImageDraw.ImageDraw, ring_px) -> None:
         while d < seg:
             tx, ty = ax + ux * d, ay + uy * d            # bod ticku na lince
             sgn = 1.0 if _point_in_ring((tx + nx, ty + ny), ring) else -1.0   # která normála míří dovnitř
-            draw.line([(tx, ty), (tx + sgn * nx * FENCE_TICK_LEN_PX,
-                                  ty + sgn * ny * FENCE_TICK_LEN_PX)], fill=C_BLACK, width=1)
+            # 518 dvojitý tick: dva zuby s offsetem ±FENCE_TICK_DBL_OFF podél linie (jinak 1 zub)
+            offs = (0.0,) if n_ticks == 1 else (-FENCE_TICK_DBL_OFF, FENCE_TICK_DBL_OFF)
+            for off in offs:
+                ox, oy = tx + ux * off, ty + uy * off
+                draw.line([(ox, oy), (ox + sgn * nx * FENCE_TICK_LEN_PX,
+                                      oy + sgn * ny * FENCE_TICK_LEN_PX)], fill=C_BLACK, width=1)
             d += FENCE_TICK_SPACING_PX
         acc = (acc + seg) % FENCE_TICK_SPACING_PX        # přenos zbytku délky do dalšího segmentu
 
@@ -2618,10 +2645,14 @@ def _generate_real_surfaces(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageDra
                 continue
             if _polygon_area_px(outer) * m_per_px2 < FENCE_MIN_AREA_M2:   # malý blok (domek+zahrada) → neplotovat
                 continue
+            # Typ plotu 516/517/518 deterministicky z geometrie pozemku (regen-identický, vzor Sez. 57
+            # boulder field): seed z prvního vrcholu → různé pozemky různý typ, tentýž pozemek vždy stejný.
+            fr = random.Random((round(outer[0][0]) * 73856093) ^ (round(outer[0][1]) * 19349663))
+            ftype = fr.choices(FENCE_TYPES, weights=FENCE_TYPE_WEIGHTS)[0]
             simp = _rdp(np.asarray(outer, float), eps_px)    # pixelové schody → přímé spojnice vrcholů
-            _draw_fence_line(draw, simp)
+            _draw_fence_line(draw, simp, ftype)
             grid = [(px / W * (GW - 1), py / H * (GH - 1)) for px, py in simp]
-            fence_features.append((grid, ISOM_FENCE))
+            fence_features.append((grid, ftype))
     return area_features, surfaces_info, fence_features
 
 
