@@ -85,12 +85,15 @@ Realizuje **MVP řez** specifikace
   + 210.1 Stony ground (pole teček) na masku DOLOŽENÉ skalnatosti (206 plochy + reálné 204/207 body, dilatace),
   kalibrováno na share → KPI bodů 18,4 → 54,3 % (mirror inject geometrie Png2Point, ne model). **Sez. 138 E3:**
   rejection sampling balvanů (ISOM-korektní nepřekrývání; skupina → 207),
-  **Pseudo veg body 417/418/419 (Sez. 136-137, jen `pseudorealistic`):** `_generate_pseudo_veg_points`
-  (princip kamenů): **417** Prominent large tree (zelený kroužek, doplní řídký ZABAGED `Významný_strom` na
-  reálnou hustotu ~27/km²) / **418** Prominent bush (plný zelený disk, čistě pseudo ~18/km²) / **419** Prominent
-  veg. feature (zelený X, čistě pseudo ~18/km²). Umístění MIMO voda/206 skály/budovy/cesty/zpevněné/**železnice
-  509** (sdílený `_build_forbid_px`, px rozlišení; railway doplněna Sez. 138 E3) + ISOM rozestup (rejection
-  sampling). 417/419 jsou ve scope Png2Point detekce, 418 ne (generátor kreslí pro budoucí trénink),
+  **Pseudo body (Sez. 136-141, jen `pseudorealistic`):** `_generate_pseudo_points` (princip kamenů; do Sez. 140
+  `_generate_pseudo_veg_points`, Sez. 141 zobecněno na veg + man-made). **Zelené veg (Sez. 136-137):** **417**
+  Prominent large tree (zelený kroužek, doplní řídký ZABAGED `Významný_strom` na ~27/km²) / **418** Prominent bush
+  (plný zelený disk, čistě pseudo ~18/km²) / **419** Prominent veg. feature (zelený X, čistě pseudo ~18/km²).
+  **Černé man-made (Sez. 141, čistě pseudo, ZABAGED nevede):** **527** Fodder rack (krmelec, „Λ" stříška+noha,
+  ~7,7/km²) / **525** Small tower (posed, „⊤", ~1,1/km²) / **531** Prom. man-made x (černý X, ~1,3/km²); hustota
+  měřena crosswalk-aware (paměť `isom-dual-numbering-oom-ocad`). Umístění MIMO voda/206 skály/budovy/cesty/zpevněné/
+  **železnice 509** (sdílený `_build_forbid_px`, px rozlišení; railway doplněna Sez. 138 E3) + ISOM rozestup
+  (rejection sampling). 417/419 jsou ve scope Png2Point detekce, 418/527/525/531 ne (generátor kreslí pro budoucí trénink),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),
   `Tunel`→**512** otočené 90° na vjezdech, `Lávka`→**512.2**,
 - **řopíky** — `--ropiky real` (Sez. 26–27): `Bunkr` LO37 jako asset, orientovaný k nejbližší státní hranici,

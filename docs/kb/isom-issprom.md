@@ -41,6 +41,23 @@ mapování by tiše prohodilo významy. Tvrdé příklady (verify ze spec):
 map = ISOM 2000** (marker `526` Building). Implikace pro UC5 (cesta B fine-tuning): pokud je korpus
 převážně 2000, syntetika 2017-2 zavádí systematický posun → [[domain-gap]] na sémantice symbolů.
 
+**Dvojí číslování stejné verze — OOM vs OCAD (Sez. 141, nález uživatele).** Pozor: i V RÁMCI ISOM 2017-2
+mají tytéž man-made point symboly DVĚ číslovací sady podle programu, kde mapa vznikla (`code` v `.omap`):
+
+| symbol | OOM set (náš `template_classic.omap`, generátor) | OCAD set |
+|---|---|---|
+| High tower | 524 | 535 |
+| Small tower (posed) | 525 | 536 |
+| Cairn | 526 | 537 |
+| Fodder rack (krmelec) | 527 | 538 |
+| Prom. man-made – ring | 530 | 539 |
+| Prom. man-made – x | 531 | 540 |
+
+Doloženo: Bedřichovka.omap `id="OCD"` kóduje krmelec `538.0`, posed `536.0`; Soví vrch (OOM) krmelec `527`.
+Crosswalk = pravý sloupec `ISOM2000-ISOM2017-2.crt`. **Měř výskyt symbolů CROSSWALK-AWARE** (`measure_dod`/
+`compare_isom`, integer prefix `538.0→538`) — naivní `grep code="527"` OCAD mapy minul. `detect_version` je dnes
+binární (2000/2017-2), ale realita je trojí (ISOM2000 / OOM-2017 / OCAD-2017) → latentní past (TODO).
+
 **ZÁVĚR — verzní gap zavřen (Sez. 40, %THINK „vizuál vs čísla").** Otázka se rozpadá na dvě nezávislé
 osy podle cesty dat: **vektor** (`.omap` symbol ID → verzi nese ČÍSLO) vs **rastr** (pixely → verzi nese
 VZHLED). Pro vektor je gap vyřešen crosswalkem (1:1 přemapování); pro rastr (= co čte UC5 model) jsou čísla

@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 141 (2026-06-18) — Pseudo man-made body 527/525/531 + nález dvojího ISOM číslování (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
+- [x] **Pseudo man-made body 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x**
+  do generátoru (Příště #3 Sez. 140, vytěžení 3 KOMPAS typů). Izomorfní rozšíření veg bodů 418/419:
+  registr `ISOM_FODDER/SMALL_TOWER/PROM_X` + `LANDMARK_NAME/CLASS` (10/11/12) + render PX z template µm
+  + hustoty `PSEUDO_{FODDER,SMALL_TOWER,PROM_X}_PER_KM2`; render `_draw_landmark` (527 „Λ" stříška+noha,
+  525 „⊤" příčka+noha, 531 černý X = mirror 419); **`_generate_pseudo_veg_points` → zobecněno na
+  `_generate_pseudo_points`** (zelené veg + černé man-made, sdílená umísťovací logika + rejection, DRY);
+  `omap_export.USED_CODES += 527/525/531` + `measure_dod.KOMPAS_SOURCE` (pseudo). Verify NV Novina:
+  527:70 / 525:18 / 531:38 (sedí na měřené mediány), vizuál mimo voda/forbid, `.omap` id 152/150/156.
+- [x] **Nález dvojího ISOM číslování** (postřeh uživatele): tytéž ISOM 2017-2 symboly mají dvě číslovací
+  sady — OOM 524-531 (náš `template_classic.omap`) vs OCAD 535-540 (Bedřichovka). Doloženo z `.omap` +
+  `.crt`. Naivní `code`-grep podhodnotil výskyt → opraveno na crosswalk-aware měření (všechny 4 cílové
+  kódy mají reálný výskyt, 3 hojné 5/5 map). `measure_dod` crosswalk OVĚŘEN správný; `detect_version`
+  binární na trojí realitu = latentní křehkost (→ TODO). Paměť `isom-dual-numbering-oom-ocad`.
+
 ## Sezení 140 (2026-06-17) — Prohlížecí mapy z Liveloxu + automatizace verify podkladů (ntbhej)
 Detail: [diary/2026-06-17.md](diary/2026-06-17.md).
 - [x] **`maps/Hamr na Jezeře`** z Livelox classId 1116300 (URL uživatele) — verify mapa se všemi reálnými

@@ -463,6 +463,15 @@ forbid masku + rejection sampling. `USED_CODES += "418"`, `LANDMARK_CLASS=9`. KP
 KOMPAS 418 z díry (orig 178/gen 0) na pokryté (gen 90). POZN.: 418 **NENÍ** ve scope Png2Point detekce — generátor
 ho kreslí, aby se reconstructor jednou mohl naučit (pokrytí = strop, paměť `generator-coverage-is-the-ceiling`).
 
+**Sez. 141 (+527/525/531 ČERNÉ man-made body)** — čtvrtá až šestá pseudo třída, ale ČERNÉ man-made (color 2),
+ne zelená vegetace. Při příležitosti zobecněno **`_generate_pseudo_veg_points` → `_generate_pseudo_points`**
+(jedna umísťovací mašinérie pro zelené veg 417/418/419 i černé man-made 527/525/531; render se liší jen větví
+v `_draw_landmark`, DRY). 527 Fodder rack (krmelec, „Λ" stříška + svislá noha), 525 Small tower (posed/plošina,
+„⊤" příčka + noha), 531 Prominent man-made feature – x (černý X, mirror 419 zeleného). Všechny čistě pseudo
+(ZABAGED je nevede). Hustota MĚŘENA **crosswalk-aware** (medián 527 ~7,7/km², 525 ~1,1, 531 ~1,3) — pozor na
+DVOJÍ ČÍSLOVÁNÍ OOM 524-531 vs OCAD 535-540 (paměť `isom-dual-numbering-oom-ocad`; naivní `code`-grep podhodnotí).
+`USED_CODES += 527/525/531`, `LANDMARK_CLASS` 10/11/12, `KOMPAS_SOURCE` (pseudo). Verify NV 527:70/525:18/531:38.
+
 ### 4.9l Mokřady (real-půlka, Sez. 44, dávka 4)
 **✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**
 (`zabaged.map_marsh_to_isom`, KISS vždy crossable 308 — data nenesou atribut překonatelnosti, NE 307 uncrossable).

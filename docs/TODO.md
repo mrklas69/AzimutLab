@@ -141,10 +141,24 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419**. KPI dopad: přestřel KPI SNIŽUJE
   (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
   změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
-- [ ] *(vytěžení, nové body, nález uživatele Sez. 140)* **Bodové symboly 523.1 / 525 / 527 / 531** (523/524/526/530 už máme —
-  Rozvalina/věže/Cairn/kříž ze ZABAGED `--landmarks`/`--buildings`). Čisté vytěžení (rozšíří KOMPAS). **Než kreslit:** (a) ověřit
-  ISOM definice 523.1/525/527/531 proti spec (paměť [[isom-spec-before-render]] — nehádat čísla); (b) measure-first — vedou je ZABAGED?
-  (paměť [[measure-coverage-source-on-dod-first]]) → jinak pseudo nebo skip.
+- [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
+  523.1 / 525 / 527 / 531.** **HOTOVO Sez. 141:** 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x
+  jako **pseudo man-made body** (ZABAGED je nevede → čistě pseudo na měřenou hustotu, izomorf veg 418/419;
+  `_generate_pseudo_points` zobecnění, render Λ+noha / ⊤ / černý X). Měření crosswalk-aware (paměť
+  [[isom-dual-numbering-oom-ocad]]): medián 527 ~7,7/km² (5/5 map), 525 ~1,1, 531 ~1,3. **ZBÝVÁ 523.1 Ruin min
+  size — ODLOŽENO** (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní
+  (buildings vrací area, 523.1 je point → cross-pipeline změna signatury/render/omap) → reálná páka ≈ 0. Když se
+  bude dělat: footprint < ISOM min 0,8×0,8 mm (144 m²) → bodový čtverec 523.1 místo zanikajícího obrysu 523.
+- [ ] *(KPI verify, carry Sez. 141 — ntbhej RAM limit)* **Přeměřit KPI/KOMPAS dopad pseudo bodů 527/525/531** na
+  HAL3000/mrkla. `measure_dod` na ntbhej padá na `ArrayMemoryError` (`map_gt.segment_gt` separace skenu Bedřichovky
+  3,4 Mpx × 13 barev; known >~100 Mpx limit) + chybí Velbloud.pgw. Ověřit, že 3 nové man-made typy zaplnily KOMPAS
+  díry (orig>0 z crosswalku) + dopad na KPI (60,7 % Sez. 138).
+- [ ] *(robustnost měření, nález Sez. 141)* **`compare_isom.detect_version` — trojí realita místo binární.** Dnes
+  vrací jen „2000"/„2017-2" (podle Building 526/521), ale existují TŘI číslovací sady: ISOM2000 / OOM-2017 (524-531) /
+  OCAD-2017 (535-540, Building=526 → mylně detekováno „2000"). Funguje náhodou pro OCAD mapy (crosswalk pravý sloupec
+  = OCAD), ale **Soví vrch (OOM-2017, krmelec kóduje přímo 527) → `resolve(527,"2000")={520}` = nesmysl**. Soví vrch
+  NENÍ v default KPI sadě (Bedř/Blatná/Velbloud) → headline nezkresluje, ale past. Fix: rozlišit OOM vs OCAD set
+  (např. dle `<symbols id="OCD">` nebo přítomnosti 535-540) → správné crosswalk routování. Paměť [[isom-dual-numbering-oom-ocad]].
 - [ ] *(vytěžení/Etapa 2, nález uživatele Sez. 140)* **Oplocenky = uzavřené linie 516–518.** ZABAGED ploty NEvede (doložený SKIP Sez. 57,
   katalog sekce 11) → data gap. Dvě cesty: **(a) pseudo** (Etapa 1) — umístit oplocenky procedurálně na okraje lesa/školky (dekorace,
   losovaná hustota); **(b) Png2Line ze skenu** (Etapa 2, za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup než watercourse
