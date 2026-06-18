@@ -63,3 +63,13 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
 - **Multi-task encoder až po Png2Line.** Společný encoder a tři hlavy
   Area/Point/Line mohou odstranit duplicitu, ale teprve až všechny tři samostatné
   úlohy stojí a měření prokáže skutečně sdílené featury.
+- **Hotový pretrained model místo vlastního tréninku? (Etapa 2; Sez. 142.)** Plug-and-play model
+  „sken → ISOM" prakticky NEEXISTUJE — problém není „umět detekovat vzory", ale „znát naši symbolovou
+  sadu" (ISOM kódy = doménový slovník, který pretrained modely nemají) → ~5 %. Class-agnostic foundation
+  (SAM/SAM2) dá masky bez sémantiky + je out-of-domain (fotky vs kartografie, drobné Point/Line nezvládá);
+  open-vocab (GroundingDINO/CLIP) nefunguje na abstraktní značky. **Cokoli stáhneš = stejně doučit na párech
+  (X, Y)** — což je přesně to, kvůli čemu existuje `generator()`. Stažený model proto nemění strategii, jen
+  startovní bod tréninku. **Reálná páka = silnější pretrained BACKBONE** (dnes `encoder_weights="imagenet"`
+  resnet34 ve všech třech `train.py` — transfer learning UŽ těžíme; změna `ENCODER` na resnet50/efficientnet
+  /SAM-encoder-jako-feature-extractor = levný experiment, může zvednout mIoU bez nových dat). Až za fázovou
+  závorou ROADMAP (Etapa 2 / model), ne teď.

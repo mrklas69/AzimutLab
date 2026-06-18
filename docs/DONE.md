@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 142 (2026-06-18) — Neatline fill/border split vody 301 (roh/multi-řez) (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
+- [x] **Fill/border split ohraničených ploch při ořezu — nahradil flag-16 trik** (fokus Příště #1 Sez. 141,
+  algoritmus uživatele Sez. 140). `cut._emit_bordered_area`: klipnutá voda 301 → **fill-only 301.1** +
+  **břehová linie 301.4 JEN na reálných úsecích** (`_border_runs` = běhy segmentů mimo clip-hranu,
+  klasifikace podle STŘEDU segmentu → robustní v rohu, kde vrchol leží na dvou hranách; libovolný počet
+  řezů automaticky — roh i multi-run). `_BORDERED_AREA` registr (kód→fill+border), symbol id resolve
+  z `<symbols>` daného `.omap`. `omap_raster` alias `301.1→label 8` (jinak by se klipnutá voda tiše
+  zahodila z tréninkového Y — footgun Sez. 110; `N_AREA` beze změny). **Verify-against-source nález:**
+  jediná emitovaná combined ohraničená plocha = voda 301; 520/521 fill-only (TODO „521/520/lom" falešný).
+  **501 odloženo** (fill 501.1 koliduje s base-fill třídou v omap_raster + border tenká hnědá = marginální).
+  Unit probe `temp/probe_border_split.py` (jednoduchý řez / **roh** / plný `clip_omap` / Y alias) vše OK.
+  **OOM vizuál reálného Borný = carry HAL3000/mrkla** (ntbhej regen selhal RAM `separate.py` + disk).
+- [x] **Q hotový model místo tréninku Area/Line/Point** (mezi-diskuse) → IDEAS (Etapa 2): plug-and-play
+  „sken→ISOM" ~5 % (doménový slovník chybí); silnější pretrained backbone = reálná páka, transfer learning
+  (`encoder_weights="imagenet"` resnet34) UŽ těžíme ve všech třech `train.py`.
+
 ## Sezení 141 (2026-06-18) — Pseudo man-made body 527/525/531 + nález dvojího ISOM číslování (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
 - [x] **Pseudo man-made body 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x**

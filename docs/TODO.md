@@ -123,19 +123,15 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(feature, vrstevnice, nález uživatele Sez. 116)* **102.1 zdůrazněná (index) vrstevnice na násobky 50 výškových metrů** —
   do mapy přidat zesílenou vrstevnici ISOM 102.1 na hladinách dělitelných 50 m (orientační čára nadmořské výšky). Dnes se kreslí
   jen 101 (běžná). Index contour = každá N-tá zesílená; uživatel chce kotvit na absolutní násobky 50 m, ne každou N-tou od základu.
-- [~] *(vizuál, ořez `cut.py`, nález uživatele Sez. 118; **SINGLE-RUN HOTOVO Sez. 138**)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí** —
-  když `cut_area` ořízne plochu s tučným černým obrysem (521 / 520 / lom / voda 301), OOM vykreslí border kolem CELÉHO prstenu → obrys i na
-  umělou řeznou hranu. **HOTOVO single-run Sez. 138:** `cut._emit_area` detekuje neatline úsek (`_on_clip_edge`), přerotuje ho na **uzavírací
-  segment** + flag **16** (hole bez close bitu 2) → OOM border na řezné hraně nekreslí, výplň drží (probe v2 ověřen uživatelem; `omap_raster`
-  dělí ringy na bitu 16 → area_labels netknuté). **ZBÝVÁ multi-run limit:** plocha dotýkající se hrany na **2+ místech** ({X} Novina: voda 301
-  se dvěma horními úseky) → potlačí se jen NEJDELŠÍ úsek, ostatní zbydou. Mid-ring hole NEJDE (probe v3 ověřen: rozseče path → bez výplně; OOM
-  hole = oddělovač pod-cest, ne border-gap). **ZAŘAZENO JAKO FOKUS (volba uživatele Sez. 140)** — nová instance: **roh** Borný (Máchovo
-  jezero v levém dolním rohu = DVA řezné úseky, svislá + vodorovná hrana mapy; `_neatline_to_close` vezme jen nejdelší, druhý zbyde; spojit
-  nejde — uzavírací segment je přímka → diagonála přes roh by uřízla výplň). **Řešení = uživatelův algoritmus doslova:** (1) ořízni mapu;
-  (2) prochází-li řez ohraničenou plochou, hranice v místě řezu BEZ obrysu. Implementace = **oddělit výplň od obrysu** v template: ohraničená
-  plocha (301/520/521/lom) = **fill-only symbol** + **samostatný obrysový liniový symbol** (301 břeh / 520·521·lom obrys); `cut._emit_area`
-  emituje obrysovou linii JEN na segmentech mimo `_on_clip_edge` (reálné břehy) → funguje pro libovolný počet řezů (roh/multi-run) automaticky.
-  Verify vizuální v OOM. Vlastní sezení (středně velký kus, template + cut emit + per-symbol fill/border split).
+- [~] *(vizuál, ořez `cut.py`, nález Sez. 118; SINGLE-RUN Sez. 138; **FILL/BORDER SPLIT KÓD HOTOVO Sez. 142**)* **Neohraničovat tučnou čarou odstřižené hrany ploch s neproniknutelnou hranicí.**
+  **HOTOVO Sez. 142 (kód + unit verify):** fill/border split nahradil flag-16 trik pro ohraničené plochy — `cut._emit_bordered_area` emituje klipnutou
+  vodu jako **fill-only 301.1** + **břehovou linii 301.4 jen na reálných úsecích** (`_border_runs`, klasifikace segmentu podle STŘEDU → robustní v rohu i
+  multi-run, libovolný počet řezů automaticky). `_BORDERED_AREA` registr (kód→fill+border), id resolve z `<symbols>`. `omap_raster` alias `301.1→label 8`
+  (footgun Sez. 110: jinak tiše z Y; `N_AREA` beze změny). **Nález (verify-against-source):** jediná emitovaná combined ohraničená plocha = **voda 301**;
+  520/521 jsou fill-only (border problém nemají — TODO seznam „521/520/lom" byl falešný). **501 odloženo:** jeho fill 501.1 koliduje s base-fill třídou
+  v `omap_raster` (chce vlastní symbol) + border je tenká hnědá (marginální). Unit probe: jednoduchý řez / **roh** / plný `clip_omap` / Y alias — vše OK.
+  **ZBÝVÁ — OOM vizuál na reálném Borný = carry HAL3000/mrkla:** ntbhej regenerace selhala na RAM (`separate.py` 1,38 GiB flat array, sourozenec
+  `segment_gt` blokátoru) + disk. Otevřít `Borný_v142.omap` v OOM, ověřit roh Máchova jezera bez černého obrysu na obou řezných hranách.
 - [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
   Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
   (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419**. KPI dopad: přestřel KPI SNIŽUJE
