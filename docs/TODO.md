@@ -68,6 +68,32 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 *(ChatGPT audity 2026-06-14 / Sez. 125 — DOCS+CODE: nálezy vypořádány Sez. 125-127, zdroje
 `AUDIT_DOCS_260614.md` / `AUDIT_CODE_260614.md` archivovány Sez. 139.)*
 
+## %AUDIT:CODE (Sez. 143) — nálezy → úkoly
+5 paralelních agentů + ruční verify proti zdroji (18 103 LOC). **OPRAVENO Sez. 143 (quick wins):**
+C1 separate RAM (row-chunk, odblokuje měření na ntbhej) · D1 USED_CODES +416/416.1 · D5 `_line_line_pt`
+guard · D7 stale 0,537→0,683 · K1 Png2Polygon→Png2Area · K3 530/531 rozlišení · K4 docstring 509 ·
+K5 mrtvý `_TEMPLATE`. (K7 „51 kódů" = falešný poplach, číslo jen v docs.) **ZBÝVÁ:**
+- [ ] *(D2, robustnost; = existující „detect_version trojí-realita" níže)* `compare_isom.detect_version` binární vs
+  trojí realita + tichý default `return "2017-2"` (řádek 189). Headline KPI empiricky imunní (6/6 map ověřeno),
+  ale past. Fix: rozlišit OOM/OCAD (`id="OCD"` / kódy 535-540) + `warn` místo tichého defaultu. **Verify-against-source
+  bonus:** diár Sez. 141 nepřesný — `Soví vrch.omap` má `538=Krmelec`, ne `527` (přes 526-building → crosswalk OK).
+- [ ] *(D3, křehkost)* Duplikovaný symbol-id resolver `cut.py:225` vs `omap_export.py:109` — identický regex, stejný
+  „id-před-code" předpoklad, ale asymetrie: omap_export selže nahlas, `cut` tiše degraduje (chybějící 301.1/301.4 →
+  černý břeh na řezné hraně bez varování). Fix: sdílený `parse_symbol_ids()`. (Souvisí s B1 string-`.omap` modul.)
+- [ ] *(D4, no-silent-fallback)* `arcgis.py:79-81` paging končí dle délky dávky, ne `exceededTransferLimit` → tichý
+  ztrátový ořez když server `maxRecordCount` < `page_size` (2000). Dnes neškodí (ZABAGED cap 2000), křehké vůči nové vrstvě.
+- [ ] *(D6, DRY)* `_generate_pseudo_boulders` (generator.py:2942) vs `_generate_pseudo_points` (3066) duplikují ~40-50 LOC
+  umísťovací mašinérie (grid/area_km2/water mask/forbid/rejection). Extrahovat `_place_points_in_mask`. Pozn.: SLAP —
+  `_generate_pseudo_boulders` navíc míchá 204 (rejection) + 210 (pole teček) → kandidát `_place_stony_fields`.
+- [ ] *(D8, kód↔docs; spíš %AUDIT:DOCS)* README „Repository layout" drift — chybí konektory `ortofoto.py`/`magnetic.py`
+  + model-root `mpp/purple/vectorize` + `cut/omap_export/measure_dod`. Komentář „51 kódů" v CLAUDE.md/DIARY → ~59 (K7).
+- [ ] *(D9, DRY napříč model/)* `PX_PER_MM`/`MAP_SCALE` (3× purple/inject/generator), `_IMAGENET_MEAN/STD` (6×),
+  peak-detekce kopie (train↔eval png2point i png2line), tiling helper (`_positions`/`_crop`/`TILE=512`). Vlastní
+  „extrahovat až 3. konzument" triggery už nastaly → konsolidovat (`mpp.py` / nový `peakdetect.py`/`norm.py`/`tiling.py`).
+- [ ] *(kosmetické carry)* K2 stale komentáře „204/210" po rozšíření na 4 třídy `png2point/eval_real.py:6,60,144` ·
+  K6 stale `connectors/__pycache__/forest.cpython-312.pyc` (gitignored) · K8 matoucí `v2000/c2000` názvy `compare_isom.py:109`
+  (pravý sloupec `.crt` = OCAD-2017, ne 2000) · K9 ring-split bit 2 (`cut`) vs bit 16 (`omap_raster`) — okomentovat vztah.
+
 ## UC1 — Knowledgebase + Sandbox (MVP, fáze B)
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)

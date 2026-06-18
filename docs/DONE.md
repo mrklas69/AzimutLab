@@ -2,6 +2,20 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 143 (2026-06-18) — %AUDIT:CODE (5 agentů) + quick-win opravy (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md). Zbylé nálezy: TODO sekce „%AUDIT:CODE (Sez. 143)".
+- [x] **%AUDIT:CODE** (cadence práh ≥8 DOSAŽEN od Sez. 135 + LOC) — 5 paralelních agentů (18 103 LOC: generator.py
+  / cut+omap / model / connectors+measure / cross-cutting) → ruční verify proti zdroji (lekce Sez. 93/110).
+  1 kritický (C1 RAM) + ~9 doporučených + ~9 kosmetických; **K7 falešný poplach** zachycen verifikací.
+- [x] **Quick-win opravy (8 souborů) + verify:** **C1** `separate._is_pale_yellow` row-chunk (`(N,4,3)` int32
+  1,38 GiB → konstantní peak, izomorf `map_gt._classify`; **byte-identický na 4 tvarech vč. 3344×2365** —
+  odblokuje měření/eval na ntbhej, kde padalo Sez. 141/142) · **D1** `USED_CODES` +416/416.1 (SSoT dluh) ·
+  **D5** `_line_line_pt` /0 guard · **D7** stale benchmark 0,537→0,683 · **K1** `Png2Polygon`→`Png2Area` 3× ·
+  **K3** 530/531 rozliš. · **K4** docstring +509 · **K5** mrtvý `_TEMPLATE` smazán. `test_cut` 10/10, `test_purple` 1/1.
+- [x] **`isom_scan/` → `.gitignore`** (Livelox copyright B3; `git add --dry-run` odhalil že `check-ignore` lhal —
+  složka by se reálně commitla). Ponecháno na disku, mimo git.
+- [x] **Verify-against-source bonus:** opravena nepřesnost diáře Sez. 141 (`Soví vrch.omap` = `538 Krmelec`, ne `527`).
+
 ## Sezení 142 (2026-06-18) — Neatline fill/border split vody 301 (roh/multi-řez) (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
 - [x] **Fill/border split ohraničených ploch při ořezu — nahradil flag-16 trik** (fokus Příště #1 Sez. 141,
