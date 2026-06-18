@@ -391,6 +391,8 @@ KOMPAS_SOURCE: dict[int, tuple[str, str]] = {
     308: ("ZABAGED", "data"), 310: ("pseudo", "pseudo"),
     # pseudo vegetační body (princip kamenů, Sez. 136-137)
     417: ("ZAB+pseudo", "mix"), 418: ("pseudo", "pseudo"), 419: ("pseudo", "pseudo"),
+    # pseudo man-made body (Sez. 141; ZABAGED je nevede, čistě pseudo na měřenou hustotu)
+    527: ("pseudo", "pseudo"), 525: ("pseudo", "pseudo"), 531: ("pseudo", "pseudo"),
 }
 
 

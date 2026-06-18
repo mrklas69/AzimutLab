@@ -453,13 +453,24 @@ ISOM_CAIRN = 526
 ISOM_PROM_RING = 530
 ISOM_LARGE_TREE = 417
 # 419 Prom. vegetation feature — ZELENÝ X (Sez. 136). NEMÁ ZABAGED zdroj (na rozdíl od 417 stromu) →
-# jen pseudo injekce (_generate_pseudo_veg_points); sdílí render+.omap+meta cestu landmarků (proto zde).
+# jen pseudo injekce (_generate_pseudo_points); sdílí render+.omap+meta cestu landmarků (proto zde).
 ISOM_VEG_FEATURE = 419
 # 418 Prom. bush or tree — ZELENÝ plný bod (Sez. 137). Stejně jako 419 NEMÁ ZABAGED zdroj (keře/buše
 # se nemapují) → čistě pseudo injekce. Template id=103: inner_radius=75 µm (bílý střed, color 22) +
 # outer_width=300 µm (zelený, color 3) → vizuálně plný zelený disk ⌀ ~0,375 mm; bílý střed (~0,56 px)
 # v gen renderu vynechán (KISS, jako 419 nemá svatozář — kreslí ji až realita/degradér).
 ISOM_PROM_BUSH = 418
+# 527/525/531 — ČERNÉ man-made bodové prvky (Sez. 141). ZABAGED je NEvede (myslivecká/orientační
+# zařízení nejsou v geodatech) → čistě pseudo injekce jako 418/419, ale černé (color 2), ne zelené.
+# POZOR — DVOJÍ ČÍSLOVÁNÍ (Sez. 141, nález uživatele): tytéž ISOM 2017-2 symboly mají v OCAD šabloně
+# JINÁ čísla než v naší OOM (524↔535/525↔536/526↔537/527↔538/530↔539/531↔540, crosswalk `.crt`) →
+# hustotu nutno měřit crosswalk-aware (naivní hledání jen „527" minul Bedřichovku kódující krmelec 538).
+# Template id: 527 = „Λ" stříška + svislá noha (krmelec/seník na noze); 525 = příčka nahoře + noha
+# (posed/plošina, „⊤"); 531 = černý X (mirror 419 zelený X, man-made). Hustota MĚŘENA crosswalk-aware
+# z 5 ČR .omap (temp/measure_527_density.py): medián 527 ~7,7/km², 525 ~1,1/km², 531 ~1,3/km².
+ISOM_FODDER = 527           # Fodder rack — krmelec
+ISOM_SMALL_TOWER = 525      # Small tower — posed/plošina/sedátko
+ISOM_PROM_X = 531           # Prominent man-made feature – x (černý X; definice se dává na mapě)
 # Sez. 44 (katalog dávka 4): pramen / nádrž / jeskyně. Geometrie z template (id 72/71/31):
 #   312 Spring  — MODRÉ „U"/oblouk, ústí NAHORU (template: oblouk r≈0,54 mm, width 0,27 mm, color Blue)
 #   311 Well    — MODRÝ čtverec (obrys, ½ strany 0,465 mm, width 0,27 mm) — well/fountain/water tank
@@ -477,11 +488,13 @@ LANDMARK_NAME = {ISOM_HIGH_TOWER: "High tower", ISOM_CAIRN: "Cairn",
                  ISOM_SPRING: "Spring", ISOM_WELL: "Well, fountain or water tank",
                  ISOM_CAVE: "Cave or rocky pit",
                  ISOM_VEG_FEATURE: "Prominent vegetation feature",
-                 ISOM_PROM_BUSH: "Prominent bush or tree"}
+                 ISOM_PROM_BUSH: "Prominent bush or tree",
+                 ISOM_FODDER: "Fodder rack", ISOM_SMALL_TOWER: "Small tower",
+                 ISOM_PROM_X: "Prominent man-made feature"}
 # ISOM kód → třída v mask_landmarks.png (0 = pozadí). Multi-class (jedna maska pro kategorii).
 LANDMARK_CLASS = {ISOM_HIGH_TOWER: 1, ISOM_CAIRN: 2, ISOM_PROM_RING: 3, ISOM_LARGE_TREE: 4,
                   ISOM_SPRING: 5, ISOM_WELL: 6, ISOM_CAVE: 7, ISOM_VEG_FEATURE: 8,
-                  ISOM_PROM_BUSH: 9}
+                  ISOM_PROM_BUSH: 9, ISOM_FODDER: 10, ISOM_SMALL_TOWER: 11, ISOM_PROM_X: 12}
 # Render parametry (px-tuned pro viditelnost; .omap věrný ze symbolu). µm × PX_PER_MM/1000:
 LANDMARK_RING_R_PX = max(3, round(0.36 * PX_PER_MM))    # kroužek 530/526 (r ≈ 0,36 mm → ~2 px → min 3)
 LANDMARK_TREE_R_PX = max(3, round(0.40 * PX_PER_MM))    # kroužek 417 (r ≈ 0,40 mm)
@@ -494,6 +507,21 @@ LANDMARK_CAVE_TOP_PX = max(2, round(0.465 * PX_PER_MM))   # dolní konce „Λ" 
 LANDMARK_CAVE_HALF_PX = max(2, round(0.525 * PX_PER_MM))  # ½ rozevření „Λ" (0,525 mm)
 LANDMARK_VEGFEAT_R_PX = max(3, round(0.60 * PX_PER_MM))   # polodélka ramene X 419 (≈0,60 mm, izomorf inject)
 LANDMARK_BUSH_R_PX = max(2, round(0.375 * PX_PER_MM))    # vnější poloměr plného disku 418 (inner 75 + outer 300 µm)
+# 527 Fodder rack (template id 152): „Λ" stříška (apex 411 µm NAD středem, ramena ±615 µm šíř / 55 µm
+# nad středem) + svislá noha (apex → 819 µm POD středem). černá (color 2), width 0,24 mm.
+LANDMARK_FODDER_APEX_PX = max(2, round(0.411 * PX_PER_MM))   # vrchol „Λ" NAD středem
+LANDMARK_FODDER_EAVE_PX = max(1, round(0.055 * PX_PER_MM))   # konce „Λ" mírně nad středem
+LANDMARK_FODDER_HALF_PX = max(2, round(0.615 * PX_PER_MM))   # ½ rozpětí stříšky
+LANDMARK_FODDER_FOOT_PX = max(3, round(0.819 * PX_PER_MM))   # pata nohy POD středem
+LANDMARK_FODDER_R_PX = LANDMARK_FODDER_HALF_PX               # poloměr pro rejection (max rozměr)
+# 525 Small tower (template id 150): vodorovná příčka nahoře (±750 µm, 462 µm NAD středem) + svislá
+# noha (462 µm nad → 903 µm POD středem) = „⊤". černá. (prefix STOWER ≠ 524 High tower LANDMARK_TOWER_ARM)
+LANDMARK_STOWER_TOP_PX = max(2, round(0.462 * PX_PER_MM))    # příčka + horní konec nohy NAD středem
+LANDMARK_STOWER_FOOT_PX = max(3, round(0.903 * PX_PER_MM))   # pata nohy POD středem
+LANDMARK_STOWER_HALF_PX = max(3, round(0.750 * PX_PER_MM))   # ½ příčky
+LANDMARK_STOWER_R_PX = LANDMARK_STOWER_HALF_PX               # poloměr pro rejection
+# 531 Prominent man-made feature – x (template id 156): černý X, diagonály ±516 µm (mirror 419 zelený X)
+LANDMARK_PROMX_R_PX = max(3, round(0.516 * PX_PER_MM))       # ½ úhlopříčky X
 
 # --- Pseudo injekce vegetačních bodů 417/419 (Sez. 136, FÁZE 2 pseudorealistic) ---
 # Princip kamenů (Sez. 107): doložené ZABAGED stromy 417 jsou ŘÍDKÉ (~3 % reálné hustoty) → dosypeme
@@ -506,6 +534,11 @@ PSEUDO_VEGFEAT_PER_KM2 = (10.0, 28.0)   # 419 Prominent vegetation feature — �
 # 418 Prominent bush or tree — čistě pseudo (Sez. 137). Hustota MĚŘENA z kartografových .omap stejně
 # jako 417/419 (crosswalk-aware, eval_real GT/plocha): medián ~17,8/km², rozsah 6,6–25,3/km².
 PSEUDO_BUSH_PER_KM2 = (8.0, 26.0)       # uniform průměr ~17 = reálný medián; rozsah pokrývá řídké i bohaté mapy
+# 527/525/531 man-made body — hustota MĚŘENA crosswalk-aware z 5 ČR .omap (Sez. 141, viz konstanty výš).
+# Velký reálný rozptyl (527: 0,45–14,46/km²) → losovaný rozsah kolem mediánu pro rozmanitost.
+PSEUDO_FODDER_PER_KM2 = (3.0, 13.0)     # 527 krmelec — medián ~7,7/km²
+PSEUDO_SMALL_TOWER_PER_KM2 = (0.4, 2.5)  # 525 posed/plošina — medián ~1,1/km² (řidší)
+PSEUDO_PROM_X_PER_KM2 = (0.5, 3.0)      # 531 Prominent man-made feature – x — medián ~1,3/km²
 # ISOM: bodové symboly se NESMÍ překrývat (Sez. 136, nález uživatele {A} Nová Louka — dva symboly přes
 # sebe). Minimální vzdálenost STŘEDŮ dvou pseudo veg bodů = součet jejich poloměrů + mezera (žádný dotyk).
 PSEUDO_VEG_MIN_GAP_MM = 0.20            # mezera mezi okraji symbolů (rezerva nad „nedotýkat se")
@@ -1554,6 +1587,9 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
       530 ring       → černý kroužek (bez tečky)
       417 Large tree → ZELENÝ kroužek (C_GREEN3)
       418 Bush/tree  → ZELENÝ plný disk (C_GREEN3) — odlišný od 417 prstence i 419 X (Sez. 137)
+      527 Fodder rack→ černá „Λ" stříška + svislá noha (krmelec; Sez. 141)
+      525 Small tower→ černá vodorovná příčka + noha „⊤" (posed/plošina; Sez. 141)
+      531 Prom. x    → ČERNÝ X (man-made; mirror 419 zelený X; Sez. 141)
       312 Spring     → MODRÝ oblouk „U", ústí NAHORU (Sez. 44)
       311 Well       → MODRÝ čtverec (obrys, Sez. 44)
       203.2 Cave     → černá „Λ" stříška (chevron, hrot NAHORU; NE plný trojúhelník — oprava Sez. 44)
@@ -1585,6 +1621,32 @@ def _draw_landmark(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
         r = LANDMARK_BUSH_R_PX
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=C_GREEN3)
         mdraw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=cls)
+    elif code == ISOM_FODDER:                           # 527 Fodder rack — černá „Λ" stříška + noha
+        # Template id 152 (omap +y = DOLŮ): vrchol stříšky NAD středem, noha z vrcholu DOLŮ = krmelec.
+        apex = (cx, cy - LANDMARK_FODDER_APEX_PX)
+        le = (cx - LANDMARK_FODDER_HALF_PX, cy - LANDMARK_FODDER_EAVE_PX)   # levý konec stříšky
+        re = (cx + LANDMARK_FODDER_HALF_PX, cy - LANDMARK_FODDER_EAVE_PX)   # pravý konec
+        foot = (cx, cy + LANDMARK_FODDER_FOOT_PX)
+        draw.line([le, apex, re], fill=C_BLACK, width=1)   # stříška „Λ"
+        draw.line([apex, foot], fill=C_BLACK, width=1)     # svislá noha
+        mdraw.line([le, apex, re], fill=cls, width=1)
+        mdraw.line([apex, foot], fill=cls, width=1)
+    elif code == ISOM_SMALL_TOWER:                      # 525 Small tower — vodorovná příčka + noha „⊤"
+        # Template id 150: příčka NAD středem, svislá noha z příčky DOLŮ = posed/plošina/sedátko.
+        top = cy - LANDMARK_STOWER_TOP_PX
+        draw.line([(cx - LANDMARK_STOWER_HALF_PX, top), (cx + LANDMARK_STOWER_HALF_PX, top)],
+                  fill=C_BLACK, width=1)                   # příčka
+        draw.line([(cx, top), (cx, cy + LANDMARK_STOWER_FOOT_PX)], fill=C_BLACK, width=1)  # noha
+        mdraw.line([(cx - LANDMARK_STOWER_HALF_PX, top), (cx + LANDMARK_STOWER_HALF_PX, top)],
+                   fill=cls, width=1)
+        mdraw.line([(cx, top), (cx, cy + LANDMARK_STOWER_FOOT_PX)], fill=cls, width=1)
+    elif code == ISOM_PROM_X:                           # 531 Prom. man-made feature – x — ČERNÝ X
+        # Mirror 419 zelený X, ale černý (man-made, ne vegetace). Template id 156: diagonály ±516 µm.
+        r = LANDMARK_PROMX_R_PX
+        draw.line([(cx - r, cy - r), (cx + r, cy + r)], fill=C_BLACK, width=1)
+        draw.line([(cx - r, cy + r), (cx + r, cy - r)], fill=C_BLACK, width=1)
+        mdraw.line([(cx - r, cy - r), (cx + r, cy + r)], fill=cls, width=1)
+        mdraw.line([(cx - r, cy + r), (cx + r, cy - r)], fill=cls, width=1)
     elif code == ISOM_VEG_FEATURE:                      # 419 Prom. vegetation feature — zelený X
         # Dvě zelené diagonály (mirror inject._stamp_cross; generátorový styl bez bílé svatozáře,
         # konzistentní s 417 kroužkem — svatozář kreslí až degradér/realita, ne čistý gen render).
@@ -3001,23 +3063,26 @@ def _generate_pseudo_boulders(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageD
     return pts
 
 
-def _generate_pseudo_veg_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
-                                rock_area_features: list,
-                                water_area_features: list | None, n_real_417: int,
-                                rng: np.random.Generator,
-                                forbid_imgs: list | None = None) -> list[tuple]:
-    """Pseudo injekce bodů 417 Prominent large tree + 419 Prom. vegetation feature + 418 Prom. bush
-    or tree (FÁZE 2, Sez. 136; 418 přidán Sez. 137).
+def _generate_pseudo_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDraw,
+                            rock_area_features: list,
+                            water_area_features: list | None, n_real_417: int,
+                            rng: np.random.Generator,
+                            forbid_imgs: list | None = None) -> list[tuple]:
+    """Pseudo injekce bodových orient. prvků mimo nemožná místa (FÁZE 2). Dvě skupiny, identická
+    umísťovací mašinérie (DRY) — liší se jen render (přes _draw_landmark) a hustota:
+      ZELENÉ vegetační (Sez. 136-137): 417 Prom. large tree + 419 Prom. veg. feature + 418 Prom. bush.
+      ČERNÉ man-made (Sez. 141): 527 Fodder rack + 525 Small tower + 531 Prom. man-made feature – x.
 
     Princip kamenů (Sez. 107): 417 má jen ŘÍDKÝ doložený zdroj (ZABAGED Významný strom, ~3 % reálné
-    hustoty), 418/419 žádný → dosypeme na reálnou MĚŘENOU hustotu (kartografovy .omap / eval_real GT:
-    medián 417 ~27/km², 419 ~18/km², 418 ~18/km²; losováno per mapa pro rozmanitost). NENÍ projekce dat
-    — poloha v rámci masky náhodná (reframe Sez. 79), maska jen vylučuje nemožná místa.
+    hustoty), zbylé žádný → dosypeme na reálnou MĚŘENOU hustotu (kartografovy .omap / eval_real GT:
+    medián 417 ~27/km², 419 ~18/km², 418 ~18/km², 527 ~7,7/km², 525 ~1,1/km², 531 ~1,3/km²; man-made
+    crosswalk-aware Sez. 141; losováno per mapa pro rozmanitost). NENÍ projekce dat — poloha v rámci
+    masky náhodná (reframe Sez. 79), maska jen vylučuje nemožná místa.
 
     Umístění (volba uživatele): MIMO vodu (no-draw zóna, CLAUDE.md) + MIMO hustou skalnatost (strom
-    neroste v balvanitém poli) + MIMO budovy/cesty/zpevněné plochy (Sez. 136 nález — symbol pod liniovým/
-    plošným prvkem se zakryje). Skalní maska = 206 plochy z DMR sklonu (rock_relief, Sez. 63), dilatované.
-    Budovy/cesty/zpevněné se berou z hotových GT masek (forbid_imgs, px → grid).
+    neroste v balvanitém poli; krmelec/posed ve skalním poli taky ne) + MIMO budovy/cesty/zpevněné
+    plochy (Sez. 136 nález — symbol pod liniovým/plošným prvkem se zakryje). Skalní maska = 206 plochy
+    z DMR sklonu (rock_relief, Sez. 63), dilatované. Budovy/cesty/zpevněné z hotových GT masek (forbid_imgs).
 
     ISOM rozestup (Sez. 136, nález uživatele {A}): bodové symboly se NESMÍ překrývat → rejection sampling,
     nový bod zahozen, pokud je blíž než (r_a + r_b + mezera) ke kterémukoli už umístěnému.
@@ -3025,11 +3090,11 @@ def _generate_pseudo_veg_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.Imag
     rock_area_features  — [(grid_rings, code)] (206 plochy + 208) — seed skalní masky (bere jen 206).
     water_area_features — vodní plochy 301 (vyloučeny z masky).
     n_real_417          — počet reálných ZABAGED 417 už nakreslených → odečte se od pseudo cíle (DOPLNĚNÍ
-                          na hustotu, ne zdvojení). 419 reálné nemá → plná pseudo hustota.
+                          na hustotu, ne zdvojení). Ostatní reálný zdroj nemají → plná pseudo hustota.
     forbid_imgs         — list PIL „L" GT masek (budovy/cesty/zpevněné, px W×H; 0 = pozadí) → resamplují
                           se na grid a vyloučí (None/prázdné = nic navíc nevyloučit).
     mdraw = GT maska landmarků (LANDMARK_CLASS); render = side-effect do draw (rgb) + mdraw.
-    Vrací pseudo point_features [(gx, gy, code)] (417 + 418 + 419).
+    Vrací pseudo point_features [(gx, gy, code)] (417/418/419 + 527/525/531).
     """
     import scipy.ndimage as ndi
     # --- skalní maska = 206 plochy (z DMR sklonu), dilatovaná o okolí (suť kolem stěn) ---
@@ -3058,20 +3123,25 @@ def _generate_pseudo_veg_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.Imag
 
     gap_px = PSEUDO_VEG_MIN_GAP_MM * PX_PER_MM
     r_of = {ISOM_LARGE_TREE: float(LANDMARK_TREE_R_PX), ISOM_VEG_FEATURE: float(LANDMARK_VEGFEAT_R_PX),
-            ISOM_PROM_BUSH: float(LANDMARK_BUSH_R_PX)}
+            ISOM_PROM_BUSH: float(LANDMARK_BUSH_R_PX), ISOM_FODDER: float(LANDMARK_FODDER_R_PX),
+            ISOM_SMALL_TOWER: float(LANDMARK_STOWER_R_PX), ISOM_PROM_X: float(LANDMARK_PROMX_R_PX)}
     # px maska budov/cest/zpevněných, dilatovaná o poloměr → ani OKRAJ symbolu se nedotkne tenkého pásu
     forbid_px = _build_forbid_px(forbid_imgs, dilate_px=round(max(r_of.values()) + gap_px))
     fh, fw = (forbid_px.shape if forbid_px is not None else (0, 0))
     # hustota losovaná per mapa z rozsahu; 417 = doplnit na cíl MÍNUS reálné ZABAGED (max 0 = už dost),
-    # 418/419 = čistě pseudo (ZABAGED zdroj nemají) → plná losovaná hustota
+    # ostatní = čistě pseudo (ZABAGED zdroj nemají) → plná losovaná hustota
     n_tree = max(0, round(area_km2 * rng.uniform(*PSEUDO_TREE_PER_KM2)) - n_real_417)
     n_veg = round(area_km2 * rng.uniform(*PSEUDO_VEGFEAT_PER_KM2))
     n_bush = round(area_km2 * rng.uniform(*PSEUDO_BUSH_PER_KM2))
+    n_fodder = round(area_km2 * rng.uniform(*PSEUDO_FODDER_PER_KM2))
+    n_stower = round(area_km2 * rng.uniform(*PSEUDO_SMALL_TOWER_PER_KM2))
+    n_promx = round(area_km2 * rng.uniform(*PSEUDO_PROM_X_PER_KM2))
     # rejection sampling: drž px pozice + poloměry umístěných (rostoucí numpy buffer)
     placed_xy: list[tuple[float, float]] = []
     placed_r: list[float] = []
     pts: list[tuple[float, float, str]] = []
-    for code, n in ((ISOM_LARGE_TREE, n_tree), (ISOM_VEG_FEATURE, n_veg), (ISOM_PROM_BUSH, n_bush)):
+    for code, n in ((ISOM_LARGE_TREE, n_tree), (ISOM_VEG_FEATURE, n_veg), (ISOM_PROM_BUSH, n_bush),
+                    (ISOM_FODDER, n_fodder), (ISOM_SMALL_TOWER, n_stower), (ISOM_PROM_X, n_promx)):
         r_new = r_of[code]
         placed = attempts = 0
         budget = n * 25 + 50                             # strop pokusů (plná mapa → část se zahodí, OK)
@@ -4107,29 +4177,29 @@ def generate_map(
             _log.info("  orient. prvky: 0")
 
         # PSEUDO injekce vegetačních bodů 417/418/419 (FÁZE 2, Sez. 136; 418 Sez. 137 — princip kamenů):
-        # doložené stromy 417 jsou řídké (~3 % reálné hustoty), 418/419 ZABAGED zdroj nemají → dosypeme na
-        # reálnou MĚŘENOU hustotu MIMO vodu + hustou skalnatost. Gated `pseudorealistic` (visí na landmarks="real", jako
-        # pseudo boulders na rocks → point_base/only_real ji vypnou). Body → landmark_features (→ .omap
-        # přes landmark_omap_features) + landmarks_info (→ meta.json, izomorf pseudo 204/210 do rocks_info).
+        # doložené stromy 417 jsou řídké (~3 % reálné hustoty), 418/419 + man-made 527/525/531 ZABAGED zdroj
+        # nemají → dosypeme na reálnou MĚŘENOU hustotu MIMO vodu + hustou skalnatost. Gated `pseudorealistic`
+        # (visí na landmarks="real", jako pseudo boulders na rocks → point_base/only_real ji vypnou). Body →
+        # landmark_features (→ .omap přes landmark_omap_features) + landmarks_info (→ meta.json, izomorf 204/210).
         if pseudorealistic:
             n_real_417 = sum(1 for *_, c in landmark_features if int(float(c)) == ISOM_LARGE_TREE)
             # forbid_imgs (budovy/cesty/zpevněné) sdílené s pseudo boulders, definované u rocks bloku (Sez. 136)
-            pseudo_veg = _try_layer(
-                "pseudo_veg",
-                lambda: _generate_pseudo_veg_points(draw, ldraw_lm, rock_area_features,
-                                                    water_area_features, n_real_417, rng,
-                                                    forbid_imgs),
+            pseudo_pts = _try_layer(
+                "pseudo_points",
+                lambda: _generate_pseudo_points(draw, ldraw_lm, rock_area_features,
+                                                water_area_features, n_real_417, rng,
+                                                forbid_imgs),
                 [], tolerant, layer_errors)
-            landmark_features = list(landmark_features) + pseudo_veg
-            for *_, c in pseudo_veg:                       # pseudo i do meta (stats/STATISTICS to čte)
+            landmark_features = list(landmark_features) + pseudo_pts
+            for *_, c in pseudo_pts:                        # pseudo i do meta (stats/STATISTICS to čte)
                 ci = int(c)
                 landmarks_info.append({"symbol": ci, "symbol_name": LANDMARK_NAME[ci],
-                                       "kind": "point", "layer": "pseudo (Sez. 136)"})
-            if pseudo_veg:
-                n417 = sum(1 for *_, c in pseudo_veg if c == "417")
-                n418 = sum(1 for *_, c in pseudo_veg if c == "418")
-                n419 = sum(1 for *_, c in pseudo_veg if c == "419")
-                _log.info("  pseudo veg body: 417:%d, 418:%d, 419:%d", n417, n418, n419)
+                                       "kind": "point", "layer": "pseudo (Sez. 136/141)"})
+            if pseudo_pts:                                  # přehledný log počtů per kód (zelené veg + černé man-made)
+                by = {code: sum(1 for *_, c in pseudo_pts if c == code)
+                      for code in ("417", "418", "419", "527", "525", "531")}
+                _log.info("  pseudo body: veg 417:%d 418:%d 419:%d | man-made 527:%d 525:%d 531:%d",
+                          by["417"], by["418"], by["419"], by["527"], by["525"], by["531"])
 
     # --- zábrany na zdi: PRE-FETCH (Sez. 52) ---
     # Spočítat brány JEDNOU, před linefeatures: (a) zeď 513 se pod nimi přeruší (break_px),
