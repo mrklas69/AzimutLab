@@ -75,3 +75,11 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
   závorou ROADMAP (Etapa 2 / model), ne teď. **Empirický test té ~5 % hypotézy = `isom_scan/` benchmark**
   (fixní prompt + JSON výstup, oddělený `score.py` proti GT, `results.csv` napříč cloud i lokálními modely;
   headline `point_F1`). Detaily/úkoly v TODO „ISOM-scan benchmark".
+- **Vytěžek z běhu ChatGPT 5.5 (Sez. 146) — `docs/IDEAS_from_chatgpt55.md`.** ChatGPT 5.5 v benchmarku
+  drtivě porazil Opus (class_recall 0,875 vs 0,125) classic-CV technikami „od ruky". **Nejcennější k převzetí:**
+  (1) **black-excluding-brown maska** `(max<130)&(max−min<18)` = oddělení černé kresby od hnědých vrstevnic
+  (REC + měřicí skripty); (2) **exact-color histogram skenu** = kalibrační cíl barev generátoru (GEN, verify
+  pro BARVU) + základ separace; (3) **16×16 shape-descriptor** X/ring/kruh = non-ML klasifikátor png2point tříd;
+  (4) **render-first spec + O-Map Wiki** na přesné tvary před commitem (dotahuje [[isom-spec-before-render]]).
+  Plný seznam (TOP 5 + tagy METHOD/GEN/REC/BENCH/ISOM/TOOL) v doku. ISOM fakta tam jsou ChatGPT-sourced →
+  verify proti IOF spec před adopcí ([[external-ai-artifacts-verify-not-accept]]).

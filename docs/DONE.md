@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 146 (2026-06-18) — ISOM-scan benchmark + generátorová GT + ChatGPT 5.5 vytěžek (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md). Pozn.: `isom_scan/` je gitignored (Livelox copyright) → kód/GT/runs lokální, necommitnuté.
+- [x] **Postaven `isom_scan/` benchmark „sken → ISOM"**: `task_isom_scan.md` (úplný prompt + striktní JSON
+  schema + souřadný systém + granularita), oddělený `score.py` (READY-gate, `score_codes` allow-list,
+  point_F1/area_count_fid/class_recall), `overlay.py`, `build_gt.py`, `results.csv`, `README.md`. Model vrací
+  jen JSON, skóruje skript (ne self-scoring — lokální modely bez file-write + Goodhart).
+- [x] **Generátorová GT (nápad uživatele)** = `generate_map(only_real=True, ortho=False)` na Branžež quad →
+  tvrdá ČÚZK/DMR data bez pseudo. Zarovnání symbol→sken **vizuálně ověřeno** (silnice lícují na pixel; task png
+  = nativní ořez map.png, NCC 0,945, box `x[72:1727] y[420:2288]`). `score_codes` = jen data-derivovatelné
+  (skály/vegetace/pseudo/601 vyloučeny — generátor tam pravdu nemá → nefér měřit).
+- [x] **První výsledky:** ChatGPT 5.5 ≫ Opus 4.8 (class_recall 0,875 vs 0,125; headline point_F1 0,50 vs 0,00).
+- [x] **Vytěžek 41min trace ChatGPT 5.5** → `docs/IDEAS_from_chatgpt55.md` (TOP 5: black-vs-brown maska,
+  exact-color histogram = kalibrace barev gen, 16×16 shape-descriptor, render-first spec, multi-res pipeline).
+  Paměť `chatgpt55-isom-classic-cv-beats-ml` (reframe ~5% hypotézy) + IDEAS.md pointer. ISOM fakta
+  ChatGPT-sourced → verify proti IOF před adopcí.
+
 ## Sezení 145 (2026-06-18) — %CALIBRATE (od Sez. 127) + KPI přeměření na ntbhej (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
 - [x] **%CALIBRATE meta-audit** (práh ≥15 překročen o 3). Context hygiene SOLIDNÍ (CLAUDE.md 90→88 ř. stabilní,
