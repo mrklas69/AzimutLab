@@ -2,6 +2,20 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 144 (2026-06-18) — Pseudo ploty 516/517/518 (varianta plotu) (ntbhej)
+Detail: [diary/2026-06-18.md](diary/2026-06-18.md).
+- [x] **Oplocenky 516/517/518 (a) pseudo HOTOVO** (Příště #1 Sez. 143, vytěžení 2 nových typů). Existující 516
+  (kolem RÚIAN zahrad druh 5, Sez. 98) rozšířen na **tři typy** (varianta plotu, volba uživatele KISS): per pozemek
+  losován typ deterministicky z geometrie (spatial-hash, vzor Sez. 57; regen-identický) — **516 Fence** (plná+1tick) /
+  **517 Ruined fence** (čárkovaná+1tick) / **518 Impassable fence** (silnější+dvojtick). Render verify-against-source
+  template id 131/132/133; váhy z measure-first (crosswalk-aware 5/5 ČR map Σ 113/42/115 → 0,42/0,16/0,42). Kód (6):
+  registr typů/vah/render dictů, `_draw_fence_line(…, fence_type)` typ-aware, `_draw_dashed` None-guard (reuse bez GT
+  masky), fence smyčka losuje typ, `USED_CODES`+517/518, `KOMPAS_SOURCE` 517/518=(RÚIAN,pseudo). Verify: render LS
+  `.omap` 80/39/108, distribuce 42/16/43%, vizuál rozlišitelný. KPI přeměření 517/518 = carry HAL3000/mrkla.
+- [x] **measure-first dual-numbering verify** (paměť isom-dual-numbering): OOM 516/517/518 ↔ OCAD 522/523/524
+  (v OCAD je 516=Power line). measure_dod měří ploty crosswalk-aware SPRÁVNĚ (ověřeno přímým voláním) — první probe
+  „0 / měřicí bug" byl falešný poplach v MÉM probe (int klíč vs string set), ne v repu.
+
 ## Sezení 143 (2026-06-18) — %AUDIT:CODE (5 agentů) + quick-win opravy (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md). Zbylé nálezy: TODO sekce „%AUDIT:CODE (Sez. 143)".
 - [x] **%AUDIT:CODE** (cadence práh ≥8 DOSAŽEN od Sez. 135 + LOC) — 5 paralelních agentů (18 103 LOC: generator.py

@@ -98,6 +98,20 @@ K5 mrtvý `_TEMPLATE`. (K7 „51 kódů" = falešný poplach, číslo jen v docs
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
 
+## ISOM-scan benchmark (`isom_scan/`) — baseline „hotový model sken → ISOM"
+Empirický test hypotézy z IDEAS „Hotový pretrained model…" (Sez. 142, ~5 %): jak dobře cloudové
+i lokální (vision) modely rozpoznají ISOM symboly přímo ze skenu, bez doučení. **Scaffold HOTOVO:**
+fixní prompt + JSON schema (`task_isom_scan.md`), oddělený skórovač (`score.py` — model NESkóruje sám
+sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.md`. Vstup = ořez skenu
+`1127443` Branžež. Headline KPI = `point_F1` (anti-sprawl, [[kpi-one-quantifier-not-methodology-sprawl]]).
+- [ ] **Postavit GT** (`gt/ground_truth.json`, dnes TEMPLATE) — **bootstrap** Opusem 4.8 → **kartograf opraví**
+  (verify-against-source; pozor na ukotvení k modelovému zkreslení). Bez GT jsou scored metriky NA.
+  Bodové symboly = úplné `points` (distance-match), plochy/linie = `count` (+ kotva `1127443/gt_labels.png`).
+- [ ] **Proběhnout pole modelů** (cloud: Opus/Sonnet/…; lokální: LM Studio) — N seedů, medián; vyplnit `runs/` + skórovat.
+- [ ] *(curtains, odložit)* cost tracking přes API · varianty no-spec / tiling pro malý kontext · leaderboard render.
+- [ ] *(DRY drobnost)* 2× PDF v `isom_scan/` jsou kopie `docs/kb/` — pro přenosný balík OK; zvážit odkaz, pokud zůstane jen v repu.
+- [ ] *(reference)* zvážit `isom-2017-2-spec.pdf` do `docs/kb/` (dnes jen ISOM 2000 stand-in; vzhled OK, číslování ne).
+
 ## UC2 — Data konektory (enabler, průzkum)
 - [~] **Doplnit CHYBĚJÍCÍ relevantní vrstvy ZABAGED** (Sez. 23, uživatel „stojíme o všechna data z geoportálu, ne jen vybraná"). **Katalog VŠECH 149 vrstev + stav každé: `docs/kb/zabaged-isom-catalog.md`** (SSoT). Hotové dávky (Sez. 24–56: vedení/lanovka/železnice/kolejiště/skály/mosty/průseky/land-cover/RÚIAN/areály/landmarky/mokřady/stromořadí/kultura/komín/zábrana/kamenolom) jsou v DONE + katalogu. **„KATALOG VYČERPÁN Sez. 52" KOREKCE Sez. 55:** ○ kandidáti lanovka/lom/brod/podjezd/hráz nebyli změřeni jako Sez. 43 → probe ukázal nenulový výskyt; lanovka/vlek→510 HOTOVO Sez. 55, kamenolom→520 HOTOVO Sez. 56. **Zbývají ZMĚŘENÉ ◐/○:** podjezd 519 (Σ12, LS 11, verify spec), brod 519 (Σ6), hráz 528 (Σ13, blokátor legenda), vodopád 313 (Σ2), suť 210 (Σ1). **HOTOVO Sez. 57: balvany-linie → 208 Boulder field** (buffer pás, mirror 406). **Plot 516–518 = doložený SKIP Sez. 57** (ZABAGED plot nevede). Detail + čísla v katalogu „Akční seznam".
 - [~] *(idea Sez. 24, fáze 2; POVÝŠENO na aktivní směr Sez. 102)* **Vegetace jako pseudorealistická vrstva** — `pseudorealistic=True` (fáze 2). Hlavní konzument = vegetace (zelená/žlutá průchodnost, v datech není kvůli vegetace gate). **Sez. 102: forest_age proxy smazán → DEV `--location` mapy a syntetické páry bez Livelox skenu kreslí BÍLÝ LES.** Predikční vegetace dnes jde JEN ze separace reálné mapy (cesta párů) — lokality bez skenu zelený generátor nemají. Pseudorealistic = náhrada: **vymyslet věrohodnou zeleň procedurálně** (clustery v lese / perlin / hranice z terénu?). Reframe Sez. 79 ji posvětil („vegetace pro trénink nemusí být pravdivá — reconstructor ji čte ze skenu, generátor generuje procedurálně-věrohodně"). **Příště: %THINK jak generovat.** Spec §0b, GLOSSARY „pseudorealistic"/[[forest-age-proxy]].
@@ -181,10 +195,14 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   = OCAD), ale **Soví vrch (OOM-2017, krmelec kóduje přímo 527) → `resolve(527,"2000")={520}` = nesmysl**. Soví vrch
   NENÍ v default KPI sadě (Bedř/Blatná/Velbloud) → headline nezkresluje, ale past. Fix: rozlišit OOM vs OCAD set
   (např. dle `<symbols id="OCD">` nebo přítomnosti 535-540) → správné crosswalk routování. Paměť [[isom-dual-numbering-oom-ocad]].
-- [ ] *(vytěžení/Etapa 2, nález uživatele Sez. 140)* **Oplocenky = uzavřené linie 516–518.** ZABAGED ploty NEvede (doložený SKIP Sez. 57,
-  katalog sekce 11) → data gap. Dvě cesty: **(a) pseudo** (Etapa 1) — umístit oplocenky procedurálně na okraje lesa/školky (dekorace,
-  losovaná hustota); **(b) Png2Line ze skenu** (Etapa 2, za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup než watercourse
-  (topologie uzávěru) + dashed 516 už narazila na doménový gap (Sez. 133).
+- [~] *(vytěžení, nález uživatele Sez. 140; **(a) pseudo HOTOVO Sez. 144**)* **Oplocenky = uzavřené linie 516–518.** ZABAGED
+  ploty NEvede (doložený SKIP Sez. 57, katalog sekce 11) → data gap. **(a) pseudo HOTOVO Sez. 144:** existující 516
+  (kolem RÚIAN zahrad druh 5) rozšířen na **tři typy 516/517/518** (varianta plotu, KISS) — per pozemek losován typ
+  (516 Fence / 517 Ruined čárkovaná / 518 Impassable silná+dvojtick) deterministicky z geometrie (spatial-hash, vzor
+  Sez. 57), váhy z measure-first (5/5 ČR map Σ 113/42/115 → 0,42/0,16/0,42). Verify: render LS .omap 80/39/108, vizuál
+  rozlišitelný, KPI měří crosswalk-aware správně (522/523/524↔516/517/518). **ZBÝVÁ (b) Png2Line ze skenu** (Etapa 2,
+  za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup (topologie uzávěru) + dashed už narazila na
+  doménový gap (Sez. 133). **+ Carry: KPI/KOMPAS přeměření dopadu 517/518** na HAL3000/mrkla (ntbhej RAM + chybí Velbloud.pgw).
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
