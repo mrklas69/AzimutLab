@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 148 (2026-06-19) — Auditní nálezy 260619 + KPI 403 (ntbhej)
+Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
+- [x] **Audit 260619 A1/A2/A3 propsán do živého řízení:** `scan mining` zakotvený jako legitimní část
+  `Generator()` při vazbě na KOMPAS/coverage, `resources/Velbloud.pgw` lokálně vyrobený pro 3-map měření
+  a `isom_scan/` rozdělený na verzovatelný textový harness vs ignorované copyright rastry/runs.
+- [x] **Všechny mapy a změněné podklady přegenerovány:** KPI sada `Bedřichovka`/`Blatná`/`Velbloud`,
+  5 standardních DEV map a 5 starších ad-hoc map z `meta.json`; `maps/` a `resources/Velbloud.pgw`
+  zůstávají gitignored lokální výstupy.
+- [x] **KPI generátoru zvednuto 57,6 → 59,5 %:** `generator/separate.py` dostal per-class
+  `min_area_px`; jen `403 Rough open land` používá 60 px místo globálních 120 px. KOMPAS `403`
+  přešel do `ok` (`gen 262→488`), bez nového přestřelu; `unittest discover -s tests` = 19/19 OK.
+- [x] **Handoff pro mrkla/HAL3000 připraven:** viz `docs/HANDOFF_260619_MRKLA_HAL3000.md`.
+
 ## Sezení 147 (2026-06-19) — Předání z Claude: supervisor audit, scan-color utilita, oprava `.venv` (ntbhej)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 - [x] **Supervisor audit Fable 5 hotový:** vytvořen `docs/AUDIT_FABLE5_260619.md` podle
