@@ -471,8 +471,9 @@ ISOM_PROM_BUSH = 418
 # JINÁ čísla než v naší OOM (524↔535/525↔536/526↔537/527↔538/530↔539/531↔540, crosswalk `.crt`) →
 # hustotu nutno měřit crosswalk-aware (naivní hledání jen „527" minul Bedřichovku kódující krmelec 538).
 # Template id: 527 = „Λ" stříška + svislá noha (krmelec/seník na noze); 525 = příčka nahoře + noha
-# (posed/plošina, „⊤"); 531 = černý X (mirror 419 zelený X, man-made). Hustota MĚŘENA crosswalk-aware
-# z 5 ČR .omap (temp/measure_527_density.py): medián 527 ~7,7/km², 525 ~1,1/km², 531 ~1,3/km².
+# (posed/plošina, „⊤"); 531 = černý X (mirror 419 zelený X, man-made). Původní měření 527
+# ze Sez. 141 (~7,7/km²) bylo později vyhodnocené jako crosswalk-slepé; aktuální 527 kalibraci
+# drží `PSEUDO_FODDER_PER_KM2` níž. 525/531 zůstávají na ~1,1/~1,3/km².
 ISOM_FODDER = 527           # Fodder rack — krmelec
 ISOM_SMALL_TOWER = 525      # Small tower — posed/plošina/sedátko
 ISOM_PROM_X = 531           # Prominent man-made feature – x (černý X; definice se dává na mapě)
@@ -539,9 +540,10 @@ PSEUDO_VEGFEAT_PER_KM2 = (10.0, 28.0)   # 419 Prominent vegetation feature — �
 # 418 Prominent bush or tree — čistě pseudo (Sez. 137). Hustota MĚŘENA z kartografových .omap stejně
 # jako 417/419 (crosswalk-aware, eval_real GT/plocha): medián ~17,8/km², rozsah 6,6–25,3/km².
 PSEUDO_BUSH_PER_KM2 = (8.0, 26.0)       # uniform průměr ~17 = reálný medián; rozsah pokrývá řídké i bohaté mapy
-# 527/525/531 man-made body — hustota MĚŘENA crosswalk-aware z 5 ČR .omap (Sez. 141, viz konstanty výš).
-# Velký reálný rozptyl (527: 0,45–14,46/km²) → losovaný rozsah kolem mediánu pro rozmanitost.
-PSEUDO_FODDER_PER_KM2 = (3.0, 13.0)     # 527 krmelec — medián ~7,7/km²
+# 527/525/531 man-made body — původní hustoty ze Sez. 141 byly později označené jako
+# crosswalk-slepé. KOMPAS na kanonické 3-map sadě Sez. 150 ukázal 527 masivně přestřelený
+# (orig 8 / gen 103), proto je 527 kalibrovaný dolů samostatně; 525/531 zatím beze změny.
+PSEUDO_FODDER_PER_KM2 = (0.08, 0.35)    # 527 krmelec — vzácný pseudo bod, držet na jednotkách v KPI sadě
 PSEUDO_SMALL_TOWER_PER_KM2 = (0.4, 2.5)  # 525 posed/plošina — medián ~1,1/km² (řidší)
 PSEUDO_PROM_X_PER_KM2 = (0.5, 3.0)      # 531 Prominent man-made feature – x — medián ~1,3/km²
 # ISOM: bodové symboly se NESMÍ překrývat (Sez. 136, nález uživatele {A} Nová Louka — dva symboly přes
@@ -3110,9 +3112,9 @@ def _generate_pseudo_points(draw: ImageDraw.ImageDraw, mdraw: ImageDraw.ImageDra
       ČERNÉ man-made (Sez. 141): 527 Fodder rack + 525 Small tower + 531 Prom. man-made feature – x.
 
     Princip kamenů (Sez. 107): 417 má jen ŘÍDKÝ doložený zdroj (ZABAGED Významný strom, ~3 % reálné
-    hustoty), zbylé žádný → dosypeme na reálnou MĚŘENOU hustotu (kartografovy .omap / eval_real GT:
-    medián 417 ~27/km², 419 ~18/km², 418 ~18/km², 527 ~7,7/km², 525 ~1,1/km², 531 ~1,3/km²; man-made
-    crosswalk-aware Sez. 141; losováno per mapa pro rozmanitost). NENÍ projekce dat — poloha v rámci
+    hustoty), zbylé žádný → dosypeme na měřenou nebo KOMPAS-kalibrovanou hustotu (kartografovy .omap /
+    eval_real GT: 417 ~27/km², 419 ~18/km², 418 ~18/km²; 525/531 ~1,1/~1,3/km²; 527 po Sez. 150
+    výrazně níž kvůli přestřelu). NENÍ projekce dat — poloha v rámci
     masky náhodná (reframe Sez. 79), maska jen vylučuje nemožná místa.
 
     Umístění (volba uživatele): MIMO vodu (no-draw zóna, CLAUDE.md) + MIMO hustou skalnatost (strom

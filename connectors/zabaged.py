@@ -155,6 +155,19 @@ PATH_LAYERS = ("Cesta", "Pěšina", "Silnice__dálnice", "Silnice_neevidovaná",
 # → ISOM varianta „without background". Mapování viz map_ride_to_isom.
 RIDE_LAYERS = ("Lesní průsek",)
 
+
+def is_unmaintained_cesta_trace(layer: str, props: dict) -> bool:
+    """Rozpozná `Cesta` vedenou jako neudržovanou lineární stopu terénem.
+
+    ČÚZK ji technicky vrací ve vrstvě `Cesta`, ale atribut `typcesty_k=025`
+    znamená „cesta neudržovaná". KPI/overlay Sez. 150 ukázaly, že v OB mapách
+    se tato rodina chová blíž k ISOM 508 `Narrow ride or linear trace through
+    the terrain` než k 504 `Vehicle track`: snižuje přestřel 504 a zvedá
+    podstřel 508 bez umělého štěpení linií. Proto ji nekrmí `fetch_paths`, ale
+    `fetch_forest_rides`, aby ji kreslil 508 kanál.
+    """
+    return layer == "Cesta" and props.get("typcesty_k") == "025"
+
 # Železnice + tramvaj (Sez. 28+31, real-půlka, liniová — izomorfní s cestami/vedením). ZABAGED:
 # `Železniční_trať` (id 75) = osy hlavních tratí; `Železniční_vlečka` (76) = průmyslové/nádražní
 # vlečky; **`Tramvajová dráha` (71) = městská tramvaj** (Sez. 31, oprava Sez. 28 vynechání:
@@ -426,12 +439,16 @@ def fetch_paths(lat: float, lon: float, gw: int, gh: int,
 
     Každý prvek: {"layer": název vrstvy, "props": atributy ZABAGED, "lines": [[(x,y)..]]}
     — `lines` je seznam polylinií v S-JTSK metrech (MultiLineString rozbalen na části).
-    Mapování na ISOM symbol se dělá výš (po verify atributů, Sez. 16).
+    Mapování na ISOM symbol se dělá výš (po verify atributů, Sez. 16). Výjimka:
+    `Cesta` s `typcesty_k=025` je neudržovaná lineární stopa a patří do
+    `fetch_forest_rides` → 508, ne do path hierarchie 502-506.
 
     Výsek je TENTÝŽ jako u dmr.fetch_elevation_grid (sdílený build_bbox) → cesty sednou
     na terén bez dalšího georef počítání.
     """
-    return _collect_features(PATH_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
+    feats = _collect_features(PATH_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                              _geom_to_lines, "lines")
+    return [f for f in feats if not is_unmaintained_cesta_trace(f["layer"], f["props"])]
 
 
 def fetch_forest_rides(lat: float, lon: float, gw: int, gh: int,
@@ -441,9 +458,16 @@ def fetch_forest_rides(lat: float, lon: float, gw: int, gh: int,
 
     Každý prvek: {"layer", "props", "lines": [[(x,y)..]]} — polylinie v S-JTSK metrech
     (MultiLineString rozbalen). Mapování na ISOM (map_ride_to_isom → 508) se dělá výš (Sez. 36).
-    Izomorfní s fetch_paths/fetch_railways (linie). Tentýž výsek (sdílený build_bbox) → průsek
-    sedne na terén i k cestám. V bezlesém výseku = 0 prvků (žádný šum)."""
-    return _collect_features(RIDE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir, _geom_to_lines, "lines")
+    Sez. 150 přidává i `Cesta typcesty_k=025`: ISOM 508 není jen administrativní lesní průsek,
+    ale i „linear trace through the terrain"; držíme ji v ride kanálu, aby path maska zůstala čistě
+    502-506. Izomorfní s fetch_paths/fetch_railways (linie). Tentýž výsek (sdílený build_bbox) →
+    průsek sedne na terén i k cestám. V bezlesém výseku = 0 prvků (žádný šum)."""
+    rides = _collect_features(RIDE_LAYERS, lat, lon, gw, gh, tile_m, cache_dir,
+                              _geom_to_lines, "lines")
+    traces = [f for f in _collect_features(("Cesta",), lat, lon, gw, gh, tile_m, cache_dir,
+                                           _geom_to_lines, "lines")
+              if is_unmaintained_cesta_trace(f["layer"], f["props"])]
+    return rides + traces
 
 
 def fetch_railways(lat: float, lon: float, gw: int, gh: int,
@@ -728,8 +752,8 @@ def map_path_to_isom(layer: str, props: dict) -> int:
     neudržovaná (REST: atribut malými; WFS ho měl velkými — Sez. 26). Mapovací tabulka:
       Silnice/Ulice     → 502 Wide road     (evidovaná, ≥5 m, autodoprava)
       Silnice neevid.   → 503 Road          (účelová/lesní asfaltka, zpevněná <5 m)
-      Cesta zpevněná    → 503 Road          (sjízdná autem)
-      Cesta nezpevněná  → 504 Vehicle track (vozová, jen pomalu sjízdná)
+      Cesta udržovaná   → 503/504 podle povrchu
+      Cesta neudržovaná → 508 Narrow ride   (`fetch_forest_rides`, ne tato funkce)
       Pěšina udržovaná  → 505 Footpath
       Pěšina neudrž.    → 506 Small footpath
 
@@ -742,6 +766,9 @@ def map_path_to_isom(layer: str, props: dict) -> int:
     if layer == "Silnice_neevidovaná":
         return 503   # neevidovaná účelová/lesní asfaltka (zpevněná, <5 m) → Road, ne 502
     if layer == "Cesta":
+        if is_unmaintained_cesta_trace(layer, props):
+            raise ValueError("map_path_to_isom: Cesta typcesty_k=025 patří do "
+                             "fetch_forest_rides()/ISOM 508, ne do path hierarchie 502-506")
         return 503 if props.get("povrch_k") in ("Z", "T") else 504
     if layer == "Pěšina":
         # pozor: REST vrací atribut malými (`typuskom_k`); WFS ho měl velkými (Sez. 26)

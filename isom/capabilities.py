@@ -139,7 +139,7 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
     _rec("504", "Vehicle track", "line", GEN_REAL, "ZABAGED roads"),
     _rec("505", "Footpath", "line", GEN_REAL, "ZABAGED paths"),
     _rec("506", "Small footpath", "line", GEN_REAL, "ZABAGED paths"),
-    _rec("508", "Narrow ride", "line", GEN_REAL, "ZABAGED forest rides"),
+    _rec("508", "Narrow ride", "line", GEN_REAL, "ZABAGED forest rides + unmaintained Cesta traces"),
     _rec("304", "Crossable watercourse", "line", GEN_REAL, "ZABAGED watercourses", SCAN_LIVE_LINE),
     _rec("305", "Small crossable watercourse", "line", GEN_REAL, "ZABAGED watercourses", SCAN_LIVE_LINE),
     _rec("306", "Minor seasonal waterchannel", "line", GEN_REAL, "ZABAGED watercourses"),
