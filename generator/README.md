@@ -55,10 +55,11 @@ Realizuje **MVP řez** specifikace
     **503**) / vedlejší čárkovaná (ISOM **505**); cesty traverzují svah, nešplhají přes vrcholy,
   - `real` — **reálné komunikace z ČÚZK ZABAGED (ArcGIS REST)** (real-půlka §4.9, Sez. 16; `zabaged.py`),
     mapované na plnou ISOM hierarchii **502-506** (silnice/cesta zpevněná/vozová/pěšina) podle
-    typu a povrchu. Vyžaduje `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
-- **lesní průseky** — `--rides real` (Sez. 36; týž `zabaged.py`): `Lesní průsek` → ISOM **508 Narrow ride**
-  (průhled lesem bez vyšlapané cesty; černá čárkovaná 3,0/0,375 mm). KISS vždy 508; runnability pozadí se
-  nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
+    typu a povrchu; `Cesta typcesty_k=025` je z path kanálu vyjmuta jako 508 trace. Vyžaduje
+    `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
+- **lesní průseky / lineární stopy** — `--rides real` (Sez. 36+150; týž `zabaged.py`): `Lesní průsek`
+  + neudržovaná `Cesta typcesty_k=025` → ISOM **508 Narrow ride** (průhled/linear trace terénem;
+  černá čárkovaná 3,0/0,375 mm). Runnability pozadí se nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
   (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
   (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen
@@ -90,8 +91,9 @@ Realizuje **MVP řez** specifikace
   Prominent large tree (zelený kroužek, doplní řídký ZABAGED `Významný_strom` na ~27/km²) / **418** Prominent bush
   (plný zelený disk, čistě pseudo ~18/km²) / **419** Prominent veg. feature (zelený X, čistě pseudo ~18/km²).
   **Černé man-made (Sez. 141, čistě pseudo, ZABAGED nevede):** **527** Fodder rack (krmelec, „Λ" stříška+noha,
-  ~7,7/km²) / **525** Small tower (posed, „⊤", ~1,1/km²) / **531** Prom. man-made x (černý X, ~1,3/km²); hustota
-  měřena crosswalk-aware (paměť `isom-dual-numbering-oom-ocad`). Umístění MIMO voda/206 skály/budovy/cesty/zpevněné/
+  vzácný pseudo bod; Sez. 150 kalibrace dolů po KOMPAS přestřelu 103→3) / **525** Small tower
+  (posed, „⊤", ~1,1/km²) / **531** Prom. man-made x (černý X, ~1,3/km²); hustota
+  se měří crosswalk-aware (paměť `isom-dual-numbering-oom-ocad`). Umístění MIMO voda/206 skály/budovy/cesty/zpevněné/
   **železnice 509** (sdílený `_build_forbid_px`, px rozlišení; railway doplněna Sez. 138 E3) + ISOM rozestup
   (rejection sampling). 417/419 jsou ve scope Png2Point detekce, 418/527/525/531 ne (generátor kreslí pro budoucí trénink),
 - **mosty/tunely/lávky** — `--bridges real` (Sez. 31–33): `Most`→**512** (2 paralely + buffer crop),

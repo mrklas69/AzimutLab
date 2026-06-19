@@ -71,9 +71,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   plná černá 2 px) · **504 Vehicle track** (vozová, nezpevněná, čárkovaná 2 px) · **505 Footpath**
   (pěšina, čárkovaná **1 px** — template 250 µm, Sez. 23) · **506 Small footpath** (malá/neudržovaná).
   Generátor má dvě větve (`--paths`): **proc** = procedurální Dijkstra least-cost (§9), hlavní 503 /
-  vedlejší 505; **real** = reálné komunikace ze ZABAGED (Sez. 16; ArcGIS REST od Sez. 26), plná hierarchie 502-506 dle
+  vedlejší 505; **real** = reálné komunikace ze ZABAGED (Sez. 16; ArcGIS REST od Sez. 26), hierarchie 502-506 dle
   povrchu/udržovanosti. Vrstvy: `Silnice__dálnice`/`Ulice`→502, **`Silnice_neevidovaná`** (účelové/lesní
-  asfaltky, Sez. 23)→503, `Cesta` zpevněná→503 / nezpevněná→504, `Pěšina`→505/506.
+  asfaltky, Sez. 23)→503, `Cesta` udržovaná zpevněná→503 / ostatní udržovaná→504, `Pěšina`→505/506.
+  `Cesta typcesty_k=025` (neudržovaná) jde od Sez. 150 do **508 Narrow ride / linear trace** kanálu, ne do 504.
 - **Vodní tok / vodní plocha** (hydrografie) — voda na OB mapě, modrá. Toky ISOM **304**
   Crossable watercourse (hlavní, pojmenovaný) / **305** Small crossable watercourse (přítok) /
   **306** Minor/seasonal water channel (občasný, čárkovaný); plochy **301** Uncrossable body
@@ -372,8 +373,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →
   convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; Sez. 107: 59,1 % (plocha
   69,2 / linie 59,3 / bod 18,4 → 54,3 po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb);
-  Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; **Sez. 138: 60,7 %** (plocha 69,5 / linie 58,9 /
-  bod 62,0; pokles z 61,7 = vědomý důsledek E3 rejection sampling balvanů = ISOM-korektní nepřekrývání).
+  Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
+  (kanonická 3-map sada, 527 kalibrace dolů + `Cesta typcesty_k=025`→508; plocha 72,7 / linie 65,7 / bod 59,5).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).

@@ -5,7 +5,8 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I
-`generator()`, and **three live reconstructors**. Generator KPI is **60.7%** (session 138).
+`generator()`, and **three live reconstructors**. Generator KPI is **63.3%** (`KPI_3MAP_CANONICAL`,
+session 150).
 `Png2Area` has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.827** (4 classes
 204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**. Real-domain
 transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
@@ -49,9 +50,9 @@ structure; where they differ, ROADMAP wins.
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.43-0.57** — **419 strong 0.67-0.76**, 417 moderate 0.48-0.57, 204 stable, 210 still collapses. `Png2Line` step 1 watercourse 304/305 live (test mIoU 0.774; dashed step 2 tried & dropped Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **60.7%** (session 138). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
+| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 17 ISOM codes + background (`N_AREA=18`), synthetic test mIoU **0.683** at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.43-0.57** — **419 strong 0.67-0.76**, 417 moderate 0.48-0.57, 204 stable, 210 still collapses. `Png2Line` step 1 watercourse 304/305 live (test mIoU 0.774; dashed step 2 tried & dropped Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **63.3%** (`KPI_3MAP_CANONICAL`, session 150). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
-| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 60.7 %; III = Pic2Omap) |
+| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 63.3 %; III = Pic2Omap) |
 
 UC4-III is the project's summit and currently lives in Pic2Omap. Full UC4-I
 (plausible-random, not a random pile of ISOM symbols) is still the hardest goal — but as a

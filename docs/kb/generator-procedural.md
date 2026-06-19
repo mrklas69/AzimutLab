@@ -350,11 +350,13 @@ jako **bodový orientační prvek** (NE budova 521) — vložený `asset/ropik_1
 „čelním zasypaným náspem VEN" k nejbližší **státní hranici** (`Hranice správní jednotky` `vyzn_zsh_k='1'`,
 univerzální ČR). Fáze 1 (projekce reálných dat), ne pseudorealistická dekorace. Vyžaduje `--terrain real`.
 
-### 4.9i Lesní průseky (real-půlka, Sez. 36)
-**✅ Reálné průseky:** `--rides real` vezme `Lesní průsek` (id 16, REST jméno s MEZEROU jako tramvaj/lávka)
-ze ZABAGED Polohopis REST (`zabaged.fetch_forest_rides`, `map_ride_to_isom`) → ISOM **508 Narrow ride** =
-průhled lesem BEZ zřetelné vyšlapané cesty (ISOM odlišuje od cest 503–506). KISS, vrstva → vždy 508 (bez
-kategoriálního atributu — verify SV 46 prvků). Liniová, izomorfní s cestami: render mode `"dashed"`
+### 4.9i Lesní průseky / lineární stopy terénem (real-půlka, Sez. 36+150)
+**✅ Reálné průseky a stopy:** `--rides real` vezme `Lesní průsek` (id 16, REST jméno s MEZEROU jako tramvaj/lávka)
+ze ZABAGED Polohopis REST a od Sez. 150 také `Cesta typcesty_k=025` (`zabaged.fetch_forest_rides`,
+`map_ride_to_isom`) → ISOM **508 Narrow ride** = průhled / lineární stopa terénem BEZ zřetelné vyšlapané
+cesty (ISOM odlišuje od cest 503–506). `Lesní průsek` nemá kategoriální atributy (verify SV 46 prvků);
+`Cesta typcesty_k=025` se záměrně vyjímá z path kanálu, aby snížila 504 přestřel a doplnila 508 bez
+umělého štěpení linií. Liniová, izomorfní s cestami: render mode `"dashed"`
 (`_draw_ride`), dash/break z template 508 = **3,0 / 0,375 mm** (dlouhé čárky, malé mezery → „skoro plná",
 odliší od pěšiny 505 7,0/4,0). GT `mask_rides.png`. Z-order: po cestách, před vedením. **Runnability pozadí
 (žlutá/zelená dle prostupnosti) se NEKRESLÍ** — vegetace není v datech (gate Sez. 3), je to UC5 predikce ne
@@ -468,8 +470,12 @@ ne zelená vegetace. Při příležitosti zobecněno **`_generate_pseudo_veg_poi
 (jedna umísťovací mašinérie pro zelené veg 417/418/419 i černé man-made 527/525/531; render se liší jen větví
 v `_draw_landmark`, DRY). 527 Fodder rack (krmelec, „Λ" stříška + svislá noha), 525 Small tower (posed/plošina,
 „⊤" příčka + noha), 531 Prominent man-made feature – x (černý X, mirror 419 zeleného). Všechny čistě pseudo
-(ZABAGED je nevede). Hustota MĚŘENA **crosswalk-aware** (medián 527 ~7,7/km², 525 ~1,1, 531 ~1,3) — pozor na
-DVOJÍ ČÍSLOVÁNÍ OOM 524-531 vs OCAD 535-540 (paměť `isom-dual-numbering-oom-ocad`; naivní `code`-grep podhodnotí).
+(ZABAGED je nevede). Původní hustota 527 ze Sez. 141 byla crosswalk-slepá; Sez. 150 KOMPAS na kanonické
+3-map sadě ukázal přestřel `orig 8 / gen 103`, proto je 527 zkalibrovaný dolů na vzácný pseudo bod
+(`gen 3`, KPI 62,0 → 62,5). Navazující Sez. 150 přesun `Cesta typcesty_k=025` do 508 kanálu
+zvedl KPI na 63,3. 525/531 zůstávají na původní crosswalk-aware kalibraci (~1,1/~1,3/km²).
+Pozor na DVOJÍ ČÍSLOVÁNÍ OOM 524-531 vs OCAD 535-540 (paměť `isom-dual-numbering-oom-ocad`; naivní
+`code`-grep podhodnotí).
 `isom.capabilities` + `LANDMARK_CLASS` 10/11/12 je vedou jako pseudo fallback generátoru; KOMPAS čte
 původ symbolů z capability registru. Verify NV 527:70/525:18/531:38.
 
@@ -763,7 +769,8 @@ funkce generate(seed, params):
     georef vrstevnic (Y-flip). Mapování ZABAGED kategorií → ISOM 502-506 (`map_path_to_isom`); render
     sjednocen s proc přes `_draw_path`/`PATH_STYLE`. Detaily: `data-sources.md` „ZABAGED komunikace — REST konektor".
     Vrstvy (`PATH_LAYERS`, Sez. 23 doplněno): `Silnice__dálnice`/`Ulice`→502, **`Silnice_neevidovaná`**
-    (účelové/lesní asfaltky)→503, `Cesta` zpevněná→503 / nezpevněná→504, `Pěšina`→505/506. Pozn.: 502
+    (účelové/lesní asfaltky)→503, `Cesta` udržovaná zpevněná→503 / ostatní udržovaná→504,
+    `Cesta typcesty_k=025`→508 přes `--rides`, `Pěšina`→505/506. Pozn.: 502
     Wide road kreslen `casing` s **hnědou výplní** (`C_ROAD` = Upper brown 50%) + černé okraje (Sez. 23,
     dřív bílá výplň = neviditelná); 503 a 504 jsou v ISOM stejně tlusté (350 µm, liší se plná/čárkovaná);
     505 šířka 1 px (template 250 µm). **Princip (Sez. 23): stáhnout VŠECHNY relevantní vrstvy, ne vybrané**

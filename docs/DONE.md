@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 150 (2026-06-19) — KPI 527/508 + full map regen (HAL3000)
+Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
+- [x] **527 Fodder rack přestřel zkalibrován:** kanonická 3-map sada ukázala `orig 8 / gen 103`;
+  `PSEUDO_FODDER_PER_KM2` sníženo na `(0.08, 0.35)`, výsledek `gen 3`, KOMPAS `ok`, headline KPI
+  **62,0 → 62,5 %**. Neúspěšný pokus s 210 byl revertován, protože KPI zhoršil.
+- [x] **508 Narrow ride doplněn obhajitelným zdrojem:** ZABAGED `Cesta typcesty_k=025` se přesunula
+  z path kanálu 502-506 do ride kanálu 508. `fetch_paths()` ji filtruje pryč, `fetch_forest_rides()`
+  ji přidává k `Lesní průsek`, `map_path_to_isom()` na ni fail-fast. KOMPAS 508 `orig 518 / gen 160 = ok`,
+  504 už není přestřel, headline KPI **62,5 → 63,3 %**.
+- [x] **Regrese pokryté testem:** `tests/test_zabaged_mapping.py` ověřuje, že udržovaná `Cesta` zůstává
+  503/504, neudržovaná `typcesty_k=025` nejde přes `map_path_to_isom()` a patří do 508.
+- [x] **Všechny běžné mapy přegenerované a podklady ověřené:** KPI trojice, 5 DEV map a 5 Livelox prohlížecích
+  map přegenerované; `Buschdörfl` ponechán jako speciální E2E mapa a nepřepsán generickou Livelox cestou.
+  Všech 14 map má `rgb.*`, `.omap` a DMR; DEV/Livelox mají ortofoto, KPI `bg_ortho`, skenové mapy `bg_scan`.
+- [x] **Separované barvy skenů:** pro 9 map se skenem vzniklo `maps/<map>/scan_colors/` s `manifest.csv/json`,
+  `summary.json`, 48 maskami a 48 overlayi. Batch proveden přes rychlý Pillow/numpy skript se stejným formátem
+  jako `tools/separate_scan_colors.ps1`.
+- [x] **Verify:** `measure_dod.py` KPI **63,3 %**, `measure_dod.py --table` potvrzuje 508/504/527, compileall OK,
+  `unittest discover -s tests` = 30/30 OK, vizuál `Borný/rgb.png` a scan-color overlay OK.
+
 ## Sezení 149 (2026-06-19) — ISOM SVG index + capability registry SSoT (ntbhej)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 - [x] **Sdílený ISOM symbol index:** nový balík `isom/` umí načíst kurátorovaný `resources/isom/index.json`

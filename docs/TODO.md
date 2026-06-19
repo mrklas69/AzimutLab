@@ -13,8 +13,10 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   struktura je rozdělená: `isom_scan` textový harness/GT manifest je verzovatelný, copyright rastry/PDF/runs
   zůstávají ignorované, `tools/separate_scan_colors.ps1` existuje jako první obecná utilita. `isom/`
   už drží symbolový SVG index + capability registry (real/mixed/pseudo/mapper_scan), `omap_export.USED_CODES`
-  i KOMPAS jsou na něj napojené. První KOMPAS zásah hotov: 403 separace dostala per-class min-area 60 px,
-  KPI 57,6 → 59,5 %. Zbývá další PoC vést přes KOMPAS/scan-mining metriky, ne přes model-polishing.
+  i KOMPAS jsou na něj napojené. První KOMPAS zásah hotov: 403 separace dostala per-class min-area 60 px.
+  Navazující kalibrace 527 na stejné 3-map sadě zvedla headline KPI na **62,5 %**; přesun
+  `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Zbývá další PoC vést přes
+  KOMPAS/scan-mining metriky, ne přes model-polishing.
 - [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
@@ -25,9 +27,10 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   (`README`, prompt, skripty, `results.csv`, `gt/ground_truth.json`, `gt/task_crop_box.json`,
   `runs/_run_template.json`). `isom_scan/README.md` explicitně popisuje Git hranici a obnovu lokální GT.
 - [!] *(260619-A4; Goodhart)* **Pseudo hustoty měnit jen přes crosswalk-aware měření na stejné sadě.**
-  527/531 přestřel (11×/3,3× na 2-map sadě) je bug stejné váhy jako podstřel. Pro každou pseudo vrstvu
-  držet zdroj, hustotu/km², mapovou sadu, datum měření a důvěryhodnost; změnu povolit jen s
-  `measure_dod --table` před/po na stejné sadě.
+  527 přestřel je na kanonické sadě opravený (103→3, KPI 62,0→62,5); 508 `Cesta typcesty_k=025`
+  přesun je ověřený KOMPASem (508 `ok`, headline 63,3). 531 a skalní/veg pseudo hustoty
+  zůstávají kandidáti. Pro každou pseudo vrstvu držet zdroj, hustotu/km², mapovou sadu, datum měření
+  a důvěryhodnost; změnu povolit jen s `measure_dod --table` před/po na stejné sadě.
 - [~] *(260619-A5; phase gate)* **Geometrická augmentace je zmražená phase-2 práce.**
   Purpura je hotová; warp/sklad/dewarping nepatří do aktivního `Generator()` fokusu, dokud nemá nový
   real-scan metric trigger nebo nezačne etapa `Rekonstruktor()`. Starší A2 položka níže je historický kontext,
@@ -183,10 +186,11 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > argmax přestřeloval na cesty → IoU 0,251→0,409). Strukturální cure zbylé precision = krok 2 (víc liniových tříd).
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 138: KPI 60,7 %** (Bedř 53,6 / Blatná 61,5 / Velbloud 67,0; plocha 69,5 /
-> linie 58,9 / bod 62,0). Pokles z 61,7 % (Sez. 137) = **vědomý důsledek E3** (rejection sampling balvanů =
-> ISOM-korektní nepřekrývání; Velbloud nejskalnatější −2,4; plocha/linie beze změny). **Žebříček děr:**
-> **508 / 403 / 409 / 202** (417/418/419 vytěženy pseudo body Sez. 136-137). **KOMPAS `--table` má
+> **Stav Sez. 150: KPI 63,3 %** (`KPI_3MAP_CANONICAL`: Bedř 57,2 / Blatná 63,1 / Velbloud 69,6;
+> plocha 72,7 / linie 65,7 / bod 59,5). Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu
+> `orig 8 / gen 103` → `gen 3` (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025`
+> z path 504 do ride 508 (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). **Žebříček děr:**
+> **204 / 416 / 409 / 306 / 202**. **KOMPAS `--table` má
 > sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
 > fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.
 > Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
@@ -216,14 +220,17 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `segment_gt` blokátoru) + disk. Otevřít `Borný_v142.omap` v OOM, ověřit roh Máchova jezera bez černého obrysu na obou řezných hranách.
 - [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
   Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
-  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419** + **527/531 (změřeno Sez. 145: 527 přestřel 11×, 531 3,3×)**. KPI dopad: přestřel KPI SNIŽUJE
+  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419** + **531**
+  (**527 opraveno Sez. 150: 103→3; 508 opraveno přes `Cesta typcesty_k=025`**). KPI dopad: přestřel KPI SNIŽUJE
   (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
   změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
 - [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
   523.1 / 525 / 527 / 531.** **HOTOVO Sez. 141:** 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x
   jako **pseudo man-made body** (ZABAGED je nevede → čistě pseudo na měřenou hustotu, izomorf veg 418/419;
   `_generate_pseudo_points` zobecnění, render Λ+noha / ⊤ / černý X). Měření crosswalk-aware (paměť
-  [[isom-dual-numbering-oom-ocad]]): medián 527 ~7,7/km² (5/5 map), 525 ~1,1, 531 ~1,3. **ZBÝVÁ 523.1 Ruin min
+  [[isom-dual-numbering-oom-ocad]]): původní 527 medián ~7,7/km² byl později vyhodnocený jako crosswalk-slepý;
+  Sez. 150 kalibrace snížila 527 na vzácný pseudo bod (`PSEUDO_FODDER_PER_KM2=(0.08,0.35)`). 525 ~1,1, 531 ~1,3.
+  **ZBÝVÁ 523.1 Ruin min
   size — ODLOŽENO** (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní
   (buildings vrací area, 523.1 je point → cross-pipeline změna signatury/render/omap) → reálná páka ≈ 0. Když se
   bude dělat: footprint < ISOM min 0,8×0,8 mm (144 m²) → bodový čtverec 523.1 místo zanikajícího obrysu 523.
@@ -231,15 +238,15 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   527/525/531 + 517/518.** C1 fix (Sez. 143) reálně odblokoval `measure_dod` na ntbhej (rozpor diáře 141/143
   rozřešen: `segment_gt` na downscalovaném skenu RAM nepřekročí). KPI 2-mapová sada **55,3 %** (Bedř 49,4 / Blatná
   61,2; Velbloud.pgw chybí → hlasitě vynechán, NEsrovnatelné s 3-map 60,7 % — Velbloud byl nejvyšší 67,0). KOMPAS
-  provedení (Bedř+Blatná agregát): **527 PŘESTŘEL 11× (orig 7 / gen 79), 531 přestřel 3,3× (6/20)** → sráží Bedř
-  bod na 40,9 %; **525 podstřel (27/6), 517 podstřel (17/1), 516 podstřel (24/6), 518 ok (16/6)**. Plný carry → ↓.
-- [!] *(KPI kalibrace, nález Sez. 145 měření)* **Přeměřit pseudo hustoty crosswalk-aware + kalibrovat 527/531 dolů.**
-  Nasazené `PSEUDO_FODDER_PER_KM2=(3,13)` med ~7,7 / `PSEUDO_PROM_X=(0.5,3)` med ~1,3 pocházejí ze Sez. 141 měření,
-  které si SAMO vytklo Censure (crosswalk-slepé) → **pravděpodobně VADNÁ**: crosswalk-aware orig na Bedř+Blatná (~11,6 km²)
-  = 527 jen **0,6/km²** (10× pod nasazenou), 531 0,5/km². Medián 5 map je robustní → 7,7 nemůže koexistovat s 0,6 na
-  2 z těch map. **NEkalibrovat slepě na 2 mapy** (Goodhart A3 + overfit) → nejdřív **doplnit Velbloud.pgw** (A6 [!]) +
-  přeměřit hustoty crosswalk-aware přes plnou sadu, PAK snížit 527/531 (a zvýšit 525/517 podstřel). Spojit s „Přestřel
-  hustoty 204/210" výše (táž páka kpi-fill-undershoot-dilutes, balvany + pseudo body).
+  provedení (historický Bedř+Blatná agregát): **527 PŘESTŘEL 11× (orig 7 / gen 79), 531 přestřel 3,3× (6/20)**.
+  **527 už opraveno Sez. 150 na 3-map sadě**; zbytek zůstává jako měřicí kontext pro další kalibraci.
+- [~] *(KPI kalibrace, nález Sez. 145 měření)* **Přeměřit pseudo hustoty crosswalk-aware + kalibrovat pseudo přestřely.**
+  **527 hotovo Sez. 150:** kanonická 3-map sada ukázala `orig 8 / gen 103`; změna
+  `PSEUDO_FODDER_PER_KM2=(3,13) → (0.08,0.35)` dala `gen 3`, stav `ok`, headline KPI **62,0→62,5**.
+  Navazující přesun `Cesta typcesty_k=025` do 508 kanálu dal KPI **62,5→63,3**.
+  Zbývá hlídat 531 a spojit s „Přestřel hustoty 204/210" výše (táž páka
+  kpi-fill-undershoot-dilutes, balvany + pseudo body). Změny dělat jen s `measure_dod --table`
+  před/po na stejné sadě.
 - [ ] *(robustnost měření, nález Sez. 141)* **`compare_isom.detect_version` — trojí realita místo binární.** Dnes
   vrací jen „2000"/„2017-2" (podle Building 526/521), ale existují TŘI číslovací sady: ISOM2000 / OOM-2017 (524-531) /
   OCAD-2017 (535-540, Building=526 → mylně detekováno „2000"). Funguje náhodou pro OCAD mapy (crosswalk pravý sloupec
