@@ -11,8 +11,9 @@ Zisk oproti od-nuly:
   - plná ISOM symbolová knihovna jako reálná mapa z OOM → menší domain gap feederu UC5.
 
 Skládáme tedy jen <objects> (vrstevnice + cesty + voda + plochy + body + skály + mosty + landmarks
-+ liniové/plošné pokryvy …); ÚPLNÝ výčet produkovaných ISOM kódů je `USED_CODES` níž (jediný zdroj
-pravdy — nahradil dřívější taxativní seznam v docstringu, který zastarával po každé nové vrstvě).
++ liniové/plošné pokryvy …); ÚPLNÝ výčet produkovaných ISOM kódů a jejich původ drží
+`isom.capabilities` (jediný zdroj pravdy — nahradil dřívější taxativní seznam v docstringu,
+který zastarával po každé nové vrstvě).
 Barvy/symboly/georef/view přebíráme z template beze změny. Symbol id parsujeme z template podle ISOM
 kódu (robustní vůči re-uložení template v OOM — id NEjsou pořadová: 503→110, 505→112).
 
@@ -26,7 +27,14 @@ NEduplikuje Pic2Omap `db2omap` (ten jde z rastru přes .pgw/cv2; my z přesných
 
 import math
 import re
+import sys
 from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from isom.capabilities import generator_codes
 
 # SSoT plošných ISOM kódů: omap_raster.AREA_ZORDER je kanonický (label schéma Png2Area + z-order).
 # AREA_CODES (close-flag membership) se z něj odvozuje → export a raster se NEMŮŽOU rozejít (drift
@@ -60,22 +68,9 @@ TEMPLATE_PATH = Path(__file__).parent / "template_classic.omap"
 # rastr ho má od Sez. 18). „Combined nepřiřaditelný objektu" byl MYLNÝ předpoklad Sez. 18 —
 # vyvrácen kolejištěm 501 (combined, Sez. 28). Budovy (Sez. 18): plocha 521 (plošný symbol, type 4).
 # Všechny musí být v template (čistá ISOM 2017-2 je obsahuje).
-USED_CODES = ("101", "102", "103", "502", "503", "504", "505", "506", "508",
-              "304", "305", "306", "301", "521", "523", "510", "509", "501", "501.1", "109", "110", "111",
-              "204", "206", "207", "208",  # skály/balvany Sez. 30+57 (204 bod, 207 bod, 206 plocha, 208 pole)
-              "210.1",                   # Stony ground individual dot (type=1 point) — pseudo injekce bodů Sez. 107
-              "512", "512.2",            # mosty/tunely/lávky Sez. 32 (512 linie, 512.2 bod)
-              "401", "403", "520",       # plošný pokryv Sez. 41 (401 open land, 520 hřbitov/zákaz vstupu) + 403 rough open (separace Sez. 92)
-              "412.1",                   # kultura Sez. 47 (pole = 401 + 412.1 černý pattern; sad/zahrada → 520, Sez. 49)
-              "402", "402.1",            # park/okrasná zahrada + ostatní udržovaná zeleň Sez. 53 (402 bílé tečky, 402.1 zelené)
-              "524", "526", "530", "417", "418", "419",  # bodové orient. prvky Sez. 43 (524 věž / 526 mohyla / 530 Prominent man-made feature [zdroj kříž] / 417 strom) + 419 veg. feature (pseudo Sez. 136) + 418 bush/tree (pseudo Sez. 137)
-              "527", "525", "531",       # man-made body Sez. 141 (527 krmelec / 525 posed / 531 Prom. feature x) — čistě pseudo, ZABAGED nevede
-              "104", "107", "513", "516", "517", "518",  # liniové orient. prvky Sez. 43+58 (sráz/rokle 107/zeď) + ploty 516/517/518 (Sez. 98/144: Fence/Ruined/Impassable)
-              "519",                     # prostupy Sez. 52 (zábrana na zdi → Crossing point, rotatable bod)
-              "312", "311", "203.2",     # bodové vodní/terénní Sez. 44 (pramen/nádrž/jeskyně)
-              "308", "310", "406",       # mokřady Sez. 44 (308 Marsh) + 310 Indistinct (pseudo Sez. 99) + stromořadí Sez. 45 (406)
-              "408", "410",              # věk porostu Sez. 62 (406/408/410 zeleň z AOPK porostních skupin, PROXY)
-              "416", "416.1")            # hranice porostů Sez. 101 (416 černá tečk. / 416.1 zelená čárk.; emitováno přes linefeat, doplněno do SSoT Sez. 143)
+# SSoT pro kompletni vycet produkovanych kodu je `isom.capabilities`: drzi kody
+# i puvod dat (real/mapper_scan/mixed/pseudo). Export potrebuje jen tuple kodu.
+USED_CODES = generator_codes()
 # 523 Ruin (Sez. 43): zřícenina jde v building_features jako uzavřený area_object se symbolem 523
 # (line_symbol dashed v template) → OOM nakreslí čárkovaný obrys po obvodu (bez výplně; 523 nemá
 # area component, proto NENÍ v AREA_CODES — close flag jen uzavře geometrii).

@@ -11,9 +11,10 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
 - [~] *(260619-A1; Generator()/scan mining)* **Zakotvit scan mining jako aktivní podtah Generator().**
   ROADMAP už říká, že sken→barvy/masky/symbolové kandidáty/KOMPAS signály patří do Etapy 1. Pracovní
   struktura je rozdělená: `isom_scan` textový harness/GT manifest je verzovatelný, copyright rastry/PDF/runs
-  zůstávají ignorované, `tools/separate_scan_colors.ps1` existuje jako první obecná utilita. První KOMPAS
-  zásah hotov: 403 separace dostala per-class min-area 60 px, KPI 57,6 → 59,5 %. Zbývá další PoC
-  vést přes KOMPAS/scan-mining metriky, ne přes model-polishing.
+  zůstávají ignorované, `tools/separate_scan_colors.ps1` existuje jako první obecná utilita. `isom/`
+  už drží symbolový SVG index + capability registry (real/mixed/pseudo/mapper_scan), `omap_export.USED_CODES`
+  i KOMPAS jsou na něj napojené. První KOMPAS zásah hotov: 403 separace dostala per-class min-area 60 px,
+  KPI 57,6 → 59,5 %. Zbývá další PoC vést přes KOMPAS/scan-mining metriky, ne přes model-polishing.
 - [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
@@ -144,6 +145,9 @@ sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.m
   ignorovat PNG/PDF/runs a explicitně popsat, odkud se lokální GT obnovuje.
 - [!] **Black-vs-brown maska PoC** na sken — nejlevnější výhra z ChatGPT 5.5 vytěžku; výstup = měřicí skript
   a vizuál/manifest, ne modelový reconstructor. Patří do `Generator() / scan mining`.
+- [ ] **Kurátorovat `resources/isom/index.json`** — lokální SVG dump 113 symbolů je načitatelný, ale zatím
+  draft (`geom/license/isom_version` neznámé). Začít živými bodovými třídami 204/210/417/419 a kandidáty
+  418/525/527/531; vyplnit provenance/licenci, geometrii, měřítkové footprinty a případné OOM/OCAD aliasy.
 - [ ] **Proběhnout pole modelů** (cloud: Opus/Sonnet/…; lokální: LM Studio) — N seedů, medián; vyplnit `runs/` + skórovat.
 - [ ] *(curtains, odložit)* cost tracking přes API · varianty no-spec / tiling pro malý kontext · leaderboard render.
 - [ ] *(DRY drobnost)* 2× PDF v `isom_scan/` jsou kopie `docs/kb/` — pro přenosný balík OK; zvážit odkaz, pokud zůstane jen v repu.
@@ -182,9 +186,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **Stav Sez. 138: KPI 60,7 %** (Bedř 53,6 / Blatná 61,5 / Velbloud 67,0; plocha 69,5 /
 > linie 58,9 / bod 62,0). Pokles z 61,7 % (Sez. 137) = **vědomý důsledek E3** (rejection sampling balvanů =
 > ISOM-korektní nepřekrývání; Velbloud nejskalnatější −2,4; plocha/linie beze změny). **Žebříček děr:**
-> **508 / 403 / 409 / 202** (417/418/419 vytěženy pseudo body Sez. 136-137). **KOMPAS `--table` má nově
-> sloupce `zdroj · věrohodnost · provedení`** (Sez. 138, registr `KOMPAS_SOURCE` 51 kódů + `_provedeni` AUTO
-> ze share orig:gen). Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
+> **508 / 403 / 409 / 202** (417/418/419 vytěženy pseudo body Sez. 136-137). **KOMPAS `--table` má
+> sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
+> fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.
+> Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
 >
 > **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
 > smíšený podstřel +0,34, 404/407/409 = vegetace gate). Co generátor nenakreslí, reconstructor se NIKDY nenaučí →

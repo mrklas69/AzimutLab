@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AzimutLab ISOM symbol index",
+  "type": "object",
+  "required": ["version", "symbols"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": 1},
+    "symbols": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/symbol"},
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "symbol": {
+      "type": "object",
+      "required": [
+        "code",
+        "canonical_name",
+        "display_name",
+        "geom",
+        "files",
+        "source"
+      ],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$"},
+        "canonical_name": {"type": "string"},
+        "display_name": {"type": "string"},
+        "geom": {"enum": ["point", "line", "area", "unknown"]},
+        "color_role": {"type": "string"},
+        "colors": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
+        },
+        "isom_version": {"type": "string"},
+        "scale": {"type": "integer", "minimum": 1},
+        "paper_size_mm": {
+          "type": "object",
+          "properties": {
+            "width": {"type": "number"},
+            "height": {"type": "number"}
+          },
+          "additionalProperties": {"type": "number"}
+        },
+        "stroke_width_mm": {"type": "number"},
+        "terrain_footprint_m": {
+          "type": "object",
+          "properties": {
+            "width": {"type": "number"},
+            "height": {"type": "number"}
+          },
+          "additionalProperties": {"type": "number"}
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "kind": {"type": "string"},
+            "url": {"type": "string"},
+            "license": {"type": "string"}
+          },
+          "additionalProperties": {"type": "string"}
+        },
+        "files": {
+          "type": "object",
+          "required": ["svg"],
+          "properties": {
+            "svg": {"type": "string"},
+            "normalized_svg": {"type": "string"},
+            "mask_64": {"type": "string"},
+            "mask_128": {"type": "string"},
+            "mask_256": {"type": "string"},
+            "descriptor": {"type": "string"}
+          },
+          "additionalProperties": {"type": "string"}
+        },
+        "aliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

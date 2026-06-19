@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "symbols": [
+    {
+      "code": "525",
+      "canonical_name": "small_tower",
+      "display_name": "Small tower",
+      "geom": "point",
+      "color_role": "black",
+      "colors": ["#000000"],
+      "isom_version": "2017-2",
+      "scale": 10000,
+      "paper_size_mm": {"width": 1.0, "height": 1.0},
+      "stroke_width_mm": 0.16,
+      "source": {
+        "kind": "omapwiki",
+        "url": "https://omapwiki.orienteering.sport/",
+        "license": "CC-BY-SA-4.0"
+      },
+      "files": {"svg": "svg/525_small_tower.svg"},
+      "aliases": {"ocad": ["536"]}
+    }
+  ]
+}

@@ -43,7 +43,14 @@ lasertool/
 
 # Reálné mapy (páry picture+OMAP) — copyright třetích stran + velká binární data.
 # Lokální hold-out / reference, NE do veřejného gitu. Metadata (původ, licence) v KB.
-resources/
+resources/*
+
+# ISOM symbolový katalog: verzovat jen bezpečný kontrakt. Samotné SVG dumpy zůstávají
+# lokální, dokud není vyjasněná licence/provenance.
+!resources/isom/
+resources/isom/*
+!resources/isom/README.md
+!resources/isom/index.schema.json
 
 # Cache stažených reálných ČÚZK dat (nepatří do gitu, ale regenerovatelné → NEMAZAT, Sez. 25):
 # DMR 5G dlaždice (výškopis), ZABAGED komunikace (GeoJSON z REST), ortofoto podklad. Kotveno

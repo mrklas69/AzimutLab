@@ -237,7 +237,8 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   Velbloud 67,0); největší díry 508/403/409/202 (417/418/419 vytěženy pseudo body Sez. 136-137).
   Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
   se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
-  `--table` kompas — sloupce `zdroj · věrohodnost · provedení`, Sez. 138). Detail TODO/DONE.
+  `--table` kompas — sloupce `zdroj · gen · scan · provedení`; původ symbolů drží `isom.capabilities`).
+  Detail TODO/DONE.
 
 ### UC3 — Restaurování map (APP)
 Odebrat fialovou vrstvu (kontroly, občerstvení, zakázané oblasti) ze závodních

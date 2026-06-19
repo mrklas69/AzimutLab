@@ -49,7 +49,7 @@ def _map_paths(name: str):
 # Skupiny bez crosswalk protějšku v Soví vrch (marsh 308, stromořadí 406, landmarks 524/526/530/417,
 # vodní body 311/312/203.2, prostupy 519, liniové 104/107/513) zde NEJSOU — reálné protějšky jsou
 # sledovány v GAP_NAMES (mezery) níž; STAT 1 crosswalk je jen pro kalibrovanou mapu (Sez. 60).
-GEN_CAPABILITIES = {
+STAT1_GROUPS = {
     "contour": ["101", "102", "103"],
     "knoll/depr": ["109", "110", "111"],
     "rock/boulder": ["204", "206", "207", "208"],   # +208 Boulder field (Sez. 57)
@@ -225,7 +225,7 @@ def _stat1_crosswalk(real_stat) -> None:
     print(f"{'prvek':<15}{'gen 2017':<12}{'real 2000 (kódy)':<26}{'real ks':>8}{'real m/m²':>12}")
     print("-" * 78)
     covered_codes = set()
-    for grp, gen_codes in GEN_CAPABILITIES.items():
+    for grp, gen_codes in STAT1_GROUPS.items():
         real_codes = CROSSWALK.get(grp, [])
         covered_codes.update(real_codes)
         n = sum(real_stat[c]["count"] for c in real_codes)

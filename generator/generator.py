@@ -31,6 +31,11 @@ import numpy as np
 from PIL import Image, ImageDraw
 import contourpy
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8")   # Windows konzole nekdy nezvladne znaky jako "→" v CLI helpu.
+except Exception:
+    pass
+
 # Kořen LAB — generator/ je jedna úroveň pod ním. Z _REPO_ROOT odvozujeme sdílené složky
 # (connectors/ data, asset/ assety, maps/ výstupy) → jeden zdroj pravdy o umístění repa (DRY).
 # (Sez. 39: generátor povýšen ze sandbox/generator-poc na pilíř generator/ → cesty o úroveň výš.)

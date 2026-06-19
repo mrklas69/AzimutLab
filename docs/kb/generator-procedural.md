@@ -470,7 +470,8 @@ v `_draw_landmark`, DRY). 527 Fodder rack (krmelec, „Λ" stříška + svislá 
 „⊤" příčka + noha), 531 Prominent man-made feature – x (černý X, mirror 419 zeleného). Všechny čistě pseudo
 (ZABAGED je nevede). Hustota MĚŘENA **crosswalk-aware** (medián 527 ~7,7/km², 525 ~1,1, 531 ~1,3) — pozor na
 DVOJÍ ČÍSLOVÁNÍ OOM 524-531 vs OCAD 535-540 (paměť `isom-dual-numbering-oom-ocad`; naivní `code`-grep podhodnotí).
-`USED_CODES += 527/525/531`, `LANDMARK_CLASS` 10/11/12, `KOMPAS_SOURCE` (pseudo). Verify NV 527:70/525:18/531:38.
+`isom.capabilities` + `LANDMARK_CLASS` 10/11/12 je vedou jako pseudo fallback generátoru; KOMPAS čte
+původ symbolů z capability registru. Verify NV 527:70/525:18/531:38.
 
 ### 4.9l Mokřady (real-půlka, Sez. 44, dávka 4)
 **✅ `--marsh real`** vezme plošné ZABAGED vrstvy `Bažina, močál` + `Rašeliniště (plocha)` → **308 Marsh**

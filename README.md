@@ -101,6 +101,7 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   map_gt.py            #   UC5 corpus: runnability ground-truth (gt_labels/gt_vis) from real map via ISOM colour segmentation (session 68; olive 520 → label 0, session 71; purple course overprint → label 255 ignore, session 72; off-map layout — legend/table/title/paper — → label 255 ignore via colour detector, session 73 part B)
   curate.py            #   UC5 corpus: curation taxonomy + manifest (_curation.json) → keep set for training (session 71: 268 → 216 keep classic)
   split.py             #   UC5 corpus: geographic train/val/test split by bbox-overlap clusters (no leak) → _split.json; dirs_for() = loader contract (session 76)
+isom/                  # Shared ISOM symbol utilities: SVG symbol index + generator capability registry (real/mixed/pseudo/mapper_scan)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
   rock_relief.py       #   ISOM 206 rock areas from DMR 5G slope (numpy+scipy+contourpy; --rocks real, session 63)

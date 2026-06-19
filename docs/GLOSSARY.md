@@ -377,8 +377,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).
-  **Sloupce `zdroj · věrohodnost · provedení`** (Sez. 138): registr `KOMPAS_SOURCE` (51 kódů) drží zdroj
-  (ZABAGED/DMR/separace/pseudo/mix) + věrohodnost; `provedení` je AUTO ze share orig:gen (ok/přestřel/podstřel/chybí).
+  **Sloupce `zdroj · gen · scan · provedení`**: `isom.capabilities` drží jediný registr původu symbolů.
+  `gen` popisuje fallback generátoru bez konkrétního skenu (real / mapper_scan / mixed / pseudo), `scan`
+  ukazuje živý nebo kandidátní mapper-scan signál a `provedení` je AUTO ze share orig:gen
+  (ok/přestřel/podstřel/chybí). Konfliktní pravidlo: mapper-scan od skutečného mapaře má přednost před
+  externími geodaty i pseudo vrstvou.
 - **`reconstructor()`** — pojem-agent **obalující funkci `reconstruct_map()`** (dříve navrženo `mapper()`).
   Ze **skenu existující** OB mapy (i opotřebené / pomačkané) vyrobí `.omap`. Pro **stejnou lokalitu a čas**
   znovu opatří **real část** přes [[generator]] (tvrdé vrstvy přesně z mapových služeb) a zkombinuje ji

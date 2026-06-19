@@ -50,10 +50,12 @@ from scipy.spatial import ConvexHull
 from PIL import Image, ImageDraw
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "connectors"))
 sys.path.insert(0, str(REPO / "generator"))
 
 from pyproj import Transformer            # noqa: E402
+from isom.capabilities import CONFLICT_POLICY, SCAN_NONE, capability_by_code  # noqa: E402
 from generator import generate_map        # noqa: E402
 from compare_isom import (coverage, _load_crosswalk, _resolve_targets, detect_version,   # noqa: E402
                           isom_usage, used_geometry)   # crosswalk-aware Sez. 94; used_geom + tabulka Sez. 96
@@ -351,50 +353,28 @@ def _intersection(orig, gen) -> float:
     return 100.0 * sum(min(orig[c] / so, gen[c] / sg) for c in set(orig) | set(gen))
 
 
-# --- KOMPAS sloupce zdroj · věrohodnost (ROADMAP g2, Sez. 138) ---
-# SSoT „odkud a jak věrně generátor symbol kreslí". Klíč = INTEGER ISOM kód (jako run_table; 210.1→210,
-# 412.1→412, …). Ukotveno proti omap_export.USED_CODES (co generátor reálně píše). věrohodnost:
-#   data  = tvrdá projekce reálných geodat (ZABAGED/DMR/RÚIAN) — věrné poloze i tvaru
-#   odvoz = heuristika z dat (DMR sklon → 206 skály; DMR lokální extrémy → 109/110/111) — plauzibilní, ne 1:1
-#   separ = separace barev ze skenu reálné mapy (cesta párů, predict_areas) — věrné kontextu, ne poloze
-#   pseudo= vymyšleno dle statistické hustoty (poloha náhodná v rámci masky) — pokrytí, ne věrnost
-#   mix   = kombinace (např. 204 reálné ZABAGED + dosypané pseudo)
-# Kód MIMO registr (= v reálné .omap, ale ne v USED_CODES) → generátor ho neumí → sloupec „–" = díra.
-# PŘI PŘIDÁNÍ VRSTVY doplnit sem (vědomě další SSoT místo — ROADMAP g2 chce KOMPAS jako živou tabulku).
-KOMPAS_SOURCE: dict[int, tuple[str, str]] = {
-    # výškopis (DMR 5G)
-    101: ("DMR", "data"), 102: ("DMR", "data"), 103: ("DMR", "data"),
-    109: ("DMR", "odvoz"), 110: ("DMR", "odvoz"), 111: ("DMR", "odvoz"),
-    # cesty / průseky / liniové (ZABAGED)
-    502: ("ZABAGED", "data"), 503: ("ZABAGED", "data"), 504: ("ZABAGED", "data"),
-    505: ("ZABAGED", "data"), 506: ("ZABAGED", "data"), 508: ("ZABAGED", "data"),
-    104: ("ZABAGED", "data"), 107: ("ZABAGED", "data"), 513: ("ZABAGED", "data"), 516: ("RÚIAN", "data"),
-    517: ("RÚIAN", "pseudo"), 518: ("RÚIAN", "pseudo"),   # Sez. 144: poloha ze zahrad, TYP losován (Ruined/Impassable)
-    # voda (ZABAGED)
-    301: ("ZABAGED", "data"), 304: ("ZABAGED", "data"), 305: ("ZABAGED", "data"), 306: ("ZABAGED", "data"),
-    312: ("ZABAGED", "data"), 311: ("ZABAGED", "data"),
-    # stavby / infrastruktura (ZABAGED)
-    521: ("ZABAGED", "data"), 523: ("ZABAGED", "data"), 510: ("ZABAGED", "data"),
-    509: ("ZABAGED", "data"), 501: ("ZABAGED", "data"), 512: ("ZABAGED", "data"),
-    524: ("ZABAGED", "data"), 526: ("ZABAGED", "data"), 530: ("ZABAGED", "data"),
-    519: ("ZABAGED", "data"), 203: ("ZABAGED", "data"),
-    # plošný pokryv (ZABAGED + RÚIAN)
-    401: ("ZABAGED", "data"), 412: ("ZABAGED", "data"), 520: ("ZAB+RÚIAN", "data"),
-    402: ("ZABAGED", "data"),
-    # skály / balvany
-    206: ("DMR sklon", "odvoz"), 207: ("ZABAGED", "data"), 208: ("ZABAGED", "data"),
-    204: ("ZAB+pseudo", "mix"), 210: ("pseudo", "pseudo"),
-    # vegetace ze separace ze skenu (cesta párů)
-    403: ("separace", "separ"), 408: ("separace", "separ"), 410: ("separace", "separ"),
-    406: ("ZAB+separ", "mix"),
-    416: ("separace", "separ"),   # hranice porostu z mezitřídních hranic separovaných veg ploch (_predict_veg_boundaries)
-    # mokřady
-    308: ("ZABAGED", "data"), 310: ("pseudo", "pseudo"),
-    # pseudo vegetační body (princip kamenů, Sez. 136-137)
-    417: ("ZAB+pseudo", "mix"), 418: ("pseudo", "pseudo"), 419: ("pseudo", "pseudo"),
-    # pseudo man-made body (Sez. 141; ZABAGED je nevede, čistě pseudo na měřenou hustotu)
-    527: ("pseudo", "pseudo"), 525: ("pseudo", "pseudo"), 531: ("pseudo", "pseudo"),
-}
+# --- KOMPAS sloupce zdroj · gen · scan (ROADMAP g2, Sez. 138/147) ---
+# SSoT puvodu symbolu je `isom.capabilities`. Tenhle driver uz nedrzi vlastni
+# kopii registru; jen prevadi integer kod po crosswalku na kratky radek tabulky.
+def _shorten(value: str, limit: int) -> str:
+    """Zkrati dlouhy popis zdroje, aby KOMPAS zustal citelny v terminalu."""
+    return value if len(value) <= limit else value[:limit - 3] + "..."
+
+
+def _kompas_source(code: int) -> tuple[str, str, str]:
+    """Vrati (zdroj, fallback generator, scan signal) pro jeden ISOM kod.
+
+    `generator_kind` je to, co dnes vyrobi samotny generator bez konkretniho
+    skenu. `scanner_status` je oddeleny proto, ze mapper-scan signal je pri
+    konfliktu silnejsi nez ZABAGED i pseudo, ale nema zpetne prepisovat popis
+    fallback vrstvy.
+    """
+    try:
+        cap = capability_by_code(str(code))
+    except KeyError:
+        return "–", "–", "–"
+    scan = "–" if cap.scanner_status == SCAN_NONE else cap.scanner_status
+    return _shorten(cap.generator_source, 24), cap.generator_kind, scan
 
 
 def _provedeni(o: int, g: int, tot_o: int, tot_g: int) -> str:
@@ -445,8 +425,9 @@ def run_table() -> None:
                 ("Png2Point (bod)", "point")]
     tot_o, tot_g = sum(orig.values()), sum(gen.values())   # globální Σ pro proporční provedení (share-based)
     print(f"KOMPAS pokrytí — orig (reálné .omap) vs gen (separace) přes {len(MAPS)} mapy {MAPS}")
-    print("sloupce: orig/gen Σ objektů · zdroj generátoru · věrohodnost (data/odvoz/separ/pseudo/mix) · "
-          "provedení AUTO z proporce orig:gen (ok/přestřel/podstřel/chybí/jen gen)")
+    print("sloupce: orig/gen Σ objektů · zdroj fallback generátoru · gen real/mapper_scan/mixed/pseudo · "
+          "scan signal · provedení AUTO z proporce orig:gen (ok/přestřel/podstřel/chybí/jen gen)")
+    print(f"konflikt zdrojů: {CONFLICT_POLICY}")
     for title, gkey in sections:
         codes = sorted([c for c in all_codes if geom[c] == gkey], key=lambda c: -orig[c])
         sum_o = sum(orig[c] for c in codes)
@@ -454,12 +435,12 @@ def run_table() -> None:
         n_cov = sum(1 for c in codes if orig[c] > 0 and gen[c] > 0)
         n_orig = sum(1 for c in codes if orig[c] > 0)
         print(f"\n{'=' * 78}\n{title}   [pokryto {n_cov}/{n_orig} kódů, orig Σ{sum_o}  gen Σ{sum_g}]\n{'=' * 78}")
-        print(f"  {'kód':>5} {'orig':>6} {'gen':>6}  {'zdroj':<10} {'věroh':<6} {'proved.':<8} jméno")
+        print(f"  {'kód':>5} {'orig':>6} {'gen':>6}  {'zdroj':<24} {'gen_kind':<11} {'scan':<19} {'proved.':<8} jméno")
         for c in codes:
             o, gg = orig[c], gen[c]
-            zdroj, ver = KOMPAS_SOURCE.get(c, ("–", "–"))
+            zdroj, kind, scan = _kompas_source(c)
             prov = _provedeni(o, gg, tot_o, tot_g)
-            print(f"  {c:>5} {o:>6} {gg:>6}  {zdroj:<10} {ver:<6} {prov:<8} {names.get(c, '')[:26]}")
+            print(f"  {c:>5} {o:>6} {gg:>6}  {zdroj:<24} {kind:<11} {scan:<19} {prov:<8} {names.get(c, '')[:26]}")
     other = sorted([c for c in all_codes if geom[c] not in ("area", "line", "point")],
                    key=lambda c: -orig[c])
     if other:
