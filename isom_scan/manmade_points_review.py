@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""Vytvoří review manifest pro kuraci 525/527/531 kandidátů.
+
+Použití:
+  python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedrichovka/detections.json
+
+Skript z PoC `detections.json` vyrobí:
+  - `review_manifest.json` se stabilními kandidáty a prázdným review polem
+  - `review_sheet.png` pro rychlou kontrolu očima
+  - `crops/*.png` jednotlivé výřezy
+
+Záměrně NErozhoduje TP/FP automaticky. Kurátor do manifestu doplní `review.verdict`
+(`tp` / `fp` / `ignore`) a případně `review.true_code`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+from pathlib import Path
+from typing import Any
+
+from PIL import Image, ImageDraw, ImageFont
+
+
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent
+DEFAULT_DETECTIONS = HERE / "manmade_points_poc" / "detections.json"
+
+# Lokální mapové skeny mohou být velké. Jsou to naše vstupy, ne nedůvěryhodný upload.
+Image.MAX_IMAGE_PIXELS = None
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_font(size: int) -> ImageFont.ImageFont:
+    for name in ("arial.ttf", "DejaVuSans.ttf", "segoeui.ttf"):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def _resolve_image_path(payload: dict[str, Any], override: Path | None) -> Path:
+    """Najde sken z override nebo z `detections.json`; bez skenu selže nahlas."""
+    raw = override if override is not None else Path(str(payload.get("image", "")))
+    candidates = [raw]
+    if not raw.is_absolute():
+        candidates.append(REPO_ROOT / raw)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    raise SystemExit(f"Chybi sken pro review: {raw}")
+
+
+def _iter_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Zploští `detections[].points[]` na kandidáty se stabilním id."""
+    out: list[dict[str, Any]] = []
+    for det in payload.get("detections", []):
+        pred_code = str(det.get("code", ""))
+        pred_name = str(det.get("name", ""))
+        for point in det.get("points", []):
+            x = float(point["x"])
+            y = float(point["y"])
+            score = float(point.get("score", 0.0))
+            candidate_id = f"{pred_code}_x{round(x)}_y{round(y)}"
+            out.append({
+                "id": candidate_id,
+                "pred_code": pred_code,
+                "pred_name": pred_name,
+                "score": round(score, 3),
+                "center": {"x": round(x, 1), "y": round(y, 1)},
+                "bbox": [round(float(v), 1) for v in point.get("bbox", [])],
+                "review": {
+                    "verdict": "unreviewed",
+                    "true_code": None,
+                    "note": "",
+                },
+            })
+    out.sort(key=lambda item: (item["pred_code"], -item["score"], item["center"]["y"], item["center"]["x"]))
+    return out
+
+
+def _crop_box(candidate: dict[str, Any], img: Image.Image, crop_px: int) -> tuple[int, int, int, int]:
+    """Crop centrovaný na kandidátovi; bbox se vejde i s okolím."""
+    cx = float(candidate["center"]["x"])
+    cy = float(candidate["center"]["y"])
+    bbox = candidate.get("bbox") or []
+    if len(bbox) == 4:
+        w = float(bbox[2]) - float(bbox[0])
+        h = float(bbox[3]) - float(bbox[1])
+        half = max(crop_px / 2.0, max(w, h) * 2.0)
+    else:
+        half = crop_px / 2.0
+    return (
+        max(0, round(cx - half)),
+        max(0, round(cy - half)),
+        min(img.width, round(cx + half)),
+        min(img.height, round(cy + half)),
+    )
+
+
+def _candidate_crop(img: Image.Image, candidate: dict[str, Any], crop_px: int) -> Image.Image:
+    crop = img.crop(_crop_box(candidate, img, crop_px)).convert("RGB")
+    draw = ImageDraw.Draw(crop)
+    # Středový kříž ukazuje kandidáta i v rušném mapovém okolí.
+    cx, cy = crop.width // 2, crop.height // 2
+    draw.line([(cx - 10, cy), (cx + 10, cy)], fill=(255, 0, 255), width=2)
+    draw.line([(cx, cy - 10), (cx, cy + 10)], fill=(255, 0, 255), width=2)
+    return crop
+
+
+def _write_crops(img: Image.Image, candidates: list[dict[str, Any]], out_dir: Path, crop_px: int) -> None:
+    crop_dir = out_dir / "crops"
+    crop_dir.mkdir(parents=True, exist_ok=True)
+    for candidate in candidates:
+        crop = _candidate_crop(img, candidate, crop_px)
+        crop_path = crop_dir / f"{candidate['id']}.png"
+        crop.save(crop_path)
+        candidate["crop"] = str(crop_path.relative_to(out_dir))
+
+
+def _write_sheet(img: Image.Image, candidates: list[dict[str, Any]], out_path: Path,
+                 crop_px: int, max_items: int) -> None:
+    chosen = candidates[:max_items]
+    if not chosen:
+        Image.new("RGB", (480, 80), "white").save(out_path)
+        return
+    tile = 180
+    label_h = 38
+    cols = min(5, len(chosen))
+    rows = math.ceil(len(chosen) / cols)
+    sheet = Image.new("RGB", (cols * tile, rows * (tile + label_h)), "white")
+    draw = ImageDraw.Draw(sheet)
+    font = _load_font(12)
+    for i, candidate in enumerate(chosen):
+        row, col = divmod(i, cols)
+        crop = _candidate_crop(img, candidate, crop_px).resize((tile, tile), Image.Resampling.BILINEAR)
+        px = col * tile
+        py = row * (tile + label_h)
+        sheet.paste(crop, (px, py))
+        label = f"{candidate['id']}  s={candidate['score']:.2f}"
+        draw.text((px + 4, py + tile + 4), label, fill=(0, 0, 0), font=font)
+    sheet.save(out_path)
+
+
+def _manifest(payload: dict[str, Any], detections_path: Path, image_path: Path,
+              candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "_status": "REVIEW_REQUIRED",
+        "_doc": (
+            "Rucni kurace man-made point kandidatu. Vypln review.verdict jako "
+            "tp/fp/ignore; true_code nech null, pokud pred_code sedi."
+        ),
+        "source_detections": str(detections_path),
+        "source_status": payload.get("_status", ""),
+        "image": str(image_path),
+        "image_sha256": _sha256(image_path),
+        "codes": ["525", "527", "531"],
+        "review_values": ["unreviewed", "tp", "fp", "ignore"],
+        "candidates": candidates,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--detections", type=Path, default=DEFAULT_DETECTIONS)
+    parser.add_argument("--image", type=Path, default=None,
+                        help="Volitelne prepsani image cesty z detections.json.")
+    parser.add_argument("--out-dir", type=Path, default=None,
+                        help="Default: adresar vedle detections.json / review.")
+    parser.add_argument("--crop-px", type=int, default=180)
+    parser.add_argument("--max-sheet-items", type=int, default=80)
+    args = parser.parse_args()
+
+    if not args.detections.exists():
+        raise SystemExit(f"Chybi detections.json: {args.detections}")
+    payload = json.loads(args.detections.read_text(encoding="utf-8"))
+    image_path = _resolve_image_path(payload, args.image)
+    out_dir = args.out_dir or (args.detections.parent / "review")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    img = Image.open(image_path).convert("RGB")
+    candidates = _iter_candidates(payload)
+    _write_crops(img, candidates, out_dir, args.crop_px)
+    _write_sheet(img, candidates, out_dir / "review_sheet.png", args.crop_px, args.max_sheet_items)
+    manifest = _manifest(payload, args.detections.resolve(), image_path, candidates)
+    (out_dir / "review_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    print(json.dumps({
+        "candidates": len(candidates),
+        "out_dir": str(out_dir),
+        "manifest": str(out_dir / "review_manifest.json"),
+        "sheet": str(out_dir / "review_sheet.png"),
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

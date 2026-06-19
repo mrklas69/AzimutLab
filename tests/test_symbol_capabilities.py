@@ -18,6 +18,7 @@ from isom.capabilities import (  # noqa: E402
     GEN_PSEUDO,
     GEN_REAL,
     SCAN_LIVE_POINT,
+    SCAN_POC,
     capability_by_code,
     generator_codes,
     preferred_kind_by_code,
@@ -54,12 +55,14 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("513.1").code, "513")
         self.assertEqual(capability_by_code("417").scanner_status, SCAN_LIVE_POINT)
         self.assertEqual(capability_by_code("419").generator_kind, GEN_PSEUDO)
+        self.assertEqual(capability_by_code("527").scanner_status, SCAN_POC)
 
     def test_mapper_scan_wins_when_live_scanner_signal_exists(self) -> None:
         self.assertEqual(capability_by_code("204").preferred_kind, GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("210"), GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("419"), GEN_MAPPER_SCAN)
         self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)
+        self.assertEqual(capability_by_code("527").preferred_kind, GEN_PSEUDO)
         self.assertEqual(capability_by_code("203").code, "203.2")
 
     def test_summary_keeps_real_pseudo_mapper_split_visible(self) -> None:

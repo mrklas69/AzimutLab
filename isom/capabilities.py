@@ -24,6 +24,7 @@ GEN_PSEUDO = "pseudo"
 SCAN_LIVE_POINT = "live_png2point"
 SCAN_LIVE_LINE = "live_png2line"
 SCAN_AREA = "area_scan_or_separation"
+SCAN_POC = "classic_cv_poc"
 SCAN_CANDIDATE = "classic_cv_candidate"
 SCAN_NONE = "not_started"
 SCAN_REAL_STATUSES = frozenset({SCAN_LIVE_POINT, SCAN_LIVE_LINE, SCAN_AREA})
@@ -172,9 +173,9 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
     _rec("417", "Prominent large tree", "point", GEN_MIXED, "ZABAGED significant trees + pseudo density fill", SCAN_LIVE_POINT),
     _rec("418", "Prominent bush or small tree", "point", GEN_PSEUDO, "pseudo vegetation point density", SCAN_CANDIDATE),
     _rec("419", "Prominent vegetation feature", "point", GEN_PSEUDO, "pseudo vegetation point density", SCAN_LIVE_POINT),
-    _rec("527", "Fodder rack", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_CANDIDATE),
-    _rec("525", "Small tower", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_CANDIDATE),
-    _rec("531", "Prominent man-made feature: x", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_CANDIDATE),
+    _rec("527", "Fodder rack", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
+    _rec("525", "Small tower", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
+    _rec("531", "Prominent man-made feature: x", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
     _rec("104", "Earth bank", "line", GEN_REAL, "ZABAGED line features"),
     _rec("107", "Erosion gully", "line", GEN_REAL, "ZABAGED line features"),
     _rec("513", "Wall", "line", GEN_REAL, "ZABAGED walls/ramparts", variants=("513.1",)),

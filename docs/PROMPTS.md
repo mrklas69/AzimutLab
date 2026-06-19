@@ -90,6 +90,10 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
   změř KPI dopad HNED** (aspoň Bedř/Blatná přes `measure_dod`, nečekej na plnou sadu ani na CUDA okno) —
   jinak se hromadí NEMĚŘENÉ pokrytí a nevíš, zda plníš díry nebo přidáváš přestřel ([[kpi-fill-undershoot-dilutes]]).
   Nález %CALIBRATE Sez. 145: KPI stálo 7 sezení (138→144) přes 4 nové typy + carry „přeměření" 4×.
+- **Měnil-li se kód generátoru / konektorů / `.omap` exportu:** spusť
+  `.venv\Scripts\python.exe tests\smoke.py` před commitem. Smoke chytá rozbitý základ
+  (malý real-data bbox, deterministic seed, validní `.omap`, 101/305/401/502, žádný
+  `layer_errors` fallback); KOMPAS dál měří kvalitu a proporce.
 - Měnil-li se kód: dva commity (feat/fix → docs(session)), pak push. V deštníkové
   fázi je „kód" často jen KB/docs → jeden commit `docs(session)` stačí.
 - **Cleanup (Sez. 25):** maž jen scratch výstupy — `temp/`, `output_*/` (jednorázové rendery,

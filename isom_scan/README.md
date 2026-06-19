@@ -21,6 +21,8 @@ score.py                   # runs/*.json × gt → metriky → results.csv
 build_gt.py                # obnoví GT z lokálního resources/livelox/1127443 korpusu
 overlay.py                 # vykreslí GT/run body nad lokální sken
 black_brown_poc*.{py,ps1}  # scan-mining PoC: černá vs hnědá maska ze skenu
+manmade_points_poc.py      # scan-mining PoC: 525/527/531 z izolovaných černých komponent
+manmade_points_review.py   # kurátorský manifest + crop sheet pro PoC kandidáty
 ```
 
 ## Postup spuštění jednoho běhu
@@ -58,6 +60,22 @@ a pro scan-mining utilitky. Ruční kartografická korekce může přijít pozd�
 se stávající generátorovou GT bez zvýšení `BENCHMARK_VERSION`.
 
 Hrubá automatická kotva ploch: `resources/livelox/1127443/gt_labels.png` (runnability segmentace les/otevřeno/voda).
+
+## Scan-mining PoC utilitky
+`black_brown_poc.py` odděluje neutrální černou kresbu od hnědých vrstevnic. Navazující
+`manmade_points_poc.py` z téhle černé kresby hledá malé izolované komponenty podobné
+symbolům **525 Small tower**, **527 Fodder rack** a **531 Prominent man-made feature: x**.
+Výstup (`detections.json`, overlay, contact sheet, maska) je diagnostika pro oko/kuraci,
+ne tréninková pravda. 525/527/531 zatím zůstávají v generátoru pseudo fallback; capability
+registry je označuje jen jako `classic_cv_poc`, ne jako live mapper-scan.
+
+Kurace kandidátů:
+```powershell
+python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedrichovka/detections.json
+```
+To vytvoří `review_manifest.json`, `review_sheet.png` a `crops/*.png`. Do manifestu se ručně
+doplní `review.verdict` (`tp` / `fp` / `ignore`) a případně `review.true_code`. Teprve takový
+manifest je vstup pro ladění prahů; samotný PoC výstup není GT.
 
 ## Git hranice
 Verzovat: skripty, prompt, README, `results.csv`, `gt/ground_truth.json`, `gt/task_crop_box.json`,
