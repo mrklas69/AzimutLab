@@ -15,8 +15,11 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   už drží symbolový SVG index + capability registry (real/mixed/pseudo/mapper_scan), `omap_export.USED_CODES`
   i KOMPAS jsou na něj napojené. První KOMPAS zásah hotov: 403 separace dostala per-class min-area 60 px.
   Navazující kalibrace 527 na stejné 3-map sadě zvedla headline KPI na **62,5 %**; přesun
-  `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Zbývá další PoC vést přes
-  KOMPAS/scan-mining metriky, ne přes model-polishing.
+  `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Další PoC přidán:
+  `isom_scan/manmade_points_poc.py` hledá 525/527/531 z izolovaných černých komponent skenu
+  a `manmade_points_review.py` vyrábí kurátorský manifest/crop sheet; capability registry je značí
+  `classic_cv_poc` (ne live mapper-scan). Zbývá PoC vést přes KOMPAS/scan-mining metriky/kuraci,
+  ne přes model-polishing.
 - [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
@@ -35,9 +38,6 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   Purpura je hotová; warp/sklad/dewarping nepatří do aktivního `Generator()` fokusu, dokud nemá nový
   real-scan metric trigger nebo nezačne etapa `Rekonstruktor()`. Starší A2 položka níže je historický kontext,
   ne dnešní priorita.
-- [ ] *(260619-A6; testy)* **Generátorový smoke/invariant balík před většími zásahy do `generator.py`.**
-  Minimální rychlý test: malý bbox, deterministický seed, validní `.omap`, nenulové základní vrstvy
-  101/305/401/502, žádný silent fallback. KOMPAS měří kvalitu; smoke má chytat rozbitý základ.
 
 ## Audit Fable 5 (2026-06-12) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1–A7, připomínky B1–B7).

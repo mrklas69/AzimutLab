@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 151 (2026-06-19) — Generator smoke + 525/527/531 scan-mining PoC (HAL3000)
+Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
+- [x] **260619-A6 generátorový smoke/invariant balík hotový:** nový `tests/smoke.py` běží jako
+  samostatný `unittest` bez pytestu. Generuje malý real-data bbox Lidové sady, hlídá existenci výstupů,
+  validní `.omap`, nenulové 101/305/401/502, nepřítomnost `layer_errors` a byte-identický seed.
+  `%END` checklist vyžaduje smoke při změně generátoru/konektorů/`.omap` exportu.
+- [x] **525/527/531 scan-mining PoC:** `isom_scan/manmade_points_poc.py` hledá malé izolované
+  neutrálně černé komponenty podobné symbolům 525 Small tower, 527 Fodder rack a 531 Prominent
+  man-made feature: x. Výstupem je `detections.json`, maska, overlay a contact sheet; default bez
+  lokálního skenu selže nahlas.
+- [x] **Kurátorský mezikrok místo automatické pravdy:** `isom_scan/manmade_points_review.py` z PoC
+  výstupu vyrábí `review_manifest.json`, `review_sheet.png` a `crops/*.png` se stabilními kandidáty
+  a prázdným `review.verdict`. PoC je označený v capability registru jako `classic_cv_poc`, ale
+  `preferred_kind` 525/527/531 zůstává `pseudo`.
+- [x] **Verify:** `tests\smoke.py` OK, `unittest discover -s tests` = 30/30 OK, `compileall` OK,
+  capability výpis potvrzuje 525/527/531 `scan=classic_cv_poc` a `preferred=pseudo`. Bedřichovka PoC
+  vyrobil 3 konzervativní kandidáty pro ruční review.
+
 ## Sezení 150 (2026-06-19) — KPI 527/508 + full map regen (HAL3000)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 - [x] **527 Fodder rack přestřel zkalibrován:** kanonická 3-map sada ukázala `orig 8 / gen 103`;
