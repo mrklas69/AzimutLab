@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 149 (2026-06-19) — ISOM SVG index + capability registry SSoT (ntbhej)
+Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
+- [x] **Sdílený ISOM symbol index:** nový balík `isom/` umí načíst kurátorovaný `resources/isom/index.json`
+  nebo draft z lokálních SVG souborů. `tools/build_symbol_index.py` nad `resources/isom` našel 113 draft symbolů;
+  raw SVG zůstávají ignorované, verzovaný je jen kontrakt `README.md` + `index.schema.json`.
+- [x] **Capability registry pro generator/KOMPAS:** `isom.capabilities` drží jediný výčet produkovaných kódů
+  a původ symbolů (`real` / `mixed` / `pseudo` / `mapper_scan`). Konfliktní pravidlo je
+  `mapper_scan > external_geodata > pseudo`; 204/210/419 zůstávají pseudo/mixed fallback generátoru, ale
+  při živém scan signálu mají `preferred_kind=mapper_scan`.
+- [x] **Odstraněné duplicitní SSoT:** `generator/omap_export.USED_CODES` se odvozuje z capability registru,
+  `measure_dod --table` už nemá vlastní `KOMPAS_SOURCE` a legacy `compare_real_vs_gen` byl přejmenován na
+  kalibrovaný `STAT1_GROUPS` řez, ne obecný capability registr.
+- [x] **Verify:** `unittest discover -s tests` = 28/28 OK, `generator.py --help` OK, compileall OK,
+  `tools/list_isom_capabilities.py --kind pseudo` ukazuje rozdíl `generator` vs `preferred`.
+
 ## Sezení 148 (2026-06-19) — Auditní nálezy 260619 + KPI 403 (ntbhej)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 - [x] **Audit 260619 A1/A2/A3 propsán do živého řízení:** `scan mining` zakotvený jako legitimní část
