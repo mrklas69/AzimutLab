@@ -39,6 +39,11 @@ Vstupní podklady jsou pestré — od **reálných a spolehlivých** (ZABAGED, D
 četnosti. **Nejužitečnější zdroj ISOM symbolů = vytěžování skenů map skutečných mapařů
 z Liveloxu** — chce se naučit rozpoznat co nejvíc ISOM symbolů, ať si je nemusíme vymýšlet.
 
+**Scan mining patří do této etapy.** Pokud práce ze skenu získává lokální paletu, separované
+barevné vrstvy, black-vs-brown masky, kandidáty symbolů, měřicí GT nebo kalibrační signály pro
+KOMPAS, je to přímé vytěžení pro `Generator()`. Zakázaná je až práce, která ladí cílový produkt
+`sken → .omap` bez vazby na pokrytí/KOMPAS.
+
 - **(g1) V této etapě nemá smysl podklady (skeny PNG) nijak degradovat — usilujeme o MAX
   VYTĚŽENÍ.** *(Opakovaná chyba LLM — viz „Antidrift" níže.)*
 - **(g2) Měření etapy: KPI + KOMPAS.**
@@ -72,7 +77,8 @@ Mechanismy proti opakovanému sklouznutí k práci se špatným načasováním:
 2. **Self-check před každým návrhem fokusu** — polož otázku:
    > „Je tohle **max vytěžení / plnění KOMPASu**, nebo **degradace / leštění modelu /
    > rekonstruktor**?"
-   Pokud druhé → **STOP**, je to špatná etapa (viz fázová závora).
+   Pokud druhé → **STOP**, je to špatná etapa (viz fázová závora). Pozor na falešně
+   pozitivní stopku: `scan mining` je v pořádku, když výstup krmí `Generator()`/KOMPAS.
 3. **„Tah na branku" = rozšiřovat POKRYTÍ** (nové TYPY ISOM symbolů v generátoru), ne
    doladit už pokrytý symbol o procenta. Co generátor nenakreslí, rekonstruktor se nikdy
    nenaučí — pokrytí je strop (viz paměť `generator-coverage-is-the-ceiling`).

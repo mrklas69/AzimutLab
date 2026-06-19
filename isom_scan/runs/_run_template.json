@@ -1,0 +1,22 @@
+{
+  "_doc": "Šablona běhu. Zkopíruj na runs/<date>_<model>_<seed>.json, vyplň 'meta' a do 'output' vlož JSON, který vrátil model. score.py pak skóruje a připíše řádek do results.csv. Model do tohoto souboru NEZASAHUJE — plní ho operátor.",
+  "meta": {
+    "date": "2026-06-18",
+    "model": "claude-opus-4-8",
+    "build": "1m",
+    "provider": "cloud",
+    "quant": "",
+    "ctx_window": 1000000,
+    "vision": true,
+    "pdf_ingested": true,
+    "temperature": 0.0,
+    "seed": 0,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "latency_s": null,
+    "cost_usd": null
+  },
+  "output": {
+    "detections": []
+  }
+}

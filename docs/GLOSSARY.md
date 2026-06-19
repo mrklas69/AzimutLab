@@ -356,6 +356,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   paseky / hustníky), tak aby mapa vypadala co nejreálněji. Účel = [[feeder|enabler-feeder]]: libovolné
   množství párů [render, `.omap`] s [[ground-truth-gt|GT]] zdarma pro trénink [[reconstructor]]u (obchází
   [[sparse-gt-past|sparse-GT past]]). Pozn.: datum/čas dnes ještě není parametr → viz [[grivace]] feature.
+- **Scan mining** (Sez. 146-147, audit Fable 260619) — vytěžování **reálného skenu** pro potřeby
+  [[generator]]u a [[KOMPAS]]u: lokální paleta, separované barevné vrstvy, black-vs-brown masky,
+  kandidáty ISOM symbolů, měřicí GT a kalibrační signály. Patří do etapy `Generator()`, protože rozšiřuje
+  pokrytí a zlepšuje feeder. Není to zakázaná `reconstructor()` práce, dokud výstup není cílový produkt
+  `sken → .omap` ani model-polishing bez vazby na KOMPAS.
 - **KPI generátoru** (Sez. 100) — **primární kvantifikátor fáze [[generator]]()**: „jak blízko jsme generování
   **reálně vyhlížejících** O-map". = **proporční podobnost distribuce ISOM symbolů** gen vs vzorové mapy =
   **histogram intersection** `Σ min(orig_share, gen_share)` (každý vektor normalizován na vlastní Σ → ruší

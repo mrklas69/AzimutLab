@@ -3,12 +3,44 @@
 Markery: `[ ]` čeká · `[~]` rozděláno · `[x]` hotovo (přesouvá se do DONE) · `[!]` priorita.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
+## Audit Fable 5 (2026-06-19) — námitky → úkoly
+Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260619.md`**. Tento audit navazuje na
+průlom Sez. 146/147: classic-CV práce nad reálným skenem je legitimní `Generator() / scan mining`,
+pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
+
+- [~] *(260619-A1; Generator()/scan mining)* **Zakotvit scan mining jako aktivní podtah Generator().**
+  ROADMAP už říká, že sken→barvy/masky/symbolové kandidáty/KOMPAS signály patří do Etapy 1. Pracovní
+  struktura je rozdělená: `isom_scan` textový harness/GT manifest je verzovatelný, copyright rastry/PDF/runs
+  zůstávají ignorované, `tools/separate_scan_colors.ps1` existuje jako první obecná utilita. První KOMPAS
+  zásah hotov: 403 separace dostala per-class min-area 60 px, KPI 57,6 → 59,5 %. Zbývá další PoC
+  vést přes KOMPAS/scan-mining metriky, ne přes model-polishing.
+- [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
+  Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
+  (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
+  Bedřichovka/Blatná/Velbloud. Baseline po plné regeneraci: KPI 57,6 %. Po prvním cíleném zásahu
+  do 403 separace: KPI 59,5 %. Headline trend smí dál používat jen stejnou mapovou sadu.
+- [x] *(260619-A3; isom_scan governance)* **Rozdělit `isom_scan/` na licencovaný vstup vs verzovatelný harness.**
+  Hotovo 2026-06-19: `.gitignore` ignoruje PNG/PDF/syrové runs/overlaye, ale pouští textový harness
+  (`README`, prompt, skripty, `results.csv`, `gt/ground_truth.json`, `gt/task_crop_box.json`,
+  `runs/_run_template.json`). `isom_scan/README.md` explicitně popisuje Git hranici a obnovu lokální GT.
+- [!] *(260619-A4; Goodhart)* **Pseudo hustoty měnit jen přes crosswalk-aware měření na stejné sadě.**
+  527/531 přestřel (11×/3,3× na 2-map sadě) je bug stejné váhy jako podstřel. Pro každou pseudo vrstvu
+  držet zdroj, hustotu/km², mapovou sadu, datum měření a důvěryhodnost; změnu povolit jen s
+  `measure_dod --table` před/po na stejné sadě.
+- [~] *(260619-A5; phase gate)* **Geometrická augmentace je zmražená phase-2 práce.**
+  Purpura je hotová; warp/sklad/dewarping nepatří do aktivního `Generator()` fokusu, dokud nemá nový
+  real-scan metric trigger nebo nezačne etapa `Rekonstruktor()`. Starší A2 položka níže je historický kontext,
+  ne dnešní priorita.
+- [ ] *(260619-A6; testy)* **Generátorový smoke/invariant balík před většími zásahy do `generator.py`.**
+  Minimální rychlý test: malý bbox, deterministický seed, validní `.omap`, nenulové základní vrstvy
+  101/305/401/502, žádný silent fallback. KOMPAS měří kvalitu; smoke má chytat rozbitý základ.
+
 ## Audit Fable 5 (2026-06-12) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1–A7, připomínky B1–B7).
 Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
-- [~] *(A2; mrkla — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; Png2Point re-trénink Sez. 125 ODHALIL NESTABILITU → [!] položka níže; ZBÝVÁ (b))* **Purple-course + geometrická augmentace.**
+- [~] *(A2; phase-2 — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; Png2Point re-trénink Sez. 125 ODHALIL NESTABILITU; (b) geometrická část ZMRAŽENA 260619-A5)* **Purple-course + geometrická augmentace.**
   Vrcholová úloha = sken POUŽITÉ mapy (fialový přetisk, ohyby), ale model fialovou nikdy neviděl jako
   vstup — `degrade.py` je čistě fotometrický. **(a) Purpura HOTOVO Sez. 123:** `model/purple.py`
   (sdílený util mimo `generator/`) `overprint_course(rgb, seed)` kreslí ISOM trať (701 start △ / 702
@@ -21,10 +53,10 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   301 −0,139→−0,017 → hypotéza A2a potvrzena). **Png2Point re-trénink Sez. 125: NEDOKONČITELNÝ jako rutina —
   odhalil, že trénink je vážně nestabilní** (mF1 0,15–0,90 dle seedu; „0,897" Sez. 106 = outlier). Purpura dopad
   paired (seed=0): **ON−OFF −0,043** (mírně škodí, podružné vůči nestabilitě). Stabilizace = [!] položka níže;
-  purpuru doměřit až na stabilním základě. **(b) Geometrická
-  půlka** (sklad/ohyb/warp X i Y zároveň, vedle D4) = existující bod „Stupeň 2 — augmentační pipeline"
-  níže, touto námitkou povýšen. Pozor u Png2Area: warp Y by mezi třídami vyrobil smíšené px (proto D4
-  jen rot90) → nearest-neighbor na Y, nebo warp jen X.
+  purpuru doměřit až na stabilním základě. **(b) Geometrická půlka je po ROADMAP a auditu 260619 zmražená
+  phase-2 práce** (sklad/ohyb/warp X i Y zároveň, vedle D4). Neotevírat jako aktivní fokus v etapě
+  `Generator()`, pokud nebude explicitní real-scan metric trigger; technická poznámka pro budoucno:
+  warp Y nejvýš nearest-neighbor, jinak mezi třídami vyrobí smíšené pixely.
 - [ ] *(A3; měření HAL3000)* **KPI proti Goodhartu.** (a) Úspěch fáze `generator()` vázat na A1 benchmark;
   KPI zůstává kompas děr, ne cílová funkce — propsat do KPI bloku níže + `architecture.md`. Pravidlo pro
   každou další KPI práci: „pomůže to reconstructoru na reálném skenu?" (b) Rozšířit referenční sadu:
@@ -47,9 +79,9 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   (5) mini `build_pair`/rasterizace fixture → Y má nenulové px pro každý area kód přítomný v `.omap`
   (chytá 301/301.1 dynamicky). Jeden soubor `tests/smoke.py`, spustitelný `python tests/smoke.py`
   (bez pytest závislosti, KISS); do `docs/PROMPTS.md` %END přidat „měnil-li se kód: spusť smoke".
-- [!] *(A6; HAL3000 → priorita zvednuta %CALIBRATE Sez. 145)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
+- [!] *(A6; HAL3000 → priorita zvednuta %CALIBRATE Sez. 145; Velbloud.pgw na ntbhej lokálně doplněn 2026-06-19)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
   neopakovatelná lidská práce), `_split.json` (bez něj jsou všechna mIoU neporovnatelná), chybějící
-  `resources/*.pgw` (**Velbloud na ntbhej — bez něj nejde měřit KPI default sada na ntbhej ani po C1 fixu; blokuje B2 „měř hned po pokrytí"**). Malé textové soubory BEZ copyright obsahu → commitnout
+  `resources/*.pgw` (**Velbloud na ntbhej byl doplněn, ale `resources/` je gitignored → záloha/kanál pořád nevyřešený**). Malé textové soubory BEZ copyright obsahu → commitnout
   (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
   artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
@@ -98,15 +130,20 @@ K5 mrtvý `_TEMPLATE`. (K7 „51 kódů" = falešný poplach, číslo jen v docs
 - [~] Naplnit `docs/kb/data-sources.md` reálnými zdroji + licencemi — ČÚZK (Sez. 2), Mapový portál ČSOS (Sez. 8, gate zavřená); lokální mapy `resources/` (smíšený původ); další zdroje TBD
 - [~] Doplnit `RESEARCH.md` — LIDAR→mapa metoda hotovo (Sez. 2); zbývá generativní (UC4-I), dewarping/inpainting (UC3)
 
-## ISOM-scan benchmark (`isom_scan/`) — baseline „hotový model sken → ISOM"
+## ISOM-scan benchmark / scan mining (`isom_scan/`) — baseline „hotový model sken → ISOM"
 Empirický test hypotézy z IDEAS „Hotový pretrained model…" (Sez. 142, ~5 %): jak dobře cloudové
 i lokální (vision) modely rozpoznají ISOM symboly přímo ze skenu, bez doučení. **Scaffold HOTOVO:**
 fixní prompt + JSON schema (`task_isom_scan.md`), oddělený skórovač (`score.py` — model NESkóruje sám
 sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.md`. Vstup = ořez skenu
 `1127443` Branžež. Headline KPI = `point_F1` (anti-sprawl, [[kpi-one-quantifier-not-methodology-sprawl]]).
-- [ ] **Postavit GT** (`gt/ground_truth.json`, dnes TEMPLATE) — **bootstrap** Opusem 4.8 → **kartograf opraví**
-  (verify-against-source; pozor na ukotvení k modelovému zkreslení). Bez GT jsou scored metriky NA.
-  Bodové symboly = úplné `points` (distance-match), plochy/linie = `count` (+ kotva `1127443/gt_labels.png`).
+- [x] **Postavit GT** (`gt/ground_truth.json`) — READY Sez. 146: generátorová GT `only_real=True`
+  nad Branžež quad, vizuálně ověřené zarovnání sken↔gen (NCC 0,945; silnice lícují). Textová GT + crop
+  kotva jsou od 2026-06-19 verzovatelné; raster/PDF vstupy zůstávají lokální.
+- [x] **Rozdělit durable harness vs copyright vstupy** — hotovo 2026-06-19: verzovat jen bezpečné textové části
+  (`task_isom_scan.md`, schema/score/overlay/build_gt/README, scoring policy, GT manifest, run template),
+  ignorovat PNG/PDF/runs a explicitně popsat, odkud se lokální GT obnovuje.
+- [!] **Black-vs-brown maska PoC** na sken — nejlevnější výhra z ChatGPT 5.5 vytěžku; výstup = měřicí skript
+  a vizuál/manifest, ne modelový reconstructor. Patří do `Generator() / scan mining`.
 - [ ] **Proběhnout pole modelů** (cloud: Opus/Sonnet/…; lokální: LM Studio) — N seedů, medián; vyplnit `runs/` + skórovat.
 - [ ] *(curtains, odložit)* cost tracking přes API · varianty no-spec / tiling pro malý kontext · leaderboard render.
 - [ ] *(DRY drobnost)* 2× PDF v `isom_scan/` jsou kopie `docs/kb/` — pro přenosný balík OK; zvážit odkaz, pokud zůstane jen v repu.

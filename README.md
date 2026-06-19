@@ -11,7 +11,8 @@ of what an orienteering map *is*.
 transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
 no collapse), strict IoU **0.409** after a per-class confidence threshold. **Direction &
 phase gate live in [ROADMAP.md](docs/ROADMAP.md)** (`Generator()` → `Rekonstruktor()`; we
-are in the `Generator()` phase). Current work is tracked in [TODO](docs/TODO.md); history is
+are in the `Generator()` phase). **Scan mining** (palette/masks/symbol candidates from real scans)
+is part of `Generator()` when it feeds KOMPAS/coverage, not a phase-gate violation. Current work is tracked in [TODO](docs/TODO.md); history is
 in [DONE](docs/DONE.md) and [DIARY](docs/DIARY.md).
 
 ## What this is

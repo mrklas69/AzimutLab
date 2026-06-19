@@ -66,7 +66,9 @@ AREA_CLASSES = {
     "406": {"gt": 1, "vis": (181, 230, 181)},
     "408": {"gt": 2, "vis": (120, 200, 140)},
     "410": {"gt": 3, "vis": (40, 160, 90)},
-    "403": {"gt": 4, "pale_yellow": True, "vis": (254, 228, 139)},  # rough open (bledá žlutá uvnitř open)
+    # 403 je na reálných mapách fragmentovanější než zeleně; globální MIN_AREA_PX=120 ho
+    # podstřeluje v KPI. Per-class práh drží 406/408/410 beze změny a pouští jen menší paseky.
+    "403": {"gt": 4, "pale_yellow": True, "vis": (254, 228, 139), "min_area_px": 60},
 }
 
 # Reálné SCAN reference žlutooranžových odstínů (RGB), DOLOŽENÉ k-means na 5 vzorových mapách (Sez. 92).
@@ -142,7 +144,7 @@ def _fill_ignore(label_map: np.ndarray, ignore: int = 255) -> np.ndarray:
     return out
 
 
-def vectorize_level(mask: np.ndarray) -> list:
+def vectorize_level(mask: np.ndarray, min_area_px: int = MIN_AREA_PX) -> list:
     """Boolean maska jedné třídy → polygony [outer, díra…] v image-px (REUSE rock_relief).
 
     Vrací list polygonů, každý = [vnější prsten, díra1, …]; prsten = np.array (col, row).
@@ -155,7 +157,7 @@ def vectorize_level(mask: np.ndarray) -> list:
     if n:
         sizes = np.bincount(lab.ravel())
         for i in range(1, len(sizes)):
-            if sizes[i] < MIN_AREA_PX:
+            if sizes[i] < min_area_px:
                 m[lab == i] = False
     if not m.any():
         return []
@@ -210,7 +212,8 @@ def separate_areas(label_map: np.ndarray, rgb: np.ndarray | None = None,
     if src_mpp and target_mpp and target_mpp > src_mpp:
         f = target_mpp / src_mpp
         masks = {c: _downscale_mask(m, f) for c, m in masks.items()}
-    polys = {c: vectorize_level(m) for c, m in masks.items()}
+    polys = {c: vectorize_level(m, AREA_CLASSES[c].get("min_area_px", MIN_AREA_PX))
+             for c, m in masks.items()}
     if f != 1.0:                          # prstence (col,row) zpět na PŮVODNÍ grid → výstup v image-px vstupu
         polys = {c: [[np.asarray(r, float) * f for r in poly] for poly in ps]
                  for c, ps in polys.items()}
