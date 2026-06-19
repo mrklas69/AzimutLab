@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 147 (2026-06-19) — Předání z Claude: supervisor audit, scan-color utilita, oprava `.venv` (ntbhej)
+Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
+- [x] **Supervisor audit Fable 5 hotový:** vytvořen `docs/AUDIT_FABLE5_260619.md` podle
+  `docs/AUDIT_FABLE5_PROMPT.md`. Hlavní námitka: ISOM-scan/classic-CV průlom musí být zakotvený jako
+  `Generator() / scan mining`, ne omylem zmražený jako `Rekonstruktor()`/degradation práce. Další nálezy:
+  chybějící `Velbloud.pgw` blokuje srovnatelný KPI trend, `isom_scan/` potřebuje durable hranici harness vs
+  copyright raster, KPI Goodhart trvá u pseudo hustot 527/531, generátor pořád potřebuje smoke/invariant test.
+- [x] **Scan-color utilita:** přidán `tools/separate_scan_colors.ps1` pro lokální detekci palety ze skenu a rozklad
+  PNG do separovaných per-barva vrstev. `QuantizeStep` řeší vybledlé/tiskem posunuté barvy; manifest zapisuje mean
+  RGB, quantized RGB, počty a coverage. Ověřeno na `isom_scan/task_isom_scan.png` (q8: 48 barev, 36,5870 % px).
+- [x] **Lokální Python prostředí opraveno:** `.venv` znovu vytvořena přes `uv`, doinstalováno `requirements.txt`.
+  Verify: Python 3.12.3, `pip check` OK, import smoke hlavních runtime/ML knihoven OK, `torch 2.12.1+cpu`
+  (`cuda False`, ntbhej smoke/eval OK), `unittest discover -s tests` = 19/19 OK.
+- [x] **Zvonek pro ntbhej ověřen:** správná cesta `C:\Users\hejna\.codex\resources\servant-bell-ring.mp3`
+  (ne mrkla cesta z overlaye).
+
 ## Sezení 146 (2026-06-18) — ISOM-scan benchmark + generátorová GT + ChatGPT 5.5 vytěžek (ntbhej)
 Detail: [diary/2026-06-18.md](diary/2026-06-18.md). Pozn.: `isom_scan/` je gitignored (Livelox copyright) → kód/GT/runs lokální, necommitnuté.
 - [x] **Postaven `isom_scan/` benchmark „sken → ISOM"**: `task_isom_scan.md` (úplný prompt + striktní JSON
