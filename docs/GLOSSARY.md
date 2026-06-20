@@ -304,8 +304,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   augmentace (flip/rot) až v loaderu. Dlaždice mapy jdou CELÉ do jejího [[split]]u (žádný leak). **Dva
   konzumenti (Sez. 88):** (a) archiv `model/runnability/tile.py` (Sez. 77, ortofoto→runnability) — Y=runnability,
   dlaždice s **<30 % validních (≠IGNORE) px se zahodí** (rohy quadu/layout) → `resources/tiles/`; (b) Png2Area
-  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png`, 17 ISOM kódů +
-  pozadí (`N_AREA=18`), **BEZ rejection** (`rgb.png` je plný render,
+  `model/png2area/tile.py` (Sez. 88) — Y=`area_labels.png`, aktuálně 20 ISOM kódů +
+  pozadí (`N_AREA=21`, po 404/407/409 v Sez. 152), **BEZ rejection** (`rgb.png` je plný render,
   pozadí 0 = legitimní třída, ne IGNORE) → `resources/area_tiles/`. Oba gitignored + `_tiles.json` (počty/class%/váhy).
   ~8 125 dlaždic (train 5 777 / val 1 224 / test 1 124).
 
@@ -375,7 +375,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; Sez. 107: 59,1 % (plocha
   69,2 / linie 59,3 / bod 18,4 → 54,3 po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb);
   Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
-  (kanonická 3-map sada, 527 kalibrace dolů + `Cesta typcesty_k=025`→508; plocha 72,7 / linie 65,7 / bod 59,5).
+  (527 kalibrace dolů + `Cesta typcesty_k=025`→508); **Sez. 152: 65,8 %**
+  (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota; plocha 75,0 / linie 66,7 / bod 67,9).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).
@@ -454,10 +455,11 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   eval_real}.py`, izomorf s Png2Area: reuse U-Net/loss/IoU/degrade/purple/checkpoints): per-class **segmentace
   linií** (NE vektorizace — ta je odložený sdílený „.omap assembly" krok, architektura A rozhodnuta Sez. 130).
   GT je **dilatovaná** (`GT_LINE_WIDTH_PX=3`) proti rozpouštění tenkých linií. Krok 1 = watercourse 304/305
-  (`N_LINE=2`): **plný trénink test mIoU 0,774 / IoU 0,55** (Sez. 131). **Reálný transfer PROKÁZÁN** (`eval_real`,
+  (`N_LINE=2` tehdy): **plný trénink test mIoU 0,774 / IoU 0,55** (Sez. 131). **Reálný transfer PROKÁZÁN** (`eval_real`,
   dvojí metrika strict IoU + relaxed [[completeness/correctness]]): **completeness 0,85–0,93** = model trasuje
   reálné toky (žádný kolaps jako Png2Point 210); slabina precision (přestřel na cesty) → **conf_thr práh 0,95**
-  (IoU 0,251→0,409, F1 0,773). Trénink = mrkla/HAL3000.
+  (IoU 0,251→0,409, F1 0,773). **Sez. 152 rozšířila label scope na 306/309/508***; to vyžaduje rebuild
+  tiles + retrain, starý checkpoint a `vectorize_omap.py` zůstávají watercourse-only. Trénink = mrkla/HAL3000.
 - **`LineClass` / `conf_thr`** (Sez. 131) — registr liniových tříd v [[omap_raster]] (`LINE_CLASSES`), dataclass
   izomorfní s `PointClass` (png2point): `name`, `codes` (ISOM → label), **`conf_thr`** = per-class práh softmax
   konfidence při INFERENCI (`LINE_CONF_THR` SSoT; watercourse 0,95). Holý argmax (=0,5 u 2 tříd) přestřeluje
@@ -504,7 +506,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   `rock_relief`) → predikční plochy do
   `.omap`. **403 (Sez. 92):** rozštěp žluté UVNITŘ open (gt label 4) přes `_is_pale_yellow` — bledá (403,
   predikt) vs sytá (401, real, neseparuje se) vs cesta vs bílá-záchyt; vlastní SCAN reference (ne render
-  palette), staví na očištěném map_gt. Pattern třídy (404/407/409) separace NEumí (per-pixel slepá, Sez. 90).
+  palette), staví na očištěném map_gt. **Sez. 152 přidává pattern heuristiku 404/407/409** přes raw RGB
+  density okno: 404 = bledá žlutá + zelené tečky, 407/409 = zelené pruhy na světlém podkladu.
   **Scope (Sez. 83):** jen co generátor neumí z tvrdých dat (vegetace, do budoucna paseky/podrost) —
   voda/skály/budovy zůstávají „real" (separace navíc = dvojí zdroj + konflikt + DRY). **Záměrně NE věrná na 100 %**
   (PoC ~90 %): kvalitu dotáhne MODEL trénovaný na množství párů, ne leštění prahu. Nahrazuje archivovaný

@@ -351,10 +351,13 @@ jako **bodový orientační prvek** (NE budova 521) — vložený `asset/ropik_1
 univerzální ČR). Fáze 1 (projekce reálných dat), ne pseudorealistická dekorace. Vyžaduje `--terrain real`.
 
 ### 4.9i Lesní průseky / lineární stopy terénem (real-půlka, Sez. 36+150)
-**✅ Reálné průseky a stopy:** `--rides real` vezme `Lesní průsek` (id 16, REST jméno s MEZEROU jako tramvaj/lávka)
-ze ZABAGED Polohopis REST a od Sez. 150 také `Cesta typcesty_k=025` (`zabaged.fetch_forest_rides`,
-`map_ride_to_isom`) → ISOM **508 Narrow ride** = průhled / lineární stopa terénem BEZ zřetelné vyšlapané
-cesty (ISOM odlišuje od cest 503–506). `Lesní průsek` nemá kategoriální atributy (verify SV 46 prvků);
+**✅ Řídký real-data fallback pro průseky a stopy:** `--rides real` vezme `Lesní průsek` (id 16, REST jméno
+s MEZEROU jako tramvaj/lávka) ze ZABAGED Polohopis REST a od Sez. 150 také `Cesta typcesty_k=025`
+(`zabaged.fetch_forest_rides`, `map_ride_to_isom`) → ISOM **508 Narrow ride** = průhled / lineární stopa
+terénem BEZ zřetelné vyšlapané cesty (ISOM odlišuje od cest 503–506). **ZABAGED je tady silně
+undercomplete**: vede hlavně hlavní / dlouhodobě udržované průseky, ne běžnou mapářskou síť průhledů.
+Proto je 508 ze ZABAGED jen konzervativní fallback; kompletnější zdroj má být mapper-scan/Png2Line.
+`Lesní průsek` nemá kategoriální atributy (verify SV 46 prvků);
 `Cesta typcesty_k=025` se záměrně vyjímá z path kanálu, aby snížila 504 přestřel a doplnila 508 bez
 umělého štěpení linií. Liniová, izomorfní s cestami: render mode `"dashed"`
 (`_draw_ride`), dash/break z template 508 = **3,0 / 0,375 mm** (dlouhé čárky, malé mezery → „skoro plná",
@@ -492,7 +495,7 @@ na 310). → `_marsh_indistinct(cx,cy)` deterministická pseudonáhoda ~55 % (sp
 běhy) reklasifikuje část mokřadů na 310, JEN když `pseudorealistic` (`--only-real` = vše 308 = čistá projekce;
 izomorf plotu 516). Render 310 = 2× řidší (0,90 mm) PŘERUŠOVANÁ staggered šrafa (`_draw_dashed_hline`, věrné
 template `type=2` line_spacing 900 + point_distance 1725). `.omap` area_object 310; Y-pipeline `omap_raster`
-AREA_ZORDER +310 (N_AREA 17→18). **Pozn.: coverage páka na DoD ~0** — ZABAGED mokřady na resources mapách řídké;
+AREA_ZORDER +310 (tehdy N_AREA 17→18; Sez. 152 po 404/407/409 už N_AREA=21). **Pozn.: coverage páka na DoD ~0** — ZABAGED mokřady na resources mapách řídké;
 hodnota v Livelox párech mokřadnatých lokalit.
 `mask_marsh.png`. Výskyt: NV 15 / HS 10 / NL 9 / SV 5 / LS 0 (sedí na probe Sez. 43).
 
@@ -552,8 +555,10 @@ Zdroj predikční vegetace: **separace barev z Livelox mapy** (`generator/separa
   `_is_pale_yellow` (nearest-color mezi scan ref **403 (254,222,154)** / 401 sytá / road / bílá-záchyt)
   oddělí bledou (403, predikt) od syté (401, real část — neseparuje se, scope „jen co data neumí").
   Staví na OČIŠTĚNÉM gt z map_gt (median + ignore přetisku + layout crop). Doloženo bimodalitou žluté
-  na 5 vzorových mapách. **Pattern třídy (404/407/409) separace NEumí** (per-pixel slepá na tečky/pruhy,
-  nález Sez. 90) → vlastní budoucí krok (model nebo generátor kreslí + Y rozšíří).
+  na 5 vzorových mapách. **Pattern třídy (404/407/409) od Sez. 152 řeší konzervativní raw-RGB density
+  heuristika:** 404 = bledá žlutá s rozptýlenými zelenými tečkami, 407/409 = zelené pruhy na světlém
+  podkladu. Nejde o plný model patternu; je to KISS scan-mining feeder pro `Png2Area`, s prioritou
+  před čistými 403/406/408/410 maskami.
 Zásada: separace = GT-feeder (~90 %, NEleštit práh; kvalitu dotáhne `Png2Area` model). Y rastr = `omap_raster`
 (403 v `AREA_ZORDER` + `omap_export.AREA_CODES`/`USED_CODES`).
 
@@ -567,15 +572,16 @@ třídy z `veg_area_mask_img` (`PREDICT_AREA_CLASS` rastr) → per-bod prstenu k
 vyšší třídy (dedup B>A, ať hrana A↔B jen jednou) → souvislé mezitřídní úseky → práh → RDP → polyline. Render
 `_draw_boundary` (černá tečkovaná, izomorf `_draw_ride` 508); .omap přes `linefeature_features` (sym 416 z
 template, **0 změna omap_export**); `mask_boundaries.png`. **LINIE → bez Y-area dluhu** (v době Sez. 101
-Png2Line ještě neexistoval; .omap stačí pro KPI/kompas. Png2Line vznikl Sez. 130-132 — viz `model/png2line/`,
-scope zatím watercourse 304/305, 416 jím není pokryto). Stejný typ problému jako marsh 310 (data nediskriminují), ale heuristika
+Png2Line ještě neexistoval; .omap stačí pro KPI/kompas. Png2Line vznikl Sez. 130-132 a Sez. 152 rozšířil
+label scope na 304/305 + 306 + 309 + 508*, ale 416 jím pořád není pokryto). Stejný typ problému jako marsh 310 (data nediskriminují), ale heuristika
 MEZITŘÍDNÍ je doménově věrná. **KPI 46,1 → 49,3 %** (+3,2 pb; sub-linie 47,7 → 58,3). Zásada „neleštit": gen 416
 je 0,24× reálného (per-mapa plató), nedoháníme na 1,0× (přestřel by KPI snižoval přes `min`).
 
 **Render** `_draw_predict_areas` = plná zelená/bledožlutá výplň BEZ obrysu (vegetační/open plošný symbol,
 izomorf s 406 stromořadím §4.9n / 401 / 520; díry zachovány přes scanline). Z-order: NAD plošným pokryvem
-(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_veg_area.png` (multi-class: 1=fight
-410, 2=walk 408, 3=slow 406, 4=403). Plošné objekty v .omap (`AREA_CODES`). Provenance `predict` v meta
+(401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi. `mask_veg_area.png` (multi-class:
+1=fight 410, 2=walk 408, 3=slow 406, 4=403, 5=409, 6=407, 7=404). Plošné objekty v .omap
+(`AREA_CODES`). Provenance `predict` v meta
 (`proxy:true`, `source:separace_realne_mapy`). Bez `predict_areas_sjtsk` (DEV `--location`) = bílý les.
 
 ### 4.10 Bodové značky (`det`)

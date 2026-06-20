@@ -20,8 +20,8 @@ transformuje X i Y na úrovni dlaždice. omap2png = náš rastr (`generate_map`
 dělá `rgb.png`); C++ headless OOM až s důkazem doménového gapu.
 **Y-pipeline `omap_raster.py` (Sez. 87):** `rasterize(omap, meta)` rasterizuje plošné (Area) ISOM symboly z `.omap`
 → **label rastr** (`area_labels.png` = **Y** páru, pro reconstructor `Png2Area`). Y z `.omap` (NE z render masek) →
-pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL`: **17 ISOM kódů +
-pozadí, `N_AREA=18`, labely 0–17**), statický z-order zdola nahoru a díry per
+pár self-konzistentní. Per-ISOM-kód (`CODE_TO_LABEL`: **20 ISOM kódů +
+pozadí, `N_AREA=21`, labely 0–20**), statický z-order zdola nahoru a díry per
 objekt. `pairs` volá s `labels=True`. Pár = **[`rgb.png` (X),
 `area_labels.png` (Y)]**; degradace X probíhá až on-the-fly v loaderu.
 
@@ -59,7 +59,9 @@ Realizuje **MVP řez** specifikace
     `--terrain real` (sdílí výsek s DMR → cesty sednou na terén),
 - **lesní průseky / lineární stopy** — `--rides real` (Sez. 36+150; týž `zabaged.py`): `Lesní průsek`
   + neudržovaná `Cesta typcesty_k=025` → ISOM **508 Narrow ride** (průhled/linear trace terénem;
-  černá čárkovaná 3,0/0,375 mm). Runnability pozadí se nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
+  černá čárkovaná 3,0/0,375 mm). **Pozor: ZABAGED je u průseků jen řídký fallback** (hlavní /
+  dlouhodobě udržované linie), ne zdroj kompletnosti; kompletnější 508 má dodat scan/Png2Line.
+  Runnability pozadí se nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
   (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
   (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen

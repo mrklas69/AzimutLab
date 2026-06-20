@@ -44,9 +44,9 @@ podrostu = runnability. CHM lze spočítat i přímo z laspy (bez lasertool). �
 
 | Co | Stav | Umístění |
 |----|------|----------|
-| `Png2Area` (U-Net resnet34, sken → plošný ISOM label rastr, 18 tříd) | živý (Sez. 88-126; test mIoU 0,683) | `model/png2area/` |
+| `Png2Area` (U-Net resnet34, sken → plošný ISOM label rastr, `N_AREA=21` po 404/407/409) | živý (Sez. 88-152; poslední plný test před scope expanzí mIoU 0,683) | `model/png2area/` |
 | `Png2Point` (U-Net + CenterNet heatmapy, bodové symboly 204/210/417/419) | živý (Sez. 105-128; medián mF1 0,827) | `model/png2point/` |
-| `Png2Line` (U-Net segmentace linií + vektorizace, watercourse 304/305) | živý krok 1 (Sez. 130-132; test mIoU 0,774) | `model/png2line/` |
+| `Png2Line` (U-Net segmentace linií + vektorizace; 304/305 + 306 + 309 + 508* label scope) | živý, scope rozšířený Sez. 152; starý checkpoint/vectorizer watercourse-only do retrainu | `model/png2line/` |
 | `ORTO → runnability` baseline | ARCHIV (slepá ulička Sez. 79, val mIoU strop ~0,25) | `model/runnability/` |
 
 ## Stack

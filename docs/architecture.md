@@ -218,11 +218,12 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   třetí ze tří CV úloh (liniové ISOM → per-class segmentace). Architektura A (rozhodnuta Sez. 130):
   model = jen segmentace (dilatovaná GT proti rozpouštění tenkých linií), vektorizace = sdílený downstream
   „.omap assembly" (`model/vectorize.py` skeletonize→graf→RDP, Sez. 132). **Krok 1 watercourse 304/305
-  (`N_LINE=2`): test mIoU 0,774 / IoU 0,55** (Sez. 131); reálný transfer PROKÁZÁN (completeness 0,85–0,93 =
+  (`N_LINE=2` tehdy): test mIoU 0,774 / IoU 0,55** (Sez. 131); reálný transfer PROKÁZÁN (completeness 0,85–0,93 =
   trasuje reálné toky, žádný kolaps jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr
   `LineClass.conf_thr`, izomorf `peak_thr`). **Krok 2 dashed 508+516 zkoušen a ZAVRŽEN měřením (Sez. 133):**
-  doménový gap (completeness strop 0,14–0,22) + multi-class zhoršil watercourse → revert na N_LINE=2. Stejný
-  checkpoint kontrakt (`--promote`). Poledníkový detektor `north_grid.py` (Sez. 132/134) filtruje falešné toky
+  doménový gap (completeness strop 0,14–0,22) + multi-class zhoršil watercourse. **Sez. 152 rozšířila label
+  scope na 306/309/508*** bez návratu k 516; starý checkpoint/vektorizér jsou watercourse-only, nový scope
+  čeká na rebuild/retrain. Stejný checkpoint kontrakt (`--promote`). Poledníkový detektor `north_grid.py` (Sez. 132/134) filtruje falešné toky
   z modrých magnetických poledníků.
 - **Checkpoint kontrakt živých modelů (CODE-C2, Sez. 127):**
   `model/checkpoints.py` je SSoT pro Png2Area i Png2Point. `best.pt`,
@@ -233,9 +234,9 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
-  **Stav Sez. 150: 63,3 %** na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
-  (plocha 72,7 / linie 65,7 / bod 59,5; per-mapa Bedř 57,2 / Blatná 63,1 / Velbloud 69,6);
-  největší díry 204/416/409/306/202.
+  **Stav Sez. 152: 65,8 %** na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
+  (plocha 75,0 / linie 66,7 / bod 67,9);
+  největší díry 403/416/306/202/109/501/308/108/408/208.
   Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
   se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
   `--table` kompas — sloupce `zdroj · gen · scan · provedení`; původ symbolů drží `isom.capabilities`).

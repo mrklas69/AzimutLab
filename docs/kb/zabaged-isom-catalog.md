@@ -52,7 +52,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Cesta` | linie | 503 / 504 / 508 | ✓ | `typcesty_k=025` (neudržovaná cesta) → 508 Narrow ride / linear trace (Sez. 150); jinak `povrch_k` Z/T → 503 Road, ostatní → 504 Vehicle track |
 | `Pěšina` | linie | 505 / 506 | ✓ | `TYPUSKOM_K` 026 → 505 Footpath; jinak → 506 Small footpath |
 | `Silnice_ve_výstavbě` | linie | 503 Road | ◐ | rozestavěná; vzácná, na OB se hotově nezakresluje → spíš vynechat |
-| `Lesní průsek` | linie | 508 Narrow ride | ✓ | **Sez. 36** (id 16, REST jméno s MEZEROU); KISS vždy 508; bez runnability pozadí (vegetace=UC5). Sez. 150: 508 kanál navíc bere `Cesta typcesty_k=025`, protože ISOM 508 pokrývá i „linear trace through the terrain". |
+| `Lesní průsek` | linie | 508 Narrow ride | ✓ | **Sez. 36** (id 16, REST jméno s MEZEROU); KISS vždy 508; bez runnability pozadí (vegetace=UC5). **Silně neúplná vrstva**: ZABAGED vede hlavně dlouhodobě udržované / hlavní průseky, proto je to jen řídký fallback, ne zdroj kompletnosti. Sez. 150: 508 kanál navíc bere `Cesta typcesty_k=025`, protože ISOM 508 pokrývá i „linear trace through the terrain"; kompletnější 508 má dodat scan/Png2Line. |
 | `Turistická_trasa` | linie | — | ✗ | overlay značení vedené PO existující cestě → duplikace sítě (Sez. 16) |
 | `Parkoviště__odpočívka` | plocha | 501.1 Paved area (bez obrysu) | ✓ | **Sez. 41** (`--paved`, id 123); **Sez. 57 oprava 501→501.1**: parkoviště je PRŮCHOZÍ plocha splývající s okolím → bez obrysu (na rozdíl od vymezeného kolejiště 501). Volba uživatele (OB praxe). Z-order = spodní base průchod. |
 | `Křižovatka_úrovňová` | bod | — | ✗ | atributový bod silniční sítě, ne kreslený objekt |

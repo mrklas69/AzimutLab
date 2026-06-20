@@ -15,11 +15,23 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   už drží symbolový SVG index + capability registry (real/mixed/pseudo/mapper_scan), `omap_export.USED_CODES`
   i KOMPAS jsou na něj napojené. První KOMPAS zásah hotov: 403 separace dostala per-class min-area 60 px.
   Navazující kalibrace 527 na stejné 3-map sadě zvedla headline KPI na **62,5 %**; přesun
-  `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Další PoC přidán:
+  `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Sez. 152 přidala scan/pattern
+  area třídy 404/407/409, rozšířila liniový scope na 306/309/508* a po kalibraci 204 posunula
+  headline na **65,8 %**. Další PoC přidán:
   `isom_scan/manmade_points_poc.py` hledá 525/527/531 z izolovaných černých komponent skenu
   a `manmade_points_review.py` vyrábí kurátorský manifest/crop sheet; capability registry je značí
   `classic_cv_poc` (ne live mapper-scan). Zbývá PoC vést přes KOMPAS/scan-mining metriky/kuraci,
   ne přes model-polishing.
+- [!] *(260620-Buschdörfl; Generator()/scan mining)* **Buschdörfl scan-transfer gap: posedy/krmelce,
+  drobné vodní/bažinaté plochy a oplocenky ze skenu.** Test `maps/Buschdörfl/Buschdörfl.omap` ukázal,
+  že se ze skenu nepřenáší tři prakticky důležité rodiny, které ZABAGED nedodá a pseudo je pro ně
+  slabší zdroj: **525 Small tower / posed**, **527 Fodder rack / krmelec**, drobné **301/308/310**
+  vodní a mokřadní plošky a uzavřené **516/517/518 oplocenky**. Detekční základ už existuje:
+  `isom_scan/manmade_points_poc.py` prokázal 525/527/531 z izolovaných černých komponent; scan separace
+  umí modré/mokřadní signály; oplocenky dělat topologicky jako uzavřené černé/dashed smyčky, ne jako
+  RÚIAN pseudo plot. Výstup má být kurátorský manifest + `.omap` kandidáti pro scan-derived doplnění,
+  nejdřív na Buschdörfl, potom ověřit na jedné české mapě. **Vysoká priorita před dalšími ZABAGED
+  honbami:** tahle data jsou v mapářském skenu, ne v ČÚZK.
 - [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
@@ -183,20 +195,25 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > **Png2Line krok 1 watercourse 304/305 (Sez. 131, NOVÝ 3. reconstructor; pixel IoU / relaxed completeness/correctness):**
 > synt test mIoU 0,774 / IoU 0,55 · **realita: completeness 0,85–0,93 = model TRASUJE reálné toky** (žádný kolaps
 > jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr `LineClass.conf_thr`, izomorf `peak_thr`;
-> argmax přestřeloval na cesty → IoU 0,251→0,409). Strukturální cure zbylé precision = krok 2 (víc liniových tříd).
+> argmax přestřeloval na cesty → IoU 0,251→0,409). **Sez. 152 rozšířila Y scope na 306/309/508***,
+> ale starý checkpoint i watercourse-only vektorizér tím nejsou automaticky nové řešení; line tiles/model
+> po změně `N_LINE` vyžadují rebuild + retrain.
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 150: KPI 63,3 %** (`KPI_3MAP_CANONICAL`: Bedř 57,2 / Blatná 63,1 / Velbloud 69,6;
-> plocha 72,7 / linie 65,7 / bod 59,5). Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu
-> `orig 8 / gen 103` → `gen 3` (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025`
-> z path 504 do ride 508 (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). **Žebříček děr:**
-> **204 / 416 / 409 / 306 / 202**. **KOMPAS `--table` má
+> **Stav Sez. 152: KPI 65,8 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,7** / bod **67,9**).
+> Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu `orig 8 / gen 103` → `gen 3`
+> (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025` z path 504 do ride 508
+> (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). Sez. 152 přidala 404/407/409
+> do scan separace / `N_AREA=21`, rozšířila `N_LINE` na 304/305 + 306 + 309 + 508* a zvedla
+> `PSEUDO_BOULDER_PER_KM2` 500→900. **Žebříček děr:**
+> **403 / 416 / 306 / 202 / 109 / 501 / 308 / 108 / 408 / 208**. **KOMPAS `--table` má
 > sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
 > fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.
 > Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
 >
-> **Plošná + liniová páka z ČÚZK je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1, 508
-> smíšený podstřel +0,34, 404/407/409 = vegetace gate). Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
+> **Plošná + liniová páka z čistě ČÚZK dat je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1,
+> 508 smíšený podstřel +0,34; Sez. 152 potvrzuje, že 404/407/409 patří do mapper-scan separace, ne do ČÚZK).
+> Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
 > pokrytí = strop tréninku (memory `generator-coverage-is-the-ceiling`). **Historie baseline (43 %→59,1 %), analytické
 > cuty (plošný strop 54 %), kompas a vyvrácené páky 403/508: DONE Sez. 94-102 + diáře.**
 - [ ] *(doladění → nález uživatele Sez. 118 „zubaté ploty")* **Plot 516 kolem velké privátní oblasti (520) je ZUBATÝ** ({A}, ~6 zbytečných
@@ -221,7 +238,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
   Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
   (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419** + **531**
-  (**527 opraveno Sez. 150: 103→3; 508 opraveno přes `Cesta typcesty_k=025`**). KPI dopad: přestřel KPI SNIŽUJE
+  (**527 opraveno Sez. 150: 103→3; 508 jen doplněn řídkým fallbackem přes `Cesta typcesty_k=025` —
+  ZABAGED průseky nejsou coverage zdroj**). KPI dopad: přestřel KPI SNIŽUJE
   (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
   změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
 - [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
@@ -243,7 +261,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [~] *(KPI kalibrace, nález Sez. 145 měření)* **Přeměřit pseudo hustoty crosswalk-aware + kalibrovat pseudo přestřely.**
   **527 hotovo Sez. 150:** kanonická 3-map sada ukázala `orig 8 / gen 103`; změna
   `PSEUDO_FODDER_PER_KM2=(3,13) → (0.08,0.35)` dala `gen 3`, stav `ok`, headline KPI **62,0→62,5**.
-  Navazující přesun `Cesta typcesty_k=025` do 508 kanálu dal KPI **62,5→63,3**.
+  Navazující přesun `Cesta typcesty_k=025` do 508 kanálu dal KPI **62,5→63,3**, ale jen jako řídký
+  fallback; kompletnost 508 patří do scan/Png2Line, ne do ZABAGED.
   Zbývá hlídat 531 a spojit s „Přestřel hustoty 204/210" výše (táž páka
   kpi-fill-undershoot-dilutes, balvany + pseudo body). Změny dělat jen s `measure_dod --table`
   před/po na stejné sadě.
@@ -259,8 +278,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   (516 Fence / 517 Ruined čárkovaná / 518 Impassable silná+dvojtick) deterministicky z geometrie (spatial-hash, vzor
   Sez. 57), váhy z measure-first (5/5 ČR map Σ 113/42/115 → 0,42/0,16/0,42). Verify: render LS .omap 80/39/108, vizuál
   rozlišitelný, KPI měří crosswalk-aware správně (522/523/524↔516/517/518). **ZBÝVÁ (b) Png2Line ze skenu** (Etapa 2,
-  za fázovou závorou) — detekce uzavřené smyčky plotu = JINÝ přístup (topologie uzávěru) + dashed už narazila na
-  doménový gap (Sez. 133). **+ KPI/KOMPAS dopad 517/518 ZMĚŘEN Sez. 145** (na ntbhej, C1 odblokoval): 517 podstřel
+  povýšeno na vysokou prioritu položkou `260620-Buschdörfl`) — detekce uzavřené smyčky plotu = JINÝ přístup
+  (topologie uzávěru), ne jen starý dashed multi-class pokus ze Sez. 133. **+ KPI/KOMPAS dopad 517/518 ZMĚŘEN Sez. 145** (na ntbhej, C1 odblokoval): 517 podstřel
   (orig 17 / gen 1), 518 ok (16/6), 516 podstřel (24/6) — kalibrace plotů → položka „pseudo hustoty" výše.
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních

@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 152 (2026-06-20) — ISOM scope expansion + scan backgrounds + Buschdörfl gap (HAL3000)
+Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
+- [x] **Podklady pro `maps/` dotažené bez duplicit:** `gen_backgrounds.py` už nepřidá druhé ortofoto,
+  když `.omap` obsahuje historické `ortofoto.png`, a `scan-auto` hledá Livelox sken podle souřadnicového
+  překryvu. Regenerované `Soví vrch` / `Nová Louka` / `Lidové sady` / `Hrubá Skála` mají DMR, jeden ortho
+  podklad a automaticky nalezený `bg_scan.png`.
+- [x] **Png2Area scope 404/407/409:** `separate.py` přidává raw-RGB density heuristiku pro 404 scattered trees
+  a 407/409 good-visibility patterny, `generator.py` je kreslí patternově, `omap_raster` má `N_AREA=21` a
+  modelové guardy hlásí stale tiles.
+- [x] **Png2Line scope 306/309/508*:** `LINE_CLASSES` pokrývá watercourse 304/305, seasonal 306, narrow marsh
+  309 a narrow ride 508/508.1/508.2/508.3/508.4. `vectorize_omap.py` zůstává watercourse-only a vypíše to
+  nahlas, aby se multi-class scope netvářil jako hotový export.
+- [x] **508 zdrojová korekce:** ZABAGED průseky jsou zdokumentované jen jako řídký fallback; capability registry
+  preferuje živý mapper-scan signál pro kompletnost 508.
+- [x] **KPI posun bez zamlčení dluhů:** 204 hustota zvýšena 500→900; `measure_dod.py` hlásí KPI **65,8 %**
+  (plocha 75,0 / linie 66,7 / bod 67,9). TODO má nový high-priority `260620-Buschdörfl` pro posedy/krmelce,
+  drobné vodní/bažinaté plochy a oplocenky ze skenu.
+
 ## Sezení 151 (2026-06-19) — Generator smoke + 525/527/531 scan-mining PoC (HAL3000)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 - [x] **260619-A6 generátorový smoke/invariant balík hotový:** nový `tests/smoke.py` běží jako
