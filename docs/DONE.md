@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 154 (2026-06-20) — Scan-transfer kalibrace bodových ISOM symbolů (HAL3000)
+Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
+- [x] **Obecný `.omap` export point kandidátů:** nový `isom_scan/manmade_points_omap.py` převádí review
+  manifest do pracovní mapy, čte transformaci `bg_scan.png`, umí první kontrolní export nezkontrolovaných
+  kandidátů i `--replace-existing-codes` pro scan update bez míchání se starou pseudo vrstvou.
+- [x] **Review manifest je rerun-friendly:** `isom_scan/manmade_points_review.py` už není navázaný jen na
+  man-made body; zachovává ruční verdikty podle stabilního `id`, doplňuje `review_summary` a slouží pro
+  černé, hnědé i zelené point kandidáty.
+- [x] **Hnědé a zelené point PoC vrstvy:** `isom_scan/terrain_points_poc.py` pokrývá `109/111/112/115`
+  s volbou `--codes`; `isom_scan/vegetation_points_poc.py` pokrývá `417/418`.
+- [x] **Buschdörfl lokální scan-transfer:** pracovní `maps/Buschdörfl/Buschdörfl.omap` byl aktualizovaný
+  přes 525/527/531, 111/112/115 a 417/418. Zelená kontrola 417/418 prošla uživatelským okem bez nalezeného
+  přehlédnutého symbolu; A/B/C markery pro `111` ukázaly, že práh okolo 0,70-0,72 zachytí slabší oblouky.
+- [x] **Hamr na Jezeře `109` marker kalibrace:** 40 ručních `602` markerů umožnilo změřit recall. Score-only
+  běh dával 359 kandidátů a false positives z liniového `108`; `--min-area 25` snížil výstup na 146 kandidátů,
+  odstranil negativní příklady A-D a zachoval recall `35/40 <= 8 px`, `36/40 <= 15 px`.
+
 ## Sezení 153 (2026-06-20) — %AUDIT:DOCS follow-up + docs closeout (HAL3000)
 Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
 - [x] **Samostatný auditní report:** vznikl `docs/AUDIT_DOCS_260620.md` s 12 nálezy, source ověřením

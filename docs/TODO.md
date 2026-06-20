@@ -18,21 +18,19 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   Navazující kalibrace 527 na stejné 3-map sadě zvedla headline KPI na **62,5 %**; přesun
   `Cesta typcesty_k=025` do 508 kanálu ji pak zvedl na **63,3 %**. Sez. 152 přidala scan/pattern
   area třídy 404/407/409, rozšířila liniový scope na 306/309/508* a po kalibraci 204 posunula
-  headline na **65,8 %**. Další PoC přidán:
-  `isom_scan/manmade_points_poc.py` hledá 525/527/531 z izolovaných černých komponent skenu
-  a `manmade_points_review.py` vyrábí kurátorský manifest/crop sheet; capability registry je značí
-  `classic_cv_poc` (ne live mapper-scan). Zbývá PoC vést přes KOMPAS/scan-mining metriky/kuraci,
-  ne přes model-polishing.
-- [!] *(260620-Buschdörfl; Generator()/scan mining)* **Buschdörfl scan-transfer gap: posedy/krmelce,
-  drobné vodní/bažinaté plochy a oplocenky ze skenu.** Test `maps/Buschdörfl/Buschdörfl.omap` ukázal,
-  že se ze skenu nepřenáší tři prakticky důležité rodiny, které ZABAGED nedodá a pseudo je pro ně
-  slabší zdroj: **525 Small tower / posed**, **527 Fodder rack / krmelec**, drobné **301/308/310**
-  vodní a mokřadní plošky a uzavřené **516/517/518 oplocenky**. Detekční základ už existuje:
-  `isom_scan/manmade_points_poc.py` prokázal 525/527/531 z izolovaných černých komponent; scan separace
-  umí modré/mokřadní signály; oplocenky dělat topologicky jako uzavřené černé/dashed smyčky, ne jako
-  RÚIAN pseudo plot. Výstup má být kurátorský manifest + `.omap` kandidáti pro scan-derived doplnění,
-  nejdřív na Buschdörfl, potom ověřit na jedné české mapě. **Vysoká priorita před dalšími ZABAGED
-  honbami:** tahle data jsou v mapářském skenu, ne v ČÚZK.
+  headline na **65,8 %**. Sez. 154 rozšířila `isom_scan` na per-ISOM point kandidáty:
+  525/527/531 z černých komponent, 109/111/112/115 z hnědé kresby, 417/418 ze zelené kresby,
+  obecný review manifest a `.omap` export. Capability registry je pořád jen `classic_cv_poc`;
+  povýšení na live mapper-scan smí přijít až po kuraci a metrice.
+- [!] *(260620-Buschdörfl; Generator()/scan mining)* **Scan-transfer bodových a liniových gapů ze skenu.**
+  Test `maps/Buschdörfl/Buschdörfl.omap` ukázal, že mapařský sken nese prakticky důležité symboly, které
+  ZABAGED nedodá a pseudo je pro ně slabší zdroj. Hotový lokální průchod: 525/527/531, 111/112/115 a 417/418.
+  Hamr na Jezeře ověřil přesné `602` markery pro `109`; negativní příklady `108` potvrdily nutnost
+  per-symbol tvarových filtrů (`--min-area 25` u 109). **Zbývá:** hlavní modré pointy `311/312/313`,
+  další černé bodové skupiny, drobné 301/308/310 vodní/mokřadní plochy a uzavřené 516/517/518 oplocenky.
+  Výstup má být kurátorský manifest + pracovní `.omap` kandidáti, nejdřív na Buschdörfl/Hamr, potom ověřit
+  na jedné české mapě. **Vysoká priorita před dalšími ZABAGED honbami:** tahle data jsou v mapářském
+  skenu, ne v ČÚZK.
 - Hotovo *(260619-A2; měření ntbhej)*: **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
@@ -159,8 +157,14 @@ sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.m
 - Hotovo: **Rozdělit durable harness vs copyright vstupy** — hotovo 2026-06-19: verzovat jen bezpečné textové části
   (`task_isom_scan.md`, schema/score/overlay/build_gt/README, scoring policy, GT manifest, run template),
   ignorovat PNG/PDF/runs a explicitně popsat, odkud se lokální GT obnovuje.
-- [!] **Black-vs-brown maska PoC** na sken — nejlevnější výhra z ChatGPT 5.5 vytěžku; výstup = měřicí skript
-  a vizuál/manifest, ne modelový reconstructor. Patří do `Generator() / scan mining`.
+- Hotovo: **Black-vs-brown maska a první point PoC vrstvy** — `black_brown_poc.py`,
+  `manmade_points_poc.py`, `terrain_points_poc.py`, `vegetation_points_poc.py`, review manifest a `.omap`
+  export dávají kontrolovatelný scan-transfer harness. Výstup je pořád kandidátní vrstva pro oko/kuraci,
+  ne modelový reconstructor a ne automatická GT pravda.
+- [!] **Per-ISOM calibration manifest pro scan-transfer.** Zavést malý strojově čitelný záznam pro každý
+  laděný symbol: `code`, mapa/sken, marker symbol (`602`), počet pozitivních markerů, negativní kódy/confusions
+  (`108` vs `109`), barevné prahy, šablonový score práh, area/size/fill limity, recall vůči markerům, cesta
+  k review sheetu, `.omap` export status a datum. Bez toho se parametry ztratí v chatu/temp adresářích.
 - [ ] **Kurátorovat `resources/isom/index.json`** — lokální SVG dump 113 symbolů je načitatelný, ale zatím
   draft (`geom/license/isom_version` neznámé). Začít živými bodovými třídami 204/210/417/419 a kandidáty
   418/525/527/531; vyplnit provenance/licenci, geometrii, měřítkové footprinty a případné OOM/OCAD aliasy.
@@ -201,12 +205,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > po změně `N_LINE` vyžadují rebuild + retrain.
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 152: KPI 65,8 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,7** / bod **67,9**).
+> **Stav Sez. 154: KPI 65,8 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,7** / bod **67,9**).
 > Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu `orig 8 / gen 103` → `gen 3`
 > (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025` z path 504 do ride 508
 > (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). Sez. 152 přidala 404/407/409
 > do scan separace / `N_AREA=21`, rozšířila `N_LINE` na 304/305 + 306 + 309 + 508* a zvedla
-> `PSEUDO_BOULDER_PER_KM2` 500→900. **Žebříček děr:**
+> `PSEUDO_BOULDER_PER_KM2` 500→900. Sez. 154 přidala kandidátní scan-transfer pro bodové kódy
+> 109/111/112/115/417/418 a obecný `.omap` export, ale bez KPI povýšení před kurací. **Žebříček děr:**
 > **403 / 416 / 306 / 202 / 109 / 501 / 308 / 108 / 408 / 208**. **KOMPAS `--table` má
 > sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
 > fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.

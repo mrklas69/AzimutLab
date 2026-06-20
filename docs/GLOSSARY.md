@@ -363,6 +363,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   pokrytí a zlepšuje feeder. Není to zakázaná `reconstructor()` práce, dokud výstup není cílový produkt
   `sken → .omap` ani model-polishing bez vazby na KOMPAS. Stav `classic_cv_poc` v `isom.capabilities`
   znamená ověřovací kandidát z classic-CV utilit, ne živý mapper-scan zdroj pravdy.
+- **Scan-transfer calibration** (Sez. 154) — per-ISOM kalibrace scan-miningu pro konkrétní symbol:
+  markerové pozitivní příklady (`602 Registration mark`), negativní příklady/confusions (např. `108` vs `109`),
+  barevná maska, šablonový práh, velikostní/fill filtry, recall a review sheet. Cíl není hned automaticky
+  přepsat mapu, ale získat opakovatelný parametrický běh, který může po kuraci napájet [[KOMPAS]]/feeder.
 - **KPI generátoru** (Sez. 100) — **primární kvantifikátor fáze [[generator]]()**: „jak blízko jsme generování
   **reálně vyhlížejících** O-map". = **proporční podobnost distribuce ISOM symbolů** gen vs vzorové mapy =
   **histogram intersection** `Σ min(orig_share, gen_share)` (každý vektor normalizován na vlastní Σ → ruší
