@@ -5,10 +5,12 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I
-`generator()`, and **three live reconstructors**. Generator KPI is **63.3%** (`KPI_3MAP_CANONICAL`,
-session 150).
+`generator()`, and **three live reconstructors**. Generator KPI is **65.8%** (`KPI_3MAP_CANONICAL`,
+session 152).
 `Png2Area` has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.827** (4 classes
-204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**. Real-domain
+204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**; its label scope now
+covers watercourse 304/305 + 306 + 309 + 508*, while the old checkpoint/vectorizer remain
+watercourse-only until rebuild/retrain. Real-domain
 transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
 no collapse), strict IoU **0.409** after a per-class confidence threshold. **Direction &
 phase gate live in [ROADMAP.md](docs/ROADMAP.md)** (`Generator()` → `Rekonstruktor()`; we
@@ -132,7 +134,7 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
     dataset.py         #     PyTorch loader over tiles + augmentation (D4 + brightness/contrast); ImageNet norm (session 78)
     train.py           #     U-Net/ResNet34 (smp), BF16, per-class IoU → resources/model/ (session 78; baseline val mIoU 0.25 = RGB-only ceiling)
   png2area/            #   LIVE Png2Area reconstructor (session 88): map scan → area label raster, first of the 3 OOM-geometry CV tasks
-    tile.py            #     resample + pre-tiling [rgb.png, area_labels.png] → 512×512; 17 ISOM codes + background
+    tile.py            #     resample + pre-tiling [rgb.png, area_labels.png] → 512×512; 20 ISOM codes + background (N_AREA=21)
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
     train.py           #     U-Net/ResNet34, N_AREA labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.683 before 21-class expansion
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks

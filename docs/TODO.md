@@ -1,6 +1,7 @@
 # TODO — AzimutLab
 
-Markery: `[ ]` čeká · `[~]` rozděláno · `[x]` hotovo (přesouvá se do DONE) · `[!]` priorita.
+Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita. Hotové položky patří do `DONE.md`/diary;
+v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## Audit Fable 5 (2026-06-19) — námitky → úkoly
@@ -32,12 +33,12 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   RÚIAN pseudo plot. Výstup má být kurátorský manifest + `.omap` kandidáti pro scan-derived doplnění,
   nejdřív na Buschdörfl, potom ověřit na jedné české mapě. **Vysoká priorita před dalšími ZABAGED
   honbami:** tahle data jsou v mapářském skenu, ne v ČÚZK.
-- [x] *(260619-A2; měření ntbhej)* **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
+- Hotovo *(260619-A2; měření ntbhej)*: **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
   (`mpp=0,3175`, rotace −11,3°; `resources/` je gitignored) a `measure_dod.py` doběhl na default sadě
   Bedřichovka/Blatná/Velbloud. Baseline po plné regeneraci: KPI 57,6 %. Po prvním cíleném zásahu
   do 403 separace: KPI 59,5 %. Headline trend smí dál používat jen stejnou mapovou sadu.
-- [x] *(260619-A3; isom_scan governance)* **Rozdělit `isom_scan/` na licencovaný vstup vs verzovatelný harness.**
+- Hotovo *(260619-A3; isom_scan governance)*: **Rozdělit `isom_scan/` na licencovaný vstup vs verzovatelný harness.**
   Hotovo 2026-06-19: `.gitignore` ignoruje PNG/PDF/syrové runs/overlaye, ale pouští textový harness
   (`README`, prompt, skripty, `results.csv`, `gt/ground_truth.json`, `gt/task_crop_box.json`,
   `runs/_run_template.json`). `isom_scan/README.md` explicitně popisuje Git hranici a obnovu lokální GT.
@@ -152,10 +153,10 @@ i lokální (vision) modely rozpoznají ISOM symboly přímo ze skenu, bez douč
 fixní prompt + JSON schema (`task_isom_scan.md`), oddělený skórovač (`score.py` — model NESkóruje sám
 sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.md`. Vstup = ořez skenu
 `1127443` Branžež. Headline KPI = `point_F1` (anti-sprawl, [[kpi-one-quantifier-not-methodology-sprawl]]).
-- [x] **Postavit GT** (`gt/ground_truth.json`) — READY Sez. 146: generátorová GT `only_real=True`
+- Hotovo: **Postavit GT** (`gt/ground_truth.json`) — READY Sez. 146: generátorová GT `only_real=True`
   nad Branžež quad, vizuálně ověřené zarovnání sken↔gen (NCC 0,945; silnice lícují). Textová GT + crop
   kotva jsou od 2026-06-19 verzovatelné; raster/PDF vstupy zůstávají lokální.
-- [x] **Rozdělit durable harness vs copyright vstupy** — hotovo 2026-06-19: verzovat jen bezpečné textové části
+- Hotovo: **Rozdělit durable harness vs copyright vstupy** — hotovo 2026-06-19: verzovat jen bezpečné textové části
   (`task_isom_scan.md`, schema/score/overlay/build_gt/README, scoring policy, GT manifest, run template),
   ignorovat PNG/PDF/runs a explicitně popsat, odkud se lokální GT obnovuje.
 - [!] **Black-vs-brown maska PoC** na sken — nejlevnější výhra z ChatGPT 5.5 vytěžku; výstup = měřicí skript
@@ -252,7 +253,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   size — ODLOŽENO** (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní
   (buildings vrací area, 523.1 je point → cross-pipeline změna signatury/render/omap) → reálná páka ≈ 0. Když se
   bude dělat: footprint < ISOM min 0,8×0,8 mm (144 m²) → bodový čtverec 523.1 místo zanikajícího obrysu 523.
-- [x] *(KPI verify — ZMĚŘENO Sez. 145 na ntbhej, C1 odblokoval)* **Přeměřeno KPI/KOMPAS dopad pseudo bodů
+- Historický měřicí kontext *(KPI verify — ZMĚŘENO Sez. 145 na ntbhej, C1 odblokoval)*: **Přeměřeno KPI/KOMPAS dopad pseudo bodů
   527/525/531 + 517/518.** C1 fix (Sez. 143) reálně odblokoval `measure_dod` na ntbhej (rozpor diáře 141/143
   rozřešen: `segment_gt` na downscalovaném skenu RAM nepřekročí). KPI 2-mapová sada **55,3 %** (Bedř 49,4 / Blatná
   61,2; Velbloud.pgw chybí → hlasitě vynechán, NEsrovnatelné s 3-map 60,7 % — Velbloud byl nejvyšší 67,0). KOMPAS
@@ -368,7 +369,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     `build_pair(1005002)` worst-case 93 Mpx **357 s** (downscale drží), `_map_affine` na rotovaném quadu lícuje
     (vizuál); sanity `batch 10` 9/9 OK **~51 s/mapa** → noční `build_pairs batch` 207 ČR **SPUŠTĚN** (resume). Vedlejší:
     `map_gt.segment_gt` nezvládne >~100 Mpx (20 GiB; korpus malý → neakutní).
-  - [x] **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
+  - Hotovo: **(verify dluh Sez. 84) Ověřit proc baseline 65 — HOTOVO Sez. 85** (`.omap objektů 65`; `_group_holes`
     bbox prefilter behavior-preserving, regrese 0).
 - [~] **Fáze II/III degradér `generator/degrade.py` — MVP HOTOVO Sez. 86, PŘESUNUT do augmentace Sez. 103.**
   `degrade(rgb, seed)` 4 fotometrické sken-vrstvy (CMYK misregistrace / blur / papír+zažloutnutí / šum+JPEG),
@@ -382,8 +383,8 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [~] *(navazuje na hlavní tah, Sez. 80; přejmenováno Sez. 82)* **Tři pomocné modely `reconstructor()` — `Png2Area` /
   `Png2Point` / `Png2Line`** (OOM Point/Line/Area, `type=1/2/4`; dekompozice podle typu geometrie ISOM = tři CV
   úlohy, GT zdarma z `.omap`). Pořadí (foundations): Area → Point → Line. Detail IDEAS „Tři fáze I/II/III".
-  - [x] **`Png2Area` HOTOVO Sez. 87-91 — PRVNÍ funkční reconstructor** (plný detail DONE Sez. 87/88/90/91):
-    Y-pipeline `omap_raster.py` (**17 ISOM kódů + pozadí = `N_AREA 18`**, statický z-order, díry per-objekt) → loader/tile/train
+  - Hotovo: **`Png2Area` HOTOVO Sez. 87-91 — PRVNÍ funkční reconstructor** (plný detail DONE Sez. 87/88/90/91):
+    Y-pipeline `omap_raster.py` (dnešní kontrakt **20 ISOM kódů + pozadí = `N_AREA 21`**; historicky `N_AREA 18`, statický z-order, díry per-objekt) → loader/tile/train
     `model/png2area/{tile,dataset,train}.py` (512/stride256 BEZ rejection, U-Net bez ignore_index, median-freq váhy)
     → overfit gate (nález **tvar > velikost**: tenké třídy se downsamplingem rozpustí) → **plný trénink test mIoU
     0,621→0,640, val 0,654** (cap vah @10 v train.py + cosine LR, loss-spiky zmizely); budovy 521 zachráněny
@@ -395,14 +396,14 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
     (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
     corpus expansion").
-  - [x] **`Png2Point` HOTOVO Sez. 105-106 — DRUHÝ funkční reconstructor** (detail DONE). Sez. 105 pipeline
+  - Hotovo: **`Png2Point` HOTOVO Sez. 105-106 — DRUHÝ funkční reconstructor** (detail DONE). Sez. 105 pipeline
     (`model/png2point/{inject,dataset,train}.py`): A1 injekce symbolů + A2 heatmap regrese (CenterNet focal) + A3
     scope 204+210. **Sez. 106 dokončeno:** `point_base` render bez bodů (master flag `generate_map`, diff verify) +
     batch 40 map napříč splity (`pairs pointbase`) + dataset random-crop point_base + **root-cause 204** (gate selhal
     → diagnostika: příčina **hustota pozitiv vs focal `n_pos` normalizace**, ne velikostní záměna; `n_boulder`→(40,120))
     → **plný trénink TEST mF1 0,897** (204 0,93 / 210 0,86, bez leaku). `unet_best.pt` → `resources/point_model/`.
     Nález: per-kanál focal ZHORŠILA (vrátit); F1 = injekce na point_base, ne reálné skeny.
-  - [x] *(HOTOVO Sez. 107, detail DONE)* **Integrovat Png2Point body do generátoru → KPI 50,3 → 59,1 % (+8,8 pb).**
+  - Hotovo *(Sez. 107, detail DONE)*: **Integrovat Png2Point body do generátoru → KPI 50,3 → 59,1 % (+8,8 pb).**
     Pseudo injekce 204/210 do `gen.omap` (`_generate_pseudo_boulders` + `omap_export` `210.1`), reuse inject
     geometrie (NE model), gated `pseudorealistic` bez flagu (visí na rocks). **Scope 204+210, 207 vyřazen** (kompas
     16/17 pokryto). Měření vynutilo: maska z **doložené skalnatosti** (206+reálné body+dilatace, ne sklon — sklon ≠
@@ -422,7 +423,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     417/419 → třetí třída do `_generate_pseudo_veg_points`; čistě pseudo, hustota měřena ~17,8/km² → `(8,26)`; `USED_CODES += 418`;
     KPI 61,1 → 61,7 %, KOMPAS orig 178/gen 90 ✓; POZN. 418 mimo Png2Point scope = generátor kreslí pro budoucí trénink);
     (d) pak 109/111/112/115.
-  - [x] *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)* změřena detekce 204/210 na REÁLNÉM
+  - Hotovo *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)*: změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).
   - [~] **`Png2Line` — TŘETÍ funkční reconstructor, KROK 1 HOTOVO Sez. 130-131** (přístup ROZHODNUT Sez. 130,

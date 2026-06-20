@@ -65,11 +65,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
-  sken → area label rastr, 17 ISOM kódů + pozadí = `N_AREA=18`; pár
+  sken → area label rastr, 20 ISOM kódů + pozadí = `N_AREA=21` po 404/407/409 Sez. 152; pár
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
-  BEZ rejection — pozadí je legitimní třída; test mIoU 0,683 Sez. 126) · `png2point/` = **živý** reconstructor
-  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210; test mF1
-  0,888 medián 3 seedů, stabilní po focal bias initu Sez. 125 — 0,897 Sez. 106 byl nereprodukovatelný single-run).
+  BEZ rejection — pozadí je legitimní třída; test mIoU 0,683 Sez. 126 před scope expansion) · `png2point/` = **živý** reconstructor
+  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210/417/419
+  od Sez. 128; test mF1 0,827 medián 3 seedů na kanonickém měřítku 1,33; starší 0,888 je superseded 2-třídová metrika).
   Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —

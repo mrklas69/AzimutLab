@@ -416,7 +416,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **Y odvozeno z `.omap`, NE z render masek `mask_*.png`** — reconstructor se
   učí na páru [`rgb.png`, `.omap`], Y z téže
   `.omap` → pár **self-konzistentní** (nezávisí na render artefaktech). **Per-ISOM-kód** (volba Sez. 87): `CODE_TO_LABEL`
-  **17 ISOM kódů + pozadí = `N_AREA 18`, labely 0..17**; **statický**
+  aktuálně **20 ISOM kódů + pozadí = `N_AREA 21`, labely 0..20** po 404/407/409 v Sez. 152; **statický**
   (konzistence napříč korpusem), seskupení tříd = modelové
   rozhodnutí NAD rasterizací (DRY, izomorf s [[degradér|`tile.py`]] labely). **Z-order statický ISOM** zdola nahoru
   (501.1/520 base … 521 budovy), **díry per-objekt** (vyříznuté jen v rámci objektu → odhalí nižší vrstvu).
@@ -434,7 +434,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **`Png2Area` model HOTOVO Sez. 88** (`model/png2area/{tile,dataset,train}.py`, izomorf s archivem
   `model/runnability/`): dlaždice [`rgb.png`, `area_labels.png`] →
   `AreaTileDataset` (D4 + on-the-fly degradace + ImageNet) → U-Net/ResNet34,
-  **17 ISOM kódů + pozadí = 18 výstupních labelů 0..17** ze
+  aktuálně **20 ISOM kódů + pozadí = 21 výstupních labelů 0..20** ze
   [[omap_raster]], bez ignore_index. **Plný trénink
   Sez. 90-91:** test mIoU 0,621→0,640 (cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
   208/501/301.1 = datový strop → class-balanced expansion. **Přetrénován N_AREA 18 (Sez. 103, +310): test mIoU
@@ -579,8 +579,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   runnability-kategorie; per-odstín gap je metrický (odstínová záměna 401↔403, vzácné třídy bez supportu),
   ne kategorický. Reportuje se **dvojice (per-odstín / soft-skupiny)** jako 2. KPI při každém tréninku.
   **Změřen pro `Png2Point` (Sez. 121, A1.b `model/png2point/eval_real.py`):** peak mF1 synt **0,897** (POZOR:
-  nestabilní model PŘED Sez. 125 — synt referenci nahradit 0,888, realitu re-benchmarkovat na stabilním modelu
-  + po MPP fixu) / realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
+  nestabilní 2-třídový model PŘED Sez. 125 — dnešní živá reference je 4-třídový model mF1 0,827; 0,888 zůstává
+  superseded 2-třídová metrika) / realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
   F1 0,38–0,68: plný kruh přežije injekce→sken), **210 Stony KOLABUJE** (F1 ~0,04: drobné tečky splývají
   s rastrem skenu). 90 %+ halucinace 210 mimo mapové pole = striping artefakt (jako Png2Area) → maska
   pole nutná pro poctivý výpočet. *(Čísla = stav Sez. 121, 2-třídový model na starém měřítku; aktuální
@@ -614,7 +614,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   | Vrstva | Mechanismus | meta.json | `.omap` | `stats` | Y rastr |
   |--------|-------------|-----------|---------|---------|---------|
   | **516 Plot/Fence** | obvod RÚIAN zahrad (druh 5), `_rdp` narovnání, ticky dovnitř; off-water clip | `fences_info` | ✓ | ✓ | ✗ (linie → čeká na Png2Line) |
-  | **310 Indistinct marsh** | ~55 % mokřadů 308 náhodně přepnuto (spatial-hash split), 2× řidší přeruš. šrafa | `veg_area` | ✓ | ✓ | ✓ (N_AREA 18) |
+  | **310 Indistinct marsh** | ~55 % mokřadů 308 náhodně přepnuto (spatial-hash split), 2× řidší přeruš. šrafa | `veg_area` | ✓ | ✓ | ✓ (N_AREA 21; historicky přidáno v N_AREA 18 éře) |
   | **pseudo body 204/210** | injekce na DOLOŽENOU skalnatost (206 DMR + ZABAGED body + dilatace), reuse inject geometrie | `rocks_info` | ✓ | ✓ (SYMBOLS) | ✗ (body → Png2Point) |
 
   Pozn.: pseudo body 204/210 jsou v REÁLNÉM kartografově `.omap` taky (kartograf je kreslí) — A1 benchmark

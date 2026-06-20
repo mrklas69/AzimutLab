@@ -5,6 +5,13 @@ Auditor: Codex GPT-5
 Rozsah: `README.md`, `docs/architecture.md`, `docs/ROADMAP.md`, `docs/TODO.md`, `docs/DIARY.md`, poslední diáře 2026-06-16 až 2026-06-18, předchozí `docs/AUDIT_FABLE5_260612.md`, `docs/IDEAS_from_chatgpt55.md`, přímé ověření `generator/`, `connectors/`, `model/`, `tests/`, `resources/isom/`, lokální `isom_scan/` a aktuální pracovní stav.  
 Metoda: meta-audit směru a rizik; dokumentace ověřená proti kódu a lokálním artefaktům. Testy jsem nespouštěl: na tomto stroji v sezení nebyl dostupný funkční Python launcher (`.venv` ani `py -3.12`).
 
+> **Status po Sez. 152 (2026-06-20):** tenhle audit zůstává historický artefakt.
+> Část nálezů už byla mezitím uzavřena nebo posunuta: `Velbloud.pgw` byl lokálně
+> doplněn, kanonický 3-map KPI trend pokračuje, generator smoke existuje a
+> `isom_scan/` má oddělenou verzovatelnou harness hranici. Aktuální stav čti přes
+> `docs/DIARY.md`, `docs/DONE.md`, `docs/TODO.md` a `README.md`, ne jako otevřený
+> backlog z původních závěrů níže.
+
 ## TL;DR
 
 Projekt se od minulého Fable auditu výrazně zlepšil v disciplíně: `ROADMAP.md` drží fázi `Generator()`, real-eval už existuje pro Png2Area/Point/Line a `measure_dod.py` má živý KOMPAS místo mrtvého binárního DoD. Největší nové riziko není nedostatek směru, ale špatná klasifikace nového průlomu: ISOM-scan/classic-CV vytěžování není "leštění rekonstruktoru", ale přímý enabler `generator()` a KOMPASu, pokud z něj lezou barvy, masky, symboly a kalibrační signály. Tuhle větev je potřeba rychle zakotvit jako "scan mining" v rámci `Generator()`, jinak ji současný zákaz reconstructor/degradation práce může nechtěně zadusit.

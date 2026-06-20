@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 153 (2026-06-20) — %AUDIT:DOCS follow-up + docs closeout (HAL3000)
+Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
+- [x] **Samostatný auditní report:** vznikl `docs/AUDIT_DOCS_260620.md` s 12 nálezy, source ověřením
+  (`N_AREA=21`, `N_LINE=5`, 65 capability/generator kódů) a follow-up stavem.
+- [x] **D1-D10 docs drift opraven:** `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/architecture.md`,
+  `docs/GLOSSARY.md`, `docs/TODO.md`, `docs/DIARY.md`, `docs/AUDIT_FABLE5_260619.md` a
+  `docs/HANDOFF_260619_MRKLA_HAL3000.md` sjednocené na živý kontrakt KPI **65,8 %**, `N_AREA=21`,
+  `N_LINE=5` a 4-třídový `Png2Point`.
+- [x] **D11 DIARY archive anchors:** opraveno 20 rozbitých fragmentů v `docs/DIARY-archive.md`;
+  verifier po opravě hlásí **120/120 OK**.
+- [x] **D12 STATISTICS role:** `generator/STATISTICS.md` označený jako historický snapshot 2026-06-10 /
+  Sez. 108, ne aktuální SSoT nebo `KPI_3MAP_CANONICAL`.
+
 ## Sezení 152 (2026-06-20) — ISOM scope expansion + scan backgrounds + Buschdörfl gap (HAL3000)
 Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
 - [x] **Podklady pro `maps/` dotažené bez duplicit:** `gen_backgrounds.py` už nepřidá druhé ortofoto,

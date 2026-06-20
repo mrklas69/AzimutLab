@@ -176,8 +176,8 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   (páry/GT/split/dlaždice) zůstává znovupoužitelná — reálně reusována Png2Area modelem níže.
 - **Png2Area reconstructor — PRVNÍ FUNKČNÍ MODEL (Sez. 88 kód → Sez. 90-91 trénink), `model/png2area/{tile,dataset,train}.py`:**
   první ze tří CV úloh dekompozice OOM (Area/Point/Line). Učí se na páru **[`rgb.png` (X, ČISTÝ gen render),
-  `area_labels.png` (Y, **17 ISOM kódů + pozadí = `N_AREA 18`** ze
-  `omap_raster`, +403 Sez. 92 / +310 Sez. 99)]** vyrobeném
+  `area_labels.png` (Y, **20 ISOM kódů + pozadí = `N_AREA 21`** ze
+  `omap_raster`, historicky +403 Sez. 92 / +310 Sez. 99 / +404+407+409 Sez. 152)]** vyrobeném
   `generator/pairs.py`. Fotometrická degradace (sken-vady) NENÍ v páru — aplikuje se on-the-fly jako augmentace
   v `dataset.py` (Sez. 103, degradace patří do tréninkové fáze II/III, ne do generator() výroby párů). Izomorf
   s archivem (reuse tiling 512/256, median-freq, D4, ImageNet, U-Net/ResNet34) — liší se: vstup je **mapa, ne ortofoto**

@@ -79,10 +79,10 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
   podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
-  sken → area label rastr, 17 ISOM kódů + pozadí = `N_AREA=18`; pár
+  sken → area label rastr, 20 ISOM kódů + pozadí = `N_AREA=21` po 404/407/409 Sez. 152; pár
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
-  BEZ rejection — pozadí je legitimní třída; test mIoU **0,683 Sez. 126** MPP fix na kanonické měřítko dlaždice 1,33,
-  z 0,537 Sez. 118) · `png2point/` = **živý** reconstructor
+  BEZ rejection — pozadí je legitimní třída; test mIoU **0,683 Sez. 126** MPP fix na kanonické měřítko dlaždice 1,33
+  před scope expansion, z 0,537 Sez. 118) · `png2point/` = **živý** reconstructor
   `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, **scope 204/210/417/419**
   od Sez. 128; test mF1 **0,827 medián 3 seedů** na kanonickém měřítku 1,33 — stabilní po focal bias initu Sez. 125;
   vše na kanonickém MPP `model/mpp.CANONICAL_MPP`, symboly i páry lícují, Sez. 126 audit C1/K1). **Reálný transfer

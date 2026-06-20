@@ -3,6 +3,11 @@
 Předání ze Sezení 148 (ntbhej). Cíl: převzít stav po auditních nálezech 260619,
 vizuálně ověřit regenerované mapy a pokračovat ve zvyšování KPI generátoru přes KOMPAS.
 
+> **Superseded po Sez. 150-152:** soubor je historické předání po Sez. 148.
+> Aktuální headline KPI je 65,8 % (`KPI_3MAP_CANONICAL`), `N_AREA=21` a
+> Png2Line label scope je rozšířený na 304/305 + 306 + 309 + 508*. Pro dnešní
+> startovací stav čti `docs/DIARY.md`, `README.md` a `docs/TODO.md`.
+
 ## Stav
 
 - `Generator()` narativ pořád platí: ROADMAP, KOMPAS a KPI jsou hlavní řízení práce.

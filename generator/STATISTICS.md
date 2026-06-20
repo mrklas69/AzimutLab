@@ -1,9 +1,15 @@
 # STATISTICS — testovací mapy AzimutLab
 
+> **Historický snapshot (2026-06-10 / Sez. 108).** Tohle není aktuální SSoT
+> generator coverage ani `KPI_3MAP_CANONICAL`; je to stará tabulka 5 DEV
+> lokalit pro tehdejší smoke/statistiky. Aktuální schopnosti generátoru čti z
+> capability registru a `measure_dod.py`. Pokud má tabulka znovu sloužit jako
+> živý DEV přehled, nejdřív ji regeneruj přes `stats.py`.
+
 Počty objektů per ISOM symbol napříč 5 DEV_LOCATIONS (`generator.py --location KÓD`).
 Regeneruj skriptem `stats.py` po každém regen kanonika nebo po změně rendereru.
 
-**Kanonické lokality** (různé formáty výseku pro test ořezu DMR/ZABAGED/ortofoto):
+**DEV lokality tohoto historického snapshotu** (různé formáty výseku pro test ořezu DMR/ZABAGED/ortofoto):
 
 - **SV** — Soví vrch / Lužické hory  (`Soví vrch/`)
 - **NL** — Nová Louka / Jizerské hory  (`Nová Louka/`)
