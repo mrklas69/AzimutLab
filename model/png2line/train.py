@@ -2,8 +2,8 @@
 train.py — trénink reconstructor modelu Png2Line (Sez. 130).
 
 TŘETÍ ze tří CV úloh dekompozice OOM podle geometrie (Sez. 80): Png2Area (plochy) | Png2Point (body) |
-**Png2Line (linie)**. Mapový sken RGB → per-class segmentace liniových ISOM symbolů (krok 1: N_LINE=2,
-pozadí + watercourse 304/305). Vektorizace maska→polyline je ODLOŽENÝ sdílený krok (IDEAS „Png2Line —
+**Png2Line (linie)**. Mapový sken RGB → per-class segmentace liniových ISOM symbolů (aktuálně
+pozadí + watercourse 304/305 + 306 + 309 + 508*). Vektorizace maska→polyline je ODLOŽENÝ sdílený krok (IDEAS „Png2Line —
 segmentace + odložená vektorizace"), NE součást modelu. Izomorfní s model/png2area/train.py (reuse
 U-Net/loss/IoU/křivka/checkpoints) — liší se: N_LINE tříd, line_tiles/line_model adresáře.
 
@@ -16,7 +16,7 @@ Dva režimy (CLI):
   python model/png2line/train.py --overfit   # sanity gate: 2 mapy, bez augmentace, train mIoU→~1
   python model/png2line/train.py             # plný trénink na train splitu, eval na val + test
 
-Třída je EXTRÉMNĚ nevyvážená (watercourse << 1 % px) → CrossEntropyLoss s median-freq váhami z tile.py.
+Liniové třídy jsou EXTRÉMNĚ nevyvážené (často << 1 % px) → CrossEntropyLoss s median-freq váhami z tile.py.
 Metrika = per-class IoU + mIoU (accuracy by schovala, že model predikuje samé pozadí).
 
 Sys.path skript (fáze B). Každý běh → resources/line_model/runs/<run_id>/; unet_best.pt mění jen --promote.

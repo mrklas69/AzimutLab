@@ -52,6 +52,7 @@ AREA_ZORDER = [
     "520",    # Out-of-bounds (olivová: hřbitov/privátní/sad/lom)
     "401",    # Open land (žlutá)
     "403",    # Rough open land (bledá žlutá, separace Sez. 92)
+    "404",    # Rough open land se scattered trees (pattern ze separace skenu)
     "402",    # Open land se stromy (park)
     "402.1",  # Open land s keři (ostatní udržovaná zeleň)
     "412.1",  # Cultivated land (pole) — combined složka 401+412.1
@@ -59,7 +60,9 @@ AREA_ZORDER = [
     "308",    # Marsh (mokřad)
     "310",    # Indistinct marsh (nezřetelná bažina, pseudo Sez. 99)
     "406",    # Forest: slow running (světlá zeleň)
+    "407",    # Forest: slow running, good visibility (pruhovaný pattern)
     "408",    # Forest: walk (střední zeleň)
+    "409",    # Forest: walk, good visibility (pruhovaný pattern)
     "410",    # Forest: fight (tmavá zeleň)
     "206",    # Gigantic boulder / rock area
     "208",    # Boulder field
@@ -81,11 +84,13 @@ LABEL_VIS = {
     0: (255, 255, 255),
     CODE_TO_LABEL["501.1"]: (200, 170, 140), CODE_TO_LABEL["520"]: (160, 150, 60),
     CODE_TO_LABEL["401"]: (252, 221, 118), CODE_TO_LABEL["403"]: (254, 235, 175),
+    CODE_TO_LABEL["404"]: (230, 235, 150),
     CODE_TO_LABEL["402"]: (250, 235, 160),
     CODE_TO_LABEL["402.1"]: (210, 225, 130), CODE_TO_LABEL["412.1"]: (245, 215, 140),
     CODE_TO_LABEL["301"]: (50, 162, 222), CODE_TO_LABEL["308"]: (120, 200, 230),
     CODE_TO_LABEL["310"]: (165, 215, 235),   # Indistinct marsh — světlejší modrá (řidší pattern)
-    CODE_TO_LABEL["406"]: (181, 230, 181), CODE_TO_LABEL["408"]: (120, 200, 140),
+    CODE_TO_LABEL["406"]: (181, 230, 181), CODE_TO_LABEL["407"]: (210, 245, 210),
+    CODE_TO_LABEL["408"]: (120, 200, 140), CODE_TO_LABEL["409"]: (150, 220, 165),
     CODE_TO_LABEL["410"]: (40, 160, 90), CODE_TO_LABEL["206"]: (120, 120, 120),
     CODE_TO_LABEL["208"]: (150, 150, 150), CODE_TO_LABEL["501"]: (180, 140, 110),
     CODE_TO_LABEL["521"]: (30, 30, 30),
@@ -222,19 +227,19 @@ def rasterize_map_dir(map_dir: Path) -> np.ndarray:
     return rasterize(omap, meta)
 
 
-# ============================================================ LINIE (Png2Line, Sez. 130)
-# Liniové ISOM kódy → label index (0 = pozadí/bez linie, 1..N_LINE-1 = třídy). KROK 1 (Sez. 130): jen
-# souvislé vodní toky 304 (named) + 305 (unnamed) → JEDNA třída "watercourse" (liší se jen tloušťkou
-# ~0,1 mm papíru, ze skenu nerozlišitelné → KISS jeden label; rozlišovat = postavit model na nemožnou
-# úlohu). 306 (dashed seasonal) AŽ krok 2 (dashed handling). Registr je rozšiřitelný — přidat třídu = řádek
-# (název, [ISOM kódy]); izomorfní s AREA_ZORDER (plochy) a POINT_CLASSES (body, inject.py).
+# ============================================================ LINIE (Png2Line, Sez. 130+151)
+# Liniové ISOM kódy → label index (0 = pozadí/bez linie, 1..N_LINE-1 = třídy). Základní krok 1 byl jen
+# souvislé vodní toky 304 (named) + 305 (unnamed) jako jedna třída "watercourse" (tloušťka je ze skenu
+# špatně rozlišitelná). Sez. 152 rozšiřuje scope o další reálně četné modré/černé liniové signály:
+# 306 seasonal waterchannel, 309 narrow marsh a skupinu 508..508.4 narrow ride. 508 varianty zůstávají
+# jedna třída, protože černá čárkovaná linie je stejný vizuální signál a suffix řeší běhatelnost pozadí.
+# Registr je SSoT: přidat třídu = řádek (název, [ISOM kódy]); izomorfní s AREA_ZORDER a POINT_CLASSES.
 @dataclass
 class LineClass:
     """Jedna liniová ISOM třída (registr izomorfní s PointClass v png2point/inject.py, Sez. 131).
 
     name      — lidský název = label (do vizuálu/logu/metriky).
-    codes     — ISOM kódy mapované na tuto třídu (304 named + 305 unnamed → watercourse; ze skenu
-                nerozlišitelné tloušťkou → KISS jeden label).
+    codes     — ISOM kódy mapované na tuto třídu (např. 304+305 → watercourse; 508.* → narrow_ride).
     conf_thr  — práh softmax konfidence PER TŘÍDA při INFERENCI (sweep Sez. 131). Holý argmax (= 0,5 u
                 2 tříd) přestřeloval: model fíruje na tenkou linii obecně (cesty/ploty), ne jen modrou →
                 vyšší práh ořeže FP. watercourse 0,95 z plochého plató relaxed-F1 (ne in-sample špička,
@@ -247,13 +252,16 @@ class LineClass:
 
 LINE_CLASSES: list[LineClass] = [
     LineClass(name="watercourse", codes=["304", "305"], conf_thr=0.95),   # plná modrá linie vodního toku
-    # KROK 2 (Sez. 133) ZAVRŽEN měřením: přidání dashed 508 narrow ride + 516 fence reálně NEPŘINESLO hodnotu.
-    # Měření (eval_real + conf_thr sweep, 3 kartografovy skeny): (a) 508/516 mají DOMÉNOVÝ GAP — completeness
-    # strop 0,14–0,22, prahem neřešitelný (model dashed černé linie na reálném skenu netrasuje; vzor 210 =
-    # přerušované/málo výrazné symboly se nepřenášejí); (b) multi-class ZHORŠIL watercourse — i po prahové
-    # optimalizaci (thr 0,99) jen IoU 0,311 vs krok 1 single-class 0,409 (−24 %). Dashed linie potřebují JINÝ
-    # přístup (verify gen renderu dashed vs realita / dashed-specifická augmentace / morfologické přemostění),
-    # ne prosté přidání třídy. Doložený negativní nález (jako forest-age archiv) → návrat k watercourse-only.
+    LineClass(name="seasonal_waterchannel", codes=["306"], conf_thr=0.95), # přerušovaný modrý tok
+    LineClass(name="narrow_marsh", codes=["309"], conf_thr=0.95),          # úzký mokřad / stružka
+    LineClass(
+        name="narrow_ride",
+        codes=["508", "508.1", "508.2", "508.3", "508.4"],
+        conf_thr=0.5,                                                     # znovu sweepnout po retrainu
+    ),
+    # Sez. 133 zavrhl starý pokus 508+516 v jednom multi-class běhu: 508 měl nízký real transfer a 516
+    # zhoršoval watercourse. Nový scope 151 proto NEvrací fence 516; přidává jen uživatelsky vybrané
+    # 508 varianty a modré 306/309, kde existuje tvrdý OMAP/scan signál. Výsledek musí ověřit nový retrain.
 ]
 LINE_CODE_TO_LABEL = {code: i + 1 for i, lc in enumerate(LINE_CLASSES) for code in lc.codes}
 LINE_LABEL_NAME = {0: "pozadí", **{i + 1: lc.name for i, lc in enumerate(LINE_CLASSES)}}
@@ -267,9 +275,14 @@ N_LINE = len(LINE_CLASSES) + 1   # + pozadí (label 0)
 # dost úzká ať se sousední linie nesplynou (vrstevnice/hustá síť toků).
 GT_LINE_WIDTH_PX = 3
 
-# Vizualizační barvy linií (verify overlay) — modrá pro watercourse (přibližná ISOM, ne render). Registr je
-# rozšiřitelný: nová třída = nový klíč (krok 2 dashed 508/516 zkoušen Sez. 133, zavržen měřením — viz výše).
-LINE_LABEL_VIS = {0: (255, 255, 255), 1: (30, 110, 210)}
+# Vizualizační barvy linií (verify overlay) — přibližné, ne plný ISOM render.
+LINE_LABEL_VIS = {
+    0: (255, 255, 255),
+    1: (30, 110, 210),    # watercourse
+    2: (70, 170, 230),    # seasonal_waterchannel
+    3: (90, 210, 230),    # narrow_marsh
+    4: (25, 25, 25),      # narrow_ride
+}
 
 
 def _parse_polyline(text: str) -> list[tuple[int, int]]:
@@ -323,8 +336,8 @@ def rasterize_lines(omap_path: Path, meta: dict) -> np.ndarray:
     """.omap → label rastr (H,W) uint8: liniové ISOM symboly per-třída, kreslené nafouklé (GT_LINE_WIDTH_PX).
 
     Každá polyline se nakreslí PIL line s width=GT_LINE_WIDTH_PX (kulaté spoje přidáme kroužkem na vrcholech,
-    ať dilatovaná linie nemá zuby v lomech). Pozdější třída (vyšší label) přepíše — pro krok 1 (jedna třída)
-    bezpředmětné, ale drží izomorfismus s rasterize (z-order). Label = LINE_CODE_TO_LABEL[code]."""
+    ať dilatovaná linie nemá zuby v lomech). Pozdější třída (vyšší label) přepíše — vzácné průseky
+    více liniových tříd tak mají deterministický výsledek jako plošný z-order. Label = LINE_CODE_TO_LABEL[code]."""
     to_px, W, H = _paper_to_px(meta)
     label = np.zeros((H, W), dtype=np.uint8)
     objs = parse_line_objects(omap_path)

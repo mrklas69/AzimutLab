@@ -1,18 +1,18 @@
 """
-Reálný benchmark Png2Line krok 1 — doménový gap syntetika → kartografův sken (Sez. 131).
+Reálný benchmark Png2Line — doménový gap syntetika → kartografův sken (Sez. 131+151).
 
 Měří `line_model/unet_best.pt` na REÁLNÉM skenu kartografovy mapy (NE na vlastní syntetice):
   X = sken (`resources/<name>.png` + `.pgw`), downscalovaný na trénovací mpp 1,33 (= dlaždice).
-  GT = LINE objekty (type=2) vodních toků 304/305 z KARTOGRAFOVY `.omap` (ISOM 2000 → crosswalk `.crt`
-       → 2017-2 → třída "watercourse"), nakreslené NAFOUKLE (GT_LINE_WIDTH_PX) stejně jako trénink.
+  GT = LINE objekty ve scope `LINE_CLASSES` z KARTOGRAFOVY `.omap` (ISOM 2000 → crosswalk `.crt`
+       → 2017-2 → label), nakreslené NAFOUKLE (GT_LINE_WIDTH_PX) stejně jako trénink.
 
 Dvojice metrik (izomorfní s png2area eval_real strict+soft, Sez. 120):
-  (1) PŘÍSNÉ pixel IoU watercourse — stejná optika jako train.evaluate, srovnatelné se syntetikou (0,55).
+  (1) PŘÍSNÉ pixel IoU per line class — stejná optika jako train.evaluate, srovnatelná se syntetikou.
       U ~5px linie je IoU krutě citlivá na 1px posun hranice (Sez. 130) → reálný georef posun ji srazí.
   (2) RELAXOVANÉ completeness/correctness — standard pro extrakci liniových prvků (Wiedemann 1998):
       completeness (recall) = podíl GT pixelů do BUFFER_PX od predikce; correctness (precision) = podíl
       pred pixelů do BUFFER_PX od GT. Robustní vůči ~1px georef/šířkovému nesouladu → poctivá odpověď
-      „trasuje model vodní tok?" na úrovni linie, ne pixelu.
+      „trasuje model danou liniovou třídu?" na úrovni linie, ne pixelu.
 + vizuál overlay GT (zeleně) × pred (červeně) na sken → temp/ (georef verify, oko = source).
 
 Georef: reuse `paper_to_scan_px` z model/png2area/eval_real.py (ověřená cesta, rot_sign=−1, Sez. 120) —
@@ -80,7 +80,7 @@ def _disk(r: int) -> np.ndarray:
 def parse_carto_lines(omap_path):
     """[(points_µm, label)] z kartografovy .omap — LINE objekty (type=2) ve scope LINE_CLASSES přes crosswalk.
 
-    label = LINE_CODE_TO_LABEL[cíl] (dnes watercourse 304/305 → 1). Crosswalk 2000→2017 (bez něj nesmysl,
+    label = LINE_CODE_TO_LABEL[cíl]. Crosswalk 2000→2017 (bez něj nesmysl,
     lekce Sez. 94): kartografovy mapy bývají ISOM 2000, scope se řídí cílovými 2017-2 kódy v LINE_CODE_TO_LABEL.
     Polyline čteme jako vrcholy (flagy close/bezier ignorujeme — bezier control body bereme jako vrcholy,
     aproximace polygonem jako u rasterize_lines)."""
@@ -106,7 +106,7 @@ def parse_carto_lines(omap_path):
         targets = _resolve_targets(ci, ver, cw, v2000, v2017)
         if not targets:
             continue
-        hit = {str(t) for t in targets} & set(LINE_CODE_TO_LABEL)   # cílová třída ve scope 304/305?
+        hit = {str(t) for t in targets} & set(LINE_CODE_TO_LABEL)   # cílová třída v aktuálním LINE_CLASSES scope
         if not hit:
             continue
         lab = LINE_CODE_TO_LABEL[sorted(hit)[0]]
@@ -134,7 +134,7 @@ def rasterize_line_Y(lines, to_px, f, W, H):
     img = Image.new("L", (W, H), 0)
     d = ImageDraw.Draw(img)
     r = GT_LINE_WIDTH_PX / 2.0
-    for pts, lab in sorted(lines, key=lambda o: o[1]):        # z-order: nižší label dřív (krok 1 = jedna třída)
+    for pts, lab in sorted(lines, key=lambda o: o[1]):        # z-order: nižší label dřív, vyšší label přepíše průsek
         px = [(to_px(x, y)[0] * f, to_px(x, y)[1] * f) for x, y in pts]
         if len(px) >= 2:
             d.line(px, fill=lab, width=GT_LINE_WIDTH_PX)

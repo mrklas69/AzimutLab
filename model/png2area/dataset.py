@@ -4,7 +4,7 @@ dataset.py — PyTorch loader nad dlaždicemi reconstructor modelu Png2Area (Sez
 `model/png2area/tile.py` předkrájel páry (X=sken RGB, Y=area label 0..N_AREA-1) na 512×512 PNG dlaždice
 do `resources/area_tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu přidává augmentaci
 a vrací tensory pro `model/png2area/train.py`. Izomorfní s archivovaným model/runnability/dataset.py —
-liší se: X=sken (ne ortho), Y=N_AREA area tříd (18 od Sez. 103: 17 ISOM kódů + pozadí; ne 5 runnability),
+liší se: X=sken (ne ortho), Y=N_AREA area tříd (21 od Sez. 152: 20 ISOM kódů + pozadí; ne 5 runnability),
 BEZ IGNORE (Y z naší .omap je čisté, žádný přetisk → každý px je validní třída včetně pozadí 0).
 
 Augmentace (jen train split): D4 (8 dihedrálních symetrií) + fotometrická degradace skenu.
@@ -128,7 +128,8 @@ def class_weights() -> list[float]:
     ať se nepřepočítávají na dvou místech (DRY). CrossEntropyLoss(weight=) je bere přímo.
 
     Guard (no silent fallback, Sez. 110): _tiles.json může být STALE vůči aktuálnímu schématu
-    (změna N_AREA: 16→18 Sez. 99/103, drift 301/301.1 Sez. 110). Mismatch délky vah / n_area by
+    (změna N_AREA: 16→18 Sez. 99/103, 18→21 Sez. 152, drift 301/301.1 Sez. 110).
+    Mismatch délky vah / n_area by
     jinak prošel tiše do CrossEntropyLoss s nesprávnými vahami → selži nahlas s instrukcí na rebuild."""
     import json
     tpath = _TILES_DIR / "_tiles.json"

@@ -3,14 +3,14 @@ tile.py — příprava tréninkových dlaždic reconstructor modelu Png2Line (Se
 
 TŘETÍ ze tří CV úloh dekompozice OOM podle geometrie (Sez. 80): Png2Area (plochy, Sez. 88) | Png2Point
 (body, Sez. 105) | **Png2Line (linie)**. Úloha: mapový sken → per-class segmentace liniových ISOM symbolů
-(krok 1, Sez. 130: vodní toky 304/305 → třída "watercourse"). Vektorizace maska→polyline je ODLOŽENÝ
+(aktuálně watercourse 304/305 + 306 + 309 + 508*). Vektorizace maska→polyline je ODLOŽENÝ
 sdílený downstream krok (skeletonizace+RDP), NE součást modelu — viz IDEAS „Png2Line — segmentace + odložená
 vektorizace".
 
 Izomorfní s model/png2area/tile.py (reuse tiling/split/resample), s JEDINÝM rozdílem:
   - Png2Area čte HOTOVÉ area_labels.png (omap_raster.main ho napekl do páru).
-  - Png2Line počítá liniové Y **on-the-fly** z .omap+meta (omap_raster.rasterize_lines_map_dir) — krok 1
-    nesahá na pairs.py build pipeline (méně invazivní k prvnímu výsledku). Pár tedy potřebuje jen
+  - Png2Line počítá liniové Y **on-the-fly** z .omap+meta (omap_raster.rasterize_lines_map_dir) — line scope
+    nesahá na pairs.py build pipeline. Pár tedy potřebuje jen
     rgb.png + <*.omap> + meta.json (ne předpočítaný label).
 
 GT je NAFOUKLÁ linie (omap_raster.GT_LINE_WIDTH_PX) — tenká linie by se v U-Netu rozpustila (lekce
@@ -59,7 +59,7 @@ Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL 
 
 TILE = 512          # strana dlaždice (px) — vstup U-Netu (shodně s png2area/png2point)
 STRIDE = 256        # posun okna (px) → 50% překryv
-# N_LINE (= 2 v kroku 1: pozadí + watercourse) se importuje z omap_raster (SSoT line schématu).
+# N_LINE se importuje z omap_raster (SSoT line schématu).
 
 
 def _positions(length: int) -> list[int]:
@@ -102,8 +102,8 @@ def _resolve_pair_dir(name: str) -> Path | None:
 def tile_one(pair_dir: Path, split_name: str, cid: str) -> Counter:
     """Nakrájí jeden pár (pair_dir) → PNG dlaždice do resources/line_tiles/<split>/<cid>/.
 
-    Y (liniový label) se počítá on-the-fly z .omap+meta (rasterize_lines_map_dir) — krok 1 nesahá na
-    pairs.py. Vrací Counter line labelů přes VŠECHNY dlaždice téhle mapy (pro statistiku/váhy)."""
+    Y (liniový label) se počítá on-the-fly z .omap+meta (rasterize_lines_map_dir), bez duplicitních masek
+    z pairs.py. Vrací Counter line labelů přes VŠECHNY dlaždice téhle mapy (pro statistiku/váhy)."""
     x = np.asarray(Image.open(pair_dir / "rgb.png").convert("RGB"), dtype=np.uint8)
     y = rasterize_lines_map_dir(pair_dir)                   # (H,W) uint8, 0..N_LINE-1
     if y.shape != x.shape[:2]:

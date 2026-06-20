@@ -11,7 +11,7 @@ Páry vyrábí generator/pairs.py build_pair (korpus → resources/livelox/<cid>
 Páry jsou různě velké (~800–4000 px korpus, ~4500 px dev) a U-Net jede na fixní dlaždici. Tenhle skript
 nakrájí každý pár na 512×512 dlaždice s 50% překryvem (stride 256) a uloží je jako PNG dvojice do
 resources/area_tiles/<split>/. Izomorfní s archivovaným model/runnability/tile.py (runnability směr) —
-liší se: X=gen render místo ortho, Y=area_labels místo gt_grid, 18 area tříd místo 5, BEZ rejection (níže).
+liší se: X=gen render místo ortho, Y=area_labels místo gt_grid, N_AREA area tříd místo 5, BEZ rejection (níže).
 
 Proč BEZ rejection dlaždic (na rozdíl od archivu): rgb.png je plný obdélníkový render — žádné IGNORE,
 žádné prázdné rohy quadu. Pozadí (label 0) je LEGITIMNÍ třída „tady žádná plocha" (bílý les), kterou se
@@ -57,7 +57,8 @@ Image.MAX_IMAGE_PIXELS = None                  # páry jsou velké, vypnout PIL 
 
 TILE = 512          # strana dlaždice (px) — vstup U-Netu
 STRIDE = 256        # posun okna (px) → 50% překryv (volba Sez. 77, sdíleno s archivem)
-# N_AREA (= 18: pozadí + 17 area kódů, +403 Sez. 92, +310 Sez. 99) se importuje z omap_raster (SSoT label schématu, Sez. 87).
+# N_AREA (= 21: pozadí + 20 area kódů, +403 Sez. 92, +310 Sez. 99, +404/407/409 Sez. 152)
+# se importuje z omap_raster (SSoT label schématu, Sez. 87).
 # BEZ MIN_VALID rejection (viz hlavička) — všechny dlaždice plného renderu jsou validní.
 
 

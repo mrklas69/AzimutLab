@@ -4,7 +4,7 @@ dataset.py — PyTorch loader nad dlaždicemi reconstructor modelu Png2Line (Sez
 `model/png2line/tile.py` předkrájel páry (X=sken RGB, Y=line label 0..N_LINE-1) na 512×512 PNG dlaždice
 do `resources/line_tiles/<split>/<cid>/`. Tenhle modul je čte za běhu, na train splitu přidává augmentaci
 a vrací tensory pro `model/png2line/train.py`. Izomorfní s model/png2area/dataset.py — liší se JEN:
-Y má N_LINE tříd (krok 1: 2 = pozadí + watercourse), čte se z resources/line_tiles/.
+Y má N_LINE tříd (aktuálně pozadí + watercourse/306/309/508*), čte se z resources/line_tiles/.
 
 Augmentace (jen train split) = TÁŽ jako Png2Area (záměrně sdílený koncept):
 - D4 (8 dihedrálních symetrií): flip + rot90×k NEinterpolují → liniové labely zůstanou přesně 0..N_LINE-1.

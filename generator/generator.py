@@ -274,10 +274,13 @@ RAILWAY_CLASS = {ISOM_RAILWAY: 1}
 # ≈ 6,9 / 4,6 px); šířka 0,35 mm ≈ 1,6 → 2 px (silnější než pěšina → zřetelná trať).
 RAILWAY_STYLE = {ISOM_RAILWAY: ("railway", 2, (6.9, 4.6))}
 
-# Lesní průseky (Sez. 36, real-půlka, izomorfní s cestami/vedením): ZABAGED Lesní průsek → ISOM 508
-# Narrow ride = průhled lesem BEZ zřetelné vyšlapané cesty (odlišení od 503-506). Render = černá
-# čárkovaná linie; dash/break z template (id 115): 3,0 / 0,375 mm → dlouhé čárky s malými mezerami
-# (≈ „skoro plná", odliší od pěšiny 505 7,0/4,0 i od 506 4,0/4,0). Šířka 0,21 mm ≈ 0,96 → 1 px.
+# Lesní průseky (Sez. 36/150/151, real fallback, izomorfní s cestami/vedením): ZABAGED Lesní průsek
+# + neudržovaná Cesta → ISOM 508. Pozor: ZABAGED vede jen řídkou administrativní podmnožinu hlavních /
+# dlouhodobě udržovaných průseků, takže na kompletnost 508 se NESMÍ spoléhat. Kompletnější zdroj má být
+# mapper-scan/Png2Line; tenhle kanál je jen datově čistý fallback bez pseudo domýšlení. Narrow ride =
+# průhled lesem BEZ zřetelné vyšlapané cesty (odlišení od 503-506). Render = černá čárkovaná linie;
+# dash/break z template (id 115): 3,0 / 0,375 mm → dlouhé čárky s malými mezerami (≈ „skoro plná",
+# odliší od pěšiny 505 7,0/4,0 i od 506 4,0/4,0). Šířka 0,21 mm ≈ 0,96 → 1 px.
 # Runnability pozadí (žlutá/zelená dle prostupnosti) se NEKRESLÍ — vegetace = UC5 predikce (gate
 # Sez. 3), ne data; ISOM varianta „without background". Mapování viz zabaged.map_ride_to_isom (vždy 508).
 ISOM_NARROW_RIDE = 508             # lesní průsek → černá čárkovaná (bez runnability pozadí)
@@ -440,7 +443,7 @@ PSEUDO_ROCK_DILATE_M = 150.0       # dilatace doložené skalnatosti o okolí [m
 # (Σgen ≈ ⅓ Σorig), takže „správný absolutní počet" bodů by dal nadměrný share → ředění. Cíl =
 # gen_share(204+210) ≈ orig_share (~15 % průměr). Maska (doložená skalnatost) určuje KDE + hrubě korelaci,
 # hustota globální. Věrná per-mapa distribuce z dat NEJDE (skalnatost není v geodatech, data-gate Sez. 107).
-PSEUDO_BOULDER_PER_KM2 = 500.0     # hustota 204 boulderů na km² masky (KALIBRACE Sez. 107)
+PSEUDO_BOULDER_PER_KM2 = 900.0     # hustota 204 boulderů na km² masky (KALIBRACE Sez. 152: KPI 63,3→66,0)
 PSEUDO_STONY_FIELD_PER_KM2 = 12.0  # hustota 210 polí teček na km² masky (KALIBRACE)
 PSEUDO_STONY_DOT_SPACING_PX = 1.2 * PX_PER_MM                 # rozestup teček 210 (spec point_distance 1200 µm)
 PSEUDO_STONY_DOT_RADIUS_PX = max(1, round(0.15 * PX_PER_MM))  # 210.1 tečka (inner_radius 150 µm)
@@ -650,29 +653,46 @@ TREEROW_WAVE_AMP = 0.35                                  # amplituda „špageta
 TREEROW_WAVE_LAMBDA_PX = 3.0 * PX_PER_MM                 # vlnová délka perturbace podél osy (~3 mm)
 
 
-# ---------- Predikční vegetační/open kódy (ISOM 406/408/410 + 403) ----------
-# Zeleň dle hustoty: 406 = C_GREEN1 (světlá, pomalý běh), 408 = C_GREEN2 (chůze), 410 = C_GREEN3
-# (tmavá, fight). Plná výplň BEZ obrysu (vegetační plošný symbol, jako 406 stromořadí / 401 / 520).
+# ---------- Predikční vegetační/open kódy (ISOM 406/407/408/409/410 + 403/404) ----------
+# Plné zelené: 406 = C_GREEN1 (pomalý běh), 408 = C_GREEN2 (chůze), 410 = C_GREEN3 (fight).
+# Patternové dobrá-viditelnost: 407/409 = zelené pruhy bez plné výplně; 404 = rough open s tečkami.
 ISOM_VEG_SLOW = 406                 # řidší porost → světle zelená
+ISOM_VEG_SLOW_GOOD = 407            # podrost slow, dobrá viditelnost → pruhovaný pattern
 ISOM_VEG_WALK = 408                 # zapojený porost → středně zelená
+ISOM_VEG_WALK_GOOD = 409            # podrost walk, dobrá viditelnost → pruhovaný pattern
 ISOM_VEG_FIGHT = 410               # nejhustší → tmavě zelená
 
 
 # ---------- Predikční plochy ze SEPARACE reálné mapy (Sez. 83/92) ----------
 # Obecný registr plošných predikčních symbolů, které kreslí _draw_predict_areas (geometrie zvenčí,
-# ze separace Livelox mapy přes pairs.py). Zeleň 406/408/410 + 403 Rough open (Sez. 92) = bledá žlutá
-# (C_YELLOW_PALE), separovaná rozštěpem žluté uvnitř open (sytá 401 je real část, neseparuje se).
+# ze separace Livelox mapy přes pairs.py). Zeleň 406/407/408/409/410 + 403/404 open rodina:
+# 403/404 jsou bledá žlutá (404 s tečkami), 407/409 jsou pruhovaný zelený pattern.
 # Plošnou predikční zeleň nese neutrální `veg_area_*` proměnná / `mask_veg_area.png` /
 # `real_sections["veg_area"]` (rename Sez. 93). Jediný zdroj predikční vegetace = SEPARACE.
 # (Archiv Sez. 102: forest_age proxy AOPK věk→zeleň smazán jako doložená slepá ulička — 33 % pokrytí
 #  korpusu, IoU 0,12, přestřel 3,3× /Sez. 82, 91/; pseudorealistic vegetace = budoucí směr, TODO.)
 ISOM_ROUGH_OPEN = 403
+ISOM_ROUGH_OPEN_SCATTERED = 404
 PREDICT_AREA_FILL = {ISOM_VEG_SLOW: C_GREEN1, ISOM_VEG_WALK: C_GREEN2, ISOM_VEG_FIGHT: C_GREEN3,
-                     ISOM_ROUGH_OPEN: C_YELLOW_PALE}
-# ISOM kód → třída v mask_veg_area.png (0 = pozadí). Multi-class: fight 1 (nejhustší) → slow 3 → 403 4.
-PREDICT_AREA_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3, ISOM_ROUGH_OPEN: 4}
-PREDICT_AREA_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running", ISOM_VEG_WALK: "Vegetation: walk",
-                     ISOM_VEG_FIGHT: "Vegetation: fight", ISOM_ROUGH_OPEN: "Rough open land"}
+                     ISOM_ROUGH_OPEN: C_YELLOW_PALE, ISOM_ROUGH_OPEN_SCATTERED: C_YELLOW_PALE}
+PREDICT_AREA_STRIPE = {
+    ISOM_VEG_SLOW_GOOD: (C_GREEN1, max(1, round(0.18 * PX_PER_MM)), 1.0 * PX_PER_MM),
+    ISOM_VEG_WALK_GOOD: (C_GREEN2, max(1, round(0.18 * PX_PER_MM)), 1.0 * PX_PER_MM),
+}
+PREDICT_AREA_DOT = {
+    ISOM_ROUGH_OPEN_SCATTERED: (C_GREEN1, max(1, round(0.22 * PX_PER_MM)), 1.05 * PX_PER_MM),
+}
+# ISOM kód → třída v mask_veg_area.png (0 = pozadí). Nové třídy přidáváme za původní čtyři,
+# aby starší významy 1..4 zůstaly čitelné; N_AREA se rozšiřuje přes omap_raster.AREA_ZORDER.
+PREDICT_AREA_CLASS = {ISOM_VEG_FIGHT: 1, ISOM_VEG_WALK: 2, ISOM_VEG_SLOW: 3, ISOM_ROUGH_OPEN: 4,
+                      ISOM_VEG_WALK_GOOD: 5, ISOM_VEG_SLOW_GOOD: 6, ISOM_ROUGH_OPEN_SCATTERED: 7}
+PREDICT_AREA_NAME = {ISOM_VEG_SLOW: "Vegetation: slow running",
+                     ISOM_VEG_SLOW_GOOD: "Vegetation: slow running, good visibility",
+                     ISOM_VEG_WALK: "Vegetation: walk",
+                     ISOM_VEG_WALK_GOOD: "Vegetation: walk, good visibility",
+                     ISOM_VEG_FIGHT: "Vegetation: fight",
+                     ISOM_ROUGH_OPEN: "Rough open land",
+                     ISOM_ROUGH_OPEN_SCATTERED: "Rough open land with scattered trees"}
 
 # --- 416 Distinct vegetation boundary (Sez. 101): mezitřídní hranice predikčních veg ploch ---
 # Měření Sez. 101: 416 = NEJVĚTŠÍ proporční díra KPI (orig 633 / gen 0). Reálné mapy kreslí ZŘETELNÉ
@@ -1384,6 +1404,82 @@ def _draw_dotted_surface_area(draw: ImageDraw.ImageDraw, sdraw: ImageDraw.ImageD
                 draw.ellipse([x - dot_r, y - dot_r, x + dot_r, y + dot_r], fill=dot_color)
                 x += sp
         y += sp                                         # další řádek mřížky (Sez. 49 fix: chyběl → nekonečná smyčka)
+
+
+def _draw_predict_pattern_area(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
+                               rings_px: list[list[tuple[float, float]]], code: int) -> None:
+    """Predikční patternové plochy 404/407/409 pro raster + plná třída do masky.
+
+    `.omap` dostává autoritativní symbol z template; tady jen aproximujeme rgb.png a X pro model.
+    404 má bledě žlutý podklad + zelené tečky, 407/409 kreslí zelené svislé pruhy bez plné výplně.
+    """
+    outer = rings_px[0]
+    if len(outer) < 3:
+        return
+    rings = [outer, *(h for h in rings_px[1:] if len(h) >= 3)]
+    cls = PREDICT_AREA_CLASS[code]
+    fill = PREDICT_AREA_FILL.get(code)
+    if len(rings) > 1:
+        if fill is not None:
+            _fill_rings_scanline(draw, rings, fill)
+        _fill_rings_scanline(fdraw, rings, cls)
+    else:
+        if fill is not None:
+            draw.polygon(outer, fill=fill)
+        fdraw.polygon(outer, fill=cls)
+
+    if code in PREDICT_AREA_DOT:
+        dot_color, dot_r, sp = PREDICT_AREA_DOT[code]
+        ys = [p[1] for ring in rings for p in ring]
+        y = math.ceil(min(ys) / sp) * sp
+        while y <= max(ys):
+            xs: list[float] = []
+            for ring in rings:
+                n = len(ring)
+                for i in range(n):
+                    ax, ay = ring[i]
+                    bx, by = ring[(i + 1) % n]
+                    if (ay <= y < by) or (by <= y < ay):
+                        t = (y - ay) / (by - ay)
+                        xs.append(ax + t * (bx - ax))
+            xs.sort()
+            for j in range(0, len(xs) - 1, 2):
+                x = math.ceil(xs[j] / sp) * sp
+                while x <= xs[j + 1]:
+                    draw.ellipse([x - dot_r, y - dot_r, x + dot_r, y + dot_r], fill=dot_color)
+                    x += sp
+            y += sp
+        return
+
+    stripe = PREDICT_AREA_STRIPE.get(code)
+    if stripe is None:
+        return
+    color, width, sp = stripe
+    xs_all = [p[0] for ring in rings for p in ring]
+    x = math.ceil(min(xs_all) / sp) * sp
+    while x <= max(xs_all):
+        ys: list[float] = []
+        for ring in rings:
+            n = len(ring)
+            for i in range(n):
+                ax, ay = ring[i]
+                bx, by = ring[(i + 1) % n]
+                if (ax <= x < bx) or (bx <= x < ax):
+                    t = (x - ax) / (bx - ax)
+                    ys.append(ay + t * (by - ay))
+        ys.sort()
+        for j in range(0, len(ys) - 1, 2):
+            draw.line([(x, ys[j]), (x, ys[j + 1])], fill=color, width=width)
+        x += sp
+
+
+def _draw_predict_area(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
+                       rings_px: list[list[tuple[float, float]]], code: int) -> None:
+    """Predikční plošný symbol 403/404/406/407/408/409/410 do rgb.png + mask_veg_area.png."""
+    if code in PREDICT_AREA_DOT or code in PREDICT_AREA_STRIPE:
+        _draw_predict_pattern_area(draw, fdraw, rings_px, code)
+    else:
+        _draw_area_symbol(draw, fdraw, rings_px, PREDICT_AREA_FILL[code], None, PREDICT_AREA_CLASS[code])
 
 
 def _draw_dashed_hline(draw: ImageDraw.ImageDraw, xa: float, xb: float, y: int, row: int) -> None:
@@ -2432,11 +2528,12 @@ def _generate_real_railways(draw: ImageDraw.ImageDraw, rdraw: ImageDraw.ImageDra
 
 def _generate_real_rides(draw: ImageDraw.ImageDraw, ridraw: ImageDraw.ImageDraw,
                          lat: float, lon: float, geo_bbox: tuple) -> tuple[list, list]:
-    """Reálné lesní průseky (real-půlka, Sez. 36): Lesní průsek ze ZABAGED REST → ISOM 508.
+    """Řídký real-data fallback pro 508: ZABAGED Lesní průsek / neudržovaná Cesta → ISOM 508.
 
     Mirror _generate_real_railways/_generate_real_paths (S-JTSK → grid → px → čárkovaná linie).
-    KISS, vše → 508 (map_ride_to_isom). Vrací (ride_features [(grid, code)], rides_info) v
-    souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém výseku = 0 prvků."""
+    KISS, vše → 508 (map_ride_to_isom). ZABAGED průseky jsou undercomplete, proto výstup ber jako
+    konzervativní podmnožinu; kompletnější 508 má dodat scan/model pipeline. Vrací (ride_features
+    [(grid, code)], rides_info) v souřadnicích MŘÍŽKY (zdroj pro .omap). V bezlesém výseku = 0 prvků."""
     from zabaged import fetch_forest_rides, map_ride_to_isom
     feats = fetch_forest_rides(lat, lon, GW, GH, TILE_M)
     rides_info: list[dict] = []
@@ -2738,12 +2835,12 @@ def _generate_real_tree_rows(draw: ImageDraw.ImageDraw, tdraw: ImageDraw.ImageDr
 
 def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
                         areas_sjtsk: list, geo_bbox: tuple) -> tuple[list, list]:
-    """Predikční plochy ze SEPARACE reálné mapy (Sez. 83) → ISOM 406/408/410 + 403.
+    """Predikční plochy ze SEPARACE reálné mapy (Sez. 83) → ISOM 403/404/406/407/408/409/410.
 
     Reframe (Sez. 79/82): JEDINÝ zdroj predikční vegetace = separace barev z Livelox mapy
     (mapař = GT). Geometrie přichází zvenčí v S-JTSK (orchestrátor `pairs.py` ji vyrobil ze
-    separace přes Livelox quad) — žádný fetch. Predikční plochy: zeleň 406/408/410 + 403 Rough
-    open (bledá žlutá, Sez. 92) — render/class/název z PREDICT_AREA_*. Provenance = predict
+    separace přes Livelox quad) — žádný fetch. Predikční plochy: zeleň 406/407/408/409/410 +
+    open rodina 403/404 — render/class/název z PREDICT_AREA_*. Provenance = predict
     (ne tvrdá ČÚZK projekce; meta `proxy: true`). `areas_sjtsk` = [(poly [vnější,díra…] v
     S-JTSK, code:int)]. Vrací (area_features [(grid, code)], info) v souřadnicích MŘÍŽKY (zdroj pro .omap)."""
     area_features: list[tuple] = []
@@ -2752,8 +2849,8 @@ def _draw_predict_areas(draw: ImageDraw.ImageDraw, fdraw: ImageDraw.ImageDraw,
         grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
         if len(px_rings[0]) < 3:
             continue
-        # plná výplň bez obrysu (vegetační/open plošný symbol; barva+GT class dle kódu)
-        _draw_area_symbol(draw, fdraw, px_rings, PREDICT_AREA_FILL[code], None, PREDICT_AREA_CLASS[code])
+        # raster aproximace podle kódu; .omap dostane autoritativní template symbol.
+        _draw_predict_area(draw, fdraw, px_rings, code)
         area_features.append((grid_rings, code))
         info.append({"symbol": code, "symbol_name": PREDICT_AREA_NAME[code],
                      "kind": "area", "layer": "separace reálné mapy (predict)"})
@@ -3845,7 +3942,7 @@ def generate_map(
         _log.info("  plošný pokryv: %d (520 dissolve bloky + open land) + plot 516: %d",
                   len(surfaces_info), len(fence_features))
 
-    # --- predikční vegetace → zeleň + 403 (ISOM 406/408/410/403): SEPARACE reálné mapy ---
+    # --- predikční vegetace/open (ISOM 403/404/406/407/408/409/410): SEPARACE reálné mapy ---
     # Z-order: NAD plošným pokryvem (401/520 podklad), pod stromořadím/mokřady/vrstevnicemi/liniemi.
     # Zelená vegetace nad žlutou open land i nad bílým lesem; tenká stromořadí (alej) a hnědá kostra
     # zůstanou viditelné navrchu. JEDINÝ zdroj = `predict_areas_sjtsk` (Sez. 83, orchestrátor pairs.py
@@ -3863,7 +3960,8 @@ def generate_map(
         fadraw = ImageDraw.Draw(veg_area_mask_img)
         veg_area_features, veg_area_info = _draw_predict_areas(
             draw, fadraw, predict_areas_sjtsk, geo_bbox)
-        _log.info("  predikční vegetace (separace): %d (406/408/410 PREDICT)", len(veg_area_info))
+        _log.info("  predikční vegetace/open (separace): %d (403/404/406/407/408/409/410 PREDICT)",
+                  len(veg_area_info))
         # 416/416.1 Distinct vegetation boundary: mezitřídní hranice predikčních veg ploch (Sez. 101,
         # největší KPI díra). Z-order: NAD plošnou zelení (kterou ohraničuje), pod liniemi/body.
         boundary_mask_img = Image.new("L", (W, H), 0)
@@ -4054,7 +4152,7 @@ def generate_map(
     n_paths = len(paths_info)
     _log.info("  cesty: %d (%s)", n_paths, paths)
 
-    # --- lesní průseky (ISOM 508): reálné ze ZABAGED REST (real-půlka, Sez. 36) ---
+    # --- lesní průseky (ISOM 508): řídký ZABAGED fallback (scan/model má mít přednost pro kompletnost) ---
     # Rastr z-order: PO cestách, PŘED vedením — černá čárkovaná linie (průhled lesem bez cesty),
     # izomorfní s komunikacemi. V bezlesém výseku = 0 prvků (žádný šum). Jen --rides real.
     ride_features: list[tuple] = []
@@ -4376,7 +4474,7 @@ def generate_map(
     if treerow_mask_img is not None:
         treerow_mask_img.save(out / "mask_treerows.png")                    # stromořadí (GT, 1=lineární les 406)
     if veg_area_mask_img is not None:
-        veg_area_mask_img.save(out / "mask_veg_area.png")              # predikční vegetace (GT, multi-class: 1=fight 410, 2=walk 408, 3=slow 406, 4=403 — ze separace)
+        veg_area_mask_img.save(out / "mask_veg_area.png")              # predikční area GT: 410/408/406/403 + 409/407/404 ze separace
     if boundary_mask_img is not None:
         boundary_mask_img.save(out / "mask_boundaries.png")           # 416 mezitřídní hranice veg ploch (Sez. 101)
     # vektorový export vrstevnic (§9): ISOM 101/102 + pomocné 103, georef (real = S-JTSK).
@@ -4416,8 +4514,8 @@ def generate_map(
     # stromořadí → 406 Vegetation: slow running = plošný symbol (area, uzavřený path s close flagem;
     # OOM vyplní světle zelenou z definice). Prstenec už je buffrovaný pás (Sez. 45).
     treerow_omap_features = [(g, str(c)) for g, c in treerow_area_features]
-    # predikční vegetace → 406/408/410 zeleň + 403 = plošný symbol (area, uzavřený path s close
-    # flagem; OOM vyplní z definice). Ze separace reálné mapy (predict, Sez. 83). Code z featur.
+    # predikční vegetace/open → 403/404/406/407/408/409/410 = plošný symbol (area, uzavřený path
+    # s close flagem; OOM vyplní z definice). Ze separace reálné mapy (predict, Sez. 83). Code z featur.
     veg_area_omap_features = [(g, str(c)) for g, c in veg_area_features]
     # pomocné vrstevnice = liniový symbol 103 (čárkovaný, type-1 v template) → otevřený path;
     # OOM vykreslí čárkování autoritativně z definice symbolu (dash 2,0 / break 0,2 mm)
@@ -4516,8 +4614,8 @@ def generate_map(
             "count": len(veg_area_info),
             "mask": "mask_veg_area.png",
             "source": "separace_realne_mapy", "provenance": "predict", "proxy": True,
-            "note": ("PREDICT: zeleň 406/408/410 + 403 SEPAROVANÁ z barev reálné OB mapy (mapař = GT, "
-                     "Sez. 82/83), ne z tvrdých dat. GT-feeder pro Png2Area — věrnost ~90 %, dotáhne model."),
+            "note": ("PREDICT: area symboly 403/404/406/407/408/409/410 SEPAROVANÉ z reálné OB mapy "
+                     "(mapař = GT, Sez. 82/83/151), ne z tvrdých dat. GT-feeder pro Png2Area."),
             "licence": "odvozeno z reálné OB mapy (kartograf/pořadatel; TDM režim)",
             "symbols": {str(c): PREDICT_AREA_NAME[c] for c in used},
             "classes": {"0": "pozadí",
@@ -4582,8 +4680,9 @@ def main() -> None:
                    help="real = ČÚZK ZABAGED REST (default), proc = procedurální Dijkstra "
                         "(real vyžaduje --terrain real)")
     p.add_argument("--rides", choices=["off", "real"], default="real",
-                   help="real = ČÚZK ZABAGED REST Lesní průsek → ISOM 508 Narrow ride (default), "
-                        "off = bez průseků (real vyžaduje --terrain real; v bezlesém výseku 0 prvků)")
+                   help="real = řídký ČÚZK ZABAGED fallback → ISOM 508 Narrow ride (default; "
+                        "kompletnost řeší scan/Png2Line), off = bez průseků "
+                        "(real vyžaduje --terrain real; v bezlesém výseku 0 prvků)")
     p.add_argument("--water", choices=["off", "real"], default="real",
                    help="real = ČÚZK ZABAGED REST toky+plochy (default), off = bez vody "
                         "(real vyžaduje --terrain real; proc hydro D8 = budoucí)")

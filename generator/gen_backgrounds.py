@@ -34,7 +34,7 @@ sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 from pyproj import Transformer  # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
-from omap_export import inject_image_templates, append_image_templates  # noqa: E402
+from omap_export import inject_image_templates, append_image_templates, image_template_names  # noqa: E402
 from dmr import fetch_elevation_grid  # noqa: E402  (DMR 5G hillshade podklad)
 from map_gt import IGNORE as _GT_IGNORE, SEMANTIC_LABEL_VIS as _GT_VIS  # noqa: E402
 
@@ -251,8 +251,9 @@ def add_resources_scan_background(name: str, gen_dir: str | pathlib.Path,
 
     templates = [{"name": "bg_scan.png", "sx": pw / 1000.0 / out_w,
                   "sy": ph / 1000.0 / out_h, "opacity": opacity}]
-    doc = omap.read_text(encoding="utf-8")
-    doc = inject_image_templates(doc, templates)      # raise když .omap nemá prázdné <templates> bloky
+    # Resource sken se často doplňuje až po DMR/ortho podkladech, proto musí appendovat stejně
+    # jako ostatní attach_* cesty. `inject_image_templates` je jen pro čerstvou mapu bez podkladů.
+    doc = append_image_templates(omap.read_text(encoding="utf-8"), templates)
     omap.write_text(doc, encoding="utf-8")
     return {"added": ["bg_scan.png"], "skipped": []}
 
@@ -378,6 +379,18 @@ def attach_dmr_hillshade(map_dir: str | pathlib.Path, omap_name: str | None = No
 _ORTHO_BG_MPP = 1.0        # rozlišení ortofoto podkladu [m/px]; 1 m stačí na verify (menší = ostřejší + větší)
 
 
+def _existing_ortho_templates(doc: str) -> list[str]:
+    """Najde ortofoto podklady bez ohledu na historický název (`ortofoto.png` vs `bg_ortho.png`).
+
+    Důležité pro idempotenci: DEV mapy dostanou `ortofoto.png` už při `generate_map(ortho=True)`,
+    zatímco dodatečný helper používá `bg_ortho.png`. Oba jsou stejný typ podkladu, takže stačí jeden.
+    """
+    return [
+        name for name in image_template_names(doc)
+        if any(token in name.lower() for token in ("ortho", "orto", "photo"))
+    ]
+
+
 def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
                  opacity: float = 0.5, target_mpp: float = _ORTHO_BG_MPP) -> dict:
     """Připne ČÚZK ortofoto obdélník jako podkladový template do `.omap` mapy (izomorf
@@ -390,6 +403,11 @@ def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
     for req in (rgb, rgb_pgw, meta_p, omap):
         if not req.exists():
             raise FileNotFoundError(f"{map_dir}: chybí {req.name} (mapa není hotová)")
+
+    doc = omap.read_text(encoding="utf-8")
+    existing = _existing_ortho_templates(doc)
+    if existing:
+        return {"added": [], "skipped": [("bg_ortho.png", f"ortofoto už existuje: {', '.join(existing)}")]}
 
     from ortofoto import fetch_ortofoto                    # lokální import (síťový konektor)
     with Image.open(rgb) as im:
@@ -407,7 +425,7 @@ def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
 
     pw, ph = gW * mpp_x * 1e6 / scale, gH * mpp_y * 1e6 / scale     # paper µm
     template = {"name": "bg_ortho.png", "sx": pw / 1000.0 / o_w, "sy": ph / 1000.0 / o_h, "opacity": opacity}
-    doc = append_image_templates(omap.read_text(encoding="utf-8"), [template])
+    doc = append_image_templates(doc, [template])
     omap.write_text(doc, encoding="utf-8")
     return {"added": ["bg_ortho.png"], "skipped": []}
 
@@ -453,6 +471,93 @@ def attach_livelox_scan(map_dir: str | pathlib.Path, cid_dir: str | pathlib.Path
     return {"added": ["bg_scan.png"], "skipped": []}
 
 
+def _bbox_area(bb: tuple[float, float, float, float]) -> float:
+    """Plocha bboxu v m²; záporné/rozhozené průniky se seknou na nulu."""
+    return max(0.0, bb[2] - bb[0]) * max(0.0, bb[3] - bb[1])
+
+
+def _bbox_intersection_area(a: tuple[float, float, float, float],
+                            b: tuple[float, float, float, float]) -> float:
+    """Plocha průniku dvou S-JTSK bboxů v m²."""
+    x0, y0 = max(a[0], b[0]), max(a[1], b[1])
+    x1, y1 = min(a[2], b[2]), min(a[3], b[3])
+    return _bbox_area((x0, y0, x1, y1))
+
+
+def _map_sjtsk_bbox(map_dir: pathlib.Path) -> tuple[float, float, float, float]:
+    """Bbox hotové `maps/` mapy v S-JTSK podle `rgb.pgw`.
+
+    Název mapy není spolehlivý klíč k Livelox korpusu. Souřadnice jsou pravda: podle nich jde najít
+    i sken s úplně jiným názvem závodu/mapy.
+    """
+    with Image.open(map_dir / "rgb.png") as im:
+        gW, gH = im.size
+    xmin, ymin, xmax, ymax, *_ = _bbox_from_pgw(_read_pgw(map_dir / "rgb.pgw"), gW, gH)
+    return xmin, ymin, xmax, ymax
+
+
+def find_livelox_scan_candidates(map_dir: str | pathlib.Path,
+                                 corpus: str | pathlib.Path = _CORPUS,
+                                 limit: int = 10) -> list[dict]:
+    """Najde lokální Livelox skeny podle překryvu souřadnic s hotovou `maps/` mapou.
+
+    Vrací seřazené kandidáty s poměrem pokrytí mapového výseku (`map_coverage`) a pokrytí samotného
+    skenu (`scan_coverage`). `map_coverage` je hlavní metrika: chceme co největší kus aktuální mapy.
+    """
+    map_dir = pathlib.Path(map_dir)
+    corpus = pathlib.Path(corpus)
+    mbb = _map_sjtsk_bbox(map_dir)
+    ma = _bbox_area(mbb)
+    rows: list[dict] = []
+    for meta_p in sorted(corpus.glob("*/meta.json")):
+        cid_dir = meta_p.parent
+        if not (cid_dir / "map.png").exists():
+            continue
+        try:
+            meta = json.loads(meta_p.read_text(encoding="utf-8"))
+            g = _georef_grid(meta)
+        except Exception as exc:
+            rows.append({"cid_dir": cid_dir, "error": str(exc), "map_coverage": 0.0, "scan_coverage": 0.0})
+            continue
+        sbb = (g["xmin"], g["ymin"], g["xmax"], g["ymax"])
+        inter = _bbox_intersection_area(mbb, sbb)
+        if inter <= 0:
+            continue
+        sa = _bbox_area(sbb)
+        rows.append({
+            "cid_dir": cid_dir,
+            "class_id": cid_dir.name,
+            "name": meta.get("name") or "",
+            "map_coverage": inter / ma if ma else 0.0,
+            "scan_coverage": inter / sa if sa else 0.0,
+        })
+    rows.sort(key=lambda r: (r["map_coverage"], r["scan_coverage"]), reverse=True)
+    return rows[:limit]
+
+
+def attach_best_livelox_scan(map_dir: str | pathlib.Path, omap_name: str | None = None,
+                             min_map_coverage: float = 0.01) -> dict:
+    """Připne nejlepší lokální Livelox sken podle souřadnicového překryvu.
+
+    Je to tolerantní post-process pro `maps/`: pokud už `bg_scan.png` existuje nebo žádný sken
+    nepřekryje aspoň `min_map_coverage`, nic nepřipíná a výsledek zapíše do `skipped`.
+    """
+    map_dir = pathlib.Path(map_dir)
+    omap = _resolve_omap(map_dir, omap_name)
+    doc = omap.read_text(encoding="utf-8")
+    if "bg_scan.png" in image_template_names(doc):
+        return {"added": [], "skipped": [("bg_scan.png", "sken už existuje")], "candidate": None}
+
+    candidates = find_livelox_scan_candidates(map_dir, limit=1)
+    if not candidates or candidates[0]["map_coverage"] < min_map_coverage:
+        return {"added": [], "skipped": [("bg_scan.png", "nenalezen Livelox překryv")], "candidate": None}
+
+    best = candidates[0]
+    res = attach_livelox_scan(map_dir, best["cid_dir"], omap_name=omap_name)
+    res["candidate"] = best
+    return res
+
+
 def attach_verify_backgrounds(map_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | None = None,
                               omap_name: str | None = None) -> dict:
     """Doplní k hotové `maps/` mapě verify podklady: DMR hillshade + (je-li `cid_dir`) Livelox sken.
@@ -491,6 +596,13 @@ if __name__ == "__main__":
         # `scan <maps/složka> <classId>` = připni originální Livelox sken (verify nad gen mapou)
         r = attach_livelox_scan(sys.argv[2], _CORPUS / sys.argv[3])
         print(f"{sys.argv[2]}: Livelox sken {r['added']} {r['skipped']}")
+    elif arg == "scan-auto":
+        # `scan-auto <maps/složka>` = najdi nejlepší Livelox sken podle souřadnicového překryvu
+        r = attach_best_livelox_scan(sys.argv[2])
+        cand = r.get("candidate")
+        suffix = (f" · {cand['class_id']} {cand['name']} map={cand['map_coverage']:.1%} "
+                  f"scan={cand['scan_coverage']:.1%}") if cand else ""
+        print(f"{sys.argv[2]}: Livelox sken {r['added']} {r['skipped']}{suffix}")
     else:
         r = add_backgrounds(_CORPUS / arg / "gen")
         print(f"{arg}: přidáno {r['added']}, přeskočeno {r['skipped']}")

@@ -1,9 +1,11 @@
-"""vectorize_omap.py — Png2Line krok 1 end-to-end: sken → segmentace → vektorizace → .omap (Sez. 132).
+"""vectorize_omap.py — Png2Line watercourse-only vektorizér: sken → segmentace → .omap (Sez. 132).
 
 Navazuje na eval_real.py (to měří RASTROVOU segmentaci, strict IoU 0,409 / F1 0,773 po conf_thr, Sez. 131).
 Tady přidáváme sdílený „.omap assembly" krok (IDEAS): predikovanou masku watercourse zvektorizujeme
 (`model/vectorize.py`: skeletonize → graf → RDP) na polyline, převedeme sken px → paper µm (inverze
 georef `scan_px_to_paper`) a zapíšeme `.omap` (klon georef kartografovy mapy + liniové objekty 304).
+Po rozšíření `LINE_CLASSES` (306/309/508*) je to záměrně jen legacy vektorizér třídy 1; multi-class
+assembly musí vzniknout zvlášť, aby se 508/309 netvářily jako hotový export.
 
 Dvojí výstup:
   (1) MĚŘENÍ ztráty vektorizace — vektor rasterizujeme ZPĚT na masku a změříme stejnou metrikou jako
@@ -60,6 +62,7 @@ from omap_export import TEMPLATE_PATH, _parse_symbol_ids                   # noq
 _OUT = _REPO / "temp"
 _OUT.mkdir(parents=True, exist_ok=True)
 RDP_EPS_PX = 2.0                              # tolerance RDP [px] na kanonickém měřítku (≈ 2,7 m terénu @ 1,33 mpp)
+VECTORIZE_LABEL = 1                           # legacy: vektorizuje pouze watercourse třídu
 
 
 def build_omap(polylines_paper, carto_omap_path, out_path, code):
@@ -104,6 +107,11 @@ def _metrics(pred_mask, gt_mask):
 
 
 def main(name):
+    if len(LINE_CLASSES) > 1:
+        print(
+            f"[INFO] vectorize_omap je zatím watercourse-only: vektorizuje label {VECTORIZE_LABEL} "
+            f"z {len(LINE_CLASSES)} foreground tříd; ostatní třídy jen ignoruje nahlas."
+        )
     omap = _REPO / "resources" / f"{name}.omap"
     pgw = _REPO / "resources" / f"{name}.pgw"
     png = _REPO / "resources" / f"{name}.png"
@@ -121,8 +129,8 @@ def main(name):
     Y = rasterize_line_Y(lines, to_px, f, W, H)
     pred = predict_scan(scan_arr)
     field = _map_area_mask(scan_arr)
-    gt = (Y == 1) & field
-    pr = (pred == 1) & field                              # raster baseline (po conf_thr)
+    gt = (Y == VECTORIZE_LABEL) & field
+    pr = (pred == VECTORIZE_LABEL) & field                 # raster baseline (po conf_thr)
 
     if gt.sum() == 0:
         print(f"{name}: GT watercourse prázdné — přeskakuji")
@@ -138,7 +146,7 @@ def main(name):
 
     # 3) .omap zápis: polyline downscaled px → FULL px (÷f) → paper µm (inverze georef)
     to_paper = scan_px_to_paper(omap, pgw)
-    code = LINE_CLASSES[0].codes[0]                       # watercourse → "304" (primární kód třídy)
+    code = LINE_CLASSES[VECTORIZE_LABEL - 1].codes[0]      # watercourse → "304" (primární kód třídy)
     polylines_paper = [[to_paper(x / f, y / f) for (x, y) in poly] for poly in polylines_px]
     polylines_paper, north_grid = filter_north_grid(polylines_paper)
     out_omap = _OUT / f"vecline_{name}.omap"

@@ -136,6 +136,90 @@ def _image_template_element(name: str, sx: float, sy: float) -> str:
     )
 
 
+def image_template_names(doc: str) -> list[str]:
+    """Vrátí názvy všech obrázkových podkladů v `.omap`.
+
+    Je to malý SSoT helper pro background vrstvy: attach skripty podle něj poznají, co už mapa
+    obsahuje, místo aby testovaly jen konkrétní soubor (`bg_ortho.png` vs. `ortofoto.png`).
+    """
+    return re.findall(r'<template\s+type="TemplateImage"[^>]*\bname="([^"]+)"', doc)
+
+
+def has_image_template(doc: str, names: set[str]) -> bool:
+    """True, pokud `.omap` obsahuje aspoň jeden z podkladů v `names`."""
+    return any(name in names for name in image_template_names(doc))
+
+
+def remove_image_templates(doc: str, names: set[str]) -> str:
+    """Odstraní obrázkové podklady podle názvu a přepočítá view ref indexy.
+
+    OOM drží template definice a view reference odděleně. Nestačí tedy vyhodit XML element
+    `template`: musí se zároveň snížit `count` a přemapovat `<ref template="i">`, jinak se UI
+    začne odkazovat na špatné podklady.
+    """
+    if not names:
+        return doc
+
+    map_pat = re.compile(
+        r'<templates count="(?P<c>\d+)" first_front_template="\d+">(?P<body>.*?)</templates>',
+        re.DOTALL,
+    )
+    mt = map_pat.search(doc)
+    if mt is None:
+        raise ValueError("remove_image_templates: nenalezen mapový <templates> blok")
+
+    tpl_pat = re.compile(
+        r'<template\s+type="TemplateImage"[^>]*\bname="(?P<name>[^"]+)"[^>]*>.*?</template>',
+        re.DOTALL,
+    )
+    templates = list(tpl_pat.finditer(mt.group("body")))
+    if not templates:
+        return doc
+
+    kept: list[str] = []
+    old_to_new: dict[int, int] = {}
+    removed = False
+    for old_idx, tm in enumerate(templates):
+        if tm.group("name") in names:
+            removed = True
+            continue
+        old_to_new[old_idx] = len(kept)
+        kept.append(tm.group(0))
+    if not removed:
+        return doc
+
+    # Generated .omap používá v template bloku jen TemplateImage vrstvy; když by se to změnilo,
+    # selžeme nahlas místo tichého rozbití indexů.
+    residual = tpl_pat.sub("", mt.group("body"))
+    if residual.strip() and not re.fullmatch(r'\s*(<defaults\b[^>]*/>\s*)?', residual, flags=re.DOTALL):
+        raise ValueError("remove_image_templates: template blok obsahuje nečekaný obsah")
+
+    new_count = len(kept)
+    new_map = f'<templates count="{new_count}" first_front_template="{new_count}">{"".join(kept)}{residual}</templates>'
+    doc = doc[:mt.start()] + new_map + doc[mt.end():]
+
+    def _rewrite_view(mt_view: "re.Match") -> str:
+        ref_pat = re.compile(r'<ref template="(?P<i>\d+)"(?P<rest>[^>]*)/>')
+        refs: list[str] = []
+        for rm in ref_pat.finditer(mt_view.group("body")):
+            old_idx = int(rm.group("i"))
+            if old_idx not in old_to_new:
+                continue
+            refs.append(f'<ref template="{old_to_new[old_idx]}"{rm.group("rest")}/>')
+        return f'<templates count="{len(refs)}">{"".join(refs)}</templates>'
+
+    doc, n_ref = re.subn(
+        r'<templates count="(?P<c>\d+)">(?P<body>(?:(?!<templates).)*?)</templates>',
+        _rewrite_view,
+        doc,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if n_ref != 1:
+        raise ValueError(f"remove_image_templates: view <templates> blok nesedí ({n_ref})")
+    return doc
+
+
 def inject_image_templates(doc: str, templates: list[dict]) -> str:
     """Vloží N PODKLADOVÝCH (background) image templates do .omap s prázdnými <templates count="0"> bloky.
 

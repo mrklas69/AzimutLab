@@ -2,11 +2,12 @@
 train.py — trénink reconstructor modelu Png2Area (Sez. 88).
 
 První ze tří CV úloh dekompozice OOM podle geometrie (Sez. 80): Png2Area (plochy) → mapový sken RGB
-predikuje area label rastr (18 tříd: 0 pozadí + 17 ISOM plošných kódů, schéma omap_raster Sez. 87;
-N_AREA prošlo 16→17 (403, Sez. 92) →18 (310, Sez. 99/103)). Páry [rgb.png, area_labels.png] vyrábí
+predikuje area label rastr (N_AREA tříd: 0 pozadí + ISOM plošné kódy, schéma omap_raster Sez. 87;
+N_AREA prošlo 16→17 (403, Sez. 92) →18 (310, Sez. 99/103) →21 (404/407/409, Sez. 152).
+Páry [rgb.png, area_labels.png] vyrábí
 generator/pairs.py; tile.py je krájí, dataset.py je čte a degraduje X on-the-fly. Izomorfní
 s archivovaným model/runnability/train.py
-(reuse U-Net/loss/IoU/křivka) — liší se: vstup je mapa ne ortofoto, 18 area tříd ne 5 runnability,
+(reuse U-Net/loss/IoU/křivka) — liší se: vstup je mapa ne ortofoto, N_AREA area tříd ne 5 runnability,
 BEZ ignore_index (Y z naší .omap je celé validní).
 
 Architektura: U-Net s ResNet34 encoderem, ImageNet-pretrained (segmentation-models-pytorch).
@@ -157,7 +158,7 @@ def _plot_curve(history: list[dict], output_dir: Path, miou_label: str) -> None:
     axb.tick_params(axis="y", labelcolor="b")
     ax1.set_title(f"loss + mIoU (poslední: {history[-1]['miou']:.3f})")
 
-    # --- pravý: per-class IoU (18 tříd → menší legenda) ---
+    # --- pravý: per-class IoU (N_AREA tříd → menší legenda) ---
     for c in range(N_AREA):
         ax2.plot(eps, [h["iou"][c] for h in history], "-o", ms=2, label=LABEL_NAME[c])
     ax2.set_xlabel("epocha"); ax2.set_ylabel("IoU"); ax2.set_ylim(0, 1)
