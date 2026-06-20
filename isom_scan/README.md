@@ -22,7 +22,10 @@ build_gt.py                # obnoví GT z lokálního resources/livelox/1127443 
 overlay.py                 # vykreslí GT/run body nad lokální sken
 black_brown_poc*.{py,ps1}  # scan-mining PoC: černá vs hnědá maska ze skenu
 manmade_points_poc.py      # scan-mining PoC: 525/527/531 z izolovaných černých komponent
+terrain_points_poc.py      # scan-mining PoC: 109/111/112/115 z malých hnědých komponent
+vegetation_points_poc.py   # scan-mining PoC: 417/418 z malých zelených komponent
 manmade_points_review.py   # kurátorský manifest + crop sheet pro PoC kandidáty
+manmade_points_omap.py     # export bodových kandidátů do pracovní .omap kopie pro vizuální kontrolu
 ```
 
 ## Postup spuštění jednoho běhu
@@ -76,6 +79,64 @@ python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedri
 To vytvoří `review_manifest.json`, `review_sheet.png` a `crops/*.png`. Do manifestu se ručně
 doplní `review.verdict` (`tp` / `fp` / `ignore`) a případně `review.true_code`. Teprve takový
 manifest je vstup pro ladění prahů; samotný PoC výstup není GT.
+
+Kalibrační protokol pro jeden ISOM kód:
+1. Do pracovní `.omap` přidej přesné pozitivní markery jako `602 Registration mark` na skutečné středy symbolů.
+2. Volitelně přidej textové `704` popisky k negativním příkladům (`A`, `B`, `C`...), které detektor nesmí brát.
+3. Spusť příslušný PoC skript s kandidátními parametry a vyrob review sheet.
+4. Změř recall vůči markerům, false positives vůči negativním příkladům a uprav prahy pro konkrétní kód.
+5. Parametry zapiš jako per-ISOM kalibraci; dokud nejsou opakovatelné, výstup zůstává jen pracovní vrstva.
+
+Pro Hamr na Jezeře `109` tenhle postup ukázal důležitý detail: score práh sám nestačí, protože slabé
+tečky z liniového `108` vypadají podobně. `--min-area 25` je zatím kalibrovaný filtr, který tyto
+negativní příklady odstranil při zachování marker recall.
+
+Pracovní `.omap` kopie pro kontrolu kandidátů:
+```powershell
+python isom_scan/manmade_points_omap.py `
+  --review temp/manmade_points_buschdorfl/review/review_manifest.json `
+  --include-unreviewed `
+  --map "maps/Buschdörfl/Buschdörfl.omap" `
+  --out temp/manmade_points_buschdorfl/Buschdörfl_candidates.omap
+```
+Export čte transformaci existujícího `bg_scan.png` template v mapě a zdrojovou `.omap`
+nepřepisuje. U review manifestu defaultně exportuje jen `tp`; `--include-unreviewed`
+je určené pro první vizuální průchod.
+
+Hnědé terrain-point kandidáty. Výchozí sada je 111/112/115, konkrétní symbol lze
+omezit přes `--codes`:
+```powershell
+python isom_scan/terrain_points_poc.py `
+  --input "maps/Buschdörfl/bg_scan.png" `
+  --out-dir temp/terrain_points_buschdorfl `
+  --max-dim 3000
+python isom_scan/terrain_points_poc.py `
+  --input "maps/Hamr na Jezeře/bg_scan.png" `
+  --out-dir temp/terrain109_hamr `
+  --codes 109 `
+  --max-dim 3000 `
+  --score-threshold 0.87 `
+  --min-area 25
+python isom_scan/manmade_points_review.py `
+  --detections temp/terrain_points_buschdorfl/detections.json `
+  --crop-px 220
+```
+Hnědá kresba sdílí barvu s vrstevnicemi, takže výstup má vyšší riziko false positive
+než černé man-made body. Pro `109` je důležitý `--min-area`, jinak se jednotlivé
+slabé tečky z liniového `108` pletou s bodovou kupkou. Používej ho jako
+kandidátní review vrstvu, ne jako pravdu.
+
+Zelené vegetation-point kandidáty 417/418:
+```powershell
+python isom_scan/vegetation_points_poc.py `
+  --input "maps/Buschdörfl/bg_scan.png" `
+  --out-dir temp/vegetation_points_buschdorfl
+python isom_scan/manmade_points_review.py `
+  --detections temp/vegetation_points_buschdorfl/detections.json `
+  --crop-px 180
+```
+Při update mapy, která už obsahuje pseudo 417/418, použij export s
+`--replace-existing-codes`, jinak se scan kandidáty smíchají se starou pseudo vrstvou.
 
 ## Git hranice
 Verzovat: skripty, prompt, README, `results.csv`, `gt/ground_truth.json`, `gt/task_crop_box.json`,

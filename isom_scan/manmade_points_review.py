@@ -5,12 +5,13 @@ Použití:
   python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedrichovka/detections.json
 
 Skript z PoC `detections.json` vyrobí:
-  - `review_manifest.json` se stabilními kandidáty a prázdným review polem
+  - `review_manifest.json` se stabilními kandidáty a review polem
   - `review_sheet.png` pro rychlou kontrolu očima
   - `crops/*.png` jednotlivé výřezy
 
 Záměrně NErozhoduje TP/FP automaticky. Kurátor do manifestu doplní `review.verdict`
-(`tp` / `fp` / `ignore`) a případně `review.true_code`.
+(`tp` / `fp` / `ignore`) a případně `review.true_code`. Při opakovaném spuštění
+skript zachová existující review rozhodnutí podle stabilního `id`.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 DEFAULT_DETECTIONS = HERE / "manmade_points_poc" / "detections.json"
+REVIEW_VALUES = ("unreviewed", "tp", "fp", "ignore")
 
 # Lokální mapové skeny mohou být velké. Jsou to naše vstupy, ne nedůvěryhodný upload.
 Image.MAX_IMAGE_PIXELS = None
@@ -88,6 +90,56 @@ def _iter_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
             })
     out.sort(key=lambda item: (item["pred_code"], -item["score"], item["center"]["y"], item["center"]["x"]))
     return out
+
+
+def _load_existing_reviews(out_dir: Path) -> dict[str, dict[str, Any]]:
+    """Načte ruční verdikty z předchozího manifestu, aby je rerun nesmazal."""
+    manifest_path = out_dir / "review_manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Existujici review manifest nejde nacist: {manifest_path}: {exc}") from exc
+
+    reviews: dict[str, dict[str, Any]] = {}
+    for candidate in payload.get("candidates", []):
+        candidate_id = str(candidate.get("id", ""))
+        review = candidate.get("review", {})
+        if candidate_id and isinstance(review, dict):
+            reviews[candidate_id] = review
+    return reviews
+
+
+def _preserve_existing_reviews(candidates: list[dict[str, Any]],
+                               existing_reviews: dict[str, dict[str, Any]]) -> int:
+    """Přenese staré review do nově sestavených kandidátů podle stabilního `id`."""
+    kept = 0
+    for candidate in candidates:
+        old_review = existing_reviews.get(str(candidate["id"]))
+        if old_review is None:
+            continue
+        # Necháme nové default klíče a přes ně vrátíme ruční hodnoty včetně případných poznámek.
+        candidate["review"].update(old_review)
+        kept += 1
+    return kept
+
+
+def _review_summary(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    """Spočítá stav kurace; neznámé verdikty ukáže zvlášť místo tichého schování."""
+    counts: dict[str, int] = {value: 0 for value in REVIEW_VALUES}
+    unknown: dict[str, int] = {}
+    for candidate in candidates:
+        verdict = str(candidate.get("review", {}).get("verdict", "unreviewed"))
+        if verdict in counts:
+            counts[verdict] += 1
+        else:
+            unknown[verdict] = unknown.get(verdict, 0) + 1
+    return {
+        "total": len(candidates),
+        **counts,
+        "unknown": unknown,
+    }
 
 
 def _crop_box(candidate: dict[str, Any], img: Image.Image, crop_px: int) -> tuple[int, int, int, int]:
@@ -155,18 +207,20 @@ def _write_sheet(img: Image.Image, candidates: list[dict[str, Any]], out_path: P
 
 def _manifest(payload: dict[str, Any], detections_path: Path, image_path: Path,
               candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    codes = [str(det.get("code", "")) for det in payload.get("detections", []) if det.get("code") is not None]
     return {
         "_status": "REVIEW_REQUIRED",
         "_doc": (
-            "Rucni kurace man-made point kandidatu. Vypln review.verdict jako "
+            "Rucni kurace point kandidatu. Vypln review.verdict jako "
             "tp/fp/ignore; true_code nech null, pokud pred_code sedi."
         ),
         "source_detections": str(detections_path),
         "source_status": payload.get("_status", ""),
         "image": str(image_path),
         "image_sha256": _sha256(image_path),
-        "codes": ["525", "527", "531"],
-        "review_values": ["unreviewed", "tp", "fp", "ignore"],
+        "codes": codes,
+        "review_values": list(REVIEW_VALUES),
+        "review_summary": _review_summary(candidates),
         "candidates": candidates,
     }
 
@@ -191,6 +245,7 @@ def main() -> int:
 
     img = Image.open(image_path).convert("RGB")
     candidates = _iter_candidates(payload)
+    preserved = _preserve_existing_reviews(candidates, _load_existing_reviews(out_dir))
     _write_crops(img, candidates, out_dir, args.crop_px)
     _write_sheet(img, candidates, out_dir / "review_sheet.png", args.crop_px, args.max_sheet_items)
     manifest = _manifest(payload, args.detections.resolve(), image_path, candidates)
@@ -201,6 +256,8 @@ def main() -> int:
 
     print(json.dumps({
         "candidates": len(candidates),
+        "preserved_reviews": preserved,
+        "review_summary": manifest["review_summary"],
         "out_dir": str(out_dir),
         "manifest": str(out_dir / "review_manifest.json"),
         "sheet": str(out_dir / "review_sheet.png"),
