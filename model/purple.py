@@ -1,7 +1,7 @@
 """
 purple.py — augmentace fialovým přetiskem tratě (ISOM course overprint) pro OBA reconstructory (A2a).
 
-PROČ (Fable5 audit A1, Sez. 117): vrcholová reálná úloha je sken POUŽITÉ závodní mapy — ta nese
+PROČ (supervisor audit A1, Sez. 117): vrcholová reálná úloha je sken POUŽITÉ závodní mapy — ta nese
 fialový přetisk tratě (start, kontrolní kroužky, spojnice, čísla). Náš trénink vidí jen čistý gen
 render → model fialovou nikdy nepotkal jako vstup. A1 benchmark (Sez. 120-121) běžel na ČISTÝCH
 kartografových skenech bez tratě → fialovou nemohl změřit, ale na reálné závodní mapě se vyskytuje.

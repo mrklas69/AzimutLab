@@ -77,7 +77,7 @@ README.md              # this file — identity, DAG, status
 docs/
   PROMPTS.md           # %BEGIN / %END macros
   ROADMAP.md           # SSoT of direction & phase gate: Generator() → Rekonstruktor() (session 136)
-  AUDIT_FABLE5_*.md    # meta-audit by the strongest model: _PROMPT = repeatable assignment, dated issues (session 117)
+  AUDIT_SUPERVISOR_*.md    # meta-audit by the strongest model: _PROMPT = repeatable assignment, dated issues (session 117)
   architecture.md      # canonical DAG: layers, UC dependencies, Pic2Omap relationship
   diary/YYYY-MM-DD.md  # session log
   TODO.md / DONE.md    # work tracking
@@ -127,7 +127,7 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
 model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Four subdirs, three live reconstructors:
   checkpoints.py       #   shared run_id checkpoints: atomic best.pt + manifest + explicit promote to canonical unet_best.pt
   mpp.py               #   canonical training-tile resolution (SSoT) + resample to it (session 126 MPP fix)
-  purple.py            #   purple course-overprint augmentation (ISOM) for both reconstructors (Fable5 A2a; session 123)
+  purple.py            #   purple course-overprint augmentation (ISOM) for both reconstructors (supervisor audit A2a; session 123)
   vectorize.py         #   shared reconstructor postprocess: line mask → polyline (session 132)
   runnability/         #   ARCHIVED ortho→runnability model (dead-end session 79; git-moved here session 88)
     tile.py            #     pre-tiling (X,Y) pairs → 512×512 (stride 256, reject <30% valid px) → resources/tiles/ + median-freq weights

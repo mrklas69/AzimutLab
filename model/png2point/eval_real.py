@@ -1,5 +1,5 @@
 """
-A1.b reálný benchmark Png2Point — doménový gap injekce → kartografův sken (Fable5 audit A1, část b).
+A1.b reálný benchmark Png2Point — doménový gap injekce → kartografův sken (supervisor audit A1, část b).
 
 Měří `point_model/unet_best.pt` na REÁLNÉM skenu (NE na injekci do čistého point_base):
   X = sken (`resources/<name>.png` + `.pgw`), downscalovaný na trénovací mpp 1,33 (= dlaždice).

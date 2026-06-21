@@ -24,7 +24,7 @@ Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
 - [x] **Samostatný auditní report:** vznikl `docs/AUDIT_DOCS_260620.md` s 12 nálezy, source ověřením
   (`N_AREA=21`, `N_LINE=5`, 65 capability/generator kódů) a follow-up stavem.
 - [x] **D1-D10 docs drift opraven:** `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/architecture.md`,
-  `docs/GLOSSARY.md`, `docs/TODO.md`, `docs/DIARY.md`, `docs/AUDIT_FABLE5_260619.md` a
+  `docs/GLOSSARY.md`, `docs/TODO.md`, `docs/DIARY.md`, `docs/AUDIT_SUPERVISOR_260619.md` a
   `docs/HANDOFF_260619_MRKLA_HAL3000.md` sjednocené na živý kontrakt KPI **65,8 %**, `N_AREA=21`,
   `N_LINE=5` a 4-třídový `Png2Point`.
 - [x] **D11 DIARY archive anchors:** opraveno 20 rozbitých fragmentů v `docs/DIARY-archive.md`;
@@ -118,8 +118,8 @@ Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
 
 ## Sezení 147 (2026-06-19) — Předání z Claude: supervisor audit, scan-color utilita, oprava `.venv` (ntbhej)
 Detail: [diary/2026-06-19.md](diary/2026-06-19.md).
-- [x] **Supervisor audit Fable 5 hotový:** vytvořen `docs/AUDIT_FABLE5_260619.md` podle
-  `docs/AUDIT_FABLE5_PROMPT.md`. Hlavní námitka: ISOM-scan/classic-CV průlom musí být zakotvený jako
+- [x] **Supervisor audit Fable 5 hotový:** vytvořen `docs/AUDIT_SUPERVISOR_260619.md` podle
+  `docs/AUDIT_SUPERVISOR_PROMPT.md`. Hlavní námitka: ISOM-scan/classic-CV průlom musí být zakotvený jako
   `Generator() / scan mining`, ne omylem zmražený jako `Rekonstruktor()`/degradation práce. Další nálezy:
   chybějící `Velbloud.pgw` blokuje srovnatelný KPI trend, `isom_scan/` potřebuje durable hranici harness vs
   copyright raster, KPI Goodhart trvá u pseudo hustot 527/531, generátor pořád potřebuje smoke/invariant test.
@@ -663,9 +663,9 @@ Detail: [diary/2026-06-12.md](diary/2026-06-12.md#sezení-118--png2area-re-trén
   `docs/kb/isom-colour-order.md` a šest konkrétních nálezů generátoru do TODO.
 
 ## Sezení 117 (2026-06-12) — Meta-audit Fable 5: prompt + audit + úkoly + %BEGIN zapojení (HAL3000, docs-only)
-- [x] **`docs/AUDIT_FABLE5_PROMPT.md`** — opakovatelné zadání meta-auditu (role/postup/struktura/omezení;
+- [x] **`docs/AUDIT_SUPERVISOR_PROMPT.md`** — opakovatelné zadání meta-auditu (role/postup/struktura/omezení;
   datum parametrické; od 2. vydání povinná tabulka stavu minulých námitek VYŘEŠENO/TRVÁ/ZHORŠENO).
-- [x] **`docs/AUDIT_FABLE5_260612.md`** — 1. vydání: **A1 doménový gap syntetika→sken neměřen (KRITICKÁ)** /
+- [x] **`docs/AUDIT_SUPERVISOR_260612.md`** — 1. vydání: **A1 doménový gap syntetika→sken neměřen (KRITICKÁ)** /
   A2 purple+geometrická augmentace chybí / A3 KPI Goodhart / A4 architecture drift (odklad „plné revize"
   Sez. 79) / A5 nula testů / A6 artefakty bus-factor / A7 Png2Line bez %THINK + B1–B7 + C (9 pravidel pro
   kolegy) + D (nerozbíjet). Podloženo Explore agentem nad kódem (0 testů, metriky jen syntetika, degrade
@@ -674,7 +674,7 @@ Detail: [diary/2026-06-12.md](diary/2026-06-12.md#sezení-118--png2area-re-trén
   jednodušší modely; 2 existující body povýšeny (reálný transfer 204/210 [!] ← A1; geometrická augmentace
   ← A2). Hotové se přesouvají do DONE s kódem námitky.
 - [x] **%BEGIN zapojení (`docs/PROMPTS.md`)** — nový bod 7 audit-check (TL;DR + sekce C nejnovějšího
-  auditu) + rozšíření bodu 2: cadence AUDIT_FABLE5 ≥25 sez / milník + úsudkové práce (audity, velká
+  auditu) + rozšíření bodu 2: cadence AUDIT_SUPERVISOR ≥25 sez / milník + úsudkové práce (audity, velká
   %THINK) nejsilnějším modelem, slabší model nabízí handoff.
 - [x] **Censure 1 → oprava auditu:** A3(2) původně „rozšířit KPI referenci o Livelox mapy" — KPI potřebuje
   vektorovou `.omap`, Livelox je raster-only → referenci rozšíří jen další kartografické `.omap` (resources).

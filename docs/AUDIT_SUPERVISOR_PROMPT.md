@@ -1,8 +1,8 @@
-# AUDIT_FABLE5 — opakovatelné zadání meta-auditu projektu
+# AUDIT_SUPERVISOR — opakovatelné zadání meta-auditu projektu
 
-Zadání pro nejsilnější dostupný model (Fable/Mythos třída). Spouští se opakovaně;
-výstup = nový soubor `docs/AUDIT_FABLE5_<YYMMDD>.md` (datum dnešního dne, např.
-`AUDIT_FABLE5_260612.md`). Nekóduje se — výstupem je pouze auditní dokument.
+Zadání pro nejsilnější dostupný model. Spouští se opakovaně;
+výstup = nový soubor `docs/AUDIT_SUPERVISOR_<YYMMDD>.md` (datum dnešního dne, např.
+`AUDIT_SUPERVISOR_260612.md`). Nekóduje se — výstupem je pouze auditní dokument.
 
 ## Role a publikum
 
@@ -29,7 +29,7 @@ tak, aby o nich mohl rozhodnout).
    struktura `generator/` / `connectors/` / `model/`, existence testů, na ČEM se
    měří metriky modelů (syntetika vs reálný sken), co umí degradace/augmentace,
    stav duplikací/SSoT. Fan-out průzkumným agentem je vhodný.
-3. **Přečti předchozí audity** `docs/AUDIT_FABLE5_*.md` (pokud existují) a u každé
+3. **Přečti předchozí audity** `docs/AUDIT_SUPERVISOR_*.md` (pokud existují) a u každé
    dřívější námitky urči stav: VYŘEŠENO / TRVÁ / ZHORŠENO (s dokladem). Nové vydání
    nesmí mlčky opakovat staré nálezy jako nové.
 4. **Auditní optika** — hodnoť po vrstvách:
@@ -46,7 +46,7 @@ tak, aby o nich mohl rozhodnout).
    Bez dokladu nález nepiš. Default je oponovat, ne chválit; poměr kritika:pochvala
    ≈ 80:20.
 
-## Struktura výstupu `AUDIT_FABLE5_<YYMMDD>.md`
+## Struktura výstupu `AUDIT_SUPERVISOR_<YYMMDD>.md`
 
 1. **Hlavička** — datum, auditor (model), rozsah, metoda.
 2. **TL;DR** — 5–10 vět: celkový verdikt + 3 nejzávažnější body.

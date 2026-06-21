@@ -1,8 +1,8 @@
-# AUDIT_FABLE5_260619
+# AUDIT_SUPERVISOR_260619
 
 Datum: 2026-06-19  
 Auditor: Codex GPT-5  
-Rozsah: `README.md`, `docs/architecture.md`, `docs/ROADMAP.md`, `docs/TODO.md`, `docs/DIARY.md`, poslední diáře 2026-06-16 až 2026-06-18, předchozí `docs/AUDIT_FABLE5_260612.md`, `docs/IDEAS_from_chatgpt55.md`, přímé ověření `generator/`, `connectors/`, `model/`, `tests/`, `resources/isom/`, lokální `isom_scan/` a aktuální pracovní stav.  
+Rozsah: `README.md`, `docs/architecture.md`, `docs/ROADMAP.md`, `docs/TODO.md`, `docs/DIARY.md`, poslední diáře 2026-06-16 až 2026-06-18, předchozí `docs/AUDIT_SUPERVISOR_260612.md`, `docs/IDEAS_from_chatgpt55.md`, přímé ověření `generator/`, `connectors/`, `model/`, `tests/`, `resources/isom/`, lokální `isom_scan/` a aktuální pracovní stav.  
 Metoda: meta-audit směru a rizik; dokumentace ověřená proti kódu a lokálním artefaktům. Testy jsem nespouštěl: na tomto stroji v sezení nebyl dostupný funkční Python launcher (`.venv` ani `py -3.12`).
 
 > **Status po Sez. 152 (2026-06-20):** tenhle audit zůstává historický artefakt.

@@ -130,10 +130,10 @@ Navržená oprava: u `omap_raster` a `Png2Area` oddělit "aktuálně" od "histor
 U `Png2Point` explicitně říct, že `0,888` je superseded 2-třídová metrika a živý
 4-třídový benchmark je `0,827`.
 
-### D8 - `docs/AUDIT_FABLE5_260619.md` je historicky správný, ale dnes působí živě
+### D8 - `docs/AUDIT_SUPERVISOR_260619.md` je historicky správný, ale dnes působí živě
 
 Doklad:
-- `docs/AUDIT_FABLE5_260619.md:12`, `:45-51`, `:126` tvrdí, že chybějící
+- `docs/AUDIT_SUPERVISOR_260619.md:12`, `:45-51`, `:126` tvrdí, že chybějící
   `Velbloud.pgw` blokuje srovnatelný trend.
 - `docs/TODO.md:35-42`, `docs/DONE.md:79-82` a lokální filesystem potvrzují, že
   `resources/Velbloud.pgw` byl následně vytvořen.
@@ -217,7 +217,7 @@ scope, nebo nahoře přidat "historical snapshot / superseded".
 1. Sjednotit živý stav v `AGENTS.md`, `CLAUDE.md`, `README.md`,
    `docs/architecture.md`, `docs/GLOSSARY.md`.
 2. Pročistit `docs/TODO.md`, aby znovu znamenal aktivní backlog.
-3. Označit `AUDIT_FABLE5_260619.md` a `HANDOFF_260619_MRKLA_HAL3000.md` jako
+3. Označit `AUDIT_SUPERVISOR_260619.md` a `HANDOFF_260619_MRKLA_HAL3000.md` jako
    historické/superseded místo přepisování jejich původních závěrů.
 4. Opravit hlavičku nebo rozsah `docs/DIARY.md`.
 5. Samostatně spustit anchor verifier a opravit `docs/DIARY-archive.md`.

@@ -4,8 +4,8 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita. Hotové položky p
 v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
-## Audit Fable 5 (2026-06-19) — námitky → úkoly
-Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260619.md`**. Tento audit navazuje na
+## Audit supervisor (2026-06-19) — námitky → úkoly
+Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260619.md`**. Tento audit navazuje na
 průlom Sez. 146/147: classic-CV práce nad reálným skenem je legitimní `Generator() / scan mining`,
 pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
 
@@ -50,9 +50,9 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   real-scan metric trigger nebo nezačne etapa `Rekonstruktor()`. Starší A2 položka níže je historický kontext,
   ne dnešní priorita.
 
-## Audit Fable 5 (2026-06-12) — námitky → úkoly
-Zdroj + plný kontext a doklady: **`docs/AUDIT_FABLE5_260612.md`** (námitky A1–A7, připomínky B1–B7).
-Příští audit (dle `docs/AUDIT_FABLE5_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
+## Audit supervisor (2026-06-12) — námitky → úkoly
+Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260612.md`** (námitky A1–A7, připomínky B1–B7).
+Příští audit (dle `docs/AUDIT_SUPERVISOR_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
 při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je dohledatelné.
 
 - [~] *(A2; phase-2 — (a) purpura HOTOVO Sez. 123 + Png2Area re-trénink Sez. 124; Png2Point re-trénink Sez. 125 ODHALIL NESTABILITU; (b) geometrická část ZMRAŽENA 260619-A5)* **Purple-course + geometrická augmentace.**
@@ -187,7 +187,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
 > **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
 >
-> **2. KPI — reálný doménový gap (Sez. 120–121, re-benchmark Sez. 126 po MPP fixu, Fable5 A1):** KPI výše měří jen
+> **2. KPI — reálný doménový gap (Sez. 120–121, re-benchmark Sez. 126 po MPP fixu, supervisor audit A1):** KPI výše měří jen
 > FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point,line}/eval_real.py` na
 > kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
 > **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
@@ -295,7 +295,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   `mask &= ~water_cell`), nebo post-water clip 416 segmentů z `.omap` (`_clip_fences_off_water` vzor). Předat vodní masku do funkce.
 - [ ] *(vizuál, vrstevnice přes vodu, nález uživatele Sez. 118 — řešení OPRAVENO na CLIP po rešerši IOF)* **Vrstevnice se NESMÍ zobrazovat
   přes vodní plochu — řešení CLIP (geometrie), NE z-order.** Původní hypotéza „z-order (modrá plocha nad hnědou)" VYVRÁCENA rešerší IOF
-  (Fable5, Sez. 118): oficiální IOF colour order má **modrou plochu POD hnědou linií** (Printing & Colour Definitions Feb 2022, kap. 7 str. 6;
+  (supervisor audit, Sez. 118): oficiální IOF colour order má **modrou plochu POD hnědou linií** (Printing & Colour Definitions Feb 2022, kap. 7 str. 6;
   cross-check OpenOrienteering/mapper#1966). Náš OOM template to má IOF-věrně (`Blue area` priority 15 pod `Brown` 6). Že reálné mapy nemají
   vrstevnice v jezerech je GEOMETRIE (kartograf je tam nekreslí), ne paleta — z-order by je nikdy neschoval. Fix: vrstevnice (101/102/103/104)
   vyříznout vodní maskou (`water_cell`) STEJNĚ jako 416/balvany/plot → spadá pod sdílený `off_water` filtr níže. X↔Y konzistentní pro budoucí
@@ -530,7 +530,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   zapojena jako AUGMENTACE Sez. 103** (`degrade.py` volán v `model/png2area/dataset.py._augment` on-the-fly, ne
   v build_pair — degradace patří do tréninkové pipeline, ne do generator() výroby párů, viz
   [[no-degradation-in-generator-phase]]). **ZBÝVÁ geometrická půlka** (deformace sklad/sken, rotace warp;
-  POVÝŠENO auditem A2 — sekce „Audit Fable 5" nahoře) —
+  POVÝŠENO auditem A2 — sekce „Audit supervisor" nahoře) —
   patří na úroveň dlaždice (transformuje X i Y zároveň) vedle D4 (Sez. 78). Pro UC4-III sken / reconstructor fáze III.
 
 ## Rozhodnutí (k dozrání → IDEAS.md / architecture.md)

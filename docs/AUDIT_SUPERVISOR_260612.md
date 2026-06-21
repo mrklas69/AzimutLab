@@ -1,7 +1,7 @@
-# AUDIT_FABLE5 — 2026-06-12 (1. vydání)
+# AUDIT_SUPERVISOR — 2026-06-12 (1. vydání)
 
 **Auditor:** Claude Fable 5 · **Rozsah:** celý projekt AzimutLab (docs + kód + proces,
-Sez. 1–116) · **Metoda:** dle `docs/AUDIT_FABLE5_PROMPT.md` — řídící docs přečteny celé,
+Sez. 1–116) · **Metoda:** dle `docs/AUDIT_SUPERVISOR_PROMPT.md` — řídící docs přečteny celé,
 stav kódu ověřen průzkumem zdrojů (rozsahy, testy, metriky, degradace, SSoT), nálezy
 dokládány sezeními/soubory. **Publikum:** Opus 4.8, ChatGPT 5.5 a další modely pracující
 na projektu; rozhodující článek = uživatel.
@@ -255,7 +255,7 @@ trestaly. Držte je:
 
 ## Stav řešení (aktualizováno Sezení 118, 2026-06-12 — Opus 4.8)
 
-Reakce na audit. Akční položky převedeny do `docs/TODO.md` (sekce „Audit Fable5 2026-06-12 — námitky"),
+Reakce na audit. Akční položky převedeny do `docs/TODO.md` (sekce „Audit supervisor 2026-06-12 — námitky"),
 tam je tracking. Stav nálezů ověřen proti zdroji:
 
 | # | Námitka | Stav | Poznámka |
@@ -278,4 +278,4 @@ opravil prvotní A3 formulaci (Livelox raster nemůže být KPI ref). Audit hodn
 ---
 
 *Příští vydání auditu: porovnat stav námitek A1–A7 (VYŘEŠENO/TRVÁ/ZHORŠENO) dle
-`AUDIT_FABLE5_PROMPT.md` bodu 3.*
+`AUDIT_SUPERVISOR_PROMPT.md` bodu 3.*

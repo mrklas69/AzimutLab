@@ -1,5 +1,5 @@
 """
-A1 reálný benchmark Png2Area — doménový gap syntetika → kartografův sken (Fable5 audit A1).
+A1 reálný benchmark Png2Area — doménový gap syntetika → kartografův sken (supervisor audit A1).
 
 Měří `unet_best.pt` na REÁLNÉM skenu kartografovy mapy (NE na vlastní syntetice):
   X = sken (`resources/<name>.png` + `.pgw`), downscalovaný na trénovací mpp 1,33.

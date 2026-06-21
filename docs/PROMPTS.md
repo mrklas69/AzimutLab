@@ -26,13 +26,13 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
    pokud žádný (%CALIBRATE/pruning poprvé Sez. 17). %AUDIT:CODE reálně spouští LOC
    práh ≥500, ne počet sezení — `generator/` + `connectors/` už mají kód.)
    **Projektové rozšíření (Sez. 117):**
-   - **Meta-audit AUDIT_FABLE5: ≥25 sez** od posledního `docs/AUDIT_FABLE5_*.md`, NEBO
+   - **Meta-audit AUDIT_SUPERVISOR: ≥25 sez** od posledního `docs/AUDIT_SUPERVISOR_*.md`, NEBO
      milník (fáze B→A, nový reconstructor, výsledek A1 benchmarku). Spouští se zadáním
-     `docs/AUDIT_FABLE5_PROMPT.md`. Jiná optika než %AUDIT:CODE/DOCS/%CALIBRATE
+     `docs/AUDIT_SUPERVISOR_PROMPT.md`. Jiná optika než %AUDIT:CODE/DOCS/%CALIBRATE
      (strategie, Goodhart, mezivrstvy) — nenahrazují se navzájem.
    - **Úsudkové práce nejsilnějším modelem.** %AUDIT:CODE / %AUDIT:DOCS / %CALIBRATE /
-     AUDIT_FABLE5 + velká rozhodovací %THINK sezení (typ revize taxonomie UC, volba
-     přístupu Png2Line) patří na nejsilnější dostupný model (Fable/Mythos třída) —
+     AUDIT_SUPERVISOR + velká rozhodovací %THINK sezení (typ revize taxonomie UC, volba
+     přístupu Png2Line) patří na nejsilnější dostupný model —
      úsudek nad velkým kontextem + verifikace nálezů proti zdroji (doklad: Sez. 93
      4 agentí falešné poplachy; Sez. 110 ChatGPT audit 1 zásah + šum). Audity jsou
      ntbhej-friendly → volba modelu nic neblokuje. Je-li audit zralý a sezení běží
@@ -59,12 +59,12 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
    (levné, vždy dostupné). **Přeměř** (na stroji s `resources/*.pgw`), jen pokud se od posledního
    měření měnil generátor (`connectors/`+`generator/` `.py`) → ukaž TREND vůči minulému sezení.
 
-7. **Audit Fable check (Sez. 117).** Existuje-li `docs/AUDIT_FABLE5_*.md`, načti
+7. **Audit supervisor check (Sez. 117).** Existuje-li `docs/AUDIT_SUPERVISOR_*.md`, načti
    z NEJNOVĚJŠÍHO soubor TL;DR + **sekci C (doporučení pro kolegy)** a drž ta pravidla
    po celé sezení — platí opakovaně, ne jednorázově. Auditové úkoly žijí v TODO sekci
-   „Audit Fable 5 — námitky → úkoly": řeš je jako běžné [!] položky (jedna položka =
+   „Audit supervisor — námitky → úkoly": řeš je jako běžné [!] položky (jedna položka =
    jeden fokus), hotové přesouvej do DONE **s kódem námitky** (A1, B4, …), ať je
-   příští audit (`docs/AUDIT_FABLE5_PROMPT.md`) umí odškrtat.
+   příští audit (`docs/AUDIT_SUPERVISOR_PROMPT.md`) umí odškrtat.
 
 ## %END — konec sezení
 = globální %DOCS + commit pravidla. Projektová specifika:
