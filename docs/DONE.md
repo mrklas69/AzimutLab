@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 155 (2026-06-21) — Supervizní audit 260621 + přejmenování konvence FABLE5 → SUPERVISOR (mrkla)
+Detail: [diary/2026-06-21.md](diary/2026-06-21.md).
+- [x] **Supervizní audit `docs/AUDIT_SUPERVISOR_260621.md`** — 8-agent workflow verifikace proti zdroji
+  (37 testů OK). 4 hlavní námitky: **A1 KRITICKÁ** scope Sez.152 (`N_AREA` 18→21, `N_LINE` 2→5) deklarován,
+  ale kanonické checkpointy area/line staré (eval_real spadne, nové typy 404/407/409+306/309/508* neměřeny
+  na realitě, README 0,683/0,774 = starý scope); **A2** scan-mining `calibration_manifest` bez recall+untracked,
+  `capabilities`↔manifest rozchod (112/115 chybí); **A3** KPI feeder 65,8 ≠ cíl + sirotek 66,2; **A4** bus
+  factor 1 trvá přes 3 audity. Stav 260619 většinou VYŘEŠEN; B1-B8 + C/D viz soubor.
+- [x] **Přejmenování supervize model-agnostic (FABLE5 → SUPERVISOR):** audit dělaly 3 modely
+  (Fable 5/Codex/Opus) → název odpojen od modelu. `git mv` `AUDIT_FABLE5_{PROMPT,260612,260619}.md`
+  → `AUDIT_SUPERVISOR_*` + nový 260621; token `AUDIT_FABLE5` → `AUDIT_SUPERVISOR` všude; živé docs
+  (TODO sekce / GLOSSARY term / PROMPTS cadence + `%BEGIN` check / README layout) + kód atribuce
+  „Fable5 audit"→„supervisor audit" + genericizace template „(Fable/Mythos třída)"→„nejsilnější dostupný
+  model". Historická atribuce modelu PONECHÁNA (volba uživatele = fakt kdo dělal).
+- [x] **Selektivní commit `4c8d2b8`:** `TODO.md` smíchané s WIP paralelního vlákna (66,2 %/calibration) →
+  commitnut jen můj rename přes HEAD-restore + reapply techniku; parallel WIP (`.gitignore`/`separate.py`/
+  `score.py`/`isom_scan/README.md`/untracked `calibration_manifest`/`mark_isoms`) zachován. Ověřeno
+  0× `AUDIT_FABLE5` v commitnutém stromu, HEAD `TODO` = jen rename.
+
 ## Sezení 154 (2026-06-20) — Scan-transfer kalibrace bodových ISOM symbolů (HAL3000)
 Detail: [diary/2026-06-20.md](diary/2026-06-20.md).
 - [x] **Obecný `.omap` export point kandidátů:** nový `isom_scan/manmade_points_omap.py` převádí review
