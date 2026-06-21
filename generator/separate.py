@@ -269,11 +269,14 @@ def separate_areas(label_map: np.ndarray, rgb: np.ndarray | None = None,
         green_any = _pattern_density(pat["green_l"] | pat["green_m"] | pat["green_d"])
         bright_base = _pattern_density(pat["white"] | pat["yellow_pale"] | pat["yellow"])
 
-        # 407/409: dobrá viditelnost = pruhovaný zelený symbol na světlém podkladu. Vyžadujeme
-        # současně zelený podíl v rozumném intervalu a světlý podklad, aby se plná 406/408 nepřepsala.
-        masks["407"] = ((green_l >= PATTERN_MIN_FRAC) & (green_l <= PATTERN_MAX_FRAC)
+        # 407/409: dobrá viditelnost = pruhovaný zelený symbol na světlém podkladu. Pattern
+        # smí jen rozštěpit odpovídající zelenou GT třídu; jinak by řídké zelené pixely v open
+        # ploše 404/403 vyráběly falešný les ještě před priority suppression.
+        masks["407"] = ((label_map == AREA_CLASSES["407"]["gt"])
+                        & (green_l >= PATTERN_MIN_FRAC) & (green_l <= PATTERN_MAX_FRAC)
                         & (bright_base >= 0.25))
-        masks["409"] = ((green_m >= PATTERN_MIN_FRAC) & (green_m <= PATTERN_MAX_FRAC)
+        masks["409"] = ((label_map == AREA_CLASSES["409"]["gt"])
+                        & (green_m >= PATTERN_MIN_FRAC) & (green_m <= PATTERN_MAX_FRAC)
                         & (bright_base >= 0.20))
         # 410 dark fight někdy median label 3 ztratí na hranách tmavých fleků; raw hustota ji vrátí.
         masks["410"] = masks["410"] | ((green_d >= 0.45) & (bright_base < 0.45))
