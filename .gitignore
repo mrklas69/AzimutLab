@@ -20,8 +20,13 @@ isom_scan/*
 !isom_scan/README.md
 !isom_scan/task_isom_scan.md
 !isom_scan/*.py
+!isom_scan/*.html
 !isom_scan/*.ps1
+!isom_scan/calibration_manifest.json
 !isom_scan/results.csv
+!isom_scan/markers/
+isom_scan/markers/*
+!isom_scan/markers/*.json
 !isom_scan/gt/
 isom_scan/gt/*
 !isom_scan/gt/ground_truth.json

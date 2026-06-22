@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>ISOM scan — kurační UI</title>
+<style>
+  /* Tmavé KISS téma, vše inline (žádné externí závislosti → funguje offline z localhostu). */
+  :root { --bg:#1b1d22; --panel:#262932; --line:#3a3e4a; --tp:#2faf5e; --fp:#d6483b; --ign:#8a8f9c; --txt:#e6e8ee; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.5 system-ui, sans-serif; }
+  #app { max-width:860px; margin:0 auto; padding:16px; }
+  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  header .code { font-size:20px; font-weight:700; }
+  header .pos { color:var(--ign); }
+  .badge { padding:2px 10px; border-radius:12px; font-weight:700; text-transform:uppercase; font-size:12px; }
+  .badge.unreviewed { background:var(--line); color:var(--ign); }
+  .badge.tp { background:var(--tp); color:#fff; }
+  .badge.fp { background:var(--fp); color:#fff; }
+  .badge.ignore { background:var(--ign); color:#222; }
+  #cropwrap { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px;
+              display:flex; align-items:center; justify-content:center; min-height:320px; }
+  #crop { max-width:100%; max-height:62vh; image-rendering:pixelated; border-radius:4px; }
+  .row { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  button { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:6px;
+           padding:8px 14px; font-size:14px; cursor:pointer; }
+  button:hover { border-color:#5b6172; }
+  button.tp { border-color:var(--tp); } button.fp { border-color:var(--fp); } button.ign { border-color:var(--ign); }
+  button.primary { background:#34507a; border-color:#4569a8; }
+  .key { opacity:.6; font-size:11px; }
+  input, select { background:var(--bg); color:var(--txt); border:1px solid var(--line); border-radius:6px; padding:7px; }
+  #note { flex:1; min-width:160px; }
+  #progress { margin-top:14px; color:var(--ign); display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  #bar { height:8px; background:var(--line); border-radius:4px; flex:1; min-width:120px; overflow:hidden; }
+  #bar > div { height:100%; background:var(--tp); width:0; transition:width .2s; }
+  #calibresult { margin-top:8px; color:var(--tp); white-space:pre-wrap; font-family:ui-monospace, monospace; font-size:12px; }
+  .help { color:var(--ign); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="code" id="code">—</span>
+    <span class="pos" id="pos"></span>
+    <span id="score" class="pos"></span>
+    <span class="badge unreviewed" id="badge">unreviewed</span>
+  </header>
+
+  <div id="cropwrap"><img id="crop" alt="výřez kandidáta"></div>
+
+  <div class="row">
+    <label>true_code
+      <input id="truecode" list="isomlist" placeholder="(prázdné = predikce sedí)" style="width:230px">
+    </label>
+    <datalist id="isomlist"></datalist>
+  </div>
+
+  <div class="row">
+    <button class="tp"  onclick="verdict('tp')">TP <span class="key">[1]</span></button>
+    <button class="fp"  onclick="verdict('fp')">FP <span class="key">[2]</span></button>
+    <button class="ign" onclick="verdict('ignore')">Ignore <span class="key">[3]</span></button>
+    <input id="note" placeholder="poznámka (volitelné)">
+  </div>
+
+  <div class="row">
+    <button onclick="move(-1)">‹ předchozí <span class="key">[←]</span></button>
+    <button onclick="move(1)">další › <span class="key">[→]</span></button>
+    <button onclick="nextUnreviewed()">skok na neohodnocený <span class="key">[u]</span></button>
+    <span style="flex:1"></span>
+    <button class="primary" onclick="calibrate()">Zapsat do calibration_manifest</button>
+  </div>
+
+  <div id="progress">
+    <span id="counts"></span>
+    <div id="bar"><div></div></div>
+  </div>
+  <div id="calibresult"></div>
+  <div class="help">Klávesy: 1/2/3 = verdikt (uloží + posune dál) · ←/→ = pohyb · u = další neohodnocený</div>
+</div>
+
+<script>
+// ----- stav v prohlížeči -----
+let M = null;          // celá odpověď /api/manifest
+let idx = 0;           // index aktuálního kandidáta
+
+// fetch JSON helper (async/await = čeká na síťovou odpověď bez blokování UI)
+async function getJSON(url) { const r = await fetch(url); return r.json(); }
+async function postJSON(url, body) {
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                             body: JSON.stringify(body)});
+  return r.json();
+}
+
+async function load() {
+  M = await getJSON('/api/manifest');
+  // našeptávač ISOM kódů (z katalogu; když chybí, padne na kódy z manifestu)
+  const dl = document.getElementById('isomlist');
+  const codes = Object.keys(M.isom_codes).length ? M.isom_codes
+              : Object.fromEntries(M.codes.map(c => [c, '']));
+  dl.innerHTML = Object.entries(codes)
+      .map(([c, name]) => `<option value="${c}">${name}</option>`).join('');
+  // skoč na prvního neohodnoceného, ať se rovnou pokračuje v práci
+  const firstNew = M.candidates.findIndex(c => c.verdict === 'unreviewed');
+  idx = firstNew >= 0 ? firstNew : 0;
+  render();
+}
+
+function cur() { return M.candidates[idx]; }
+
+function render() {
+  if (!M || !M.candidates.length) { document.getElementById('code').textContent = '(žádní kandidáti)'; return; }
+  const c = cur();
+  document.getElementById('code').textContent = `${c.pred_code} ${c.pred_name}`;
+  document.getElementById('pos').textContent = `#${idx+1}/${M.candidates.length}`;
+  document.getElementById('score').textContent = c.score != null ? `s=${(+c.score).toFixed(2)}` : '';
+  const badge = document.getElementById('badge');
+  badge.textContent = c.verdict;
+  badge.className = 'badge ' + c.verdict;
+  document.getElementById('truecode').value = c.true_code || '';
+  document.getElementById('note').value = c.note || '';
+  // crop bere id; no-store na serveru zajistí čerstvost
+  document.getElementById('crop').src = `/api/crop?id=${encodeURIComponent(c.id)}`;
+  renderProgress();
+}
+
+function renderProgress() {
+  const s = M.review_summary;
+  document.getElementById('counts').textContent =
+    `tp ${s.tp} · fp ${s.fp} · ignore ${s.ignore} · zbývá ${s.unreviewed} / ${s.total}`;
+  const done = s.total ? (s.total - s.unreviewed) / s.total : 0;
+  document.querySelector('#bar > div').style.width = (done * 100) + '%';
+}
+
+async function verdict(v) {
+  const c = cur();
+  const res = await postJSON('/api/verdict', {
+    id: c.id, verdict: v,
+    true_code: document.getElementById('truecode').value.trim(),
+    note: document.getElementById('note').value,
+  });
+  if (!res.ok) { alert(res.error || 'chyba zápisu'); return; }
+  // aktualizuj lokální stav, ať nemusíme znovu načítat celý manifest
+  c.verdict = v;
+  c.true_code = document.getElementById('truecode').value.trim() || null;
+  c.note = document.getElementById('note').value;
+  M.review_summary = res.review_summary;
+  move(1);  // auto-advance = rychlé sériové tempo
+}
+
+function move(delta) {
+  idx = Math.min(M.candidates.length - 1, Math.max(0, idx + delta));
+  render();
+}
+
+function nextUnreviewed() {
+  for (let i = 1; i <= M.candidates.length; i++) {
+    const j = (idx + i) % M.candidates.length;
+    if (M.candidates[j].verdict === 'unreviewed') { idx = j; render(); return; }
+  }
+}
+
+async function calibrate() {
+  const res = await postJSON('/api/calibrate', {});
+  const el = document.getElementById('calibresult');
+  if (!res.ok) { el.style.color = 'var(--fp)'; el.textContent = 'CHYBA: ' + (res.error || '?'); return; }
+  el.style.color = 'var(--tp)';
+  el.textContent = 'Zapsáno do calibration_manifest.json:\n' +
+    res.updated.map(u => `  ${u.code}: tp ${u.summary.tp} / fp ${u.summary.fp} / ignore ${u.summary.ignore}`
+                          + ` (FP=${u.false_positive_count})`).join('\n');
+}
+
+// ----- klávesové zkratky (rychlost je smysl tohohle UI) -----
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;  // v poli (note/true_code) klávesy nech psát
+  if (e.key === '1') verdict('tp');
+  else if (e.key === '2') verdict('fp');
+  else if (e.key === '3') verdict('ignore');
+  else if (e.key === 'ArrowLeft') move(-1);
+  else if (e.key === 'ArrowRight') move(1);
+  else if (e.key === 'u') nextUnreviewed();
+});
+
+load();
+</script>
+</body>
+</html>
