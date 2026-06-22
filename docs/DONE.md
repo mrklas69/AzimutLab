@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 157 (2026-06-22) — A1 line revert + ISOM GT factory (human-in-the-loop kurační nástroj) (HAL3000)
+Detail: [diary/2026-06-22.md](diary/2026-06-22.md#sezení-157--a1-line-revert--isom-gt-factory-human-in-the-loop-kurační-nástroj-hal3000).
+- [x] *(A1 line, follow-up Sez. 156 „Příště")* **Line revert kódu na `N_LINE=2`.** `omap_raster.LINE_CLASSES`
+  → watercourse-only (304/305), sladěno s ověřeným 2-class checkpointem → `eval_real` line už nespadne na
+  shape-mismatch (jádro A1 line uzavřeno). KPI-bezpečné (`LINE_CLASSES` jen v `omap_raster`+`png2line`;
+  generátor kreslí 306/309/508 do `.omap` nezávisle, headline 65,8 % netknut). Historie revertu v komentáři. Smoke OK.
+- [x] **ISOM GT factory — human-in-the-loop kurační nástroj (nápad uživatele).** Účel: doložit, že KOMPAS je
+  vyplněný oprávněně (umíme symbol najít na reálném skenu na 100 %) = anti-Goodhart (audit A3); Etapa 1
+  (vytěžení / měřicí GT ze skenu), trénink na setu vědomě odložen jako Etapa 2 (zakázané slovo teď).
+  - `isom_scan/review_ui.{py,html}`: interaktivní kurace `review_manifest` (stdlib `http.server` + vanilla HTML,
+    klávesy tp/fp/ignore, crop on-demand, `true_code` našeptávač 113 ISOM SVG, auto-FP/precision do `calibration_manifest`).
+  - `isom_scan/build_tile_set.py` (Část A): SET dlaždic 512×512 — mřížka + filtr zeleně + `map_cov` maska
+    (ořez bílého okolí, les uvnitř zachován přes fill-holes) + resample na `CANONICAL_MPP=1,33` + předvyplnění detekcí.
+  - `isom_scan/gt_ui.{py,html}` (Část B): dlaždice + ISOM paleta SVG (filtr téma) + **FN doplňování** klikáním +
+    počítadlo značek + KOMPAS odškrtávání (badge GT count). Kroužky **mimo ISOM paletu** (magenta/cyan + bílé halo).
+  - Smoke headless + HTTP e2e OK pro oba nástroje.
+- [x] **Orientace dlaždic na sever přechodem na Livelox originály** (volba uživatele): `bg_scan` = S-JTSK warp
+  (~12,6° od mg. severu, `rgb.pgw` rot 0 vs `source_livelox.pgw` rot ~12,6°); korpus `map.png` nativně na mg.
+  sever → zdroj dlaždic = originál, ne riskantní rotace. Proof-of-concept přepnut Buschdörfl→**Branžež** (1005002): 31 dlaždic.
+- [x] `.gitignore`: `!isom_scan/*.html` whitelist (commitnutelný frontend nástrojů).
+
 ## Sezení 156 (2026-06-22) — A1 retrain reconstructorů na nový scope (area 21-class promote, line 5-class regrese→revert) (HAL3000)
 Detail: [diary/2026-06-22.md](diary/2026-06-22.md). Autonomní noční běh (uživatel: „neptej se, jdu spát").
 - [x] *(260621-A1; KRITICKÁ námitka audit 260621)* **Retrain Png2Area + Png2Line na deklarovaný scope, eval_real, promote.**
