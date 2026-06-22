@@ -195,7 +195,13 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   měřená, dříve strukturálně 0 = nadprůměrně naučená). mIoU 0,537 nesrovnatelné s 0,568 (to vodu nepočítalo).
   **MPP fix re-trénink (Sez. 126, audit C1/K1):** dlaždice byly 2,18 m/px, ale symboly/eval na 1,33 → kanonické
   měřítko `model/mpp.CANONICAL_MPP=1,33`, re-tile + retrain → **test mIoU 0,683** (+14,6 pb; voda 301 0,74).
-  Kanonický `resources/area_model/unet_best.pt` se mění pouze explicitním
+  **Scope 21-class retrain (Sez. 156, audit A1):** regen 206 párů + re-tile na `N_AREA=21` (404/407/409) +
+  retrain (`s156_area21_s42`) → **test mIoU 0,577** (pokles vs 0,683 = ředění 3 vzácnými třídami: 409 IoU
+  0,03 datový strop, 404 0,36, 407 0,49; hlavní třídy drží 0,72–0,90). **eval_real ZAS BĚŽÍ na novém scope**
+  (dřív shape-mismatch crash = jádro A1): Bedř soft mIoU 0,525 / pixel-acc 0,887, Blatná per-shade 0,232 /
+  soft 0,363. Nález: 404/407/409 mají slabý reálný transfer (vzácné v ČR mapách, model je halucinuje, krade
+  pixely od hlavních odstínů) — soft skupinová metrika to pohltí, přísná per-odstín klesá. Promotnut (`.bak`
+  pojistka 18-class). Kanonický `resources/area_model/unet_best.pt` se mění pouze explicitním
   `train.py --promote <run_id>`.
 - **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
   druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
@@ -222,8 +228,13 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   trasuje reálné toky, žádný kolaps jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr
   `LineClass.conf_thr`, izomorf `peak_thr`). **Krok 2 dashed 508+516 zkoušen a ZAVRŽEN měřením (Sez. 133):**
   doménový gap (completeness strop 0,14–0,22) + multi-class zhoršil watercourse. **Sez. 152 rozšířila label
-  scope na 306/309/508*** bez návratu k 516; starý checkpoint/vektorizér jsou watercourse-only, nový scope
-  čeká na rebuild/retrain. Stejný checkpoint kontrakt (`--promote`). Poledníkový detektor `north_grid.py` (Sez. 132/134) filtruje falešné toky
+  scope na 306/309/508*** bez návratu k 516. **Sez. 156 (audit A1) retrénoval `N_LINE=5` a ZMĚŘIL na realitě
+  → watercourse REGREDOVAL** (real IoU 0,409→~0,26, F1 0,773→~0,67 na 3 mapách; **309 narrow_marsh úplný
+  kolaps F1 0,00**, 306/508 slabé) → **REVERT na 2-class watercourse-only** (`krok1_watercourse_s0`,
+  `.bak` pojistka). Druhé potvrzení Sez. 133: multi-class line (zvl. dashed 508) zhoršuje watercourse.
+  Pozn.: `LINE_CLASSES`/`N_LINE` žije jen v `omap_raster`+`png2line/` (NE v `measure_dod`/`generate_map`)
+  → KPI 65,8 % netknuto; revert `LINE_CLASSES` kódu na N_LINE=2 = KPI-bezpečný follow-up. Stejný
+  checkpoint kontrakt (`--promote`). Poledníkový detektor `north_grid.py` (Sez. 132/134) filtruje falešné toky
   z modrých magnetických poledníků.
 - **Checkpoint kontrakt živých modelů (CODE-C2, Sez. 127):**
   `model/checkpoints.py` je SSoT pro Png2Area i Png2Point. `best.pt`,

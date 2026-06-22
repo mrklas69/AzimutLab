@@ -12,9 +12,9 @@ Dekompozice podle typu geometrie ISOM → tři CV úlohy, GT zdarma z `.omap`.
 | Podadresář | Stav | Úloha |
 |------------|------|-------|
 | `runnability/` | **archiv** | `ORTO → runnability` baseline (slepá ulička Sez. 79, val mIoU strop ~0,25; `git mv` sem Sez. 88). Nemazáno — doložené „tudy ne". |
-| `png2area/` | **živý** | `Png2Area`: sken → area label rastr (20 ISOM kódů + pozadí = `N_AREA=21`, po 404/407/409 v Sez. 152). Pár [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly. Poslední plný test před scope expanzí mIoU **0,683** (Sez. 126). |
+| `png2area/` | **živý** | `Png2Area`: sken → area label rastr (20 ISOM kódů + pozadí = `N_AREA=21`, po 404/407/409 v Sez. 152). Pár [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly. **21-class test mIoU 0,577** (Sez. 156 retrain; eval_real Bedř soft 0,525 / acc 0,887; nové 404/407/409 slabý reálný transfer). |
 | `png2point/` | **živý** | `Png2Point`: sken → bodové symboly (`inject.py` injekce ikonek + CenterNet heatmap; scope 204/210/417/419 od Sez. 128). Test mF1 **0,827** (medián 3 seedů). |
-| `png2line/` | **živý** | `Png2Line`: sken → liniové symboly (segmentace + skeletonizace, GT z `.omap`). Label scope je 304/305 + 306 + 309 + 508*; starý checkpoint/vectorizer zůstává watercourse-only do rebuild/retrain. Krok 1 watercourse měl test mIoU **0,774**; reálný transfer completeness 0,93. |
+| `png2line/` | **živý** | `Png2Line`: sken → liniové symboly (segmentace + skeletonizace, GT z `.omap`). Sez. 156 retrénoval 5-class scope (306/309/508*) a ZMĚŘIL → **watercourse regrese (real IoU 0,409→0,26, 309 kolaps) → REVERT na 2-class watercourse-only** (test mIoU **0,774**, completeness 0,93; 2. potvrzení Sez. 133). |
 
 ## Sdílené moduly (vedle podadresářů)
 

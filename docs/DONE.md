@@ -2,7 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
-## Sezení 155 (2026-06-21) — Supervizní audit 260621 + přejmenování konvence FABLE5 → SUPERVISOR (mrkla)
+## Sezení 156 (2026-06-22) — A1 retrain reconstructorů na nový scope (area 21-class promote, line 5-class regrese→revert) (HAL3000)
+Detail: [diary/2026-06-22.md](diary/2026-06-22.md). Autonomní noční běh (uživatel: „neptej se, jdu spát").
+- [x] *(260621-A1; KRITICKÁ námitka audit 260621)* **Retrain Png2Area + Png2Line na deklarovaný scope, eval_real, promote.**
+  Audit A1: `N_AREA` 18→21 / `N_LINE` 2→5 v kódu, ale checkpointy staré → `eval_real` spadl na shape-mismatch.
+  **Provedeno:** `separate.py` 407/409 GT-gate commit `4a8712e` (volba uživatele) → **force-regen 206/207 párů** na
+  21-class (1192962 = DMR noData u hranice, hlasité selhání) → rebuild tiles (`n_area=21`/`n_line=5`,
+  `allow_missing=True` pro 1192962) → retrain obou.
+- [x] **Png2Area 21-class PROMOTNUT** (`s156_area21_s42`, test mIoU **0,577**; `.bak` 18-class pojistka, promoted.json
+  = bonus audit B8 provenance). **eval_real zas běží na novém scope** (A1 primární cíl splněn): Bedř soft 0,525 /
+  pixel-acc 0,887, Blatná per-shade 0,232 / soft 0,363. Nález: nové 404/407/409 slabý reálný transfer (vzácné v ČR,
+  halucinace, kradou pixely hlavním odstínům); soft skupinová metrika to pohltí, přísná per-odstín klesá.
+- [x] **Png2Line 5-class NEPROMOTNUT → REVERT na 2-class** (volba uživatele „promote podmíněně"): eval_real watercourse
+  na 3 mapách Bedř/Blatná/Velbloud **0,265/0,311/0,207 IoU** = REGRESE vs baseline 0,409; **309 narrow_marsh úplný
+  kolaps F1 0,00**, 306/508 slabé → vrácen ověřený `krok1_watercourse_s0` (2-class). Druhé potvrzení Sez. 133.
+  KPI-bezpečnostní doklad: `LINE_CLASSES` jen v `omap_raster`+`png2line/` → revert kódu na N_LINE=2 = follow-up
+  bez dopadu na KPI 65,8 %.
+
+
 Detail: [diary/2026-06-21.md](diary/2026-06-21.md).
 - [x] **Supervizní audit `docs/AUDIT_SUPERVISOR_260621.md`** — 8-agent workflow verifikace proti zdroji
   (37 testů OK). 4 hlavní námitky: **A1 KRITICKÁ** scope Sez.152 (`N_AREA` 18→21, `N_LINE` 2→5) deklarován,

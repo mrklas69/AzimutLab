@@ -7,11 +7,13 @@ of what an orienteering map *is*.
 **Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I
 `generator()`, and **three live reconstructors**. Generator KPI is **65.8%** (`KPI_3MAP_CANONICAL`,
 session 152).
-`Png2Area` has test mIoU **0.683**, `Png2Point` a 3-seed median mF1 **0.827** (4 classes
-204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**; its label scope now
-covers watercourse 304/305 + 306 + 309 + 508*, while the old checkpoint/vectorizer remain
-watercourse-only until rebuild/retrain. Real-domain
-transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
+`Png2Area` has test mIoU **0.577** (21-class, session 156 retrain on the expanded scope;
+real eval_real Bedř soft mIoU 0.525 / pixel-acc 0.887), `Png2Point` a 3-seed median mF1 **0.827**
+(4 classes 204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**. The
+session-152 line scope expansion (306 + 309 + 508*) was retrained and **measured in session 156:
+watercourse regressed on real scans (0.409→~0.26 IoU, 309 collapsed) → reverted to the 2-class
+watercourse-only checkpoint** (2nd confirmation of session 133; dashed 508 is a domain gap).
+Real-domain transfer is the limiting metric: `Png2Line` reads real scans (completeness **0.85–0.93**,
 no collapse), strict IoU **0.409** after a per-class confidence threshold. **Direction &
 phase gate live in [ROADMAP.md](docs/ROADMAP.md)** (`Generator()` → `Rekonstruktor()`; we
 are in the `Generator()` phase). **Scan mining** (palette/masks/symbol candidates from real scans)
@@ -52,7 +54,7 @@ structure; where they differ, ROADMAP wins.
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 20 ISOM codes + background (`N_AREA=21`, incl. 404/407/409 scan-pattern classes), synthetic test mIoU **0.683** before scope expansion at canonical 1.33 m/px; real per-shade mIoU **0.336/0.357**, soft pixel accuracy **0.89-0.91**. `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.43-0.57** — **419 strong 0.67-0.76**, 417 moderate 0.48-0.57, 204 stable, 210 still collapses. `Png2Line` label scope now covers watercourse 304/305 + 306 + 309 + 508*; old checkpoint/vectorizer remain watercourse-only until rebuild/retrain. Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **65.8%** (`KPI_3MAP_CANONICAL`, session 152). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
+| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 20 ISOM codes + background (`N_AREA=21`, incl. 404/407/409 scan-pattern classes), synthetic test mIoU **0.577** (21-class retrain, session 156) at canonical 1.33 m/px; real eval_real Bedř soft mIoU **0.525** / pixel-acc **0.887**, Blatná per-shade **0.232** / soft **0.363** (new 404/407/409 transfer weakly — rare in CZ maps, model hallucinates them). `Png2Point` (204/210/417/419 since Sez. 128): 3-seed synthetic median mF1 **0.827**; real mF1 **0.43-0.57** — **419 strong 0.67-0.76**, 417 moderate 0.48-0.57, 204 stable, 210 still collapses. `Png2Line`: session-152 scope (306/309/508*) retrained + measured session 156 → **watercourse regressed → reverted to 2-class watercourse-only** (test mIoU 0.774, real IoU 0.409; dashed 508 domain gap, 2nd confirmation of Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **65.8%** (`KPI_3MAP_CANONICAL`, session 152). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
 | UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 65.8 %; III = Pic2Omap) |
 
@@ -136,15 +138,15 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
   png2area/            #   LIVE Png2Area reconstructor (session 88): map scan → area label raster, first of the 3 OOM-geometry CV tasks
     tile.py            #     resample + pre-tiling [rgb.png, area_labels.png] → 512×512; 20 ISOM codes + background (N_AREA=21)
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
-    train.py           #     U-Net/ResNet34, N_AREA labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.683 before 21-class expansion
+    train.py           #     U-Net/ResNet34, N_AREA labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.577 (21-class retrain, session 156)
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
     train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px, 4 classes → median mF1 0.827; real 210 F1 0.11–0.18)
-  png2line/            #   LIVE Png2Line reconstructor (sessions 130–132, scope expanded 152): map scan → line segmentation, third of the 3 CV tasks
+  png2line/            #   LIVE Png2Line reconstructor (sessions 130–132; scope expanded 152, retrained+measured 156 → reverted to 2-class, see train.py): map scan → line segmentation, third of the 3 CV tasks
     tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; 304/305 + 306 + 309 + 508*, dilated GT
     dataset.py         #     PyTorch loader (D4 + degrade + purple augmentation; reuse png2area pattern)
-    train.py           #     U-Net/ResNet34, N_LINE labels, BF16; isolated runs/<run_id>/, --promote; test mIoU 0.774 / watercourse IoU 0.55
+    train.py           #     U-Net/ResNet34, N_LINE labels, BF16; isolated runs/<run_id>/, --promote; canonical = 2-class watercourse-only test mIoU 0.774 (5-class scope retrained Sez. 156 → watercourse regressed 0.409→0.26 real → reverted)
     eval_real.py       #     real-scan benchmark: strict IoU + relaxed completeness/correctness; per-class conf_thr (LineClass) → real IoU 0.409
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
