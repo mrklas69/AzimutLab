@@ -227,12 +227,10 @@ def rasterize_map_dir(map_dir: Path) -> np.ndarray:
     return rasterize(omap, meta)
 
 
-# ============================================================ LINIE (Png2Line, Sez. 130+151)
-# Liniové ISOM kódy → label index (0 = pozadí/bez linie, 1..N_LINE-1 = třídy). Základní krok 1 byl jen
-# souvislé vodní toky 304 (named) + 305 (unnamed) jako jedna třída "watercourse" (tloušťka je ze skenu
-# špatně rozlišitelná). Sez. 152 rozšiřuje scope o další reálně četné modré/černé liniové signály:
-# 306 seasonal waterchannel, 309 narrow marsh a skupinu 508..508.4 narrow ride. 508 varianty zůstávají
-# jedna třída, protože černá čárkovaná linie je stejný vizuální signál a suffix řeší běhatelnost pozadí.
+# ============================================================ LINIE (Png2Line, Sez. 130+156)
+# Liniové ISOM kódy → label index (0 = pozadí/bez linie, 1..N_LINE-1 = třídy). Scope = jen souvislé vodní
+# toky 304 (named) + 305 (unnamed) jako jedna třída "watercourse" (tloušťka je ze skenu špatně rozlišitelná).
+# Sez. 152 zkusila scope rozšířit o 306/309/508*, ale Sez. 156 retrain to REVERTOVAL (doklad u LINE_CLASSES).
 # Registr je SSoT: přidat třídu = řádek (název, [ISOM kódy]); izomorfní s AREA_ZORDER a POINT_CLASSES.
 @dataclass
 class LineClass:
@@ -252,16 +250,13 @@ class LineClass:
 
 LINE_CLASSES: list[LineClass] = [
     LineClass(name="watercourse", codes=["304", "305"], conf_thr=0.95),   # plná modrá linie vodního toku
-    LineClass(name="seasonal_waterchannel", codes=["306"], conf_thr=0.95), # přerušovaný modrý tok
-    LineClass(name="narrow_marsh", codes=["309"], conf_thr=0.95),          # úzký mokřad / stružka
-    LineClass(
-        name="narrow_ride",
-        codes=["508", "508.1", "508.2", "508.3", "508.4"],
-        conf_thr=0.5,                                                     # znovu sweepnout po retrainu
-    ),
-    # Sez. 133 zavrhl starý pokus 508+516 v jednom multi-class běhu: 508 měl nízký real transfer a 516
-    # zhoršoval watercourse. Nový scope 151 proto NEvrací fence 516; přidává jen uživatelsky vybrané
-    # 508 varianty a modré 306/309, kde existuje tvrdý OMAP/scan signál. Výsledek musí ověřit nový retrain.
+    # Sez. 152 rozšířila scope na 306 seasonal / 309 narrow_marsh / 508* narrow_ride a Sez. 156 to natrénovala
+    # jako N_LINE=5 — eval_real ale ukázal REGRESI: watercourse spadl z 0,409 na 0,21–0,31 (multi-class ředí
+    # signál, 2. potvrzení Sez. 133), 309 narrow_marsh úplný kolaps (F1 0,000), 306/508 slabé (doménový gap
+    # černá dashed). Promote-gate (watercourse nesmí pod baseline) porušen → checkpoint vrácen na ověřený
+    # 2-class watercourse (krok1_watercourse_s0, 0,774 synt / 0,409 real) a scope kódu revertován sem.
+    # Generátor kreslí 306/309/508 do .omap NEZÁVISLE na tomto registru (LINE_CLASSES žije jen v omap_raster
+    # + model/png2line) → revert je KPI-bezpečný (headline 65,8 % netknut, jen Y rasterizace line tiles je 2-class).
 ]
 LINE_CODE_TO_LABEL = {code: i + 1 for i, lc in enumerate(LINE_CLASSES) for code in lc.codes}
 LINE_LABEL_NAME = {0: "pozadí", **{i + 1: lc.name for i, lc in enumerate(LINE_CLASSES)}}
@@ -279,9 +274,6 @@ GT_LINE_WIDTH_PX = 3
 LINE_LABEL_VIS = {
     0: (255, 255, 255),
     1: (30, 110, 210),    # watercourse
-    2: (70, 170, 230),    # seasonal_waterchannel
-    3: (90, 210, 230),    # narrow_marsh
-    4: (25, 25, 25),      # narrow_ride
 }
 
 
