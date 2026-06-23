@@ -58,7 +58,8 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("417").scanner_status, SCAN_LIVE_POINT)
         self.assertEqual(capability_by_code("419").generator_kind, GEN_PSEUDO)
         self.assertEqual(capability_by_code("531").scanner_status, SCAN_LIVE_POINT)  # Sez. 158 povýšen (Png2Point)
-        self.assertEqual(capability_by_code("527").scanner_status, SCAN_POC)
+        self.assertEqual(capability_by_code("525").scanner_status, SCAN_LIVE_POINT)  # Sez. 159 povýšen (Png2Point ⊤)
+        self.assertEqual(capability_by_code("527").scanner_status, SCAN_LIVE_POINT)  # Sez. 159 povýšen (Png2Point Λ)
         # Živý Png2Line scope = JEN watercourse 304/305 (revert Sez. 156); 306/309/508 jsou kandidáti
         # (generátor je kreslí, reconstructor po revertu neumí) — registr nesmí tvrdit živý signál (anti-Goodhart).
         self.assertEqual(capability_by_code("304").scanner_status, SCAN_LIVE_LINE)
@@ -72,8 +73,9 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(preferred_kind_by_code("210"), GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("419"), GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("531"), GEN_MAPPER_SCAN)  # Sez. 158 live Png2Point signál
-        self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)
-        self.assertEqual(capability_by_code("527").preferred_kind, GEN_PSEUDO)
+        self.assertEqual(preferred_kind_by_code("525"), GEN_MAPPER_SCAN)  # Sez. 159 live Png2Point signál
+        self.assertEqual(preferred_kind_by_code("527"), GEN_MAPPER_SCAN)  # Sez. 159 live Png2Point signál
+        self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)  # bez live signálu → pseudo
         self.assertEqual(capability_by_code("203").code, "203.2")
 
     def test_summary_keeps_real_pseudo_mapper_split_visible(self) -> None:

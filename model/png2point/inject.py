@@ -121,12 +121,22 @@ class PointClass:
 # na eval_real, izomorf 417/419 Sez. 129): seed-0 měl recall vysoký / precision nízkou (FP) jako 417;
 # Velbloud (20 GT, nejspolehlivější) plochá část křivky 0,55–0,70 → robustní 0,60 dalo F1 0,356→0,737
 # (P0,78/R0,70) = SROVNATELNÉ s 419 0,74 → distinktivní černý X přenáší jako zelený. halo=False, color=_BLACK.
+# 525 Small tower (⊤) + 527 Fodder rack (Λ+noha) — další DISTINKTIVNÍ černé man-made body (izomorf 531).
+# Verify-against-source template id 150/152 (color 2, w 240 µm; nové kind "tower"/"fodder"). Měřitelné
+# crosswalk-aware PŘED tréninkem (probe: 525 Bedř 24 / TOTAL 45, 527 Slovanka 7 / Bedř 6 / TOTAL 18 —
+# anti-A1). Sázka stejná jako 531: distinktivní tvar přenáší. radius_mm = pološíře horního prvku (525
+# příčka 750 µm, 527 stříška 615 µm). sigma/n_range z 531. peak_thr (sweep Sez. 159 na eval_real, izomorf
+# 531): černá man-made kresba má hodně FP (cesty/text) → VYSOKÝ práh (525→0,70 Bedř plató F1 0,77;
+# 527→0,65 mean max 0,71). Reálný transfer: 525 SILNÝ (Bedř 0,766, na úrovni 419), 527 STŘEDNÍ-DOBRÝ
+# (seed0 Bedř 0,833 / Slovanka 0,667; medián 3 seedů 0,50 — seed-citlivý vedle hustého 210).
 POINT_CLASSES: list[PointClass] = [
-    PointClass(code="204", name="Boulder",                  radius_mm=0.40,  sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120), peak_thr=0.30),
-    PointClass(code="210", name="Stony ground",             radius_mm=0.15,  sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
-    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45,  sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(10, 30),  peak_thr=0.45),
-    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60,  sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
-    PointClass(code="531", name="Prom. man-made x",         radius_mm=0.516, sigma_px=3.5, field=False, kind="cross", color=_BLACK, n_range=(10, 30),  peak_thr=0.60, halo=False),
+    PointClass(code="204", name="Boulder",                  radius_mm=0.40,  sigma_px=3.0, field=False, kind="dot",    color=_BLACK, n_range=(40, 120), peak_thr=0.30),
+    PointClass(code="210", name="Stony ground",             radius_mm=0.15,  sigma_px=2.0, field=True,  kind="dot",    color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
+    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45,  sigma_px=3.5, field=False, kind="tree",   color=_GREEN, n_range=(10, 30),  peak_thr=0.45),
+    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60,  sigma_px=4.0, field=False, kind="cross",  color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
+    PointClass(code="531", name="Prom. man-made x",         radius_mm=0.516, sigma_px=3.5, field=False, kind="cross",  color=_BLACK, n_range=(10, 30),  peak_thr=0.60, halo=False),
+    PointClass(code="525", name="Small tower",              radius_mm=0.75,  sigma_px=3.5, field=False, kind="tower",  color=_BLACK, n_range=(10, 30),  peak_thr=0.70, halo=False),
+    PointClass(code="527", name="Fodder rack",              radius_mm=0.615, sigma_px=3.5, field=False, kind="fodder", color=_BLACK, n_range=(10, 30),  peak_thr=0.65, halo=False),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
@@ -177,12 +187,45 @@ def _stamp_cross(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
     draw.line(a, fill=color, width=wg);  draw.line(b, fill=color, width=wg)
 
 
+def _stamp_tower(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+                 color=_BLACK) -> None:
+    """525 Small tower: vodorovná příčka nahoře + svislá noha dolů (⊤). Černý man-made bod (halo=False).
+
+    Verify-against-source template id 150 (color 2, line_width 240 µm): příčka -750..750 v y=-462,
+    noha 0,-462..0,903 (µm; osa y DOLŮ). Proporce vztažené k pološíři příčky r (=750 µm): příčka ve
+    výšce -0,616r, noha od příčky až do +1,204r. r_px = pološíře příčky v px."""
+    r = max(1.5, r_px)
+    w = max(1, int(round(r * 0.32)))                       # 240/750 ≈ 0,32 = tloušťka linie
+    y_bar = cy - 0.616 * r                                 # výška vodorovné příčky
+    draw.line([(cx - r, y_bar), (cx + r, y_bar)], fill=color, width=w)      # ⊤ příčka
+    draw.line([(cx, y_bar), (cx, cy + 1.204 * r)], fill=color, width=w)     # svislá noha
+
+
+def _stamp_fodder(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+                  color=_BLACK) -> None:
+    """527 Fodder rack: stříška Λ (obrácené V) nahoře + svislá noha dolů (krmelec). Černý (halo=False).
+
+    Verify-against-source template id 152 (color 2, line_width 240 µm): stříška -615,-55→0,-411→615,-55,
+    noha 0,-411..0,819 (µm; osa y DOLŮ). Proporce vztažené k pološíři stříšky r (=615 µm): vrchol -0,668r,
+    kraje -0,089r, noha až do +1,332r. r_px = pološíře stříšky v px."""
+    r = max(1.5, r_px)
+    w = max(1, int(round(r * 0.39)))                       # 240/615 ≈ 0,39 = tloušťka linie
+    apex = (cx, cy - 0.668 * r)                            # vrchol stříšky
+    draw.line([(cx - r, cy - 0.089 * r), apex], fill=color, width=w)        # levé rameno Λ
+    draw.line([apex, (cx + r, cy - 0.089 * r)], fill=color, width=w)        # pravé rameno Λ
+    draw.line([apex, (cx, cy + 1.332 * r)], fill=color, width=w)            # svislá noha
+
+
 def _stamp(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float, pc: "PointClass") -> None:
-    """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross). Sjednocuje kresbu pro oba samplery."""
+    """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross / tower / fodder). Sjednocuje kresbu pro oba samplery."""
     if pc.kind == "tree":
         _stamp_tree(draw, cx, cy, r_px, pc.color, pc.halo)
     elif pc.kind == "cross":
         _stamp_cross(draw, cx, cy, r_px, pc.color, pc.halo)
+    elif pc.kind == "tower":
+        _stamp_tower(draw, cx, cy, r_px, pc.color)
+    elif pc.kind == "fodder":
+        _stamp_fodder(draw, cx, cy, r_px, pc.color)
     else:
         _stamp_dot(draw, cx, cy, r_px, pc.color)
 
