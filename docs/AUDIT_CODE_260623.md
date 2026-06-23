@@ -24,6 +24,9 @@ Vlastní čerstvá práce + jednoznačné docs faktické chyby (nízké riziko, 
 - **`AGENTS.md` faktické chyby** (čte se každé sezení, aktivně zaváděl): `clip_quad.py`→`cut.py` (přejmenováno Sez. 114,
   soubor neexistoval), `forest.py` archiv→SMAZÁN (Sez. 102), doplněn `png2line/` (vynechán — „tři" → „čtyři podadresáře,
   tři živé reconstructory"), čísla 0,683→0,577 / 0,827→0,811, scope +531.
+- **README „Repository layout" bodové faktické chyby (D10, jednoznačná část):** doplněn `png2{area,point}/eval_real.py`,
+  `png2line/{north_grid,vectorize_omap}.py`, celý `tools/`; `png2line/tile.py` popis 5-class→2-class (revert Sez. 156);
+  root-files věta + `AGENTS.md`. (Strukturální část D10 — layout JEN v per-dir READMEs + odkaz z root/CLAUDE/AGENTS — zůstává k odsouhlasení.)
 
 ## K ODSOUHLASENÍ (neopraveno — %AUDIT:CODE pravidlo / riziko / netriviální)
 

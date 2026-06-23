@@ -141,22 +141,27 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
     tile.py            #     resample + pre-tiling [rgb.png, area_labels.png] → 512×512; 20 ISOM codes + background (N_AREA=21)
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
     train.py           #     U-Net/ResNet34, N_AREA labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.577 (21-class retrain, session 156)
+    eval_real.py       #     real-scan benchmark: per-shade mIoU + soft pixel-acc on cartographer .omap (crosswalk); Bedř soft 0.525
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
     inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature / 531 man-made X; halo flag: green halo yes, black 531 no)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
     train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px, 5 classes → median mF1 0.811; 531 real transfer Velbloud F1 0.708, peak_thr 0.60; real 210 F1 0.11–0.18)
+    eval_real.py       #     real-scan benchmark: per-class peak F1 (P/R) on cartographer .omap points (crosswalk); 419/531 strong ~0.71–0.74, POINT_CKPT env for multiseed
   png2line/            #   LIVE Png2Line reconstructor (sessions 130–132; scope expanded 152, retrained+measured 156 → reverted to 2-class, see train.py): map scan → line segmentation, third of the 3 CV tasks
-    tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; 304/305 + 306 + 309 + 508*, dilated GT
+    tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; canonical N_LINE=2 watercourse 304/305 (5-class scope reverted session 156), dilated GT
     dataset.py         #     PyTorch loader (D4 + degrade + purple augmentation; reuse png2area pattern)
     train.py           #     U-Net/ResNet34, N_LINE labels, BF16; isolated runs/<run_id>/, --promote; canonical = 2-class watercourse-only test mIoU 0.774 (5-class scope retrained Sez. 156 → watercourse regressed 0.409→0.26 real → reverted)
     eval_real.py       #     real-scan benchmark: strict IoU + relaxed completeness/correctness; per-class conf_thr (LineClass) → real IoU 0.409
+    north_grid.py      #     magnetic-meridian detector (regular parallel line grid → filter false watercourses; sessions 132/134)
+    vectorize_omap.py  #     prediction → vectorize → .omap clone of georef + loss measurement (session 132)
+tools/                 # standalone utilities (not in main pipeline): build_symbol_index.py (ISOM SVG index), list_isom_capabilities.py (capability dump), separate_scan_colors.ps1 (scan palette split)
 asset/                 # shared map assets (řopík pillbox .omap)
 resources/             # real OB maps + derived training tiles (tiles/) — input/reference (gitignored, 3rd-party copyright)
 maps/                  # generated maps — output, maps/<location>/ (gitignored, regenerable)
 ```
 
 (All working documents — TODO/DONE/DIARY/IDEAS/RESEARCH/GLOSSARY — live under `docs/`
-since session 47; only README.md and CLAUDE.md stay at the repo root.)
+since session 47; only README.md, CLAUDE.md and AGENTS.md stay at the repo root.)
 
 ## Docs
 
