@@ -56,6 +56,7 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("513.1").code, "513")
         self.assertEqual(capability_by_code("417").scanner_status, SCAN_LIVE_POINT)
         self.assertEqual(capability_by_code("419").generator_kind, GEN_PSEUDO)
+        self.assertEqual(capability_by_code("531").scanner_status, SCAN_LIVE_POINT)  # Sez. 158 povýšen (Png2Point)
         self.assertEqual(capability_by_code("527").scanner_status, SCAN_POC)
         self.assertEqual(capability_by_code("306").scanner_status, SCAN_LIVE_LINE)
         self.assertEqual(capability_by_code("309").scanner_status, SCAN_LIVE_LINE)
@@ -66,6 +67,7 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("204").preferred_kind, GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("210"), GEN_MAPPER_SCAN)
         self.assertEqual(preferred_kind_by_code("419"), GEN_MAPPER_SCAN)
+        self.assertEqual(preferred_kind_by_code("531"), GEN_MAPPER_SCAN)  # Sez. 158 live Png2Point signál
         self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)
         self.assertEqual(capability_by_code("527").preferred_kind, GEN_PSEUDO)
         self.assertEqual(capability_by_code("203").code, "203.2")

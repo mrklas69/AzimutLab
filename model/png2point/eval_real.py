@@ -153,11 +153,14 @@ def _map_area_mask(scan_arr):
 
 
 def _load_model(dev):
-    """U-Net ResNet34, N_POINT heatmapa kanálů — váhy point_model/unet_best.pt."""
+    """U-Net ResNet34, N_POINT heatmapa kanálů. Default váhy = kanonický point_model/unet_best.pt;
+    env POINT_CKPT přepíše cestu (eval běhu z runs/<id>/best.pt PŘED promote — multiseed bez přepisu
+    kanonického, audit C1: eval_real na novém scope nemusí čekat na promote)."""
+    import os
     import segmentation_models_pytorch as smp
     model = smp.Unet("resnet34", encoder_weights=None, in_channels=3, classes=N_POINT).to(dev)
-    ckpt = torch.load(_REPO / "resources" / "point_model" / "unet_best.pt",
-                      weights_only=False, map_location=dev)
+    ckpt_path = os.environ.get("POINT_CKPT") or (_REPO / "resources" / "point_model" / "unet_best.pt")
+    ckpt = torch.load(ckpt_path, weights_only=False, map_location=dev)
     model.load_state_dict(ckpt["model"])
     model.eval()
     return model
@@ -192,7 +195,7 @@ def predict_peaks(arr, model, dev, thr=None):
 
 def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
     """Vizuál georef verify: GT body (zeleně) + pred peaky per třída na sken.
-    Pred barvy: 204 červeně / 210 modře / 417 azurově / 419 fialově (kontrolní, nesouvisí s ISOM)."""
+    Pred barvy: 204 červeně / 210 modře / 417 azurově / 419 fialově / 531 oranžově (kontrolní, nesouvisí s ISOM)."""
     img = scan_img.convert("RGB").copy()
     d = ImageDraw.Draw(img)
     for x, y, idx in gt_pts:                                   # GT zeleně (kroužek)
@@ -200,7 +203,7 @@ def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
         cx, cy = cx * f, cy * f
         d.ellipse([cx-4, cy-4, cx+4, cy+4], outline=(0, 200, 0), width=1)
     # barvy per kanál (drží i pro N_POINT>2; padding zelenou, kdyby přibyla další třída)
-    pcol = [(230, 40, 40), (40, 90, 230), (20, 200, 200), (200, 40, 200)]
+    pcol = [(230, 40, 40), (40, 90, 230), (20, 200, 200), (200, 40, 200), (255, 140, 0)]
     for c in range(N_POINT):
         col = pcol[c] if c < len(pcol) else (0, 200, 0)
         for px, py in pred_peaks[c]:

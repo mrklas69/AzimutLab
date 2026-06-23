@@ -198,7 +198,7 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
     _rec("419", "Prominent vegetation feature", "point", GEN_PSEUDO, "pseudo vegetation point density", SCAN_LIVE_POINT),
     _rec("527", "Fodder rack", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
     _rec("525", "Small tower", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
-    _rec("531", "Prominent man-made feature: x", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_POC),
+    _rec("531", "Prominent man-made feature: x", "point", GEN_PSEUDO, "pseudo man-made point density", SCAN_LIVE_POINT),
     _rec("104", "Earth bank", "line", GEN_REAL, "ZABAGED line features"),
     _rec("107", "Erosion gully", "line", GEN_REAL, "ZABAGED line features"),
     _rec("513", "Wall", "line", GEN_REAL, "ZABAGED walls/ramparts", variants=("513.1",)),

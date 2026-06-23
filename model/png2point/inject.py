@@ -74,8 +74,11 @@ class PointClass:
     sigma_px  — sigma Gaussian peaku v GT heatmapě (~ velikost symbolu; malá ať se husté nesplynou).
     field     — True = symbol se kreslí jako POLE instancí (210 stony), False = jednotlivý bod (204/417/419).
     kind      — tvar ikonky: "dot" plný kruh (204/210) | "tree" zelený prstenec + bílá svatozář (417)
-                | "cross" zelený X + bílá svatozář (419).
-    color     — barva kresby (204/210 černá, 417/419 zelená).
+                | "cross" X + (volitelně) bílá svatozář (419 zelený / 531 černý).
+    color     — barva kresby (204/210/531 černá, 417/419 zelená).
+    halo      — bílý knockout (svatozář) kolem tree/cross. ANO u zelených 417/419 (template „white over
+                green", color 22 — bez ní zelený symbol splyne s lesem); NE u černého 531 (template id 156 =
+                2 čisté černé diagonály, žádný white element; černá je vidět nad vším). Verify-against-source.
     n_range   — (min,max) počtu instancí na dlaždici (single), resp. počtu POLÍ (field). Náhoda v rozsahu;
                 u řídkých tříd ZÁMĚRNĚ vysoké kvůli focal balancu (nález Sez. 106, viz inject_tile docstring).
     peak_thr  — práh detekce peaku v predikované heatmapě PER TŘÍDA (sweep Sez. 129). Globální 0,30 byl vždy
@@ -92,6 +95,7 @@ class PointClass:
     color: tuple = _BLACK
     n_range: tuple = (40, 120)
     peak_thr: float = 0.30
+    halo: bool = True       # bílý knockout u tree/cross (zelené ANO, černý 531 NE — viz docstring)
 
 
 # Pořadí = index kanálu heatmapy (0..N_POINT-1). Start 204+210 (největší díry kompasu Sez. 104:
@@ -107,11 +111,21 @@ class PointClass:
 # bias init (Sez. 125) drží řídké třídy bez nafouknutí. 419 ponecháno (transfer 0,67–0,76, funguje).
 # peak_thr (sweep Sez. 129, agreg. 3 reálné skeny): 204→0,30 (= optimum), 210→0,20 (kolabuje, nižší práh
 # vrátí pár teček), 417→0,45 (přestřel: 0,30 F1 0,46 → 0,45 F1 0,54, P 0,38→0,57), 419→0,40 (0,74→0,76).
+# 531 Prom. man-made feature – x (Sez. 158): ČERNÝ X = mirror 419 zelený X, ale bez svatozáře (halo=False,
+# template id 156 = 2 čisté černé diagonály ±516 µm color 2). Sázka A3(c): distinktivní tvar X přenáší
+# (419 SILNÝ 0,67–0,76, Sez. 128) → černý X by měl taky. Měřitelný na realitě (probe Sez. 158: Velbloud 20 /
+# Blatná 3 / Bedř 3 objektů crosswalk-aware). radius_mm 0,516 = template polodélka; sigma 3,5 (menší než 419
+# 585 µm). n_range (10,30) jako 417 — reálně řidší (~1,3/km²), ale focal balance vedle hustého 210 chce dost
+# pozitiv (Sez. 106); injekce = detektor IKONEK, počet nemusí být reálný. peak_thr 0,60 (sweep Sez. 158
+# na eval_real, izomorf 417/419 Sez. 129): seed-0 měl recall vysoký / precision nízkou (FP) jako 417;
+# Velbloud (20 GT, nejspolehlivější) plochá část křivky 0,55–0,70 → robustní 0,60 dalo F1 0,356→0,737
+# (P0,78/R0,70) = SROVNATELNÉ s 419 0,74 → distinktivní černý X přenáší jako zelený. halo=False, color=_BLACK.
 POINT_CLASSES: list[PointClass] = [
-    PointClass(code="204", name="Boulder",                  radius_mm=0.40, sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120), peak_thr=0.30),
-    PointClass(code="210", name="Stony ground",             radius_mm=0.15, sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
-    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45, sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(10, 30),  peak_thr=0.45),
-    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60, sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
+    PointClass(code="204", name="Boulder",                  radius_mm=0.40,  sigma_px=3.0, field=False, kind="dot",   color=_BLACK, n_range=(40, 120), peak_thr=0.30),
+    PointClass(code="210", name="Stony ground",             radius_mm=0.15,  sigma_px=2.0, field=True,  kind="dot",   color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
+    PointClass(code="417", name="Prominent large tree",     radius_mm=0.45,  sigma_px=3.5, field=False, kind="tree",  color=_GREEN, n_range=(10, 30),  peak_thr=0.45),
+    PointClass(code="419", name="Prominent veg. feature",   radius_mm=0.60,  sigma_px=4.0, field=False, kind="cross", color=_GREEN, n_range=(15, 45),  peak_thr=0.40),
+    PointClass(code="531", name="Prom. man-made x",         radius_mm=0.516, sigma_px=3.5, field=False, kind="cross", color=_BLACK, n_range=(10, 30),  peak_thr=0.60, halo=False),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
@@ -129,40 +143,45 @@ def _stamp_dot(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
 
 
 def _stamp_tree(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
-                color=_GREEN) -> None:
+                color=_GREEN, halo: bool = True) -> None:
     """417 Prominent large tree: zelený PRSTENEC v bílé knockout svatozáři (verify-against-source template).
 
     Template: prstenec color 3 (Green) v bílém disku color 22 ("White over green", knockout zeleného
     podkladu). Svatozář ~1,65× poloměr prstence (template white disk 825 µm vs prstenec ~500 µm).
-    Pořadí: nejdřív bílý disk (vyřízne les), pak zelený prstenec navrch."""
+    Pořadí: nejdřív bílý disk (vyřízne les), pak zelený prstenec navrch.
+    halo=False → prstenec bez bílého disku (pro případnou černou prstencovou třídu)."""
     r = max(1.2, r_px)
-    halo = r * 1.65
-    draw.ellipse([cx - halo, cy - halo, cx + halo, cy + halo], fill=_WHITE)   # bílý knockout
+    if halo:
+        hr = r * 1.65
+        draw.ellipse([cx - hr, cy - hr, cx + hr, cy + hr], fill=_WHITE)       # bílý knockout
     w = max(1, int(round(r * 0.55)))                                          # tloušťka prstence
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=color, width=w)
 
 
 def _stamp_cross(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
-                 color=_GREEN) -> None:
-    """419 Prominent vegetation feature: zelený křížek X v bílé knockout svatozáři.
+                 color=_GREEN, halo: bool = True) -> None:
+    """X křížek. 419 Prom. veg. feature: ZELENÝ X v bílé svatozáři (halo=True).
+    531 Prom. man-made feature – x: ČERNÝ X bez svatozáře (halo=False).
 
-    Template: 2 zelené diagonály (color 3, w 270) + 2 silnější bílé (color 22, w 540 = knockout svatozář).
-    Pořadí: nejdřív obě bílé diagonály (svatozář), pak obě zelené navrch. r_px = polodélka ramene X."""
+    Template 419 (id 104): 2 zelené diagonály (color 3, w 270) + 2 silnější bílé (color 22, w 540 = knockout).
+    Template 531 (id 156): 2 čisté černé diagonály (color 2, w 240), žádný white element → halo=False.
+    Pořadí (halo): nejdřív obě bílé diagonály (svatozář), pak barevné navrch. r_px = polodélka ramene X."""
     r = max(1.5, r_px)
-    wg = max(1, int(round(r * 0.45)))            # tloušťka zelené diagonály
-    wh = wg + max(2, int(round(r * 0.6)))        # bílá svatozář o ~r širší než zelená
+    wg = max(1, int(round(r * 0.45)))            # tloušťka barevné diagonály
     a = [(cx - r, cy - r), (cx + r, cy + r)]     # diagonála ↘
     b = [(cx - r, cy + r), (cx + r, cy - r)]     # diagonála ↗
-    draw.line(a, fill=_WHITE, width=wh); draw.line(b, fill=_WHITE, width=wh)
+    if halo:
+        wh = wg + max(2, int(round(r * 0.6)))    # bílá svatozář o ~r širší než barevná
+        draw.line(a, fill=_WHITE, width=wh); draw.line(b, fill=_WHITE, width=wh)
     draw.line(a, fill=color, width=wg);  draw.line(b, fill=color, width=wg)
 
 
 def _stamp(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float, pc: "PointClass") -> None:
     """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross). Sjednocuje kresbu pro oba samplery."""
     if pc.kind == "tree":
-        _stamp_tree(draw, cx, cy, r_px, pc.color)
+        _stamp_tree(draw, cx, cy, r_px, pc.color, pc.halo)
     elif pc.kind == "cross":
-        _stamp_cross(draw, cx, cy, r_px, pc.color)
+        _stamp_cross(draw, cx, cy, r_px, pc.color, pc.halo)
     else:
         _stamp_dot(draw, cx, cy, r_px, pc.color)
 
