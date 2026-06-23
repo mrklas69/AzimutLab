@@ -33,6 +33,11 @@ Vlastní čerstvá práce + jednoznačné docs faktické chyby (nízké riziko, 
 - **[D1] `capabilities` 306/309/508 `SCAN_LIVE_LINE`→`SCAN_CANDIDATE`** (commit `ed5d7cb`): sladěno s Png2Line scope po
   revertu Sez. 156 (živý jen 304/305) — registr už nelže o scan signálu (anti-Goodhart). Test sladěn + 304 assertce.
   **Zbývá (k odsouhlasení):** 309 `generator_kind=mapper_scan` je aspirativní (generátor 309 z dat nekreslí, Png2Line neumí) — revize, zda 309 vůbec patří do registru / jaký zdroj.
+- **[D4 — část] ImageNet MEAN/STD → `model/norm.py`** (commit `c9341b7`) + **peak helpery → `model/peaks.py`** (commit `ffd999c`):
+  dvě nejvyšší-páková DRY z D4 (train/serve skew normalizace 6× + detekční logika train↔eval 2×). Behavior-preserving
+  ověřeno eval_real Velbloud (identická čísla). **Zbytek D4 — `eval_common.py` (tiled inference 3× + `_map_area_mask` 2× +
+  src_mpp 4×) NEUDĚLÁN:** sjednocení 3 různých hlav (area softmax / line softmax / point sigmoid) = nejrizikovější část,
+  riziko rozbít 3 právě promotnuté `eval_real` → lidský review.
 
 ## K ODSOUHLASENÍ (neopraveno — %AUDIT:CODE pravidlo / riziko / netriviální)
 
@@ -62,8 +67,10 @@ Vlastní čerstvá práce + jednoznačné docs faktické chyby (nízké riziko, 
   pgw lambda **4×**, `_map_area_mask` **2×** (point≡line eval_real), peak helpery `_nms`/`_peaks_xy`/`_match_counts`
   kopie train→point eval_real. Fix: `model/eval_common.py` (tiled inference + pgw→mpp) + `model/norm.py` (ImageNet SSoT)
   + `model/peaks.py`. **Riziko:** dotýká se živých reconstructorů → odsouhlasit dávku.
-- **[D5] DRY `.pgw` parse 4×** (`cut.py:41`, `gen_backgrounds.py:53`, `measure_dod.py` 3× inline, `compare_real_vs_gen.py`)
-  → sdílený `read_pgw()` (ideálně `connectors/` vedle geo-helperů).
+- **[D5] DRY `.pgw` parse** (k odsouhlasení) — `cut._pgw`/`gen_backgrounds._read_pgw`/`measure_dod._pgw` jsou
+  **3 identické** kopie (`A,D,B,E,C,F`→`A,B,C,D,E,F`) + measure_dod inline 2× (ř.91/111). POZN.: `mpp.read_src_mpp`
+  NEpoužitelný (čte mpp z `meta.json`, ne affine z `.pgw`). Sdílený `read_pgw()` — umístění je rozhodnutí (nový
+  `generator/geo.py` pro 1 funkci vs existující modul) + import-path ve fázi B; nízká páka (parser stabilní) → ranní review.
 - **[D6] Mrtvý kód `generator.py`:** `BRIDGE_NAME`/`ISOM_BRIDGE`/`ISOM_FOOTBRIDGE` (732-735, dict se nečte; meta mostů
   jména hardcoduje znovu) + `ROTATABLE_CODES` členy `512.2`/`519` (82, nikdy nevyhodnocené — jdou vlastními smyčkami).
 - **[D7] Mrtvý EMA experiment `png2point/train.py:219-243`** (~25 ř. + CLI `--ema`) — paměť i `eval_real.py:268` říkají
