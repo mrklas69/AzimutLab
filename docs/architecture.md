@@ -252,9 +252,11 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
-  **Stav Sez. 152: 65,8 %** na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
-  (plocha 75,0 / linie 66,7 / bod 67,9);
-  největší díry 403/416/306/202/109/501/308/108/408/208.
+  **Stav Sez. 160: 66,2 %** (Sez. 152 bylo 65,8 na stale `.omap`; plná regenerace KPI sady
+  s committed `separate.py` 407/409 gate `4a8712e` doložila 66,2 — vyřešen audit A3/A4 sirotek)
+  na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
+  (plocha 75,0 / linie 66,4 / bod 67,9; Bedř 58,5 / Blatná 65,6 / Velbloud 74,3);
+  největší díry 403/416/409/306/202/109/501/308/108/208.
   Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
   se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
   `--table` kompas — sloupce `zdroj · gen · scan · provedení`; původ symbolů drží `isom.capabilities`).

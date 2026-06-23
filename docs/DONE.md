@@ -2,6 +2,22 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 160 (2026-06-23) — Konsolidace po výpadku + plná regenerace maps/ (13/14) + KPI nález 66,2 (HAL3000)
+Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-160--konsolidace-po-výpadku--plná-regenerace-maps-1314--kpi-nález-662-hal3000).
+- [x] **Konsolidace po výpadku ověřena:** git clean, Sez. 158/159 konzistentní napříč vrstvami (DIARY/DONE/diář/
+  capabilities), checkpointy lícují s kódem (area `out=21` / line `out=2` / point `out=7` — tvar segm. hlavy).
+  Výpadek nezničil žádná trackovaná data; jediný pozůstatek = nedoběhlá instrukce regenerace.
+- [x] **Plná regenerace `maps/` (dokončení nedoběhlé instrukce):** 13/14 map přegenerováno + 3 podklady
+  (dmr/sken/orto), 1 (Buschdörfl) **zachována** (special E2E s ručními artefakty mobile foto / vecline GT —
+  generický `pairs.py map 1201511` by ho zničil, diár 06-19 varuje). Recept 4 typů: DEV(5) `--location`+
+  `scan-auto`, Livelox(5) `pairs.py map`, KPI(3) `measure_dod`+`dmr`/`ortho`. Všech 14 map má 3 podklady
+  v `.omap` (ověřeno). Vizuál Soví vrch + Bedřichovka bez rozbití. (maps/ gitignored → jen lokálně.)
+- [x] **KPI nález 66,2 % doložen (audit A3/A4 sirotek vyřešen):** plná regenerace KPI sady s committed
+  `separate.py` 407/409 gate (`4a8712e`) → KPI **66,2 %** (Bedř 58,5 / Blatná 65,6 / Velbloud 74,3;
+  plocha 75,0 / linie 66,4 / bod 67,9) na `KPI_3MAP_CANONICAL`. Gate OVLIVŇUJE `.omap` KPI počty přes
+  `predict_areas_sjtsk` — Sez. 159 „65,8 netknuto" platilo jen na stale `.omap` z 06-20. Propsáno do
+  README/architecture/GLOSSARY/TODO. Žebříček děr 403/416/409/306/202/109/501/308/108/208 (409 vyskočil).
+
 ## Sezení 159 (2026-06-23) — Sjednocení repa (mýtus „paralelního vlákna") + Png2Point scope +525/527 (HAL3000)
 Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-159--sjednocení-repa-mýtus-paralelního-vlákna--png2point-scope-525527-hal3000).
 - [x] **Sjednocení repa** (námitka uživatele „Jaké paralelní vlákno? Sjednoť repo."). Ověřeno: žádné paralelní

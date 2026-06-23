@@ -379,8 +379,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; Sez. 107: 59,1 % (plocha
   69,2 / linie 59,3 / bod 18,4 → 54,3 po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb);
   Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
-  (527 kalibrace dolů + `Cesta typcesty_k=025`→508); **Sez. 152: 65,8 %**
-  (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota; plocha 75,0 / linie 66,7 / bod 67,9).
+  (527 kalibrace dolů + `Cesta typcesty_k=025`→508); Sez. 152: 65,8 %
+  (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota); **Sez. 160: 66,2 %**
+  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`; plocha 75,0 / linie 66,4 / bod 67,9).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).

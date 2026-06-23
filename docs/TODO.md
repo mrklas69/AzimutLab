@@ -208,7 +208,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > po změně `N_LINE` vyžadují rebuild + retrain.
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 154: KPI 65,8 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,7** / bod **67,9**).
+> **Stav Sez. 160: KPI 66,2 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,4** / bod **67,9**;
+> Bedř 58,5 / Blatná 65,6 / Velbloud 74,3). Plná regenerace `maps/` doložila sirotka 66,2 (audit A3/A4):
+> committed `separate.py` 407/409 gate `4a8712e` OVLIVŇUJE `.omap` KPI počty (přes `predict_areas_sjtsk`) —
+> Sez. 159 „65,8 netknuto" platilo jen na stale `.omap` z 06-20. Žebříček děr 403/416/409/306/202/109/501/308/108/208.
 > Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu `orig 8 / gen 103` → `gen 3`
 > (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025` z path 504 do ride 508
 > (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). Sez. 152 přidala 404/407/409
