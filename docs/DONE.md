@@ -2,6 +2,32 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 159 (2026-06-23) — Sjednocení repa (mýtus „paralelního vlákna") + Png2Point scope +525/527 (HAL3000)
+Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-159--sjednocení-repa-mýtus-paralelního-vlákna--png2point-scope-525527-hal3000).
+- [x] **Sjednocení repa** (námitka uživatele „Jaké paralelní vlákno? Sjednoť repo."). Ověřeno: žádné paralelní
+  vlákno (20 commitů = Jan Mrklas, žádný Codex). Necommitnutá scan-mining práce Sez. 154-157 (mark_isoms,
+  water_points_poc, calibration_manifest, markers/, Hungarian `score.py`, 4 testy) sjednocena 2 commity + push.
+  **Revert nepodloženého KPI sirotka 66,2→65,8** (audit A3/C5: `separate.py` 407/409 gate ovlivňuje scan separaci
+  párů, ne `.omap` KPI počty).
+- [x] **525 Small tower (⊤) + 527 Fodder rack (Λ) přidány do `Png2Point` scope** (531 → +525/527, N_POINT 5→7).
+  CUDA tah na branku, volba (c) Png2Point expansion (oba najednou). Self-check ROADMAP: nové TYPY bodů = vytěžení ✓.
+  - **Měřitelnost PŘED tréninkem** (anti-A1, crosswalk-aware probe): 525 Bedř 24 / TOTAL 45, 527 Slovanka 7 / Bedř 6
+    / TOTAL 18 (531 kontrola Velbloud 20 = Sez. 158). Obě měřitelné → GO.
+  - **Verify-against-source** (template id 150/152, color 2, w 240 µm): 525 = ⊤ (příčka + noha), 527 = Λ+noha
+    (stříška + noha). Oba černé halo=False. → `inject` dostal **dva nové kind** `tower`/`fodder` (`_stamp_tower`/
+    `_stamp_fodder` podle template proporcí). Smoke vizuál (527 = „šipka"-like = věrná ISOM podoba).
+  - **Retrain 3 seedy** (`s159_525527_s{0,1,2}`, 40 ep): synt test mF1 **medián 0,821** (7 tříd; 525 0,88 / 527 0,87).
+    Synt ≥ Sez. 158 0,811 (5 tříd) → žádné ředění.
+  - **Sweep `peak_thr`** (seed 0): černá man-made kresba → hodně FP → VYSOKÝ práh. **525→0,70** (Bedř plató F1 0,77),
+    **527→0,65** (mean max 0,71). Strukturální vzor: černé MAN-MADE chtějí vyšší práh (opačně než 204/210).
+  - **eval_real (3 seedy):** **525 SILNÝ Bedř medián 0,766** (na úrovni 419, líp než 531), **527 STŘEDNÍ-DOBRÝ**
+    seed0 Bedř 0,833 / Slovanka 0,667 (medián 3 seedů 0,50, seed-citlivý). **5 starých tříd bez regrese**
+    (531 0,70 / 419 0,68 / 417 0,49 / 204 0,66 / 210 kolabuje) → bodový scope snese 7. třídu. Sázka A3(c)
+    potvrzena potřetí (531→525→527).
+  - **Promote: seed 0** (synt medián + nejsilnější nové) + `.bak_5class_s158` pojistka. Capability 525/527
+    `SCAN_POC`→`SCAN_LIVE_POINT` (mají eval_real metriku; test sladěn). `eval_real` overlay +2 barvy. 48 testů OK.
+  - KPI 65,8 % netknuto (capability informativní; scan kandidáti se do KPI počtů nepřičítají).
+
 ## Sezení 158 (2026-06-23) — Png2Point scope +531 (černý man-made X), reálný transfer potvrzen (HAL3000)
 Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-158--png2point-scope-531-černý-man-made-x-reálný-transfer-potvrzen-hal3000).
 Autonomní noční běh (uživatel: „posouvej se sám, ráno kouknu"). Fokus = CUDA tah na branku, volba (c) Png2Point expansion.

@@ -194,12 +194,12 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point,line}/eval_real.py` na
 > kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
 > **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
-> mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **4 třídy 204/210/417/419 od Sez. 128**): synt **0,827**
-> (medián 3 seedů: 417 0,85 / 419 0,86 / 204 0,77 / 210 0,84) / **realita mean 0,43–0,57** (per-class práh Sez. 129):
-> **419 Prom. veg. feature SILNÝ 0,67–0,76** (líp než 204, výrazný zelený X + bílá svatozář), **417 Prom. large tree
-> 0,48–0,57** (Sez. 135 cause-fix: injekce na reálnou hustotu `n_range (20,60)→(10,30)`, re-trénink; ~neutrální vůči
-> Sez. 129 prahu, ale bez recall kolapsu; P 0,39–0,66), 204 stabilní 0,44–0,73, **210 pořád kolabuje
-> 0,00–0,25** (drobné tečky). Práh detekce je **per třída v registru `PointClass.peak_thr`** (zelené chtějí vyšší).
+> mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **7 tříd 204/210/417/419/531/525/527 od Sez. 159**): synt **0,821**
+> (medián 3 seedů; 525 0,88 / 527 0,87 nové) / **realita**: **419 SILNÝ 0,67–0,76** (zelený X + svatozář),
+> **531 SILNÝ Velbloud 0,708** (černý man-made X, Sez. 158), **525 Small tower SILNÝ Bedř 0,766** (černý ⊤, na úrovni
+> 419, Sez. 159), **527 Fodder rack STŘEDNÍ-DOBRÝ 0,50–0,83** (černý Λ, seed-citlivý: seed0 Bedř 0,833 / Slovanka
+> 0,667), **417 Prom. large tree 0,40–0,57**, 204 stabilní 0,44–0,73, **210 pořád kolabuje 0,00–0,25** (drobné tečky).
+> Práh detekce **per třída `PointClass.peak_thr`** (zelené 0,40–0,45, černé man-made VYSOKÝ 0,60–0,70 — FP z cest/textu).
 > **Png2Line krok 1 watercourse 304/305 (Sez. 131, NOVÝ 3. reconstructor; pixel IoU / relaxed completeness/correctness):**
 > synt test mIoU 0,774 / IoU 0,55 · **realita: completeness 0,85–0,93 = model TRASUJE reálné toky** (žádný kolaps
 > jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr `LineClass.conf_thr`, izomorf `peak_thr`;
