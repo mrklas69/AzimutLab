@@ -83,11 +83,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
   BEZ rejection — pozadí je legitimní třída; test mIoU **0,683 Sez. 126** MPP fix na kanonické měřítko dlaždice 1,33
   před scope expansion, z 0,537 Sez. 118) · `png2point/` = **živý** reconstructor
-  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, **scope 204/210/417/419**
-  od Sez. 128; test mF1 **0,827 medián 3 seedů** na kanonickém měřítku 1,33 — stabilní po focal bias initu Sez. 125;
+  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, **scope 204/210/417/419/531**
+  od Sez. 158 (531 přidán k 417/419/204/210 ze Sez. 128); test mF1 **0,811 medián 3 seedů** (5 tříd) na kanonickém měřítku 1,33 — stabilní po focal bias initu Sez. 125;
   vše na kanonickém MPP `model/mpp.CANONICAL_MPP`, symboly i páry lícují, Sez. 126 audit C1/K1). **Reálný transfer
-  (eval_real): 419 SILNÝ 0,67–0,76, 417 střední 0,40–0,49, 204 stabilní, 210 kolabuje** (Sez. 128 — výrazné zelené
-  symboly s bílou knockout svatozáří se přenášejí; KPI pseudo injekce do gen vědomě odložena, data-gate→Goodhart A3).
+  (eval_real): 419 SILNÝ 0,67–0,76, 531 SILNÝ Velbloud 0,708 (černý man-made X, mirror 419 bez svatozáře, Sez. 158), 417 střední 0,40–0,49, 204 stabilní, 210 kolabuje** (výrazné distinktivní
+  symboly se přenášejí — zelené i černé; KPI pseudo injekce do gen vědomě odložena, data-gate→Goodhart A3).
   Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —

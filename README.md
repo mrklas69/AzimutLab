@@ -8,8 +8,10 @@ of what an orienteering map *is*.
 `generator()`, and **three live reconstructors**. Generator KPI is **65.8%** (`KPI_3MAP_CANONICAL`,
 session 152).
 `Png2Area` has test mIoU **0.577** (21-class, session 156 retrain on the expanded scope;
-real eval_real Bedř soft mIoU 0.525 / pixel-acc 0.887), `Png2Point` a 3-seed median mF1 **0.827**
-(4 classes 204/210/417/419), and `Png2Line` step 1 (watercourse) test mIoU **0.774**. The
+real eval_real Bedř soft mIoU 0.525 / pixel-acc 0.887), `Png2Point` a 3-seed median mF1 **0.811**
+(5 classes 204/210/417/419/**531**; session 158 added 531 Prominent man-made X — real transfer
+Velbloud F1 0.708 = on par with 419, distinctive black X transfers like the green one), and
+`Png2Line` step 1 (watercourse) test mIoU **0.774**. The
 session-152 line scope expansion (306 + 309 + 508*) was retrained and **measured in session 156:
 watercourse regressed on real scans (0.409→~0.26 IoU, 309 collapsed) → reverted to the 2-class
 watercourse-only checkpoint** (2nd confirmation of session 133; dashed 508 is a domain gap).
@@ -140,9 +142,9 @@ model/                 # UC5 model code (sibling of connectors/generator, sys.pa
     dataset.py         #     PyTorch loader (D4 + on-the-fly degrade augmentation + ImageNet norm, no IGNORE — Y is all-valid)
     train.py           #     U-Net/ResNet34, N_AREA labels, BF16; isolated runs/<run_id>/, explicit --promote; test mIoU 0.577 (21-class retrain, session 156)
   png2point/           #   LIVE Png2Point reconstructor (sessions 105–106): map scan → point symbols, second of the 3 CV tasks
-    inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature)
+    inject.py          #     inject ISOM icons onto clean point_base render → GT for free + Gaussian heatmap splat (scope 204 Boulder / 210 Stony / 417 large tree / 419 veg. feature / 531 man-made X; halo flag: green halo yes, black 531 no)
     dataset.py         #     PyTorch loader: reads point_base renders + random-crop 512, on-the-fly injection (infinite augmentation) + D4 + degrade
-    train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px, 4 classes → median mF1 0.827; real 210 F1 0.11–0.18)
+    train.py           #     U-Net + focal heatmaps + peak-NMS; isolated runs/<run_id>/, explicit --promote (canonical 1.33 m/px, 5 classes → median mF1 0.811; 531 real transfer Velbloud F1 0.708, peak_thr 0.60; real 210 F1 0.11–0.18)
   png2line/            #   LIVE Png2Line reconstructor (sessions 130–132; scope expanded 152, retrained+measured 156 → reverted to 2-class, see train.py): map scan → line segmentation, third of the 3 CV tasks
     tile.py            #     resample + pre-tiling [rgb.png, on-the-fly line Y from .omap] → 512×512; 304/305 + 306 + 309 + 508*, dilated GT
     dataset.py         #     PyTorch loader (D4 + degrade + purple augmentation; reuse png2area pattern)

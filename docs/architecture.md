@@ -217,6 +217,13 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   **Scope +417/419 (Sez. 128):** 4-třídový model, synt mF1 medián 0,827; reálný transfer **419 silný 0,67–0,76**
   (líp než 204 — výrazný zelený X + svatozář), **417 střední 0,40–0,49** (čte, přestřeluje) → lekce „distinktivní
   symboly se přenášejí" (paměť [[png2point-inject-clean-base]]) potvrzena. KPI pseudo injekce odložena (Goodhart).
+  **Scope +531 (Sez. 158):** 5-třídový model (531 Prominent man-made = ČERNÝ X, mirror 419 bez svatozáře —
+  verify-against-source template id 156, `halo` flag v `inject.PointClass`). **Měřitelnost ověřena PŘED tréninkem**
+  (anti-A1: probe crosswalk-aware 531 GT Velbloud 20 / Blatná 3 / Bedř 3). Synt mF1 medián 0,811 (5 tříd, 3 seedy);
+  **reálný transfer 531 medián Velbloud F1 0,708 = na úrovni 419** → lekce „distinktivní X přenáší" platí i pro
+  ČERNÝ man-made X (ne jen zelený veg). `peak_thr=0,60` (sweep, plochá část křivky, izomorf 417/419 Sez. 129);
+  **4 staré třídy bez regrese** napříč seedy (bodový scope snese 5. třídu — na rozdíl od liniového 5-class Sez. 156).
+  531 povýšen na `SCAN_LIVE_POINT` (capability registr). Blatná/Bedř 531 šum (3 GT). KPI netknuto (capability informativní).
   Stejný checkpoint kontrakt jako Area: běh je izolovaný v
   `resources/point_model/runs/<run_id>/` a kanonický `unet_best.pt` se mění jen
   explicitním `--promote`.

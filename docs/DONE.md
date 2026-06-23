@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 158 (2026-06-23) — Png2Point scope +531 (černý man-made X), reálný transfer potvrzen (HAL3000)
+Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-158--png2point-scope-531-černý-man-made-x-reálný-transfer-potvrzen-hal3000).
+Autonomní noční běh (uživatel: „posouvej se sám, ráno kouknu"). Fokus = CUDA tah na branku, volba (c) Png2Point expansion.
+- [x] **531 Prominent man-made feature (ČERNÝ X) přidán do `Png2Point` scope (204/210/417/419 → +531).**
+  Sázka A3(c): distinktivní tvar přenáší (419 zelený X silný 0,67–0,76) → černý X by měl taky.
+  - **Měřitelnost ověřena PŘED tréninkem** (anti-A1 lekce „nedeklaruj scope, co nejde měřit"): probe crosswalk-aware
+    bodové GT v měřicích mapách — **531 Velbloud 20 / Blatná 3 / Bedř 3** objektů → měřitelné (primárně Velbloud).
+  - **Verify-against-source** (template id 156): 531 = 2 čisté ČERNÉ diagonály (color 2, ±516 µm), **bez svatozáře**
+    (na rozdíl od 419 = 4 elementy se 2 bílými). → `inject.PointClass` dostal flag `halo` (zelené 417/419 ANO, černý 531 NE).
+  - **Retrain 3 seedy** (`s158_531_s{0,1,2}`, 40 ep): synt test mF1 **medián 0,811** (5 tříd). `peak_thr=0,60`
+    (sweep na eval_real, plochá část křivky, izomorf 417/419 Sez. 129).
+  - **eval_real (reálný transfer, 3 seedy, JÁDRO):** **531 medián Velbloud F1 0,708 = na úrovni 419** (silný!);
+    Blatná 0,400 / Bedř 0,133 (3 GT = šum). **4 staré třídy bez regrese** napříč seedy (204/210/417/419 v rozsahu
+    Sez. 129/135) → bodový scope snese 5. třídu (na rozdíl od liniového 5-class, Sez. 156 regrese). Lekce
+    „distinktivní symboly se přenášejí" platí i pro ČERNÝ man-made X, ne jen zelený veg.
+  - **Promote: seed 0** (medián-reprezentativní v synt mF1 i Velbloud mean) → kanonický `point_model/unet_best.pt`;
+    `.bak` pojistka 4-class (`unet_best_presez158_4class.bak`). Checkpointy gitignored.
+  - **Capability registr**: 531 povýšen `SCAN_POC` → `SCAN_LIVE_POINT` (mám eval_real metriku → audit A2 splněn;
+    preferred_kind → mapper_scan, izomorf 419). KPI netknuto (capability je informativní sloupec).
+  - **`eval_real.py`**: + `POINT_CKPT` env (multiseed eval bez promote-tance) + 5. overlay barva (531 oranžová).
+  - Verify: 48 testů OK (vč. nové 531 assertce v `test_symbol_capabilities`), render smoke (černý X bez svatozáře na lese).
+
 ## Sezení 157 (2026-06-22) — A1 line revert + ISOM GT factory (human-in-the-loop kurační nástroj) (HAL3000)
 Detail: [diary/2026-06-22.md](diary/2026-06-22.md#sezení-157--a1-line-revert--isom-gt-factory-human-in-the-loop-kurační-nástroj-hal3000).
 - [x] *(A1 line, follow-up Sez. 156 „Příště")* **Line revert kódu na `N_LINE=2`.** `omap_raster.LINE_CLASSES`
