@@ -34,7 +34,8 @@ sys.path.insert(0, str(_REPO / "generator"))
 sys.path.insert(0, str(_REPO / "model"))
 from omap_raster import CODE_TO_LABEL, N_AREA, LABEL_NAME, colorize, _split_rings   # noqa: E402
 from compare_isom import _load_crosswalk, _resolve_targets, detect_version           # noqa: E402
-from mpp import CANONICAL_MPP                                                          # noqa: E402
+from mpp import CANONICAL_MPP
+from norm import IMAGENET_MEAN, IMAGENET_STD                                           # noqa: E402  SSoT (audit D4, Sez. 158)                                                          # noqa: E402
 
 TARGET_MPP = CANONICAL_MPP                             # = měřítko dlaždice (SSoT mpp.py, Sez. 126); sken se naň downscaluje
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
@@ -160,8 +161,7 @@ def rasterize_Y(areas, to_px, f, W, H):
 def predict_scan(arr):
     """Pustí unet_best.pt na downscalovaný sken (arr H,W,3, tiled 512/384) → pred label (H,W)."""
     import segmentation_models_pytorch as smp
-    MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-    STD = np.array([0.229, 0.224, 0.225], np.float32)
+    MEAN, STD = IMAGENET_MEAN, IMAGENET_STD              # SSoT model/norm.py (audit D4, Sez. 158)
     H, W = arr.shape[:2]
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = smp.Unet("resnet34", encoder_weights=None, in_channels=3, classes=N_AREA).to(dev)

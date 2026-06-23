@@ -55,7 +55,8 @@ from omap_raster import (                                                       
     N_LINE, LINE_LABEL_NAME, LINE_CODE_TO_LABEL, LINE_CONF_THR, GT_LINE_WIDTH_PX, colorize_lines)
 from compare_isom import _load_crosswalk, _resolve_targets, detect_version      # noqa: E402
 from map_gt import _detect_map_area                                            # noqa: E402
-from mpp import CANONICAL_MPP                                                   # noqa: E402
+from mpp import CANONICAL_MPP
+from norm import IMAGENET_MEAN, IMAGENET_STD                                    # noqa: E402  SSoT (audit D4, Sez. 158)                                                   # noqa: E402
 
 TARGET_MPP = CANONICAL_MPP                             # = měřítko dlaždice (SSoT mpp.py, Sez. 126); sken se naň downscaluje
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
@@ -151,8 +152,7 @@ def predict_scan(arr):
     liniové třídě, jehož konfidence < conf_thr, se sráží na pozadí (ořez FP, model fíruje na tenkou linii
     obecně; sweep ukázal +63 % strict IoU). Holý argmax = conf_thr 0,5; watercourse má 0,95."""
     import segmentation_models_pytorch as smp
-    MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-    STD = np.array([0.229, 0.224, 0.225], np.float32)
+    MEAN, STD = IMAGENET_MEAN, IMAGENET_STD              # SSoT model/norm.py (audit D4, Sez. 158)
     H, W = arr.shape[:2]
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = smp.Unet("resnet34", encoder_weights=None, in_channels=3, classes=N_LINE).to(dev)

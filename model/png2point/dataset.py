@@ -48,8 +48,7 @@ from mpp import resample_to_mpp, read_src_mpp    # noqa: E402  (Sez. 126: render
 
 Image.MAX_IMAGE_PIXELS = None
 
-_IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-_IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+from norm import IMAGENET_MEAN as _IMAGENET_MEAN, IMAGENET_STD as _IMAGENET_STD  # noqa: E402  SSoT (audit D4, Sez. 158)
 
 CROPS_PER_MAP = 16        # kolik 512 výřezů na mapu = 1 epocha (train náhodné, val/test deterministické)
 

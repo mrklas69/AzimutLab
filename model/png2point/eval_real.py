@@ -49,7 +49,8 @@ paper_to_scan_px = _area_eval.paper_to_scan_px
 from compare_isom import _load_crosswalk, _resolve_targets, detect_version      # noqa: E402
 from inject import POINT_CLASSES, N_POINT, CODE_TO_IDX                          # noqa: E402
 from map_gt import _detect_map_area                                            # noqa: E402
-from mpp import CANONICAL_MPP                                                   # noqa: E402  (inject už přidal model/ na path)
+from mpp import CANONICAL_MPP
+from norm import IMAGENET_MEAN, IMAGENET_STD                                    # noqa: E402  SSoT (audit D4, Sez. 158)                                                   # noqa: E402  (inject už přidal model/ na path)
 
 TARGET_MPP = CANONICAL_MPP                             # = měřítko dlaždice (SSoT mpp.py, Sez. 126); sken se naň downscaluje
 _OUT = _REPO / "temp"                                  # scratch vizuál výstupy (gitignored)
@@ -171,8 +172,7 @@ def predict_peaks(arr, model, dev, thr=None):
     překryvy → NMS peak + práh → list[(K,2) xy] per třída. (Detekce jako train.evaluate, jen na celém skenu.)
 
     thr=None → per-třída práh z registru (POINT_CLASSES[c].peak_thr, Sez. 129); float → globální override."""
-    MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-    STD = np.array([0.229, 0.224, 0.225], np.float32)
+    MEAN, STD = IMAGENET_MEAN, IMAGENET_STD              # SSoT model/norm.py (audit D4, Sez. 158)
     H, W = arr.shape[:2]
     T, S = 512, 384
     Hp, Wp = max(H, T), max(W, T)

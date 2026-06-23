@@ -43,8 +43,7 @@ from omap_raster import N_AREA   # noqa: E402  (SSoT počtu area tříd — guar
 Image.MAX_IMAGE_PIXELS = None
 
 # ImageNet statistika (RGB, rozsah 0-1) — encoder ResNet34 je na ní pretrained.
-_IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-_IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+from norm import IMAGENET_MEAN as _IMAGENET_MEAN, IMAGENET_STD as _IMAGENET_STD  # SSoT (audit D4, Sez. 158)
 
 
 class AreaTileDataset(Dataset):
