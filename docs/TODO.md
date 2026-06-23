@@ -29,7 +29,8 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   per-symbol tvarových filtrů (`--min-area 25` u 109). **Zbývá:** hlavní modré pointy `311/312/313`,
   další černé bodové skupiny, drobné 301/308/310 vodní/mokřadní plochy a uzavřené 516/517/518 oplocenky.
   Výstup má být kurátorský manifest + pracovní `.omap` kandidáti, nejdřív na Buschdörfl/Hamr, potom ověřit
-  na jedné české mapě. **Vysoká priorita před dalšími ZABAGED honbami:** tahle data jsou v mapářském
+  na jedné české mapě. Per-ISOM calibration ledger je zavedený v `isom_scan/calibration_manifest.json`;
+  další konkrétní krok jsou `311/312/313`. **Vysoká priorita před dalšími ZABAGED honbami:** tahle data jsou v mapářském
   skenu, ne v ČÚZK.
 - Hotovo *(260619-A2; měření ntbhej)*: **Obnovit srovnatelný 3-map KPI trend po doplnění `Velbloud.pgw`.**
   Hotovo 2026-06-19: `resources/Velbloud.pgw` byl na ntbhej vyroben z `print_area` + `.omap` georef
@@ -161,10 +162,12 @@ sebe), `results.csv` (run meta / self-report / KPI), `runs/` šablona, `README.m
   `manmade_points_poc.py`, `terrain_points_poc.py`, `vegetation_points_poc.py`, review manifest a `.omap`
   export dávají kontrolovatelný scan-transfer harness. Výstup je pořád kandidátní vrstva pro oko/kuraci,
   ne modelový reconstructor a ne automatická GT pravda.
-- [!] **Per-ISOM calibration manifest pro scan-transfer.** Zavést malý strojově čitelný záznam pro každý
-  laděný symbol: `code`, mapa/sken, marker symbol (`602`), počet pozitivních markerů, negativní kódy/confusions
-  (`108` vs `109`), barevné prahy, šablonový score práh, area/size/fill limity, recall vůči markerům, cesta
-  k review sheetu, `.omap` export status a datum. Bez toho se parametry ztratí v chatu/temp adresářích.
+- Hotovo *(260621-Buschdörfl; scan-transfer)*: **Per-ISOM calibration manifest pro scan-transfer.**
+  `isom_scan/calibration_manifest.json` verzovaně drží `code`, mapa/sken, marker symbol (`602`),
+  počet pozitivních markerů, negativní kódy/confusions (`108` vs `109`), prahy, area/size/fill limity,
+  review sheet, `.omap` export status a datum; `calibration_manifest.py` hlídá tvar záznamu.
+- [!] **Modré pointy `311/312/313` ze skenu.** Navázat na calibration ledger: nejdřív vyrobit kandidáty
+  nad Buschdörfl/Hamr, doplnit pozitivní `602` markery a až potom řešit export do pracovní `.omap`.
 - [ ] **Kurátorovat `resources/isom/index.json`** — lokální SVG dump 113 symbolů je načitatelný, ale zatím
   draft (`geom/license/isom_version` neznámé). Začít živými bodovými třídami 204/210/417/419 a kandidáty
   418/525/527/531; vyplnit provenance/licenci, geometrii, měřítkové footprinty a případné OOM/OCAD aliasy.
