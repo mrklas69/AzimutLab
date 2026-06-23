@@ -27,6 +27,12 @@ Vlastní čerstvá práce + jednoznačné docs faktické chyby (nízké riziko, 
 - **README „Repository layout" bodové faktické chyby (D10, jednoznačná část):** doplněn `png2{area,point}/eval_real.py`,
   `png2line/{north_grid,vectorize_omap}.py`, celý `tools/`; `png2line/tile.py` popis 5-class→2-class (revert Sez. 156);
   root-files věta + `AGENTS.md`. (Strukturální část D10 — layout JEN v per-dir READMEs + odkaz z root/CLAUDE/AGENTS — zůstává k odsouhlasení.)
+- **[C1] `split.py` no-silent** (commit `ed5d7cb`): chybějící mapa v `_cz_filter.json` teď HLASITĚ varuje na stderr;
+  **selekce ZACHOVÁNA** (chybějící = konzervativně vyřazena → mIoU split se nerozejde) — bezpečná půlka opravy. Re-build
+  filtru po růstu korpusu zůstává manuální krok (lazy re-probe = samostatné rozhodnutí, ne uděláno).
+- **[D1] `capabilities` 306/309/508 `SCAN_LIVE_LINE`→`SCAN_CANDIDATE`** (commit `ed5d7cb`): sladěno s Png2Line scope po
+  revertu Sez. 156 (živý jen 304/305) — registr už nelže o scan signálu (anti-Goodhart). Test sladěn + 304 assertce.
+  **Zbývá (k odsouhlasení):** 309 `generator_kind=mapper_scan` je aspirativní (generátor 309 z dat nekreslí, Png2Line neumí) — revize, zda 309 vůbec patří do registru / jaký zdroj.
 
 ## K ODSOUHLASENÍ (neopraveno — %AUDIT:CODE pravidlo / riziko / netriviální)
 

@@ -46,12 +46,12 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
 
 ## Reconstructor
 
-- **Png2Line — HOTOVÝ krok 1 + vektorizace (Sez. 130-132); detail v `architecture.md` UC5 + DONE.**
-  Architektura A (model = jen segmentace, vektorizace = sdílený downstream krok) potvrzena funkční na
-  watercourse 304/305 (test mIoU 0,774, reálný transfer completeness 0,85–0,93). **Otevřené větve** (v TODO):
-  krok 2 dashed 508/516 JINÝM přístupem (přidání třídy zkoušeno a zavrženo Sez. 133 — doménový gap) + gap-bridging
-  u junkcí + napojení poledníkového filtru do produkční cesty. Poledníkový detektor `north_grid.py` hotový +
-  ověřen (Sez. 134, data-driven rozestup). *(Hotová implementace stažena z IDEAS Sez. 139 — žila tu jako changelog.)*
+- **Png2Line — otevřené nezralé větve** (krok 1 watercourse 304/305 + vektorizace HOTOVO Sez. 130-132,
+  detail `architecture.md` UC5 + DONE). Nezralé: **krok 2 dashed 508/516 JINÝM přístupem** — přidání třídy
+  do multi-class je **2× doložený neúspěch** (Sez. 133 doménový gap completeness 0,14–0,22; Sez. 156 5-class
+  scope retrénován → watercourse regrese 0,409→0,26 + 309 kolaps → revert na 2-class) → jiný přístup =
+  morfologické přemostění přerušení / dashed-specifická augmentace, NE další třída. + gap-bridging u junkcí
+  (tříštění toků na uzlech) + napojení poledníkového filtru (`north_grid.py`, hotový Sez. 134) do produkční inference.
 - **Patternové area třídy.** Nearest-color rozliší odstín, ne mřížku, tečky,
   diagonály a směrové čárky. Každá nová jemná třída musí současně splnit:
   generátor ji umí vytvořit, render nese viditelný signál a
