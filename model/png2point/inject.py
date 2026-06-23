@@ -23,8 +23,9 @@ Geometrie ikonek = ze spec/template_classic.omap (verify-against-source Sez. 105
   210 Stony ground      — pole jednotlivých teček 210.1, r 0,15 mm, rozestup ~1,2 mm (template area pattern
                           id na ř. 419: inner_radius=150 µm, line/point_distance=1200 µm; reálné = type=point).
   417 Prominent large tree   — zelený PRSTENEC (kroužek), zeleň ISOM color 3 (Sez. 128, scope rozšířen).
-  419 Prom. vegetation feat. — zelený X s bílou knockout svatozáří (Sez. 128). Plné rozměry/barvy = registr
-                          POINT_CLASSES níže (verify-against-source ISOM 2017-2).
+  419 Prom. vegetation feat. — zelený X s bílou knockout svatozáří (Sez. 128).
+  531 Prom. man-made x       — ČERNÝ X BEZ svatozáře (Sez. 158, template id 156 = 2 černé diagonály ±516 µm).
+                          Plné rozměry/barvy = registr POINT_CLASSES níže (verify-against-source ISOM 2017-2).
 
 Sys.path skript (fáze B, ne balík). Self-test (vizuál) dole: `python model/png2point/inject.py`.
 """
@@ -306,10 +307,10 @@ def inject_tile(rgb: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray]:
 # ==================================================================== self-test / vizuál
 def _heat_overlay(rgb: np.ndarray, heat: np.ndarray) -> Image.Image:
     """Vizuál: RGB s injekcí + barevné peaky heatmapy pro kontrolu zarovnání (204 červeně, 210 modře,
-    417 azurově, 419 fialově). Barvy = kontrolní, nesouvisí s ISOM."""
+    417 azurově, 419 fialově, 531 oranžově). Barvy = kontrolní, nesouvisí s ISOM (izomorf eval_real._overlay)."""
     out = rgb.astype(np.float32).copy()
-    colors = np.array([[230, 40, 40], [40, 90, 230], [20, 200, 200], [200, 40, 200]],
-                      dtype=np.float32)   # 204 / 210 / 417 / 419
+    colors = np.array([[230, 40, 40], [40, 90, 230], [20, 200, 200], [200, 40, 200], [255, 140, 0]],
+                      dtype=np.float32)   # 204 / 210 / 417 / 419 / 531
     for idx in range(min(N_POINT, len(colors))):
         a = heat[idx][..., None]                 # (H,W,1) alfa = síla peaku
         out = out * (1 - a) + colors[idx] * a

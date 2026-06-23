@@ -102,7 +102,7 @@ def _match_counts(pred_xy, gt_xy, tol):
 def parse_carto_points(omap_path):
     """[(x_µm, y_µm, idx)] z kartografovy .omap — POINT objekty (type=1) ve scope POINT_CLASSES přes crosswalk.
 
-    idx = kanál heatmapy (CODE_TO_IDX, dnes 204→0, 210→1, 417→2, 419→3). Crosswalk 2000→2017 (bez něj
+    idx = kanál heatmapy (CODE_TO_IDX, dnes 204→0, 210→1, 417→2, 419→3, 531→4). Crosswalk 2000→2017 (bez něj
     nesmysl, Sez. 94): skalnaté ISOM 2000 mapy mají boulder=206, stony=210; 2017-2 přečíslovalo boulder→204.
     POZOR vegetace (Sez. 128): ISOM 2000 417 → 2017-2 419, 2000 419 → 2017-2 418 (záměna v .crt) — crosswalk
     `_resolve_targets` ji vyřeší automaticky, scope se řídí cílovými 2017-2 kódy v CODE_TO_IDX."""
