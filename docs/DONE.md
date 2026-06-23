@@ -23,6 +23,15 @@ Autonomní noční běh (uživatel: „posouvej se sám, ráno kouknu"). Fokus =
     preferred_kind → mapper_scan, izomorf 419). KPI netknuto (capability je informativní sloupec).
   - **`eval_real.py`**: + `POINT_CKPT` env (multiseed eval bez promote-tance) + 5. overlay barva (531 oranžová).
   - Verify: 48 testů OK (vč. nové 531 assertce v `test_symbol_capabilities`), render smoke (černý X bez svatozáře na lese).
+- [x] **%AUDIT:CODE 260623 (druhá fáze sezení, volba uživatele „3" = úklid).** Cadence překročen (od Sez. 143 = 15 sez);
+  audit proveden TADY (Opus 4.8 = nejsilnější model pro audit; CUDA okno nevyužito; read-only report = nekoliduje s paralelním
+  vláknem). 4 paralelní agenti (generator/model/connectors+isom/cross-cutting) + ruční verify proti zdroji; `isom_scan/` vynechán
+  (živě měněný). **0 bug-level kritických** mimo split.py no-silent. Report `docs/AUDIT_CODE_260623.md`.
+  - **Opraveno hned**: 531 stale docstringy (inject/eval_real, commit `bb1ed51`) + `AGENTS.md` faktické chyby
+    (`clip_quad.py`→`cut.py`, `forest.py` smazán, png2line doplněn, čísla/scope).
+  - **K odsouhlasení (3 páky):** C1 split.py tichý drop map (no-silent, riziko regrese); D1 capabilities 306/309/508
+    `SCAN_LIVE_LINE` lže o scope (nedokončený revert Sez. 156, anti-Goodhart); D4/D5 dozrálý DRY balíček.
+  - Falešné poplachy zachyceny verify: PX_PER_MM 2× ne 3×; ISOM_REF 2 konzumenti pod prahem.
 
 ## Sezení 157 (2026-06-22) — A1 line revert + ISOM GT factory (human-in-the-loop kurační nástroj) (HAL3000)
 Detail: [diary/2026-06-22.md](diary/2026-06-22.md#sezení-157--a1-line-revert--isom-gt-factory-human-in-the-loop-kurační-nástroj-hal3000).

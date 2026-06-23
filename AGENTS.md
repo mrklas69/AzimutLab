@@ -47,7 +47,7 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
 - `docs/kb/` — knowledgebase (data-sources / isom-issprom / tools-models).
 - `connectors/` — UC2 konektory reálných geodat: `dmr.py` (výškopis), `zabaged.py` (cesty/voda/budovy/…),
   `ruian.py` (katastr, Sez. 42), `ortofoto.py` (podklad); REST sourozenci sdílí `arcgis.py` transport
-  (Sez. 42). (Predikční zeleň jde ze separace, ne z dat — `forest.py` proxy archiv Sez. 102.)
+  (Sez. 42). (Predikční zeleň jde ze separace, ne z dat — `forest.py` proxy SMAZÁN Sez. 102, cesta zavržena.)
   UC5 korpus: `livelox.py` (stahování reálných OB map
   + páry X,Y `build_pairs`) + `map_gt.py` (runnability GT segmentace) + `curate.py` (kurace korpusu →
   `_curation.json`, 216 keep classic, Sez. 71) + `split.py` (ČR/DE filtr 207 ČR + geografický train/val/test
@@ -59,17 +59,19 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   Fáze I `generator()`: `separate.py` (separace barev mapy → plochy, `separate_areas` + `TARGET_MPP`
   downscale, Sez. 82-85) + `pairs.py` (orchestrátor `build_pair`/`build_pairs` per-classId párů X,Y
   z Livelox korpusu, Sez. 83-85). `rock_relief.py` (skály 206 z DMR sklonu, Sez. 63). Post-process (string,
-  ne ET): `clip_quad.py` (`clip_omap_to_quad` — ořez gen.omap+render na natočený reálný quad, odstraní přesah
-  bboxu = okolní sídla, Sez. 109) + `gen_backgrounds.py` (OOM bg podklady do gen.omap: `add_backgrounds` Livelox
+  ne ET): `cut.py` (`clip_omap`/`clip_omap_to_quad` — geometrický ořez gen.omap+render na natočený reálný quad,
+  odstraní přesah bboxu = okolní sídla, Sez. 109/114; přejmenováno z `clip_quad.py`) + `gen_backgrounds.py` (OOM bg podklady do gen.omap: `add_backgrounds` Livelox
   pár / `add_resources_scan_background` resources měřicí mapa, Sez. 104/109).
-- `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Tři
-  podadresáře** (každý vlastní `{…,dataset,train}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
+- `model/` — UC5 model kód (3. top-level adresář, sourozenec `connectors/`/`generator/`, Sez. 77). **Čtyři
+  podadresáře, tři živé reconstructory** (každý vlastní `{…,dataset,train,eval_real}.py`, izomorfní): `runnability/` = **archiv** `ORTO→runnability`
   baseline (slepá ulička Sez. 79, `git mv` sem Sez. 88) · `png2area/` = **živý** reconstructor `Png2Area` (mapový
   sken → area label rastr, 20 ISOM kódů + pozadí = `N_AREA=21` po 404/407/409 Sez. 152; pár
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
-  BEZ rejection — pozadí je legitimní třída; test mIoU 0,683 Sez. 126 před scope expansion) · `png2point/` = **živý** reconstructor
-  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210/417/419
-  od Sez. 128; test mF1 0,827 medián 3 seedů na kanonickém měřítku 1,33; starší 0,888 je superseded 2-třídová metrika).
+  BEZ rejection — pozadí je legitimní třída; test mIoU 0,577 Sez. 156 retrain 21-class) · `png2point/` = **živý** reconstructor
+  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210/417/419/531
+  od Sez. 158; test mF1 0,811 medián 3 seedů na kanonickém měřítku 1,33; 531 reálný transfer Velbloud F1 0,708) · `png2line/` = **živý**
+  reconstructor `Png2Line` (sken → liniové symboly, segmentace + skeletonizace; kanonický 2-class watercourse 304/305,
+  test mIoU 0,774; 5-class scope Sez. 152 retrénován+revertován Sez. 156 = watercourse regrese).
   Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
