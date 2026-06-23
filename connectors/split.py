@@ -65,11 +65,28 @@ def _near_white_map() -> dict:
 
 
 def cz_dirs() -> list[Path]:
-    """Adresáře ČR keep-classic map (keep-classic ∩ near_white < EMPTY). Tréninkový pool."""
+    """Adresáře ČR keep-classic map (keep-classic ∩ near_white < EMPTY). Tréninkový pool.
+
+    No-silent-fallback (audit CODE-C1, Sez. 158): mapa chybějící v `_cz_filter.json` by tiše dostala
+    default 1.0 → vyřazena jako „cizí" (po růstu korpusu by nové keep mapy mlčky vypadly z tréninku,
+    protože `_near_white_map` re-probuje jen když chybí CELÝ soubor). Chování selekce ZACHOVÁNO
+    (chybějící = konzervativně vyřazena, ať se mIoU split nerozejde), ale teď HLASITĚ varuje na stderr →
+    signál „re-build `_cz_filter.json`", ne tichý drop. Vzor `curate.py` (explicitní vynechání)."""
     sys.path.insert(0, str(_REPO_ROOT / "connectors"))
     import curate
     nw = _near_white_map()
-    return [d for d in sorted(curate.kept_dirs("classic")) if nw.get(d.name, 1.0) < EMPTY]
+    out, missing = [], []
+    for d in sorted(curate.kept_dirs("classic")):
+        if d.name not in nw:                       # chybí ve filtru → konzervativně vyřaď, ale nahlas
+            missing.append(d.name)
+            continue
+        if nw[d.name] < EMPTY:
+            out.append(d)
+    if missing:
+        head = ", ".join(missing[:5]) + ("…" if len(missing) > 5 else "")
+        print(f"[split] VAROVÁNÍ: {len(missing)} keep-classic map chybí v _cz_filter.json → tiše vyřazeny "
+              f"z tréninku; re-build filtru (smaž _cz_filter.json): {head}", file=sys.stderr)
+    return out
 
 
 def _bbox(meta: dict):

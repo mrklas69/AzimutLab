@@ -146,7 +146,7 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
         "line",
         GEN_REAL,
         "sparse ZABAGED ride/Cesta fallback; mapper scan preferred for completeness",
-        SCAN_LIVE_LINE,
+        SCAN_CANDIDATE,  # Png2Line revert Sez. 156: kanonický scope jen 304/305 (508 doménový gap) → kandidát, ne živý
         # Generátor emituje holý 508. Reálné mapy ale často používají varianty s pozadím
         # běhatelnosti; Png2Line je slučuje do jedné vizuální třídy dashed narrow ride.
         # ZABAGED průseky jsou silně neúplné (hlavní/udržované linie), proto je to jen
@@ -156,15 +156,16 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
     ),
     _rec("304", "Crossable watercourse", "line", GEN_REAL, "ZABAGED watercourses", SCAN_LIVE_LINE),
     _rec("305", "Small crossable watercourse", "line", GEN_REAL, "ZABAGED watercourses", SCAN_LIVE_LINE),
-    _rec("306", "Minor seasonal waterchannel", "line", GEN_REAL, "ZABAGED watercourses", SCAN_LIVE_LINE),
+    _rec("306", "Minor seasonal waterchannel", "line", GEN_REAL, "ZABAGED watercourses", SCAN_CANDIDATE),  # Png2Line revert Sez. 156 (živý jen 304/305)
     _rec(
         "309",
         "Narrow marsh",
         "line",
         GEN_MAPPER_SCAN,
         "real mapper scan line labels (Png2Line); no ZABAGED line source yet",
-        SCAN_LIVE_LINE,
-        note="Scan/model scope only until a vectorizer/export step emits 309 geometry.",
+        SCAN_CANDIDATE,  # Png2Line revert Sez. 156: 309 narrow_marsh kolaboval (F1 0,000) → kandidát, ne živý
+        note="Scan/model scope only until a vectorizer/export step emits 309 geometry. "
+             "POZN.: generator_kind=mapper_scan je aspirativní (generátor 309 z dat nekreslí, Png2Line ho neumí) — k revizi.",
     ),
     _rec("301", "Uncrossable body of water", "area", GEN_REAL, "ZABAGED water areas", SCAN_AREA),
     _rec("521", "Building", "area", GEN_REAL, "ZABAGED buildings"),

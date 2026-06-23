@@ -17,6 +17,7 @@ from isom.capabilities import (  # noqa: E402
     GEN_MIXED,
     GEN_PSEUDO,
     GEN_REAL,
+    SCAN_CANDIDATE,
     SCAN_LIVE_LINE,
     SCAN_LIVE_POINT,
     SCAN_POC,
@@ -58,10 +59,13 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("419").generator_kind, GEN_PSEUDO)
         self.assertEqual(capability_by_code("531").scanner_status, SCAN_LIVE_POINT)  # Sez. 158 povýšen (Png2Point)
         self.assertEqual(capability_by_code("527").scanner_status, SCAN_POC)
-        self.assertEqual(capability_by_code("306").scanner_status, SCAN_LIVE_LINE)
-        self.assertEqual(capability_by_code("309").scanner_status, SCAN_LIVE_LINE)
+        # Živý Png2Line scope = JEN watercourse 304/305 (revert Sez. 156); 306/309/508 jsou kandidáti
+        # (generátor je kreslí, reconstructor po revertu neumí) — registr nesmí tvrdit živý signál (anti-Goodhart).
+        self.assertEqual(capability_by_code("304").scanner_status, SCAN_LIVE_LINE)
+        self.assertEqual(capability_by_code("306").scanner_status, SCAN_CANDIDATE)
+        self.assertEqual(capability_by_code("309").scanner_status, SCAN_CANDIDATE)
         self.assertEqual(capability_by_code("508.4").code, "508")
-        self.assertEqual(capability_by_code("508").scanner_status, SCAN_LIVE_LINE)
+        self.assertEqual(capability_by_code("508").scanner_status, SCAN_CANDIDATE)
 
     def test_mapper_scan_wins_when_live_scanner_signal_exists(self) -> None:
         self.assertEqual(capability_by_code("204").preferred_kind, GEN_MAPPER_SCAN)
