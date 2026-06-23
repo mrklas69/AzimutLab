@@ -1,0 +1,46 @@
+{
+  "_status": "MARKER_DONE",
+  "_doc": "Rucni point markery ve scan px souradnicich; zdroj pravdy pro kalibraci, ne .omap overlay.",
+  "schema_version": 1,
+  "updated": "2026-06-21T18:39:15+0200",
+  "title": "Buschdörfl · 311/312/313 · candidate tiles 900",
+  "image": "C:\\Users\\mrkla\\source\\AzimutLab\\maps\\Buschdörfl\\bg_scan.png",
+  "image_sha256": "e601be9f8f1bef391657ffdbfaa06829a06f14e48baf752c5a87cd847de23779",
+  "image_size": {
+    "w": 4996,
+    "h": 6000
+  },
+  "codes": [
+    "311",
+    "312",
+    "313"
+  ],
+  "tiles": {
+    "enabled": true,
+    "count": 3
+  },
+  "markers": [
+    {
+      "id": "312_x2777_y4154",
+      "code": "312",
+      "x": 2776.6,
+      "y": 4154.2,
+      "note": "",
+      "tile": {
+        "index": 13,
+        "x": 2400,
+        "y": 3600,
+        "w": 1200,
+        "h": 1200
+      }
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "by_code": {
+      "311": 0,
+      "312": 1,
+      "313": 0
+    }
+  }
+}

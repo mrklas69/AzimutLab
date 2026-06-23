@@ -1,0 +1,753 @@
+{
+  "_status": "IN_PROGRESS",
+  "_doc": "Per-ISOM kalibracni ledger pro scan-transfer kandidaty. Temp cesty jsou dukazove artefakty, ne commitovany zdroj pravdy.",
+  "schema_version": 1,
+  "updated": "2026-06-21",
+  "marker_symbol": "602",
+  "planned_next": [
+    "311",
+    "313",
+    "203.2",
+    "519",
+    "524",
+    "526",
+    "530",
+    "207",
+    "512.2"
+  ],
+  "entries": [
+    {
+      "code": "109",
+      "name": "Small knoll",
+      "status": "candidate_calibrated_needs_review",
+      "source_map": "maps/Hamr na Jezeře/Hamr na Jezeře.omap",
+      "scan": "maps/Hamr na Jezeře/bg_scan.png",
+      "marker_source_omap": "temp/cleanup_user_marks_20260621_103454/Hamr na Jezeře.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 40,
+      "negative_examples": [
+        {
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "confusion_codes": [
+            "108"
+          ],
+          "note": "Slabe tecky z linioveho 108 vypadaji jako 109; min_area 25 je zatim hlavni filtr. Pracovni Hamr mapa byla 2026-06-21 vycistena, puvodni 602/704 znacky jsou v lokalni zaloze."
+        }
+      ],
+      "detector": {
+        "family": "terrain_points",
+        "script": "isom_scan/terrain_points_poc.py",
+        "source_detections": "temp/terrain109_hamr_area25/detections.json",
+        "review_manifest": "temp/terrain109_hamr_area25/review/review_manifest.json"
+      },
+      "parameters": {
+        "brown_red_min": 110,
+        "brown_red_green_diff": 28,
+        "brown_green_max": 170,
+        "brown_blue_max": 140,
+        "codes": [
+          "109"
+        ],
+        "score_threshold": 0.87,
+        "min_size": 3,
+        "max_size": 54,
+        "min_area": 25,
+        "max_area": 900,
+        "min_fill": 0.08,
+        "max_fill": 0.95,
+        "close_px": 0,
+        "max_per_code": 1000
+      },
+      "metrics": {
+        "candidate_count": 146,
+        "review_summary": {
+          "total": 146,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 146
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/terrain109_hamr_area25/review/review_sheet.png",
+        "note": "Dalsi krok: porovnat kandidaty s 40 markery 602 z lokalni zalozni kopie a doplnit marker_recall."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "111",
+      "name": "Small depression",
+      "status": "candidate_needs_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+        }
+      ],
+      "detector": {
+        "family": "terrain_points",
+        "script": "isom_scan/terrain_points_poc.py",
+        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
+        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "brown_red_min": 110,
+        "brown_red_green_diff": 28,
+        "brown_green_max": 170,
+        "brown_blue_max": 140,
+        "score_threshold": 0.76,
+        "min_size": 3,
+        "max_size": 42,
+        "min_area": 6,
+        "max_area": 900,
+        "min_fill": 0.05,
+        "max_fill": 0.75,
+        "close_px": 0,
+        "max_per_code": 60
+      },
+      "metrics": {
+        "candidate_count": 2,
+        "review_summary": {
+          "total": 15,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 15
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
+        "note": "Sdileny review sheet pro 111/112/115."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "112",
+      "name": "Pit",
+      "status": "candidate_needs_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+        }
+      ],
+      "detector": {
+        "family": "terrain_points",
+        "script": "isom_scan/terrain_points_poc.py",
+        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
+        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "brown_red_min": 110,
+        "brown_red_green_diff": 28,
+        "brown_green_max": 170,
+        "brown_blue_max": 140,
+        "score_threshold": 0.76,
+        "min_size": 3,
+        "max_size": 42,
+        "min_area": 6,
+        "max_area": 900,
+        "min_fill": 0.05,
+        "max_fill": 0.75,
+        "close_px": 0,
+        "max_per_code": 60
+      },
+      "metrics": {
+        "candidate_count": 11,
+        "review_summary": {
+          "total": 15,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 15
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
+        "note": "Sdileny review sheet pro 111/112/115."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "115",
+      "name": "Prominent landform feature",
+      "status": "candidate_needs_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+        }
+      ],
+      "detector": {
+        "family": "terrain_points",
+        "script": "isom_scan/terrain_points_poc.py",
+        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
+        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "brown_red_min": 110,
+        "brown_red_green_diff": 28,
+        "brown_green_max": 170,
+        "brown_blue_max": 140,
+        "score_threshold": 0.76,
+        "min_size": 3,
+        "max_size": 42,
+        "min_area": 6,
+        "max_area": 900,
+        "min_fill": 0.05,
+        "max_fill": 0.75,
+        "close_px": 0,
+        "max_per_code": 60
+      },
+      "metrics": {
+        "candidate_count": 2,
+        "review_summary": {
+          "total": 15,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 15
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
+        "note": "Sdileny review sheet pro 111/112/115."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "417",
+      "name": "Prominent large tree",
+      "status": "candidate_needs_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [],
+      "detector": {
+        "family": "vegetation_points",
+        "script": "isom_scan/vegetation_points_poc.py",
+        "source_detections": "temp/vegetation_points_buschdorfl_area60/detections.json",
+        "review_manifest": "temp/vegetation_points_buschdorfl_area60/review/review_manifest.json"
+      },
+      "parameters": {
+        "green_min": 90,
+        "red_max": 125,
+        "blue_max": 145,
+        "green_red_diff": 35,
+        "green_blue_diff": 10,
+        "score_threshold": 0.68,
+        "min_size": 5,
+        "max_size": 60,
+        "min_area": 60,
+        "max_area": 1400,
+        "min_fill": 0.1,
+        "max_fill": 0.85,
+        "max_aspect": 1.8,
+        "close_px": 1,
+        "max_per_code": 300
+      },
+      "metrics": {
+        "candidate_count": 35,
+        "review_summary": {
+          "total": 100,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 100
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/vegetation_points_buschdorfl_area60/review/review_sheet.png",
+        "note": "Sdileny review sheet pro 417/418."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "418",
+      "name": "Prominent bush or tree",
+      "status": "candidate_needs_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [],
+      "detector": {
+        "family": "vegetation_points",
+        "script": "isom_scan/vegetation_points_poc.py",
+        "source_detections": "temp/vegetation_points_buschdorfl_area60/detections.json",
+        "review_manifest": "temp/vegetation_points_buschdorfl_area60/review/review_manifest.json"
+      },
+      "parameters": {
+        "green_min": 90,
+        "red_max": 125,
+        "blue_max": 145,
+        "green_red_diff": 35,
+        "green_blue_diff": 10,
+        "score_threshold": 0.68,
+        "min_size": 5,
+        "max_size": 60,
+        "min_area": 60,
+        "max_area": 1400,
+        "min_fill": 0.1,
+        "max_fill": 0.85,
+        "max_aspect": 1.8,
+        "close_px": 1,
+        "max_per_code": 300
+      },
+      "metrics": {
+        "candidate_count": 65,
+        "review_summary": {
+          "total": 100,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 100
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/vegetation_points_buschdorfl_area60/review/review_sheet.png",
+        "note": "Sdileny review sheet pro 417/418."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "525",
+      "name": "Small tower",
+      "status": "reviewed_no_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [],
+      "detector": {
+        "family": "manmade_points",
+        "script": "isom_scan/manmade_points_poc.py",
+        "source_detections": "temp/manmade_points_buschdorfl/detections.json",
+        "review_manifest": "temp/manmade_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "dark_max": 130,
+        "neutral_spread": 18,
+        "score_threshold": 0.55,
+        "min_size": 4,
+        "max_size": 48,
+        "min_area": 8,
+        "max_area": 650,
+        "min_fill": 0.08,
+        "max_fill": 0.48,
+        "close_px": 1,
+        "max_per_code": 50
+      },
+      "metrics": {
+        "candidate_count": 7,
+        "review_summary": {
+          "total": 7,
+          "unreviewed": 0,
+          "tp": 3,
+          "fp": 4,
+          "ignore": 0
+        },
+        "marker_recall": null,
+        "false_positive_count": 4
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/manmade_points_buschdorfl/review/review_sheet.png",
+        "note": "Verdikty kurovany v review_ui; marker_recall=null = chybi pozitivni 602 markery (recall potrebuje GT, ne jen verdikty kandidatu)."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "527",
+      "name": "Fodder rack",
+      "status": "reviewed_no_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [],
+      "detector": {
+        "family": "manmade_points",
+        "script": "isom_scan/manmade_points_poc.py",
+        "source_detections": "temp/manmade_points_buschdorfl/detections.json",
+        "review_manifest": "temp/manmade_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "dark_max": 130,
+        "neutral_spread": 18,
+        "score_threshold": 0.55,
+        "min_size": 4,
+        "max_size": 48,
+        "min_area": 8,
+        "max_area": 650,
+        "min_fill": 0.08,
+        "max_fill": 0.48,
+        "close_px": 1,
+        "max_per_code": 50
+      },
+      "metrics": {
+        "candidate_count": 6,
+        "review_summary": {
+          "total": 6,
+          "unreviewed": 0,
+          "tp": 3,
+          "fp": 3,
+          "ignore": 0
+        },
+        "marker_recall": null,
+        "false_positive_count": 3
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/manmade_points_buschdorfl/review/review_sheet.png",
+        "note": "Verdikty kurovany v review_ui; marker_recall=null = chybi pozitivni 602 markery (recall potrebuje GT, ne jen verdikty kandidatu)."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "531",
+      "name": "Prominent man-made feature: x",
+      "status": "reviewed_no_markers",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
+      "marker_symbol": "602",
+      "positive_marker_count": 0,
+      "negative_examples": [],
+      "detector": {
+        "family": "manmade_points",
+        "script": "isom_scan/manmade_points_poc.py",
+        "source_detections": "temp/manmade_points_buschdorfl/detections.json",
+        "review_manifest": "temp/manmade_points_buschdorfl/review/review_manifest.json"
+      },
+      "parameters": {
+        "dark_max": 130,
+        "neutral_spread": 18,
+        "score_threshold": 0.55,
+        "min_size": 4,
+        "max_size": 48,
+        "min_area": 8,
+        "max_area": 650,
+        "min_fill": 0.08,
+        "max_fill": 0.48,
+        "close_px": 1,
+        "max_per_code": 50
+      },
+      "metrics": {
+        "candidate_count": 2,
+        "review_summary": {
+          "total": 2,
+          "unreviewed": 0,
+          "tp": 0,
+          "fp": 2,
+          "ignore": 0
+        },
+        "marker_recall": null,
+        "false_positive_count": 2
+      },
+      "review": {
+        "status": "unreviewed",
+        "sheet": "temp/manmade_points_buschdorfl/review/review_sheet.png",
+        "note": "Verdikty kurovany v review_ui; marker_recall=null = chybi pozitivni 602 markery (recall potrebuje GT, ne jen verdikty kandidatu)."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "311",
+      "name": "Well, fountain or water tank",
+      "status": "scanner_candidates_need_review",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/buschdorfl_311_312_313.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 0,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "Aktualni rucni marker manifest neobsahuje zadny potvrzeny 311; water_points_poc presto nasel 4 kandidaty 311, ktere cekaji na kontrolu."
+        }
+      ],
+      "detector": {
+        "family": "water_points",
+        "script": "isom_scan/water_points_poc.py",
+        "source_detections": "temp/water_points_buschdorfl/detections.json",
+        "review_manifest": "isom_scan/markers/buschdorfl_311_312_313.json"
+      },
+      "parameters": {
+        "tile_size": 900,
+        "candidate_tiles": 3,
+        "source_tile_size": 1200,
+        "source_non_empty_tiles": 18,
+        "blue_min": 130,
+        "green_min": 90,
+        "red_max": 120,
+        "blue_red_diff": 45,
+        "green_red_diff": 25,
+        "score_threshold": 0.6,
+        "min_size": 16,
+        "max_size": 75,
+        "min_area": 120,
+        "max_area": 1500,
+        "min_fill": 0.08,
+        "max_fill": 0.75,
+        "angle_step": 15,
+        "match_tol_px": 10.0
+      },
+      "metrics": {
+        "candidate_count": 4,
+        "review_summary": {
+          "total": 4,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 4
+        },
+        "marker_recall": null,
+        "false_positive_count": null
+      },
+      "review": {
+        "status": "candidate_needs_review",
+        "sheet": "temp/water_points_buschdorfl/water_points_contact_sheet.png",
+        "note": "Po druhem pruchodu uzivatel ponechal 0 markeru 311; 4 kandidaty 311 zustavaji jen scanner navrhy, ne kalibrovana pravda."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "312",
+      "name": "Spring",
+      "status": "candidate_calibrated",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/buschdorfl_311_312_313.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 1,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "313 ani 311 se proti aktualnimu rucnimu 312 markeru nepletou v aktualnim prahu; orientace 312 se uklada jako angle_deg."
+        }
+      ],
+      "detector": {
+        "family": "water_points",
+        "script": "isom_scan/water_points_poc.py",
+        "source_detections": "temp/water_points_buschdorfl/detections.json",
+        "review_manifest": "isom_scan/markers/buschdorfl_311_312_313.json"
+      },
+      "parameters": {
+        "tile_size": 900,
+        "candidate_tiles": 3,
+        "source_tile_size": 1200,
+        "source_non_empty_tiles": 18,
+        "blue_min": 130,
+        "green_min": 90,
+        "red_max": 120,
+        "blue_red_diff": 45,
+        "green_red_diff": 25,
+        "score_threshold": 0.6,
+        "min_size": 16,
+        "max_size": 75,
+        "min_area": 120,
+        "max_area": 1500,
+        "min_fill": 0.08,
+        "max_fill": 0.75,
+        "angle_step": 15,
+        "match_tol_px": 10.0
+      },
+      "metrics": {
+        "candidate_count": 2,
+        "review_summary": {
+          "total": 2,
+          "tp": 1,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 1
+        },
+        "marker_recall": 1.0,
+        "false_positive_count": 0
+      },
+      "review": {
+        "status": "calibrated_with_unreviewed_candidate",
+        "sheet": "temp/water_points_buschdorfl/water_points_contact_sheet.png",
+        "note": "Water detector matched aktualni 1/1 rucni 312 marker within 10 px; druhy 312 kandidat zustava neovereny scanner navrh."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "313",
+      "name": "Special water feature",
+      "status": "no_positive_markers_no_candidates",
+      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
+      "scan": "maps/Buschdörfl/bg_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/buschdorfl_311_312_313.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 0,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [],
+          "note": "V aktualnim Buschdörfl marker passu neni pozitivni 313 a water detector nenasel zadny 313 kandidat."
+        }
+      ],
+      "detector": {
+        "family": "water_points",
+        "script": "isom_scan/water_points_poc.py",
+        "source_detections": "temp/water_points_buschdorfl/detections.json",
+        "review_manifest": "isom_scan/markers/buschdorfl_311_312_313.json"
+      },
+      "parameters": {
+        "tile_size": 900,
+        "candidate_tiles": 3,
+        "source_tile_size": 1200,
+        "source_non_empty_tiles": 18,
+        "blue_min": 130,
+        "green_min": 90,
+        "red_max": 120,
+        "blue_red_diff": 45,
+        "green_red_diff": 25,
+        "score_threshold": 0.6,
+        "min_size": 16,
+        "max_size": 75,
+        "min_area": 120,
+        "max_area": 1500,
+        "min_fill": 0.08,
+        "max_fill": 0.75,
+        "angle_step": 15,
+        "match_tol_px": 10.0
+      },
+      "metrics": {
+        "candidate_count": 0,
+        "review_summary": {
+          "total": 0,
+          "tp": 0,
+          "fp": 0,
+          "ignore": 0,
+          "unreviewed": 0
+        },
+        "marker_recall": null,
+        "false_positive_count": 0
+      },
+      "review": {
+        "status": "no_positive_markers",
+        "sheet": "temp/water_points_buschdorfl/water_points_contact_sheet.png",
+        "note": "Tahle mapa zatim neni pozitivni kalibracni vzorek pro 313; pro 313 je potreba jina mapa nebo rucni pozitivni marker."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    }
+  ],
+  "point_symbol_scan_gaps": {
+    "updated": "2026-06-21",
+    "note": "Point symbols bez live scanneru po pridani water_points_poc; 311 ma kandidaty, ale aktualni marker manifest je nepotvrdil jako pozitivni pravdu.",
+    "needs_detector_or_review": [
+      "311",
+      "313",
+      "203.2",
+      "519",
+      "524",
+      "526",
+      "530",
+      "207",
+      "512.2"
+    ],
+    "water_points_current_map": {
+      "source_detections": "temp/water_points_buschdorfl/detections.json",
+      "marker_source_json": "isom_scan/markers/buschdorfl_311_312_313.json",
+      "candidate_count_by_code": {
+        "311": 4,
+        "312": 2,
+        "313": 0
+      },
+      "marker_recall": {
+        "311": null,
+        "312": 1.0,
+        "313": null
+      }
+    }
+  }
+}

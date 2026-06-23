@@ -26,6 +26,9 @@ terrain_points_poc.py      # scan-mining PoC: 109/111/112/115 z malých hnědýc
 vegetation_points_poc.py   # scan-mining PoC: 417/418 z malých zelených komponent
 manmade_points_review.py   # kurátorský manifest + crop sheet pro PoC kandidáty
 manmade_points_omap.py     # export bodových kandidátů do pracovní .omap kopie pro vizuální kontrolu
+mark_isoms.py              # lokální canvas marker: ruční point markery do JSON, ne do `.omap`
+calibration_manifest.json  # verzovaný per-ISOM ledger parametrů, markerů, review a export stavu
+calibration_manifest.py    # validace tvaru ledgeru; strict až po ruční kuraci
 ```
 
 ## Postup spuštění jednoho běhu
@@ -81,11 +84,20 @@ doplní `review.verdict` (`tp` / `fp` / `ignore`) a případně `review.true_cod
 manifest je vstup pro ladění prahů; samotný PoC výstup není GT.
 
 Kalibrační protokol pro jeden ISOM kód:
-1. Do pracovní `.omap` přidej přesné pozitivní markery jako `602 Registration mark` na skutečné středy symbolů.
-2. Volitelně přidej textové `704` popisky k negativním příkladům (`A`, `B`, `C`...), které detektor nesmí brát.
+1. Přesné pozitivní markery ukládej primárně do JSONu přes lokální canvas marker:
+   `python isom_scan/mark_isoms.py --image "maps/Buschdörfl/bg_scan.png" --codes 311,312,313`.
+2. `.omap` `602/704` používej už jen jako volitelný dočasný overlay, ne jako zdroj pravdy.
 3. Spusť příslušný PoC skript s kandidátními parametry a vyrob review sheet.
 4. Změř recall vůči markerům, false positives vůči negativním příkladům a uprav prahy pro konkrétní kód.
 5. Parametry zapiš jako per-ISOM kalibraci; dokud nejsou opakovatelné, výstup zůstává jen pracovní vrstva.
+
+Verzovaný ledger kalibrací je `calibration_manifest.json`. Základní kontrola:
+```powershell
+python isom_scan/calibration_manifest.py
+```
+Bez `--strict` validátor hlásí chybějící ruční hodnoty jako `WARN`, ne jako chybu. Tvrdě selhává
+jen na rozbitém schématu nebo duplicitních ISOM kódech. `--strict` zapni až ve chvíli, kdy jsou
+markery, recall i false-positive počty pro laděné symboly doplněné.
 
 Pro Hamr na Jezeře `109` tenhle postup ukázal důležitý detail: score práh sám nestačí, protože slabé
 tečky z liniového `108` vypadají podobně. `--min-area 25` je zatím kalibrovaný filtr, který tyto

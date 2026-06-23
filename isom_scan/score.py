@@ -23,6 +23,8 @@ import math
 import os
 import sys
 
+from scipy.optimize import linear_sum_assignment
+
 # Windows konzole bývá cp1250 → diakritika i šipky v printu padají; vynuť UTF-8.
 for _stream in (sys.stdout, sys.stderr):
     try:
@@ -77,24 +79,25 @@ def split_geoms(detections):
 
 
 def match_points(gt_pts, pred_pts, tol):
-    """Greedy nearest-neighbour match pod tolerancí → (TP, FP, FN)."""
+    """Maximum-cardinality distance match pod tolerancí → (TP, FP, FN)."""
     gp = [(p["x"], p["y"]) for p in gt_pts]
     pp = [(p["x"], p["y"]) for p in pred_pts]
-    pairs = []
-    for gi, g in enumerate(gp):
-        for pi, p in enumerate(pp):
+    if not gp or not pp:
+        return 0, len(pp), len(gp)
+
+    # Hungarian assignment minimalizuje cenu celé sady párů. Velká cena neplatných hran zajistí,
+    # že se nejdřív maximalizuje počet párů v toleranci a až potom celková vzdálenost.
+    invalid_cost = max(float(tol), 1.0) * (len(gp) + len(pp) + 1) + 1.0
+    cost = []
+    for g in gp:
+        row = []
+        for p in pp:
             dist = math.hypot(g[0] - p[0], g[1] - p[1])
-            if dist <= tol:
-                pairs.append((dist, gi, pi))
-    pairs.sort()
-    used_g, used_p = set(), set()
-    tp = 0
-    for _, gi, pi in pairs:
-        if gi in used_g or pi in used_p:
-            continue
-        used_g.add(gi)
-        used_p.add(pi)
-        tp += 1
+            row.append(dist if dist <= tol else invalid_cost)
+        cost.append(row)
+
+    gt_idx, pred_idx = linear_sum_assignment(cost)
+    tp = sum(1 for gi, pi in zip(gt_idx, pred_idx) if cost[gi][pi] <= tol)
     fp = len(pp) - tp
     fn = len(gp) - tp
     return tp, fp, fn
