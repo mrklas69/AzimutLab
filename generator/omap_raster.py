@@ -255,8 +255,10 @@ LINE_CLASSES: list[LineClass] = [
     # signál, 2. potvrzení Sez. 133), 309 narrow_marsh úplný kolaps (F1 0,000), 306/508 slabé (doménový gap
     # černá dashed). Promote-gate (watercourse nesmí pod baseline) porušen → checkpoint vrácen na ověřený
     # 2-class watercourse (krok1_watercourse_s0, 0,774 synt / 0,409 real) a scope kódu revertován sem.
-    # Generátor kreslí 306/309/508 do .omap NEZÁVISLE na tomto registru (LINE_CLASSES žije jen v omap_raster
-    # + model/png2line) → revert je KPI-bezpečný (headline 65,8 % netknut, jen Y rasterizace line tiles je 2-class).
+    # Generátor kreslí 306 (ISOM_SEASONAL_CHANNEL) + 508 (ride) do .omap NEZÁVISLE na tomto registru (LINE_CLASSES
+    # žije jen v omap_raster + model/png2line) → revert je KPI-bezpečný (headline 65,8 % netknut, jen Y rasterizace
+    # line tiles je 2-class). POZN. (audit Sez. 158): 309 narrow_marsh generátor NEkreslí (není v generator.py/
+    # omap_export) — je to nepokrytá díra (capabilities 309 = SCAN_CANDIDATE, drženo pro KPI poctivost, ne schopnost).
 ]
 LINE_CODE_TO_LABEL = {code: i + 1 for i, lc in enumerate(LINE_CLASSES) for code in lc.codes}
 LINE_LABEL_NAME = {0: "pozadí", **{i + 1: lc.name for i, lc in enumerate(LINE_CLASSES)}}

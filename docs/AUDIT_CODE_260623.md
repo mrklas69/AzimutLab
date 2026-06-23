@@ -32,7 +32,10 @@ Vlastní čerstvá práce + jednoznačné docs faktické chyby (nízké riziko, 
   filtru po růstu korpusu zůstává manuální krok (lazy re-probe = samostatné rozhodnutí, ne uděláno).
 - **[D1] `capabilities` 306/309/508 `SCAN_LIVE_LINE`→`SCAN_CANDIDATE`** (commit `ed5d7cb`): sladěno s Png2Line scope po
   revertu Sez. 156 (živý jen 304/305) — registr už nelže o scan signálu (anti-Goodhart). Test sladěn + 304 assertce.
-  **Zbývá (k odsouhlasení):** 309 `generator_kind=mapper_scan` je aspirativní (generátor 309 z dat nekreslí, Png2Line neumí) — revize, zda 309 vůbec patří do registru / jaký zdroj.
+  **309 revize VYŘEŠENA (Sez. 158):** verify ukázal, že 309 generátor **NEkreslí** (není v `generator.py`/`omap_export` —
+  na rozdíl od 306/508, ty kreslí) — je to fantom/nepokrytá díra. **Rozhodnutí: ponechat v registru** (smazání z měřené
+  sady = KPI Goodhart, audit A4 — uměle zvedne KPI odebráním nepokryté díry); `note` upřesněn (nepokrytá díra, ne schopnost),
+  nepřesný komentář `omap_raster:258` „generátor kreslí 306/309/508" opraven na 306/508.
 - **[D4 — část] ImageNet MEAN/STD → `model/norm.py`** (commit `c9341b7`) + **peak helpery → `model/peaks.py`** (commit `ffd999c`):
   dvě nejvyšší-páková DRY z D4 (train/serve skew normalizace 6× + detekční logika train↔eval 2×). Behavior-preserving
   ověřeno eval_real Velbloud (identická čísla). **Zbytek D4 — `eval_common.py` (tiled inference 3× + `_map_area_mask` 2× +

@@ -164,8 +164,11 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
         GEN_MAPPER_SCAN,
         "real mapper scan line labels (Png2Line); no ZABAGED line source yet",
         SCAN_CANDIDATE,  # Png2Line revert Sez. 156: 309 narrow_marsh kolaboval (F1 0,000) → kandidát, ne živý
-        note="Scan/model scope only until a vectorizer/export step emits 309 geometry. "
-             "POZN.: generator_kind=mapper_scan je aspirativní (generátor 309 z dat nekreslí, Png2Line ho neumí) — k revizi.",
+        note="NEPOKRYTÁ DÍRA (audit Sez. 158): generátor 309 NEkreslí (není v generator.py/omap_export), "
+             "Png2Line ho NEumí (revert Sez. 156). Ponecháno v registru ZÁMĚRNĚ kvůli KPI poctivosti — smazání "
+             "z měřené sady = Goodhart (uměle zvedne KPI odebráním nepokryté díry, audit A4). generator_kind="
+             "mapper_scan = aspirativní cíl (narrow marsh line), ne dnešní schopnost; preferred_kind je proto jen "
+             "informativní label, do KPI počtů se scan kandidáti nepřičítají.",
     ),
     _rec("301", "Uncrossable body of water", "area", GEN_REAL, "ZABAGED water areas", SCAN_AREA),
     _rec("521", "Building", "area", GEN_REAL, "ZABAGED buildings"),
