@@ -179,7 +179,7 @@ CAPABILITIES: tuple[SymbolCapability, ...] = (
     _rec("501.1", "Paved area without boundary", "area", GEN_REAL, "ZABAGED/RUIAN urban base fill", SCAN_AREA, variants=("501",)),
     _rec("109", "Small knoll", "point", GEN_REAL, "DMR 5G local contour extrema", SCAN_LIVE_POINT),  # Sez. 161 povýšen (Png2Point hnědý disk, reálný transfer medián F1 0,65)
     _rec("110", "Small elongated knoll", "point", GEN_REAL, "DMR 5G local contour extrema", SCAN_CANDIDATE),
-    _rec("111", "Small depression", "point", GEN_REAL, "DMR 5G local contour extrema", SCAN_CANDIDATE),
+    _rec("111", "Small depression", "point", GEN_REAL, "DMR 5G local contour extrema", SCAN_LIVE_POINT),  # Sez. 162 povýšen (Png2Point hnědý oblouk ∪, reálný transfer F1 0,71–0,89 = lepší než 109)
     _rec("204", "Boulder", "point", GEN_MIXED, "ZABAGED rock points + pseudo fill from rock mask", SCAN_LIVE_POINT),
     _rec("206", "Gigantic boulder or rock pillar", "area", GEN_REAL, "DMR 5G slope-derived rock relief", SCAN_AREA),
     _rec("207", "Boulder cluster", "point", GEN_REAL, "ZABAGED rock points", SCAN_CANDIDATE),

@@ -61,6 +61,9 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(capability_by_code("525").scanner_status, SCAN_LIVE_POINT)  # Sez. 159 povýšen (Png2Point ⊤)
         self.assertEqual(capability_by_code("527").scanner_status, SCAN_LIVE_POINT)  # Sez. 159 povýšen (Png2Point Λ)
         self.assertEqual(capability_by_code("109").scanner_status, SCAN_LIVE_POINT)  # Sez. 161 povýšen (Png2Point hnědý disk)
+        self.assertEqual(capability_by_code("111").scanner_status, SCAN_LIVE_POINT)  # Sez. 162 povýšen (Png2Point hnědý oblouk ∪)
+        # 112 Pit je reconstructor-only (Png2Point scope, gen NEkreslí) → ZÁMĚRNĚ mimo capability registr:
+        # generator_codes()==USED_CODES, přidání by udělalo falešnou KPI díru (orig>0/gen 0). Governance přes docs.
         # Živý Png2Line scope = JEN watercourse 304/305 (revert Sez. 156); 306/309/508 jsou kandidáti
         # (generátor je kreslí, reconstructor po revertu neumí) — registr nesmí tvrdit živý signál (anti-Goodhart).
         self.assertEqual(capability_by_code("304").scanner_status, SCAN_LIVE_LINE)
@@ -77,6 +80,7 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(preferred_kind_by_code("525"), GEN_MAPPER_SCAN)  # Sez. 159 live Png2Point signál
         self.assertEqual(preferred_kind_by_code("527"), GEN_MAPPER_SCAN)  # Sez. 159 live Png2Point signál
         self.assertEqual(preferred_kind_by_code("109"), GEN_MAPPER_SCAN)  # Sez. 161 live Png2Point signál
+        self.assertEqual(preferred_kind_by_code("111"), GEN_MAPPER_SCAN)  # Sez. 162 live Png2Point signál
         self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)  # bez live signálu → pseudo
         self.assertEqual(capability_by_code("203").code, "203.2")
 

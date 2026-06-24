@@ -167,7 +167,7 @@ def predict_peaks(arr, model, dev, thr=None):
 def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
     """Vizuál georef verify: GT body (zeleně) + pred peaky per třída na sken.
     Pred barvy: 204 červeně / 210 modře / 417 azurově / 419 fialově / 531 oranžově / 525 zlatě / 527 magenta /
-    109 hnědě (kontrolní, nesouvisí s ISOM)."""
+    109 hnědě / 111 vínově / 112 okrově (kontrolní, nesouvisí s ISOM)."""
     img = scan_img.convert("RGB").copy()
     d = ImageDraw.Draw(img)
     for x, y, idx in gt_pts:                                   # GT zeleně (kroužek)
@@ -175,7 +175,7 @@ def _overlay(scan_img, gt_pts, pred_peaks, f, to_px):
         cx, cy = cx * f, cy * f
         d.ellipse([cx-4, cy-4, cx+4, cy+4], outline=(0, 200, 0), width=1)
     # barvy per kanál (drží i pro N_POINT>2; padding zelenou, kdyby přibyla další třída)
-    pcol = [(230, 40, 40), (40, 90, 230), (20, 200, 200), (200, 40, 200), (255, 140, 0), (240, 200, 0), (255, 0, 255), (150, 75, 0)]
+    pcol = [(230, 40, 40), (40, 90, 230), (20, 200, 200), (200, 40, 200), (255, 140, 0), (240, 200, 0), (255, 0, 255), (150, 75, 0), (110, 40, 90), (180, 100, 40)]
     for c in range(N_POINT):
         col = pcol[c] if c < len(pcol) else (0, 200, 0)
         for px, py in pred_peaks[c]:

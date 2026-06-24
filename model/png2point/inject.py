@@ -76,11 +76,14 @@ class PointClass:
     code      — ISOM 2017-2 kód (string kvůli suffixům typu 210.1).
     name      — lidský název (do vizuálu/logu).
     radius_mm — poloměr ikonky v mm papíru (ze spec); px = radius_mm × PX_PER_MM.
-                "dot": poloměr kruhu · "tree": poloměr zeleného prstence · "cross": polodélka ramene X.
+                "dot": poloměr kruhu · "tree": poloměr prstence · "cross": polodélka ramene X ·
+                "tower"/"fodder": pološíře horního prvku (⊤/Λ) · "arc": poloměr půlkruhu ∪ (111) ·
+                "pit": pološíře horní hrany trojúhelníku ▽ (112).
     sigma_px  — sigma Gaussian peaku v GT heatmapě (~ velikost symbolu; malá ať se husté nesplynou).
     field     — True = symbol se kreslí jako POLE instancí (210 stony), False = jednotlivý bod (204/417/419).
-    kind      — tvar ikonky: "dot" plný kruh (204/210) | "tree" zelený prstenec + bílá svatozář (417)
-                | "cross" X + (volitelně) bílá svatozář (419 zelený / 531 černý).
+    kind      — tvar ikonky: "dot" plný kruh (204/210/109) | "tree" zelený prstenec + bílá svatozář (417)
+                | "cross" X + (volitelně) bílá svatozář (419 zelený / 531 černý) | "tower" ⊤ (525) |
+                "fodder" Λ+noha (527) | "arc" hnědý oblouk ∪ (111) | "pit" hnědý vyplněný ▽ (112).
     color     — barva kresby (204/210/531 černá, 417/419 zelená).
     halo      — bílý knockout (svatozář) kolem tree/cross. ANO u zelených 417/419 (template „white over
                 green", color 22 — bez ní zelený symbol splyne s lesem); NE u černého 531 (template id 156 =
@@ -145,6 +148,22 @@ class PointClass:
 # vrstevnic → sweep eval_real (3 mapy agreg.): F1 0,30→0,52, plató 0,60–0,70 → peak_thr 0,60 (start plató,
 # drží recall 0,55; ΔF1 k 0,70 jen 0,007 ale recall +0,08). Reálný F1 0,52 = na úrovni 417/527. Hnědá přenáší
 # jako černá/zelená navzdory konkurenci vrstevnic (distinktivní DISK vs tenká linie, izomorf 204 vs cesty).
+# 111 Small depression + 112 Pit (Sez. 162): druhý a třetí HNĚDÝ terénní bod, navázání na 109 (hnědá PŘENÁŠÍ).
+# 111 = oblouk ∪ otevřený nahoru (kind "arc", template id 16 line color 6, pološíře 465 µm; generátor kreslí
+# týž tvar draw.arc(0,180) → konzistentní X). 112 = vyplněný trojúhelník hrotem dolů (kind "pit", template id 17
+# area color 6, pološíře 525 µm; generátor 112 NEkreslí → čistě injekční). Měřitelnost crosswalk-aware PŘED
+# tréninkem (anti-A1, probe Sez. 161/162): 111 TOTAL 233 (Bedř 133), 112 TOTAL 118 (Bedř 69) — slabší než 109
+# (1000) ale silnější než 525/527 (45/18); ISOM 2000 kóduje depression/pit jako 113/115 → crosswalk → 2017 111/112.
+# sigma/n_range/peak_thr z 109 (řídké jednotlivé hnědé body, focal balance vedle hustého 210; hnědá = barva
+# vrstevnic → očekáván VYSOKÝ práh jako 109 0,60). Sázka POTVRZENA Sez. 162: distinktivní TVARY PŘENÁŠEJÍ jako
+# disk 109, navzdory konkurenci hnědých vrstevnicových linií. eval_real (seed0 @ thr 0,60): 111 SILNÝ
+# (Velbloud 0,708 / Blatná 0,889 / Bedř 0,819 = LEPŠÍ než 109), 112 STŘEDNÍ-DOBRÝ (Velbloud 0,529 / Blatná 0,667 /
+# Bedř 0,686; recall nižší ~0,51, model konzervativní = vysoká precision 0,89). Oba peak_thr 0,60 (jako 109).
+# POZOR (measure-first lekce Sez. 162): sweep AGREGÁT (micro, pool TP/FP/FN přes mapy) lákal 112 na 0,45
+# (F1 0,667), ALE per-mapa MACRO ukázal 0,60 robustnější (0,627 vs 0,510) — agregát zkreslen dominancí Bedř
+# (69 z 90 GT); na 0,45 vyletí FP z hnědých vrstevnic na Velbloud (P0,37) i Blatná (P0,17). 0,60 = méně FP,
+# konzistentní napříč mapami i s 109/111. Synt mF1 medián 3 seedů 0,745 (STABILNÍ 0,738–0,763, těsnější než
+# Sez. 161), 112 synt F1 0,82 (silný ▽) / 111 0,66 (oblouk). Promote seed0 (medián synt = i nejlepší reálný).
 POINT_CLASSES: list[PointClass] = [
     PointClass(code="204", name="Boulder",                  radius_mm=0.40,  sigma_px=3.0, field=False, kind="dot",    color=_BLACK, n_range=(40, 120), peak_thr=0.30),
     PointClass(code="210", name="Stony ground",             radius_mm=0.15,  sigma_px=2.0, field=True,  kind="dot",    color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
@@ -154,6 +173,8 @@ POINT_CLASSES: list[PointClass] = [
     PointClass(code="525", name="Small tower",              radius_mm=0.75,  sigma_px=3.5, field=False, kind="tower",  color=_BLACK, n_range=(10, 30),  peak_thr=0.70, halo=False),
     PointClass(code="527", name="Fodder rack",              radius_mm=0.615, sigma_px=3.5, field=False, kind="fodder", color=_BLACK, n_range=(10, 30),  peak_thr=0.65, halo=False),
     PointClass(code="109", name="Small knoll",              radius_mm=0.375, sigma_px=3.0, field=False, kind="dot",    color=_BROWN, n_range=(40, 120), peak_thr=0.60),
+    PointClass(code="111", name="Small depression",         radius_mm=0.465, sigma_px=3.0, field=False, kind="arc",    color=_BROWN, n_range=(40, 120), peak_thr=0.60),
+    PointClass(code="112", name="Pit",                      radius_mm=0.525, sigma_px=3.0, field=False, kind="pit",    color=_BROWN, n_range=(40, 120), peak_thr=0.60),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
@@ -233,8 +254,39 @@ def _stamp_fodder(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
     draw.line([apex, (cx, cy + 1.332 * r)], fill=color, width=w)            # svislá noha
 
 
+def _stamp_arc(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+               color=_BROWN) -> None:
+    """111 Small depression: hnědý oblouk ∪ otevřený nahoru (spodní půlkruh). Hnědý terénní bod.
+
+    Verify-against-source template id 16 (line color 6, line_width 270 µm): U otevřený nahoru,
+    pološíře 465 µm (konce nahoře v y=-304, dno dole v y=+161; osa y DOLŮ). GENERÁTOR kreslí TÝŽ
+    tvar `draw.arc(box, 0, 180)` (gen ř. 2180) → injekce tvarově konzistentní s reálným renderem.
+    PIL arc úhly po směru hodin od 3 hodin; 0..180 = spodní půlkruh (y roste dolů) = ∪. r_px =
+    poloměr půlkruhu (pološíře U)."""
+    r = max(1.5, r_px)
+    w = max(1, int(round(r * 0.58)))                       # 270/465 ≈ 0,58 = tloušťka linie
+    draw.arc([cx - r, cy - r, cx + r, cy + r], 0, 180, fill=color, width=w)
+
+
+def _stamp_pit(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float,
+               color=_BROWN) -> None:
+    """112 Pit: hnědý VYPLNĚNÝ trojúhelník hrotem DOLŮ (▽). Hnědý terénní bod.
+
+    Generátor 112 NEkreslí (na rozdíl od 109/110/111 z DMR extrémů) → čistě injekční/scan symbol,
+    template id 17 (area color 6) = jediná autorita. Verify-against-source coords (µm, osa y DOLŮ;
+    pološíře horní hrany 525 µm): horní hrana ±525 v y=-453, hrot 0,734, vnitřní zub 0,75 → mírně
+    konkávní horní hrana. r_px = pološíře horní hrany; polygon vyplní hnědě (PIL scanline zvládne
+    konkávní zub)."""
+    r = max(1.5, r_px)
+    # body / 525 µm (osa y DOLŮ); pořadí = obrys polygonu (verify template id 17)
+    pts = [(cx + dx * r, cy + dy * r) for dx, dy in (
+        (0.440, -0.863), (1.000, -0.863), (0.000, 1.398),
+        (-1.000, -0.863), (-0.440, -0.863), (0.000, 0.143))]
+    draw.polygon(pts, fill=color)
+
+
 def _stamp(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float, pc: "PointClass") -> None:
-    """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross / tower / fodder). Sjednocuje kresbu pro oba samplery."""
+    """Dispatcher tvaru ikonky podle pc.kind (dot / tree / cross / tower / fodder / arc / pit). Sjednocuje kresbu pro oba samplery."""
     if pc.kind == "tree":
         _stamp_tree(draw, cx, cy, r_px, pc.color, pc.halo)
     elif pc.kind == "cross":
@@ -243,6 +295,10 @@ def _stamp(draw: ImageDraw.ImageDraw, cx: float, cy: float, r_px: float, pc: "Po
         _stamp_tower(draw, cx, cy, r_px, pc.color)
     elif pc.kind == "fodder":
         _stamp_fodder(draw, cx, cy, r_px, pc.color)
+    elif pc.kind == "arc":
+        _stamp_arc(draw, cx, cy, r_px, pc.color)
+    elif pc.kind == "pit":
+        _stamp_pit(draw, cx, cy, r_px, pc.color)
     else:
         _stamp_dot(draw, cx, cy, r_px, pc.color)
 
