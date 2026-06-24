@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 163 (2026-06-24) — Úklid: pruning IDEAS/TODO (vynucený +11) + %CALIBRATE (HAL3000)
+Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-163--úklid-pruning-ideastodo-vynucený-11--calibrate-hal3000).
+- [x] **Rozhodnutí: úklid teď na HAL3000** (Příště #1 Sez. 162, opakovaně odkládáno). %BEGIN cadence: pruning **+11**
+  vynucený + %CALIBRATE +3. Oponoval jsem slepému dalšímu vytěžení; pruning/%CALIBRATE CUDA nepotřebují → bez plýtvání oknem.
+- [x] **Pruning P1–P4: TODO 559 → 449 ř. (−110, −20 %).** Žádná informace neztracena (vše v DONE/diáři, ověřeno grepem):
+  **P1** smazány redundantní „Hotovo" markery (260619-A2/A3 → Sez. 147–149; 4× ISOM-scan benchmark → 146/154/159);
+  **P2** zúženy 4 nabobtnalé `[~]` hotové tahy na samotné ZBÝVÁ (generator() fáze I HOTOVO 82–90 uzavřen / Tři
+  reconstructory Area+Point+Line HOTOVO → zbytky 110+115, Png2Line b2+junkce, north_grid / 417/419 → 110+115 /
+  granularita → pattern rodina); **P3** zkomprimován stale compare/Slovanka (Stale DROP Sez. 69); **P4** uzavřeny
+  audity 260619-A5 (zmražení drží ROADMAP + 260612-A2b) + 260612-A4 (taxonomie → kosmetická revize DAGu).
+- [x] **%CALIBRATE (od Sez. 145, +3):** A) hygiena SOLIDNÍ — memory **54/54** cross-check bez driftu, CLAUDE.md
+  scope 10 aktuální, CONTEXT.md neexistuje. B/C) nález **„úklid handoff ntbhej = mrtvý mechanismus"** (7 sezení
+  156–162 na HAL3000 ho odkládalo → pruning +11; přesně root-cause C-2 Sez. 108). Návrh změny pravidla uživatelem
+  ODMÍTNUT → pravidlo ntbhej-priorita zůstává, nález evidován (rozhodne ad-hoc příště; dnešní volba = precedent).
+- [x] **Dodatečný %CALIBRATE nález (evidováno, NEopraveno):** CLAUDE.md projektový „Klíčové soubory" Png2Point bod
+  nabobtnal (~15 ř. KPI/transfer čísel, přibývá s každým symbolem) = tokenová zátěž každý %BEGIN → kandidát příště.
+- [x] **Docs propagace:** diář Sez. 163 + DIARY.md index (123–163) + DONE. IDEAS.md (86 ř.) ponechán — čistý.
+  KPI **66,2 % netknuto** (jen docs, generátor/export/konektory neměněny → smoke netřeba).
+
 ## Sezení 162 (2026-06-24) — Png2Point scope +111 Small depression (∪) + 112 Pit (▽) — hnědé terénní body přenášejí (HAL3000)
 Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-162--png2point-scope-111-small-depression--112-pit-hnědé-terénní-body-hal3000).
 - [x] **Fokus CUDA: Png2Point +111 +112** (Příště #1 Sez. 161, carry — probe měřitelnosti hotový: 111 TOTAL 233 / 112
