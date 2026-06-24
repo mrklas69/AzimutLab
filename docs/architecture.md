@@ -125,8 +125,10 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
 > reálně použitého symbolu z OOM `<symbol type>`, variant-aware): **plošný strop 54 %** (kdyby gen dokreslil
 > chybějící typy ploch; Sez. 96 přeřadil 210 Stony z plochy na bod — kartografové ho kreslí polem teček); zbytek =
 > linie (→ Png2Line) + body (→ Png2Point) → cesta k 90 % vede přes ně, ne přes leštění ploch.
-> **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125, na kanonickém měřítku Sez. 126, scope rozšířen 204/210→+417/419
-> Sez. 128** (test mF1 0,827 medián 3 seedů na MPP 1,33; reálný transfer 419 silný 0,67–0,76 / 417 střední 0,40–0,49),
+> **Png2Point HOTOVÝ Sez. 106, stabilizován Sez. 125, na kanonickém měřítku Sez. 126, scope rozšiřován 204/210→+417/419
+> (Sez. 128) →+531/525/527 černé man-made (Sez. 158-159) →+109/111/112 hnědé terénní (Sez. 161-162) = 10 tříd** (test
+> mF1 0,745 medián 3 seedů STABILNÍ na MPP 1,33; reálný transfer: 111/419/525/109/531 silné, 112/527 střední-dobré,
+> 417 střední, 204 stabilní, 210 kolabuje; 112 reconstructor-only — gen nekreslí, mimo USED_CODES),
 > pseudo body 204/210 integrovány do generátoru Sez. 107 (KPI 50,3 → 59,1 %), **pseudo 417/419 integrovány Sez. 136,
 > +418 Sez. 137** (princip kamenů: 417 doplní řídký ZABAGED na reálnou hustotu, 418/419 čistě pseudo; 418 = plný zelený
 > disk / 417 kroužek / 419 X; mimo voda/skály/budovy/cesty/zpevněné, ISOM rozestup; KPI 58,6 → 61,7 %, KOMPAS pokrytí —
@@ -206,9 +208,10 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
 - **Png2Point reconstructor — DRUHÝ FUNKČNÍ MODEL (Sez. 105-106), `model/png2point/{inject,dataset,train}.py`:**
   druhá ze tří CV úloh (bodové ISOM → lokalizace+klasifikace). **Injekce ikonek** na čistý `point_base` render
   (bez bodů, master flag `generate_map`) = GT zdarma + libovolně instancí (řeší vzácnost) + **heatmap regrese**
-  (CenterNet focal, peak NMS → F1). Scope **204 Boulder + 210 Stony + 417 Prominent large tree + 419 Prominent
-  vegetation feature** (210 = pole teček `210.1`, ne plocha — probe Sez. 106; 417/419 přidány Sez. 128, zelené
-  s bílou knockout svatozáří, registr `inject.POINT_CLASSES` generalizován kind/color/n_range). Root-cause 204 (Sez. 106): příčina F1 0,00 = **hustota pozitiv vs focal `n_pos` normalizace**
+  (CenterNet focal, peak NMS → F1). Scope **10 tříd: 204 Boulder + 210 Stony + 417/419 zelené veg + 531/525/527 černé man-made (X/⊤/Λ) +
+  109/111/112 hnědé terénní (disk/oblouk ∪/vyplněný ▽)** (210 = pole teček `210.1`, ne plocha — probe Sez. 106;
+  417/419 Sez. 128 zelené s bílou knockout svatozáří; 531/525/527 Sez. 158-159; 109/111/112 Sez. 161-162; registr
+  `inject.POINT_CLASSES` generalizován kind/color/n_range/peak_thr. **112 reconstructor-only** — gen nekreslí, mimo capability/USED_CODES). Root-cause 204 (Sez. 106): příčina F1 0,00 = **hustota pozitiv vs focal `n_pos` normalizace**
   (19× imbalance 210/204), ne velikostní záměna → `n_boulder` hustě → single-run **mF1 0,897**, ALE nestabilní.
   **Stabilizace Sez. 125: skutečný kořen = chybějící focal prior bias init** (mrtvá fáze prvních ~15 ep) →
   bias init → **test mF1 0,888 medián 3 seedů / rozptyl 0,019** (204 ~0,92 / 210 ~0,86, obě stabilně živé).

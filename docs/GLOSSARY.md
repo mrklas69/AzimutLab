@@ -316,8 +316,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   runnability baseline val mIoU ~0,25 (Sez. 78); **Png2Area reconstructor test mIoU 0,621 ≈ val 0,629** (Sez. 90,
   první funkční model) → stabilizace Sez. 91 test 0,640 → N_AREA 18 Sez. 103
   test 0,568 → **MPP fix Sez. 126 test mIoU 0,683**. Png2Point měří **mF1**
-  (detekce bodů, ne IoU): živý 4-třídový model (204/210/417/419 od Sez. 128) test mF1 **0,827** (medián 3 seedů
-  na kanonickém měřítku 1,33; stabilní po focal bias initu Sez. 125). Starší 2-třídové hodnoty 0,888 (Sez. 125,
+  (detekce bodů, ne IoU): živý **10-třídový** model (204/210/417/419/531/525/527/109/111/112; rozšiřován Sez. 128→158-162)
+  test mF1 **0,745** (medián 3 seedů na kanonickém měřítku 1,33; STABILNÍ rozptyl 0,738-0,763 po focal bias initu Sez. 125). Starší 2-třídové hodnoty 0,888 (Sez. 125,
   staré měřítko) / 0,874 (Sez. 126, MPP fix) jsou superseded — menší symboly, nesrovnatelné. Png2Line měří mIoU/IoU
   + relaxed completeness/correctness: test mIoU **0,774** (krok 1 watercourse, Sez. 131).
 
@@ -451,9 +451,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   NMS→F1. **A3** scope 204 (plný kruh r 0,4 mm) + 210 (pole teček 210.1), `POINT_CLASSES` registr rozšiřitelný.
   Diagnostika: sigma 1px na full-res nejde naučit (→2,5-4 + LR 1e-3); **podklad MUSÍ být bez bodů** (gen render
   má vlastní body bez GT → nejednoznačné) → čistý `point_base.png` (Sez. 106). Trénink = mrkla.
-  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125, MPP fix Sez. 126, scope rozšířen 204/210→+417/419 Sez. 128 —
-  živý 4-třídový test mF1 0,827** (medián 3 seedů na kanonickém měřítku 1,33; starší 2-třídové 0,888/0,874 superseded —
-  menší/správné symboly, nesrovnatelné): `point_base` render +
+  **`Png2Point` HOTOVO Sez. 106, STABILIZOVÁN Sez. 125, MPP fix Sez. 126, scope rozšiřován 204/210→+417/419 (Sez. 128)
+  →+531/525/527 (Sez. 158-159) →+109/111/112 hnědé terénní (Sez. 161-162) = 10 tříd — test mF1 0,745** (medián 3 seedů
+  STABILNÍ na kanonickém měřítku 1,33; starší 2-třídové 0,888/0,874 superseded — menší/správné symboly): `point_base` render +
   random-crop dataset + **root-cause 204** (řídká bodová třída se nenaučí — viz `n_boulder` níž). Druhý funkční
   reconstructor. POZN.: F1 = detekce injektovaných ikonek na point_base, ne reálných skenů (KPI dopad až s integrací).
   **`Png2Line` KROK 1 HOTOVO Sez. 130-131 — TŘETÍ funkční reconstructor** (`model/png2line/{tile,dataset,train,
