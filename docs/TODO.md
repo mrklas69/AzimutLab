@@ -181,10 +181,12 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > po změně `N_LINE` vyžadují rebuild + retrain.
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 160: KPI 66,2 %** (`KPI_3MAP_CANONICAL`; plocha **75,0** / linie **66,4** / bod **67,9**;
-> Bedř 58,5 / Blatná 65,6 / Velbloud 74,3). Plná regenerace `maps/` doložila sirotka 66,2 (audit A3/A4):
-> committed `separate.py` 407/409 gate `4a8712e` OVLIVŇUJE `.omap` KPI počty (přes `predict_areas_sjtsk`) —
-> Sez. 159 „65,8 netknuto" platilo jen na stale `.omap` z 06-20. Žebříček děr 403/416/409/306/202/109/501/308/108/208.
+> **Stav Sez. 164: KPI 67,5 %** (`KPI_3MAP_CANONICAL`; plocha **78,8** / linie **66,4** / bod **67,9**;
+> Bedř 61,9 / Blatná 65,9 / Velbloud 74,7). Sez. 164 opravila gate 407/409 (`label==solid-zeleň 4a8712e` →
+> `!=open`): 409 ožilo **0 → 114 gen** (vypadlo z žebříčku děr, bylo #3 / 1,6pb), 407 12→83; plocha 75,0 → 78,8,
+> headline 66,2 → 67,5. Diagnóza: gate `==2` vyžadoval solid zeleň, ale 409 leží na BÍLÉM lese (GT label 0) →
+> 0 polygonů. Sez. 160 (66,2) doložila sirotka plnou regenerací `maps/` (audit A3/A4): committed `separate.py`
+> gate OVLIVŇUJE `.omap` KPI počty přes `predict_areas_sjtsk`. Sez. 159 „65,8 netknuto" platilo jen na stale `.omap`.
 > Sez. 150 zkalibrovala 527 dolů po KOMPAS přestřelu `orig 8 / gen 103` → `gen 3`
 > (headline 62,0 → 62,5) a přesunula `Cesta typcesty_k=025` z path 504 do ride 508
 > (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). Sez. 152 přidala 404/407/409
@@ -201,6 +203,15 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > Co generátor nenakreslí, reconstructor se NIKDY nenaučí →
 > pokrytí = strop tréninku (memory `generator-coverage-is-the-ceiling`). **Historie baseline (43 %→59,1 %), analytické
 > cuty (plošný strop 54 %), kompas a vyvrácené páky 403/508: DONE Sez. 94-102 + diáře.**
+- [ ] *(vizuální realismus DEV map, nález uživatele Sez. 164)* **DEV `--location` mapy: separovat vegetaci z překrývajícího skenu + zúžit výsek na pokrytou oblast.**
+  DEV mapy kreslí BÍLÝ LES (Sez. 102: veg jen ze separace párového skenu, DEV prý nemá). Jenže `scan-auto`
+  překrývající sken NAJDE (Sez. 164 regen: Soví vrch 100 % / ostatní 19–30 %), jen ho používáme jako podklad,
+  ne pro separaci → nekonzistence (KPI/Livelox cesta separuje, DEV ne). **Přístup (volba uživatele A1):** místo
+  prahu pokrytí **zúžit DEV výsek na bbox skenové coverage** (rozsah DEV lokality NENÍ závazný) → celá mapa
+  pokrytá veg, žádná tvrdá hrana. Mašinérie existuje (`separate_areas` + `generate_map(predict_areas_sjtsk=…)`,
+  vzor `measure_dod._separate_resources_to_sjtsk` / `pairs._separate_to_sjtsk`). **Separovat z ORIGINÁLU skenu,
+  ne z warpu** (memory `bg-scan-warp-vs-livelox-origin`). Caveat: sken = jiný překrývající event → veg přibližná
+  (Sez. 79 OK pro DEV verify). Není CUDA, nezvyšuje KPI (měří se na KPI mapách). Reverzuje Sez. 102 white-forest.
 - [ ] *(doladění → nález uživatele Sez. 118 „zubaté ploty")* **Plot 516 kolem velké privátní oblasti (520) je ZUBATÝ** ({A}, ~6 zbytečných
   zubů na velkém pozemku). Mechanika: `_dissolve_mask_to_polys(olive_ruian_img)` → outer ring → `_rdp(eps = FENCE_SIMPLIFY_M=5 m)` →
   `_draw_fence_line` (gen ~2496-2506). RDP 5 m zuby nespolkne. **Řešení (volba uživatele „zjednodušit na vnější hraniční body"):** primárně
@@ -351,8 +362,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - [~] *(rozšiřování bodového scope Png2Point; 417/419/418/109/111/112 HOTOVO Sez. 128–162, detail DONE + KPI blok)*
     **Bodové třídy do `POINT_CLASSES`.** Registr generalizován (kind/color/n_range/peak_thr); zelené 417/419 + 418 bush
     pseudo-injekce do generátoru (princip kamenů); hnědé terénní 109/111/112 (111 lepší než 109; 112 reconstructor-only).
-    **ZBÝVÁ:** **110 Small elongated knoll** (elipsa, gen GEN_REAL — poslední z rodiny 109/110/111 z DMR; probe měřitelnosti
-    nejdřív) + **115** (ISOM 2017-2 Special terrain feature, jiný zdroj).
+    **110 STOP doložen Sez. 164** (probe: jen 8 GT v eval sadě Bedř 5/Blatná 1/Velbl 2 — Slovanka UTM33 blokovaná,
+    Soví v. neúplná; gen 110 už kreslí → přínos jen reconstructor-transfer, který neměřitelný; navíc elipsa ≈ disk 109
+    na bodovém měřítku). Rodina 109/110/111 uzavřena na 109+111. **ZBÝVÁ:** **115** (ISOM 2017-2 Special terrain feature,
+    jiný zdroj) — nízká priorita (TOTAL 8). Alt směr: **311/312/313** modré pointy ze skenu (governance A2 first).
   - [~] *(Png2Line TŘETÍ reconstructor — krok 1 watercourse 304/305 HOTOVO Sez. 130–132, detail DONE + KPI blok)*
     Per-class segmentace linií (U-Net izomorfní s png2area, dilatovaná GT) + vektorizace maska→polyline→`.omap`
     (`model/vectorize.py`, `vectorize_omap.py`). Krok 2 dashed 508/516 jako přidaná třída = **2× zavržen měřením** (Sez. 133/156).

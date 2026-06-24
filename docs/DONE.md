@@ -2,6 +2,24 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 164 (2026-06-24) — 409 KPI díra (gate fix) + .pgw do gitu + plná regenerace maps/ (HAL3000)
+Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-164--409-kpi-díra-gate-fix--pgw-do-gitu--plná-regenerace-maps-hal3000).
+- [x] **`.pgw` world-files do gitu** (požadavek uživatele + audit A4): `.gitignore` výjimka `!resources/*.pgw`,
+  6 souborů committnuto (`d0995f0`). Jen S-JTSK georef čísla, žádný copyright → reprodukovatelnost KPI na 2. stroji.
+- [x] **409 KPI díra OPRAVENA** (Příště #2 carry 3×; commit `f535f3e`). Baseline: 409 `217 orig / 0 gen` = #3 díra (1,6pb).
+  **Diagnóza** (`temp/probe_409_gate.py`, Bedřichovka): gate `4a8712e` (`label_map==2` solid zeleň 408) měl logický
+  rozpor s pattern podmínkou `green_m∈[0.18,0.24]` (řídké pruhy) — 409 leží na BÍLÉM lese (GT label 0): z 54 937
+  band&bright px 38 967 na label 0, jen 2 713 na label 2 → 0 polygonů po min_area. **Fix:** gate `label != 4`
+  (= not-open, 4=403/404) pro 407 i 409 (sesterské třídy, conceptual integrity). Měřeno před/po na `KPI_3MAP_CANONICAL`
+  (Goodhart-safe): 409 **0 → 114 gen** (vypadlo z žebříčku děr), 407 12→83; **KPI 66,2 → 67,5 %** (plocha 75,0→78,8;
+  Bedř 58,5→61,9). Ostatní třídy stabilní (408 251→250). Vizuál overlay: 409 na zelených podrostech, vyhýbá se open.
+  48 testů + smoke OK.
+- [x] **Plná regenerace `maps/` se 3 podklady** (požadavek uživatele před testem; `temp/regen_batch.py`): KPI(3)
+  dmr+ortho, Livelox(5) `pairs.py map` (classId z autoritativního diáře 06-19, NE IoU — ta by 3/5 spletla),
+  DEV(5) `--location`+scan-auto. Buschdörfl SKIP. **21/21 kroků OK**, všech 13 map 3 podklady ověřeno.
+- [x] **Docs propagace KPI 66,2 → 67,5 %:** README (4×), architecture, GLOSSARY, TODO KPI blok + žebříček děr.
+  Nový úkol DEV-veg (zúžit DEV výsek na skenovou coverage + separovat veg — nález uživatele A1). DIARY/diář/DONE.
+
 ## Sezení 163 (2026-06-24) — Úklid: pruning IDEAS/TODO (vynucený +11) + %CALIBRATE (HAL3000)
 Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-163--úklid-pruning-ideastodo-vynucený-11--calibrate-hal3000).
 - [x] **Rozhodnutí: úklid teď na HAL3000** (Příště #1 Sez. 162, opakovaně odkládáno). %BEGIN cadence: pruning **+11**
