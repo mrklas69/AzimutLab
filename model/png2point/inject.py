@@ -56,6 +56,11 @@ _BLACK = (25, 25, 25)
 # "Green 100%"). Hodnota = palette `green3`/generator `C_GREEN3` (45,169,79), kterým generátor kreslí 417
 # → injekce barevně konzistentní s reálným renderem. Lokální konstanta (jako _BLACK), inject.py je self-contained.
 _GREEN = (45, 169, 79)
+# Hnědá ISOM terénní kresba (vrstevnice + terénní body 109/111/112). Hodnota = palette `brown`/generator
+# `C_BROWN` (160,95,31), kterým generátor kreslí 109/110/111 (gen ř. 2169-2180) → injekce barevně
+# konzistentní s reálným renderem. POZOR: hnědá = barva VRSTEVNIC (linie) → 109 (plný disk) s nimi soupeří
+# o FP stejně jako černý 204 s liniemi cest / zelený 417 s porostem; práh peaku patrně VYSOKÝ (sweep).
+_BROWN = (160, 95, 31)
 # Bílý knockout ("White over green", template color 22): 417/419 mají kolem zeleného symbolu bílou svatozář,
 # která vyřízne zelený podklad (les) → symbol vynikne. Klíčové pro detekci i realismus (na lese by zelený
 # symbol jinak splynul). Na bílém/žlutém podkladu je svatozář neviditelná (bílá na bílé) → realistické.
@@ -129,6 +134,17 @@ class PointClass:
 # 531): černá man-made kresba má hodně FP (cesty/text) → VYSOKÝ práh (525→0,70 Bedř plató F1 0,77;
 # 527→0,65 mean max 0,71). Reálný transfer: 525 SILNÝ (Bedř 0,766, na úrovni 419), 527 STŘEDNÍ-DOBRÝ
 # (seed0 Bedř 0,833 / Slovanka 0,667; medián 3 seedů 0,50 — seed-citlivý vedle hustého 210).
+# 109 Small knoll (Sez. 161): první HNĚDÝ terénní bod = plný hnědý disk (mirror 204 černého disku, jen barva).
+# Verify-against-source template id 14: point_symbol inner_radius=375 µm, inner_color=6 (Brown 100%) → kind="dot",
+# color=_BROWN, radius_mm 0,375. Měřitelnost crosswalk-aware PŘED tréninkem (anti-A1, probe Sez. 161):
+# TOTAL 1000 objektů (Bedř 103 / Velbloud 110 / Slovanka 727 / Blatná 38 / Soví v. 22) — silnější než 525/527,
+# na úrovni 204/210 (ISOM 2000 kóduje knoll jako 112 → crosswalk → 2017 109). Sázka: hnědý DISK přenáší jako
+# černý disk 204 (tvar vs tenké hnědé vrstevnicové linie = distinktivní), navzdory tomu že hnědá = barva vrstevnic.
+# sigma/n_range z 204 (řídký jednotlivý disk, focal balance vedle hustého 210). VÝSLEDEK Sez. 161: 109 PŘENÁŠÍ
+# (synt F1 0,67 = na úrovni 419; reálný recall 0,72–0,86 = model knolly NAJDE), precision sráží FP z hnědých
+# vrstevnic → sweep eval_real (3 mapy agreg.): F1 0,30→0,52, plató 0,60–0,70 → peak_thr 0,60 (start plató,
+# drží recall 0,55; ΔF1 k 0,70 jen 0,007 ale recall +0,08). Reálný F1 0,52 = na úrovni 417/527. Hnědá přenáší
+# jako černá/zelená navzdory konkurenci vrstevnic (distinktivní DISK vs tenká linie, izomorf 204 vs cesty).
 POINT_CLASSES: list[PointClass] = [
     PointClass(code="204", name="Boulder",                  radius_mm=0.40,  sigma_px=3.0, field=False, kind="dot",    color=_BLACK, n_range=(40, 120), peak_thr=0.30),
     PointClass(code="210", name="Stony ground",             radius_mm=0.15,  sigma_px=2.0, field=True,  kind="dot",    color=_BLACK, n_range=(0, 2),    peak_thr=0.20),
@@ -137,6 +153,7 @@ POINT_CLASSES: list[PointClass] = [
     PointClass(code="531", name="Prom. man-made x",         radius_mm=0.516, sigma_px=3.5, field=False, kind="cross",  color=_BLACK, n_range=(10, 30),  peak_thr=0.60, halo=False),
     PointClass(code="525", name="Small tower",              radius_mm=0.75,  sigma_px=3.5, field=False, kind="tower",  color=_BLACK, n_range=(10, 30),  peak_thr=0.70, halo=False),
     PointClass(code="527", name="Fodder rack",              radius_mm=0.615, sigma_px=3.5, field=False, kind="fodder", color=_BLACK, n_range=(10, 30),  peak_thr=0.65, halo=False),
+    PointClass(code="109", name="Small knoll",              radius_mm=0.375, sigma_px=3.0, field=False, kind="dot",    color=_BROWN, n_range=(40, 120), peak_thr=0.60),
 ]
 N_POINT = len(POINT_CLASSES)
 CODE_TO_IDX = {pc.code: i for i, pc in enumerate(POINT_CLASSES)}
