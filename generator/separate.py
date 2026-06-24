@@ -269,13 +269,16 @@ def separate_areas(label_map: np.ndarray, rgb: np.ndarray | None = None,
         green_any = _pattern_density(pat["green_l"] | pat["green_m"] | pat["green_d"])
         bright_base = _pattern_density(pat["white"] | pat["yellow_pale"] | pat["yellow"])
 
-        # 407/409: dobrá viditelnost = pruhovaný zelený symbol na světlém podkladu. Pattern
-        # smí jen rozštěpit odpovídající zelenou GT třídu; jinak by řídké zelené pixely v open
-        # ploše 404/403 vyráběly falešný les ještě před priority suppression.
-        masks["407"] = ((label_map == AREA_CLASSES["407"]["gt"])
+        # 407/409: dobrá viditelnost = pruhovaný zelený symbol na světlém podkladu. Pattern smí
+        # vzniknout všude KROMĚ open (GT label 4 = 403/404); tam by řídké zelené pixely dělaly falešný
+        # les. Sez. 164: gate `label==solid-zeleň` (4a8712e) byl PŘÍLIŠ přísný — 409 leží na BÍLÉM
+        # podkladu lesa (GT label 0), pruhy jen místy label 2/3 → `==2` propustil thin slivery →
+        # 0 polygonů po min_area (diár 409 217/0). `!=4` vyloučí jen open, zeleň/bílý les nechá projít.
+        not_open = label_map != AREA_CLASSES["403"]["gt"]   # 4 = open (403/404) = jediný zakázaný kontext
+        masks["407"] = (not_open
                         & (green_l >= PATTERN_MIN_FRAC) & (green_l <= PATTERN_MAX_FRAC)
                         & (bright_base >= 0.25))
-        masks["409"] = ((label_map == AREA_CLASSES["409"]["gt"])
+        masks["409"] = (not_open
                         & (green_m >= PATTERN_MIN_FRAC) & (green_m <= PATTERN_MAX_FRAC)
                         & (bright_base >= 0.20))
         # 410 dark fight někdy median label 3 ztratí na hranách tmavých fleků; raw hustota ji vrátí.
