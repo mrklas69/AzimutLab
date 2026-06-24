@@ -194,14 +194,16 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point,line}/eval_real.py` na
 > kartografových skenech. Po MPP fixu (Sez. 126, kanonické měřítko dlaždice 1,33) přeměřeno na správném měřítku:
 > **Png2Area** (per-odstín mIoU / soft pixel-acc): **Bedř 0,336 (z 0,256) / 0,91, Blatná 0,357 / 0,89** (synt test
-> mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **8 tříd 204/210/417/419/531/525/527/109 od Sez. 161**): synt **0,710**
-> (medián 3 seedů, rozptyl velký 0,696–0,830) / **realita**: **419 SILNÝ 0,67–0,76** (zelený X + svatozář),
-> **531 SILNÝ Velbloud 0,708** (černý man-made X, Sez. 158), **525 Small tower SILNÝ Bedř 0,766** (černý ⊤, na úrovni
-> 419, Sez. 159), **109 Small knoll SILNÝ medián 0,65** (HNĚDÝ disk, Bedř 0,53 / Blatná 0,65 / Velbl 0,80 — hnědá
-> PŘENÁŠÍ jako černá/zelená přes konkurenci vrstevnic; Sez. 161, rozsah seedů 0,46–0,84), **527 Fodder rack
-> STŘEDNÍ-DOBRÝ 0,50–0,83** (černý Λ, seed-citlivý: seed0 Bedř 0,833 / Slovanka 0,667), **417 Prom. large tree
-> 0,40–0,57**, 204 stabilní 0,44–0,73, **210 pořád kolabuje 0,00–0,25** (drobné tečky).
-> Práh detekce **per třída `PointClass.peak_thr`** (zelené 0,40–0,45, černé man-made + hnědý disk VYSOKÝ 0,60–0,70 — FP z cest/textu/vrstevnic).
+> mIoU 0,683). **Png2Point** (peak mF1 synt / realita; **10 tříd 204/210/417/419/531/525/527/109/111/112 od Sez. 162**): synt **0,745**
+> (medián 3 seedů, STABILNÍ rozptyl 0,738–0,763 — těsnější než Sez. 161) / **realita**: **111 Small depression SILNÝ
+> 0,71–0,89** (HNĚDÝ oblouk ∪, LEPŠÍ než 109; Sez. 162), **419 SILNÝ 0,67–0,76** (zelený X + svatozář),
+> **531 SILNÝ Velbloud 0,708** (černý man-made X, Sez. 158), **525 Small tower SILNÝ Bedř 0,766** (černý ⊤, Sez. 159),
+> **109 Small knoll SILNÝ medián 0,65** (HNĚDÝ disk, Bedř 0,53 / Blatná 0,65 / Velbl 0,80 — hnědá PŘENÁŠÍ přes konkurenci
+> vrstevnic; Sez. 161), **112 Pit STŘEDNÍ-DOBRÝ 0,53–0,77** (HNĚDÝ vyplněný ▽, recall nižší konzervativní; Sez. 162 —
+> **reconstructor-only, gen NEkreslí → mimo USED_CODES**), **527 Fodder rack STŘEDNÍ-DOBRÝ 0,50–0,83** (černý Λ,
+> seed-citlivý), **417 Prom. large tree 0,40–0,57**, 204 stabilní 0,44–0,73, **210 pořád kolabuje 0,00–0,25** (drobné tečky).
+> Práh detekce **per třída `PointClass.peak_thr`** (zelené 0,40–0,45, černé man-made + hnědé terénní VYSOKÝ 0,60 — FP z cest/textu/vrstevnic;
+> měř per-mapa MACRO, ne sweep micro-agregát — Sez. 162 lekce u 112 prahu).
 > **Png2Line krok 1 watercourse 304/305 (Sez. 131, NOVÝ 3. reconstructor; pixel IoU / relaxed completeness/correctness):**
 > synt test mIoU 0,774 / IoU 0,55 · **realita: completeness 0,85–0,93 = model TRASUJE reálné toky** (žádný kolaps
 > jako 210), **strict IoU 0,409 / F1 0,773** po conf_thr prahu 0,95 (registr `LineClass.conf_thr`, izomorf `peak_thr`;
@@ -435,7 +437,10 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
     (c) **418 Prominent bush — pseudo injekce do generátoru HOTOVO Sez. 137** (zelený plný disk, stejná mašinérie jako
     417/419 → třetí třída do `_generate_pseudo_veg_points`; čistě pseudo, hustota měřena ~17,8/km² → `(8,26)`; `USED_CODES += 418`;
     KPI 61,1 → 61,7 %, KOMPAS orig 178/gen 90 ✓; POZN. 418 mimo Png2Point scope = generátor kreslí pro budoucí trénink);
-    (d) pak 109/111/112/115.
+    (d) hnědé terénní body do Png2Point: **109 HOTOVO Sez. 161** (disk, reálný medián 0,65), **111 + 112 HOTOVO Sez. 162**
+    (111 oblouk ∪ SILNÝ 0,71–0,89 = lepší než 109 / 112 vyplněný ▽ STŘEDNÍ-DOBRÝ 0,53–0,77; 112 reconstructor-only,
+    gen nekreslí → mimo USED_CODES). **ZBÝVÁ 110 Small elongated knoll** (elipsa, gen kreslí GEN_REAL — poslední z rodiny
+    109/110/111 z DMR; probe měřitelnosti nejdřív) + **115** (ISOM 2017-2 Special terrain feature, jiný zdroj).
   - Hotovo *(reálný transfer, doménový gap; A1.b HOTOVO Sez. 121 — detail DONE)*: změřena detekce 204/210 na REÁLNÉM
     kartografově skenu (`model/png2point/eval_real.py`): **204 přenáší (recall 0,66–0,67, F1 0,38–0,68), 210
     kolabuje (F1 ~0,04)**. Injekční trénink přenáší na výrazné symboly (plný kruh 204), ne na pole drobných teček (210).

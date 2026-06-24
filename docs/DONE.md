@@ -2,6 +2,30 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 162 (2026-06-24) — Png2Point scope +111 Small depression (∪) + 112 Pit (▽) — hnědé terénní body přenášejí (HAL3000)
+Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-162--png2point-scope-111-small-depression--112-pit-hnědé-terénní-body-hal3000).
+- [x] **Fokus CUDA: Png2Point +111 +112** (Příště #1 Sez. 161, carry — probe měřitelnosti hotový: 111 TOTAL 233 / 112
+  TOTAL 118). Self-check ROADMAP ✓ (rozšíření pokrytí TYPŮ = doklad oprávněnosti KOMPASu, anti-Goodhart A3; izomorf 109).
+- [x] **Verify-against-source** template id 16 (111 `line_symbol color=6 w=270 µm` = U/oblouk otevřený nahoru, pološíře
+  465 µm) + id 17 (112 `area_symbol color=6` = vyplněný trojúhelník hrotem dolů, hrot y=+734, vnitřní zub). Osa y DOLŮ.
+- [x] **Dva nové stampy** `_stamp_arc` (∪ `draw.arc 0,180`, izomorf gen ř. 2180) + `_stamp_pit` (▽ polygon) + dispatcher
+  kind `arc`/`pit` + docstring kind/radius (doplněn i chybějící tower/fodder). Registr `POINT_CLASSES` +111/112 (N_POINT 8→10).
+  Vizuál `temp/verify_111_112.png` = tvary věrné template (oko = source). **112 generátor NEkreslí** (DMR nerozliší jámu).
+- [x] **Retrain 3 seedy** synt test mF1: seed0 **0,745** / seed1 0,738 / seed2 0,763 — **STABILNÍ** (rozptyl 0,025,
+  těsnější než Sez. 161 0,696–0,830). 112 synt F1 0,76–0,82, 111 0,60–0,67. Žádná regrese 8 starých tříd.
+- [x] **eval_real (seed0 @ thr 0,60):** 111 **SILNÝ** Velbloud 0,708 / Blatná 0,889 / Bedř 0,819 (P0,88/R0,77) = LEPŠÍ
+  než 109. 112 **STŘEDNÍ-DOBRÝ** Velbloud 0,529 / Blatná 0,667 / Bedř 0,686 (recall ~0,51 nižší, precision 0,89). Hnědé
+  tvary ∪/▽ přenášejí jako disk 109 navzdory konkurenci vrstevnic.
+- [x] **Measure-first lekce (práh 112):** sweep `temp/sweep_thr_111_112.py` micro-agregát lákal 112 na 0,45 (F1 0,667),
+  ALE per-mapa MACRO @ 0,60 = 0,627 > @ 0,45 = 0,510 (agregát zkreslen dominancí Bedř 69/90 GT; na 0,45 FP z hnědých
+  vrstevnic Velbloud P0,37 / Blatná P0,17) → **112 vrácen 0,60**. 111 práh 0,60 (sweep vrchol, plató 0,55–0,65).
+- [x] **Promote SEED 0** (medián synt 0,745 = i nejlepší reálný mean F1 0,64; ne nejlepší synt seed2 — disciplína
+  „nevěř outlieru" Sez. 125). Checkpointy seedů 1/2 v `runs/`.
+- [x] **Propagace:** 111 capability `SCAN_CANDIDATE`→`SCAN_LIVE_POINT` (gen kreslí + transfer, supervisor C1/C2) +
+  testy. **112 ZÁMĚRNĚ mimo capability registr** (`USED_CODES=generator_codes()` → 112 gen 0 by udělal falešnou KPI díru
+  → invariant porušen; reconstructor-only v `inject.POINT_CLASSES`). 48 testů OK. KPI **66,2 % netknuto**. CLAUDE.md scope
+  8→10 + README ř. 11/61/148.
+
 ## Sezení 161 (2026-06-24) — Png2Point scope +109 (Small knoll, první hnědý terénní bod) — reálný transfer medián 0,65 (HAL3000)
 Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-161--png2point-scope-109-small-knoll-první-hnědý-terénní-bod-hal3000).
 - [x] **Fokus CUDA: Png2Point +109** (Příště #1 Sez. 160, carry). Self-check ROADMAP ✓ (rozšíření pokrytí TYPŮ
