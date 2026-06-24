@@ -2,6 +2,33 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 161 (2026-06-24) — Png2Point scope +109 (Small knoll, první hnědý terénní bod) — reálný transfer medián 0,65 (HAL3000)
+Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-161--png2point-scope-109-small-knoll-první-hnědý-terénní-bod-hal3000).
+- [x] **Fokus CUDA: Png2Point +109** (Příště #1 Sez. 160, carry). Self-check ROADMAP ✓ (rozšíření pokrytí TYPŮ
+  detekce = doložení oprávněnosti KOMPASu na reálném skenu, anti-Goodhart A3; izomorf Sez. 158/159). Volba
+  uživatele: **jen 109 nejdřív (KISS)** — izoluj otázku „přenáší hnědá?" na 1 disku, než stavět 111/112 nové tvary.
+- [x] **Probe měřitelnosti PŘED tréninkem (anti-A1, supervisor C1):** crosswalk-aware (`_resolve_targets`, paměť
+  [[isom-dual-numbering-oom-ocad]], NE ad-hoc grep) napříč 6 měřicími `.omap`. 109 **TOTAL 1000** objektů (Bedř 103 /
+  Velbloud 110 / Slovanka 727 / Blatná 38 / Soví v. 22), 111 TOTAL 233, 112 TOTAL 118 — silnější než 525/527, na
+  úrovni 204/210. Crosswalk 2000→2017: ISOM 2000 kóduje knoll=112 → 2017 109 (terénní body přečíslovány).
+- [x] **Verify-against-source** template id 14: `point_symbol inner_radius=375 µm inner_color=6 (Brown 100%)` →
+  109 = plný hnědý disk (mirror 204 černého disku, jen barva). `_BROWN=(160,95,31)` = palette/C_BROWN. Registr
+  `inject.POINT_CLASSES` +109 (kind `dot`, radius_mm 0,375, sigma/n_range z 204). dataset/train N_POINT-agnostické (žádný hardcode).
+- [x] **Retrain 3 seedy (medián, Sez. 125 nestabilita).** Synt test mF1 0,696 / **0,710** / 0,830 (seed 0/1/2;
+  velký rozptyl). 109 synt F1 0,67/0,73/0,81. Žádná regrese 7 starých tříd, 48 testů OK.
+- [x] **eval_real 3 seedy @ thr 0,60 → 109 reálný transfer:** seed 0 medián 0,46 / **seed 1 medián 0,65** / seed 2
+  medián 0,84. **Hnědá PŘENÁŠÍ** — recall 0,72–0,86 (model knolly NAJDE), precision sráží FP z hnědých vrstevnic →
+  sweep `temp/sweep_thr_109.py` (3-map agreg.): F1 0,30→0,52, plató 0,60–0,70 → `peak_thr=0,60` (drží recall 0,55).
+  Reálný F1 0,65 = na úrovni 419/525, lepší než 417. Distinktivní DISK vs tenká vrstevnicová linie (izomorf 204 vs cesty).
+- [x] **Promote SEED 1 (medián), ne seed 2 (nejlepší)** — disciplína [[png2point-inject-clean-base]] + Sez. 125
+  („0,897 outlier, nevěř nejlepšímu běhu"); seed 2 synt 0,830 = +0,12 nad medián = podezřelý. Reportuji medián 0,65,
+  rozsah seedů 0,46–0,84 (seed-citlivost 419/525 přetrvává). Checkpointy seedů 0/2 v `runs/` → triviální přepromování.
+- [x] **capability 109 `SCAN_CANDIDATE`→`SCAN_LIVE_POINT`** (eval_real prokázal transfer, supervisor C2 splněn;
+  generator_kind zůstává GEN_REAL = DMR extrémy) + test asserty (109 scanner_status + preferred_kind). 48 testů OK.
+- [x] **KPI 66,2 % netknuto** (Png2Point = reconstructor; generátor/export/konektory neměněny, `USED_CODES` beze změny).
+- **ZBÝVÁ (carry):** 111 Small depression (oblouk, TOTAL 233) + 112 Pit (trojúhelník, TOTAL 118) — nové `kind`
+  stampy; hnědá přenos potvrzen na 109 → 111/112 jsou logický navazující retrain.
+
 ## Sezení 160 (2026-06-23) — Konsolidace po výpadku + plná regenerace maps/ (13/14) + KPI nález 66,2 (HAL3000)
 Detail: [diary/2026-06-23.md](diary/2026-06-23.md#sezení-160--konsolidace-po-výpadku--plná-regenerace-maps-1314--kpi-nález-662-hal3000).
 - [x] **Konsolidace po výpadku ověřena:** git clean, Sez. 158/159 konzistentní napříč vrstvami (DIARY/DONE/diář/
