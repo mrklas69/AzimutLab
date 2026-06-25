@@ -111,7 +111,7 @@ def _separate_to_sjtsk(cid_dir: pathlib.Path, quad: list, crop_bbox=None,
 
 
 def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: float = 5.0,
-               labels: bool = True, point_base: bool = False):
+               labels: bool = True, point_base: bool = False, content_quad=None):
     """Vyrobí pár [čistý render rgb.png (X), area_labels.png (Y)] pro Livelox classId: real ČÚZK + separace.
 
     Odvodí výsek z Livelox _georef_grid (centroid → lat/lon, rozměry obalu → w_km/h_km), separuje
@@ -133,12 +133,18 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     `max_km` (Sez. 84): strop strany výseku okolo centroidu — render skal/objektů roste nadlineárně
     s plochou, obří mapy (max 106 km²) by tažily noční běh na víkend. Pro trénink rozhoduje rozmanitost
     lokalit a počet dlaždic, ne aby pár pokryl celou obří mapu → centrální výsek 5×5 km stačí. Separace
-    je v S-JTSK → na menší canvas se sama ořízne (_poly_to_grid_px). None/0 = bez stropu (plný obal)."""
+    je v S-JTSK → na menší canvas se sama ořízne (_poly_to_grid_px). None/0 = bez stropu (plný obal).
+
+    `content_quad` (Sez. 167): override obdélníku mapového obsahu [TL,TR,BR,BL] v S-JTSK. None = odvoď
+    z gt IGNORE masky (_content_quad_sjtsk, default). Override slouží, když gt maska obsah NADHODNOTÍ —
+    např. segment_gt nevyřízne loga/QR v rohu listu → bbox natažený o prázdno (Branžež); přesný výsek dá
+    NCC crop box (isom_scan/gt/task_crop_box.json → _map_affine). Zúží render i ořez na skutečný obsah."""
     cid = str(cid)
     cid_dir = _CORPUS / cid
     meta = json.loads((cid_dir / "meta.json").read_text(encoding="utf-8"))
     g = _georef_grid(meta)
-    content_quad = _content_quad_sjtsk(cid_dir, g["quad"])
+    if content_quad is None:
+        content_quad = _content_quad_sjtsk(cid_dir, g["quad"])
     xs = [p[0] for p in content_quad]
     ys = [p[1] for p in content_quad]
     xmin, ymin, xmax, ymax = min(xs), min(ys), max(xs), max(ys)
@@ -171,8 +177,11 @@ def build_pair(cid, out_dir: str | None = None, ortho: bool = False, max_km: flo
     return res
 
 
-def make_map(cid, name: str) -> pathlib.Path:
+def make_map(cid, name: str, content_quad=None) -> pathlib.Path:
     """Vyrobí PROHLÍŽECÍ OB mapu z Livelox classId do `maps/<name>/` se VŠEMI podklady (Sez. 140).
+
+    `content_quad` (Sez. 167): override výseku mapového obsahu (viz build_pair) — zúží mapu i podklady
+    na přesný obdélník, když gt maska nadhodnotí (loga/QR v rohu listu). None = z gt masky (default).
 
     Kompletní řetězec jedním krokem: stáhni Livelox sken → segmentuj GT → build_pair (real ČÚZK +
     separace vegetace ze skenu + ortofoto, ořez na quad) → doplň DMR hillshade + originální sken jako
@@ -188,7 +197,7 @@ def make_map(cid, name: str) -> pathlib.Path:
     if not (cid_dir / "gt_labels.png").exists():
         segment_gt(cid_dir / "map.png")                      # runnability GT (separace vegetace ho čte)
     out_dir = str(MAPS_DIR / name)
-    build_pair(cid, out_dir=out_dir, ortho=True, labels=True)
+    build_pair(cid, out_dir=out_dir, ortho=True, labels=True, content_quad=content_quad)
     r = attach_verify_backgrounds(out_dir, cid_dir=cid_dir)  # DMR hillshade + Livelox sken
     print(f"  podklady: {r['added']}" + (f"  (přeskočeno {r['skipped']})" if r["skipped"] else ""))
     return pathlib.Path(out_dir)
