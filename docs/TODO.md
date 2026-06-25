@@ -5,20 +5,19 @@ v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## Sezení 165 — carry / follow-ups
-- [!] *(CUDA, fokus B doběhnutí)* **Png2Area retrain `s165_area409_s42` — eval + promote rozhodnutí.** Pipeline
-  `temp/retrain_409_pipeline.py` (regen 207 → tiles n_area=21 → train) běžela na konci Sez.165. Až doběhne:
-  `eval_real` Bedř/Blatná → **promote JEN když neregreduje** (baseline synt 0,577 / Bedř soft 0,525 / Blatná 0,363).
-  **`promote_run` NEzálohuje** → ruční backup `resources/area_model/unet_best.pt`→`.bak` PŘED promote (vzor Sez.156).
-  Caveat: 409 reálný transfer možná skromný (vzácné v ČR, Sez.156); hodnota = trénink na opravených datech (+407).
+- *(fokus B UZAVŘEN NEGATIVNĚ Sez.165 — detail DONE)* Png2Area retrain `s165` na 409 datech **REGREDOVAL** na reálných
+  mapách (model halucinuje 409, krade pixely odstínům; Blatná soft 0,363→0,301) → **NEpromotováno, revert na baseline**.
+  Generator 409 gate ZŮSTÁVÁ (zvedl KPI 67,5%). **Guard pro budoucnost:** vzácnou pattern třídu (jako 208) NEjde naučit
+  jen víc daty — pokud 409 reconstructor znovu, **class-balance/oversampling**, ne slepý retrain; nemrhat CUDA oknem.
 - [ ] *(isom_scan %AUDIT:CODE opt-iny, Sez.165 — measure-first, MĚNÍ výstup detektorů)* **D2/D3 component-leak fix +
   D4 detector name-SSoT.** Fork je nechal jako dokumentovaný opt-in v `points_common` (label-izolace přepíše skóre,
   SSoT názvy přepíšou `name`). Aplikovat jen s měřením dopadu na kvalitu detekce, ne slepě. + **D7** `gt_ui` „celá
   paleta" docstring vs frontend theme-filtr = **UX rozhodnutí uživatele** (filtr je možná záměrný fokus „čistá
   pracovní paleta", nebo bug proti recall-first). + `gt_ui`→`symbol_index` palette loader (marginální, gt_ui potřebuje svg filename).
-- [ ] *(benchmark fér, Sez.165)* **ISOM-scan re-run iter3 pro VŠECHNY modely.** Copilot iteroval v1→v3 se score.py
-  feedbackem (`results.csv` `build=iter3-coached`); Opus/ChatGPT (Sez.146) měli jen 1 uncoached pokus → leaderboard
-  interim. Volba uživatele: iter3 umožnit všem → re-run pro fér srovnání. Klíčový nález: headline `point_F1` (bodová
-  prostorová lokalizace) je zeď i po coachingu — coaching zvedá jen class_recall/counts (znalost kódů).
+- [ ] *(benchmark fér, Sez.165)* **ISOM-scan re-run iter3 pro Opus + ChatGPT5.5.** Copilot i ChatGPT MAJÍ iter3
+  (`results.csv` `build=iter3-coached`); zbývá **Opus 4.8** (Sez.146 jen 1 uncoached) + **ChatGPT5.5** (starý 0,50 běh) →
+  re-run pod stejným iter3 pravidlem pro fér leaderboard. Ne-CUDA (uživatel pustí modely, já skóruju). Nález: headline
+  `point_F1` (bodová lokalizace) je zeď i po coachingu (ChatGPT recall 1,0 / point_F1 0,0) → klíč = ruční GT (viz níže).
 - [ ] *(isom_scan candidate quality, vytěžek ChatGPT trace Sez.165 — `isom_scan/chatgpt_40min_aktivita1.pdf`)*
   **Circularity `4πA/P²` + solidity filtr pro bodové kandidáty.** ChatGPT jím odděluje kruhové body od fragmentů
   linií/srázů — řeší **doložený balvany 204/210 vs skalní kresba FP** (Sez.138 E3, audit), dnes jen rejection/shape_f1.

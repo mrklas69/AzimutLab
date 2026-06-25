@@ -6,7 +6,14 @@ Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-165--png2area-409-retrain-pipeline-běží--auditdocs--isom_scan-auditcode--copilot-benchmark-hal3000).
 - [x] **Anti-A1 probe 409 v Livelox korpusu** (`temp/probe_409_pairs.py`): doložil, že nový gate (Sez.164) zvedl
   409 v tréninkových párech **0→18389 px / 10-13 map** (per-mapa až 0,84 %) vs Sez.156 datový strop (470 px) →
-  retrain obhájen jako vytěžení, ne mrhání. (Pipeline regen→tiles→train BĚŽÍ; eval+promote = carry, viz TODO.)
+  retrain obhájen jako vytěžení.
+- [x] **Png2Area retrain `s165_area409_s42` — UZAVŘEN NEGATIVNĚ (eval_real REGRESE → revert).** Regen 207 + tiles (3,6h)
+  + train (best ep 26 val mIoU 0,560; doběhl ep 38/40, crash Windows commit limit error 1455 = systémový, ne bug; best.pt
+  validní). 2 recovery (buggy assert `tj["n_area"]` → train přímo; commit limit → use best.pt). **eval_real REGREDOVAL**
+  vs baseline (Sez.156): Bedř soft 0,520 (z 0,525), **Blatná soft 0,301 (z 0,363)**, vše pixel-acc dolů. Příčina: model
+  **halucinuje 409** (pravé 407→89 % jako 409, vysoká median-freq váha vzácného 409 krade pixely). **NEpromotováno, revert
+  na baseline** (`.bak`). **Lekce: vzácnou pattern třídu nejde naučit jen víc daty** (jako 208) — class-balance, nebo
+  gen-only coverage bez retrainu. Generator 409 gate ZŮSTÁVÁ (zvedl KPI). s165 v `runs/` jako záznam.
 - [x] **%AUDIT:DOCS** (cadence +2 vynucený; 5 agentů + verify proti zdroji; 16 oprav / 9 souborů): vzorec =
   expanze **Png2Point 5→10** (Sez.158-162) + přidání **Png2Line** se NEÚPLNĚ propagovaly. **K1** scope/mF1 stale
   v 5 docs (AGENTS/GLOSSARY:588/tools-models:48/model-README/architecture) → sladěno na 10 tříd / mF1 0,745.
@@ -25,7 +32,15 @@ Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-165--png2area-409-retr
 - [x] **Copilot ISOM-scan benchmark** (ad-hoc, iterace v1→v3 se score.py feedbackem): class_recall 0,25→0,44→0,75
   (zná kódy), ale **headline point_F1 drží 0,0** (526/530 správný kód, halucinované pozice 22/14 vs 1 GT → TP=0) =
   bodová lokalizace je zeď. Záznam `runs/2026-06-25_copilot.json` (gitignored) + `results.csv` `build=iter3-coached`.
-  Uživatel: iter3 pro VŠECHNY + brzy re-run (řeší fér výhradu coachingu). Leaderboard interim: ChatGPT 0,50 ≫ Copilot/Opus 0,0.
+  Uživatel: iter3 pro VŠECHNY + brzy re-run (řeší fér výhradu coachingu).
+- [x] **ChatGPT ISOM-scan benchmark iter3** (`results.csv` `build=iter3-coached`): class_recall **0,875→1,0** (plné pokrytí
+  16 score_codes, area_fid 0,43 = nejlepší čtenář), ale **headline point_F1 0,0** i s feedbackem — 526 trefil 429 px od GT,
+  530 1056 px (zeď definitivní). Pozn.: starý ChatGPT5.5 (Sez.146) 0,50 → zeď není absolutní, single-run šum. Leaderboard
+  interim: ChatGPT5.5 0,50 ≫ iter3/Copilot/Opus 0,0.
+- [x] **2 ChatGPT trace mining** (`chatgpt_40min_aktivita1.pdf` + `chatgpt_aktivita2_3.pdf`) → TODO/IDEAS: circularity+solidity
+  + **skeleton-endpoint topologie** (⊤=3/×=4 konce) geom. diskriminátor bodů; HoughCircles→IDEAS. **Nález uživatele → silné
+  TODO: ruční benchmark GT přes GT factory** (headline skóruje jen 2 body 526/530 → křehké; factory naklikat všechny). GT red
+  flag: 526/530 ~11px od sebe (artefakt). ChatGPT shape-CV trefil 429/1056px vedle → tvar sám nestačí = informační mezera.
 
 ## Sezení 164 (2026-06-24) — 409 KPI díra (gate fix) + .pgw do gitu + plná regenerace maps/ (HAL3000)
 Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-164--409-kpi-díra-gate-fix--pgw-do-gitu--plná-regenerace-maps-hal3000).
