@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 167 (2026-06-25) — Branžež prohlížecí mapa z Liveloxu + minimalizace na NCC crop box (ntbhej)
+Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-167--branžež-prohlížecí-mapa-z-liveloxu--minimalizace-na-ncc-crop-box-ntbhej).
+- [x] **Prohlížecí mapa `maps/Branžež` z Livelox 1127443** — `pairs.py map` (make_map): real ČÚZK + 289 ploch
+  separace veg ze skenu + ortofoto + DMR hillshade + sken; izomorf Doksy/Borný (omap + 3 podklady + masky + labels + contours).
+- [x] **NÁLEZ: gen výsek nafouknutý** — mapa „Okruhy" natočená ~13°, vyplňuje levou část listu; `_content_quad_sjtsk`
+  bere bbox z `gt_labels` (segment_gt nevyřízl loga/QR vpravo) → 3,16×2,48 km s prázdnou pravou třetinou + bg_scan
+  s logy/rámečkem. Spolehlivý rozsah = NCC crop box `isom_scan/gt/task_crop_box.json` (score 0,945, Sez. 146).
+- [x] **Kód (DRY): `content_quad` override do `build_pair`/`make_map`** (`generator/pairs.py`) — None = z gt masky
+  (původní chování, žádná regrese), override = přesný výsek mapového obsahu. Zobecnitelné na mapy s nadhodnocenou gt maskou.
+- [x] **Branžež minimalizace** (scratchpad `regen_branzez_cropped.py`): crop box → `_map_affine(quad)` → crop_quad →
+  `make_map(content_quad)` zúží render + ořez + podklady; bg_scan vyčištěn (`task_isom_scan.png` na bílý canvas → loga
+  pryč → warp). Výsek **1,77×1,92 km**, objektů 6641→3232, ortofoto 53→23 MB, templates 3 (bez dup.). Overlay zarovnání
+  OK, **uživatel OOM test OK**, 48 testů + smoke (96 s) OK.
+- [x] *(KPI)* Beze změny **67,5 % canonical** — default None kreslí identicky, Branžež mimo 3-map sadu, žádné nové pokrytí.
+
 ## Sezení 166 (2026-06-25) — KPI vytěžení: kalibrace 210 přestřelu (12→7) + RNG cascade + baseline sirotek (ntbhej)
 Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-166--kpi-vytěžení-kalibrace-210-přestřelu-127--nález-rng-cascade--baseline-sirotek-ntbhej).
 - [x] **Measure-first KPI/KOMPAS na ntbhej (poprvé plná 3-map sada).** `ls` ověřil dostupnost (KPI mapy
