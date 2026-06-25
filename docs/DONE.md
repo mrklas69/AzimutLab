@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 166 (2026-06-25) — KPI vytěžení: kalibrace 210 přestřelu (12→7) + RNG cascade + baseline sirotek (ntbhej)
+Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-166--kpi-vytěžení-kalibrace-210-přestřelu-127--nález-rng-cascade--baseline-sirotek-ntbhej).
+- [x] **Measure-first KPI/KOMPAS na ntbhej (poprvé plná 3-map sada).** `ls` ověřil dostupnost (KPI mapy
+  `.omap`+`.pgw` vč. Velbloud, korpus 265, isom_scan GT, `.dmr_cache` 2,6 GB) → `measure_dod --table/run_kpi`
+  doběhlo (C1 fix Sez. 143 drží RAM). Baseline ntbhej **65,6 %**.
+- [x] **Kalibrace 210 Stony ground přestřelu — `PSEUDO_STONY_FIELD_PER_KM2 12.0 → 7.0`.** `--table` ukázal 210
+  proporční přestřel (gen_share 11,8 % vs orig 7,3 %, invertuje poměr 204:210 = gen 0,73 vs orig 1,09), ač
+  absolutně podstřeluje (622<975). Simulace z counts (bez přegenerace) → faktor 0,5–0,6 optimum. **KPI ntbhej
+  65,6 → 67,1 % (+1,5 pb)**, 210 přestřel→ok (gen 622→351). Verify: 48/48 testů OK, smoke OK, vizuál Velbloud věrný.
+  Goodhart-check obstál (opravuje proporci/inverzi; 210 reconstructor stejně kolabuje; nález uživatele Sez. 140).
+- [x] **NÁLEZ: RNG cascade** — sdílený `np.random.default_rng(seed=1)` mezi `_generate_pseudo_boulders` a
+  `_generate_pseudo_points` → kalibrace 210 deterministicky posunula ostatní pseudo (419 250→147, 417↑, 525↑).
+  Atribuce přes sim: izolovaný 210 +1,64 vs reálné +1,5 → cascade −0,14, zisk robustně z 210. Reconstructor
+  netknut (Png2Point trénuje z `inject.py`, gen .omap pseudo body slouží jen KPI). → carry (TODO): nezávislé RNG streamy.
+- [x] **NÁLEZ: baseline sirotek (audit A3)** — ntbhej KPI 65,6 ≠ HAL3000 `KPI_3MAP_CANONICAL` 67,5; rozdíl
+  lokalizován do Bedřichovky (separace stroj-citlivá, kód 164→HEAD netknut). Canonical headline NEMĚNÍM (nemíchat
+  stroje); → carry: prozkoumat + sjednotit + HAL3000 přeměření po 210 kalibraci.
+- [x] *(disciplína)* **417/419 NEsahám** — silný reconstructor + marginální KPI zisk (+0,2/+0,3) = Goodhart.
+  **521 budovy** (+1,5 pb sim, real-data granularita) odloženo na %THINK (riziko, doménová expertíza uživatele).
+
 ## Sezení 165 (2026-06-25) — Png2Area 409 retrain (pipeline) + %AUDIT:DOCS + isom_scan %AUDIT:CODE + Copilot benchmark (HAL3000)
 Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-165--png2area-409-retrain-pipeline-běží--auditdocs--isom_scan-auditcode--copilot-benchmark-hal3000).
 - [x] **Anti-A1 probe 409 v Livelox korpusu** (`temp/probe_409_pairs.py`): doložil, že nový gate (Sez.164) zvedl

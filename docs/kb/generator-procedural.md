@@ -323,8 +323,11 @@ flagu — visí na `rocks="real"` → `point_base` i `only_real` ji vypnou; izom
 **masku DOLOŽENÉ SKALNATOSTI**: 206 plochy (z DMR sklonu) + reálné ZABAGED 204/207 body, dilatováno o 150 m
 (`PSEUDO_ROCK_DILATE_M`; suť/balvany vyzařují kolem stěn). 204 = kruh (reuse `_draw_boulder`), 210 = pole teček
 `210.1` (samostatné `type=point` objekty, `_draw_stony_dot`, mirror `inject._sample_field`). Hustota na km² masky
-(`PSEUDO_BOULDER_PER_KM2=500` / `PSEUDO_STONY_FIELD_PER_KM2=12`), kalibrovaná na **SHARE** (ne absolutní Σ — gen
-celkově podstřeluje, Σgen ≈ ⅓ Σorig → správný absolutní počet by dal nadměrný share → ředění headline). **NENÍ
+(`PSEUDO_BOULDER_PER_KM2=900` Sez. 152 / `PSEUDO_STONY_FIELD_PER_KM2=7` Sez. 166), kalibrovaná na **SHARE** (ne absolutní Σ — gen
+celkově podstřeluje, Σgen ≈ ⅓ Σorig → správný absolutní počet by dal nadměrný share → ředění headline). **Pozor (Sez. 166):
+„přestřel" v `measure_dod._provedeni` je SHARE-based — symbol může absolutně podstřelovat (210 gen 622 < orig 975) a přesto
+být proporční přestřel; kalibrace = SNÍŽENÍ (gen_share→orig_share, zvedne ostatní podstřelené). 210 12→7 dalo KPI +1,5 pb,
+204=900 sedí (ok). Sdílený `rng` mezi pseudo vrstvami → kalibrace jedné posune ostatní (RNG cascade) → měřit izolovaně přes sim.** **NENÍ
 projekce dat** (poloha v rámci masky náhodná, reframe Sez. 79: detektor ikonek se učí tvar, ne kontext). **Nález
 Sez. 107:** sklon ≠ skalnatost (obecná sklon-maska přestřelila body na svažité-ale-neskalnaté Bedřichovce → +0,3
 pb), doložená skalnatost koreluje per mapa (+8,8 pb → KPI 59,1 %); věrná **per-mapa** distribuce z dat nejde

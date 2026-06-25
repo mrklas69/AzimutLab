@@ -72,9 +72,10 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   skenu, ne v ČÚZK.
 - [!] *(260619-A4; Goodhart)* **Pseudo hustoty měnit jen přes crosswalk-aware měření na stejné sadě.**
   527 přestřel je na kanonické sadě opravený (103→3, KPI 62,0→62,5); 508 `Cesta typcesty_k=025`
-  přesun je ověřený KOMPASem (508 `ok`, headline 63,3). 531 a skalní/veg pseudo hustoty
-  zůstávají kandidáti. Pro každou pseudo vrstvu držet zdroj, hustotu/km², mapovou sadu, datum měření
-  a důvěryhodnost; změnu povolit jen s `measure_dod --table` před/po na stejné sadě.
+  přesun je ověřený KOMPASem (508 `ok`, headline 63,3); **210 Stony ground opraveno Sez. 166** (`PSEUDO_STONY_FIELD_PER_KM2
+  12→7` přes `measure_dod --table` před/po na 3-map ntbhej, KPI +1,5 pb, 210→ok — vzorová governance). 531 zůstává
+  kandidát (ale RNG-křehký, viz „nezávislé RNG streamy" níže). Pro každou pseudo vrstvu držet zdroj, hustotu/km², mapovou
+  sadu, datum měření a důvěryhodnost; změnu povolit jen s `measure_dod --table` před/po na stejné sadě.
 ## Audit supervisor (2026-06-12) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260612.md`** (námitky A1–A7, připomínky B1–B7).
 Příští audit (dle `docs/AUDIT_SUPERVISOR_PROMPT.md`) kontroluje stav položek VYŘEŠENO/TRVÁ/ZHORŠENO —
@@ -269,13 +270,32 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   v `omap_raster` (chce vlastní symbol) + border je tenká hnědá (marginální). Unit probe: jednoduchý řez / **roh** / plný `clip_omap` / Y alias — vše OK.
   **ZBÝVÁ — OOM vizuál na reálném Borný = carry HAL3000/mrkla:** ntbhej regenerace selhala na RAM (`separate.py` 1,38 GiB flat array, sourozenec
   `segment_gt` blokátoru) + disk. Otevřít `Borný_v142.omap` v OOM, ověřit roh Máchova jezera bez černého obrysu na obou řezných hranách.
-- [ ] *(KPI kvalita, nález uživatele Sez. 140 — gen „bohatší" než originál sken)* **Přestřel hustoty symbolů na skalnatých mapách.**
-  Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. Hlavní podezřelí: **balvany 204/210**
-  (gen sype z DMR sklonu + pseudo injekce; kartograf generalizuje) + **pseudo body 417/418/419** + **531**
-  (**527 opraveno Sez. 150: 103→3; 508 jen doplněn řídkým fallbackem přes `Cesta typcesty_k=025` —
-  ZABAGED průseky nejsou coverage zdroj**). KPI dopad: přestřel KPI SNIŽUJE
-  (`min` ukrojí přebytek) → oprava = páka (paměť [[kpi-fill-undershoot-dilutes]]). **Measure-first:** Livelox je raster (KPI nejde) →
-  změřit per-symbol přestřel na `resources/` měřicích mapách (Bedř/Blatná/Velbloud, `.pgw`); kde gen přestřeluje, kalibrovat hustotu dolů.
+- [~] *(KPI kvalita, nález uživatele Sez. 140; **210 HOTOVO Sez. 166**)* **Přestřel hustoty symbolů na skalnatých mapách.**
+  Vizuální dojem z overlay (Rovné skály): gen má víc objektů než kartografův originál. **HOTOVO Sez. 166 (210 Stony ground,
+  ntbhej plná 3-map):** `--table` měřením potvrzen proporční přestřel (gen_share 11,8 % vs orig 7,3 %, invertuje poměr 204:210),
+  ač absolutně podstřeluje (622<975, gen globálně kreslí míň) → `PSEUDO_STONY_FIELD_PER_KM2 12→7` (proporční match), **KPI
+  65,6→67,1 % +1,5 pb**, 210→ok. Simulace z counts PŘED kódem našla optimum 0,5–0,6 + odhalila past (share-based ≠ absolutní).
+  **204 = ok** (r 1,08, `PSEUDO_BOULDER=900` Sez. 152 dobře vyladěn — nesahat). **ZBÝVÁ:** **521 budovy** (real-data
+  granularita, +1,5 pb sim — viz samostatná %THINK položka níže) + **417/525 pseudo** (marginální +~0,3 pb, RNG-křehké —
+  čekají na nezávislé RNG streamy). Paměť [[kpi-fill-undershoot-dilutes]] + [[kpi-overshoot-share-not-absolute]].
+- [ ] *(KPI páka, %THINK PŘED kódem — nález Sez. 166)* **521 Building přestřel = granularita drobných staveb.**
+  Měření Sez. 166: gen **498** budov vs orig **136** (3,7×) na 3-map sadě = největší zbývající KPI páka (**+1,5 pb sim**).
+  Příčina: gen kreslí VŠECHNY ZABAGED budovy vč. drobných (kůlny/skleníky/přístřešky zahrádkářských kolonií, `zabaged.py:241`),
+  kartograf generalizuje (ISOM building min size ~0,4×0,5 mm). **REAL-DATA zásah = opatrně** (riziko vynechat legitimní budovy
+  + ubrat Png2Area 521 příklady). **%THINK:** min-area filtr (jaký práh? ISOM min size vs měřítko) — uživatelova doménová
+  expertíza (kreslí kartograf opravdu kůlny?). Izomorf 403 min_area (Sez. 148), ale diskrétní objekty (ne pattern). Spolu s 503/304 (taky real-data přestřel, granularita/projekce).
+- [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
+  `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
+  Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210
+  kalibrace náhodně 419 250→147, 525 6→20) → KPI kalibrace jednoho symbolu je **zašuměná cascade**. Fix: `rng.spawn()` per pseudo
+  symbol (nezávislý stream) → kalibrace izolovaná, čistá atribuce. Pak teprve doladit 417/525 přestřely. Pozn.: dopad na trénink
+  NULOVÝ (Png2Point z `inject.py`, ne gen .omap), čistě měřicí/KPI robustnost.
+- [ ] *(měření, audit A3 — nález Sez. 166)* **Baseline sirotek: ntbhej KPI ≠ HAL3000 canonical.** Sez. 166 ntbhej plná 3-map
+  = **65,6 %**, ale `KPI_3MAP_CANONICAL` (HAL3000, Sez. 164) = **67,5 %**. Rozdíl lokalizován do **Bedřichovky** (ntbhej 57,4 vs
+  README 58,5 vs TODO 61,9 — i HAL3000 doklady se rozcházejí); Blatná/Velbloud sedí napříč stroji. Kód generátoru 164→HEAD
+  NEZMĚNĚN → STROJOVÝ rozdíl (Bedř = největší sken, separace RAM-downscale / DMR fetch citlivá). **Prozkoumat** (ntbhej↔HAL3000
+  separace téže mapy) + sjednotit headline (audit A3: dva labely KPI_3MAP_NTBHEJ / KPI_3MAP_CANONICAL, nemíchat). **+ HAL3000
+  přeměření po 210 kalibraci** (canonical 67,5 → ~69? — Δ +1,5 pb přenositelný = změna kódu).
 - [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
   523.1 / 525 / 527 / 531.** **HOTOVO Sez. 141:** 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x
   jako **pseudo man-made body** (ZABAGED je nevede → čistě pseudo na měřenou hustotu, izomorf veg 418/419;
