@@ -68,11 +68,11 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   sken → area label rastr, 20 ISOM kódů + pozadí = `N_AREA=21` po 404/407/409 Sez. 152; pár
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
   BEZ rejection — pozadí je legitimní třída; test mIoU 0,577 Sez. 156 retrain 21-class) · `png2point/` = **živý** reconstructor
-  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210/417/419/531
-  od Sez. 158; test mF1 0,811 medián 3 seedů na kanonickém měřítku 1,33; 531 reálný transfer Velbloud F1 0,708) · `png2line/` = **živý**
+  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, scope 204/210/417/419/531/525/527/109/111/112
+  od Sez. 162; test mF1 0,745 medián 3 seedů (10 tříd) na kanonickém měřítku 1,33; reálný transfer 111 0,71–0,89 / 419 0,67–0,76 / 531 0,708 / 525 0,766) · `png2line/` = **živý**
   reconstructor `Png2Line` (sken → liniové symboly, segmentace + skeletonizace; kanonický 2-class watercourse 304/305,
   test mIoU 0,774; 5-class scope Sez. 152 retrénován+revertován Sez. 156 = watercourse regrese).
-  Trénink jen `mrkla` (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
+  Trénink `mrkla`/HAL3000 (RTX 5070, torch+CUDA); ntbhej = tile smoke `build_tiles_dev`
   (maps/, bez korpusu).
 - `connectors/` + `generator/` + `model/` = sdílené kódové složky mimo (zrušený) sandbox, krok k fázi A —
   pořád ale **ne produkční balík** (ten přijde s přechodem na monorepo, fáze A). Sys.path skripty.

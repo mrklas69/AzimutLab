@@ -83,6 +83,11 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
       zbytečně stahuje (Sez. 35 B1: `rocks`/`bridges` to nedostaly → crash, nezachycen 30→34).
   - **Migrace/přejmenování (typ WFS→REST)?** → grep celý strom, ne jen dotčený soubor (drift Sez. 26
     přežil 7 sezení v 5 docs → audit Sez. 34).
+  - **Změnil model scope / synt metriku (Png2Point/Area/Line)?** → headline žije DUPLIKOVANĚ v 7 docs:
+    `README.md` · `CLAUDE.md` · `AGENTS.md` · `docs/architecture.md` · `docs/GLOSSARY.md` ·
+    `docs/kb/tools-models.md` · `model/README.md`. Aktualizuj VŠECHNY (audit Sez. 165: 4 expanze Png2Point
+    Sez. 158-162 minuly 5 ze 7). SSoT scope = `isom.capabilities.SCAN_LIVE_POINT`; dokud DRY není vyřešen
+    (generovat scope list z capabilities), drž ruční sync.
   - **Po `%END` ověř:** každé `## Sezení N` v diáři má řádek v `DIARY.md` indexu **i** v `DONE.md`
     (Sez. 30 vypadlo z obou — audit Sez. 34).
 - Identita sezení = datum + pořadí v daném dni.

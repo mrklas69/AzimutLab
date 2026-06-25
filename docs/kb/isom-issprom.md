@@ -15,6 +15,8 @@ i cílová sémantika generátorů (UC4).
 | ISSprOM 2019-2 | sprint / urban | 2019-2 | `Pic2Omap/docs/spec_check_ISSprOM-2019-2.md` |
 | ISOM 2000 | les / klasická OB (withdrawn) | 2000 | — (lokální PDF `isom-2000-spec.pdf`) |
 
+> Cesty `Pic2Omap/docs/spec_check_*` ukazují do **sourozeneckého repozitáře Pic2Omap** (jiný repo, NE v AzimutLab).
+
 Cílová sémantika generátoru = **ISOM 2017-2** (1:10000; `generator/template_classic.omap`
 je geometricky identický s oficiálním OOM 1:10000 setem, ověřeno Sez. 38). Každý výstup deklaruje
 verzi (`meta["isom"]` + `.omap` `<notes>`) — ochrana proti záměně, viz níže.

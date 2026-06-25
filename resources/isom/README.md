@@ -1,22 +1,24 @@
-# ISOM symbol catalog
+# Katalog ISOM symbolů
 
-`resources/isom/` is the local symbol reference catalog for scan mining. SVG files are shape references for ISOM symbols. They are not the source of scan colors; scan colors must be detected from the input raster.
+`resources/isom/` je lokální referenční katalog symbolů pro scan mining. SVG soubory jsou tvarové
+reference ISOM symbolů. **Nejsou** zdrojem skenových barev — barvy skenu se musí detekovat ze vstupního
+rastru.
 
-Expected local layout:
+Očekávané lokální rozložení:
 
 ```text
 resources/isom/
-  index.json              # generated/local, follows index.schema.json
-  index.schema.json       # tracked contract
-  svg/                    # local SVG dump, not tracked until provenance is clear
-  descriptors/            # generated descriptors, local
+  index.json              # generovaný/lokální, dle index.schema.json
+  index.schema.json       # verzovaný kontrakt
+  svg/                    # lokální SVG dump, neverzovaný dokud není jasná provenance
+  descriptors/            # generované deskriptory, lokální
 ```
 
-The builder also accepts the current flat dump layout (`resources/isom/*.svg`).
-Use `svg/` for new curated copies so the catalog can later separate raw imports
-from generated descriptors cleanly.
+Builder akceptuje i současné ploché rozložení dumpu (`resources/isom/*.svg`).
+Pro nové kurátorované kopie používej `svg/`, aby katalog uměl později čistě oddělit
+raw importy od generovaných deskriptorů.
 
-Build or validate the local index:
+Sestavit nebo zvalidovat lokální index:
 
 ```powershell
 .venv\Scripts\python.exe tools\build_symbol_index.py --resources resources\isom
@@ -24,12 +26,13 @@ Build or validate the local index:
 .venv\Scripts\python.exe tools\list_isom_capabilities.py --resources resources\isom
 ```
 
-`--write` can generate a draft `index.json` from SVG filenames like `525_small_tower.svg`. Draft records use `geom="unknown"` and `license="unknown"` until curated. Production consumers should call the API with `strict=True`.
+`--write` umí vygenerovat draft `index.json` z názvů SVG (`525_small_tower.svg`). Draft záznamy mají
+`geom="unknown"` a `license="unknown"`, dokud nejsou kurátorované. Produkční konzumenti volají API
+s `strict=True`.
 
-Generator/source capabilities live in `isom/capabilities.py`, not in SVG files.
-The conflict policy is: mapper scan > external geodata > pseudo. In practice,
-if a real mapper's scan disagrees with ZABAGED, scan-mined mapper evidence wins.
+Generátorové / zdrojové capabilities žijí v `isom/capabilities.py`, ne v SVG souborech.
+Politika konfliktu: mapper scan > external geodata > pseudo. V praxi: pokud sken reálného mapaře
+nesouhlasí se ZABAGED, vyhrává scan-mined evidence mapaře.
 
-Do not put inline SVG into CSV. Keep raw SVG files in `svg/` when curating,
-stable metadata in `index.json`, and generated machine descriptors in
-`descriptors/`.
+Nevkládej inline SVG do CSV. Raw SVG drž v `svg/` při kuraci, stabilní metadata v `index.json`
+a generované strojové deskriptory v `descriptors/`.

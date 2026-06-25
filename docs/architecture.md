@@ -168,8 +168,8 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   překryvu bboxů = bez leaku); hromadná výroba **207 párů** (`build_pairs`); **tréninkové dlaždice**
   (`model/runnability/tile.py`, Sez. 77 — pre-tiling párů na 512×512, stride 256, rejection <30 % validních px →
   **~8 125 dlaždic** v `resources/tiles/`, median-freq váhy `_tiles.json`). Adresář **`model/`** = UC5 model kód
-  (sourozenec `connectors/`/`generator/`, sys.path fáze B); **tři podadresáře**: `runnability/` (archiv) +
-  `png2area/` + `png2point/` (oba živé reconstructory).
+  (sourozenec `connectors/`/`generator/`, sys.path fáze B); **čtyři podadresáře**: `runnability/` (archiv) +
+  `png2area/` + `png2point/` + `png2line/` (tři živé reconstructory).
 - **Krok 4 dokončen (Sez. 78) + ARCHIVOVÁN (Sez. 79), přesun do `model/runnability/` (Sez. 88):** loader
   (`model/runnability/dataset.py`, D4 aug + ImageNet norma) + trénink (`model/runnability/train.py`, smp
   U-Net/ResNet34, BF16, per-class IoU). Baseline **val mIoU 0,259 / test 0,223**, ale křivka = **generalizační
@@ -227,6 +227,11 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   ČERNÝ man-made X (ne jen zelený veg). `peak_thr=0,60` (sweep, plochá část křivky, izomorf 417/419 Sez. 129);
   **4 staré třídy bez regrese** napříč seedy (bodový scope snese 5. třídu — na rozdíl od liniového 5-class Sez. 156).
   531 povýšen na `SCAN_LIVE_POINT` (capability registr). Blatná/Bedř 531 šum (3 GT). KPI netknuto (capability informativní).
+  **Scope +525/527 (Sez. 159) → +109 (Sez. 161) → +111/112 (Sez. 162) = 10 tříd:** 525 Small tower ⊤ / 527 Fodder
+  rack Λ (černé man-made), 109 Small knoll (první HNĚDÝ terénní disk), 111 Small depression ∪ / 112 Pit ▽ (hnědé).
+  Synt mF1 medián **0,745** (10 tříd, STABILNÍ 0,738–0,763). Reálný transfer: **111 SILNÝ 0,71–0,89** (LEPŠÍ než 109),
+  525 Bedř 0,766, 109 medián 0,65, 527/112 střední-dobrý 0,50–0,83, 417 střední, 210 stále kolabuje. **112 je
+  reconstructor-only** (gen NEkreslí → mimo `USED_CODES`, ať nedělá falešnou KPI díru); ostatních 9 `SCAN_LIVE_POINT`.
   Stejný checkpoint kontrakt jako Area: běh je izolovaný v
   `resources/point_model/runs/<run_id>/` a kanonický `unet_best.pt` se mění jen
   explicitním `--promote`.

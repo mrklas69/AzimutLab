@@ -49,6 +49,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
 - **Kopeček** (knoll) — malá vyvýšenina; je-li menší než zobrazitelná vrstevnicí, kreslí
   se bodovým symbolem. ISOM **109** (Small knoll, kulatý) / **110** (Small elongated knoll,
   protáhlý). Generátor je odvozuje z malých uzavřených vrstevnic (lokální max, Sez. 10).
+  **Pozn. Png2Point: 109 je v detekčním scope, 110 NE** — generátor 110 kreslí, ale eval má jen 8 GT
+  → reálný transfer neměřitelný, rodina uzavřena na 109+111 (Sez. 164).
   (Kódy dle ISOM 2017-2 Rev 6 — staré 2017 mělo 112/113, viz pozn. u ISOM.)
 - **Prohlubeň** (depression) — malá terénní sníženina. ISOM **111** (Small depression,
   hnědý oblouk „⌣"; staré 2017 = 115). Generátor z malých uzavřených vrstevnic (lokální
@@ -585,8 +587,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   runnability-kategorie; per-odstín gap je metrický (odstínová záměna 401↔403, vzácné třídy bez supportu),
   ne kategorický. Reportuje se **dvojice (per-odstín / soft-skupiny)** jako 2. KPI při každém tréninku.
   **Změřen pro `Png2Point` (Sez. 121, A1.b `model/png2point/eval_real.py`):** peak mF1 synt **0,897** (POZOR:
-  nestabilní 2-třídový model PŘED Sez. 125 — dnešní živá reference je 4-třídový model mF1 0,827; 0,888 zůstává
-  superseded 2-třídová metrika) / realita **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
+  nestabilní 2-třídový model PŘED Sez. 125 — dnešní živá reference je **10-třídový** model mF1 **0,745** (Sez. 162);
+  starší 0,827 (4-třídový Sez. 125) i 0,888/0,897 (2-třídové) jsou superseded) / realita 2-třídová tehdy **0,19–0,36** (po masce mapového pole) — **204 Boulder PŘENÁŠÍ** (recall 0,66–0,67 stabilně,
   F1 0,38–0,68: plný kruh přežije injekce→sken), **210 Stony KOLABUJE** (F1 ~0,04: drobné tečky splývají
   s rastrem skenu). 90 %+ halucinace 210 mimo mapové pole = striping artefakt (jako Png2Area) → maska
   pole nutná pro poctivý výpočet. *(Čísla = stav Sez. 121, 2-třídový model na starém měřítku; aktuální

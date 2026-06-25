@@ -6,7 +6,7 @@ dva symboly geometricky kříží. Cílová sémantika generátoru je **ISOM 201
 
 **Zdroj:** IOF *Map Specifications — Printing and Colour Definitions* (únor 2022, dříve „ISOM
 2017 Appendix 1"), kap. 7 „Colour order", tabulka str. 6. ISOM 2017-2 §2.7 barvy na tento
-dokument deleguje. Lokální kopie: `iof-printing-colour-2022.pdf` (oficiální orienteering.sport
+dokument deleguje. Lokální kopie (necommitované, gitignored): `iof-printing-colour-2022.pdf` (oficiální orienteering.sport
 vrací 403 → lokální mirror z orienteering.sk). Cross-check proti plné tabulce IOF MC v issue
 `OpenOrienteering/mapper#1966` (verze 2021, v relevantních řádcích shodná). Ověřeno Sez. 118.
 
