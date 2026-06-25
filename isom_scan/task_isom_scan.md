@@ -12,16 +12,6 @@ palety. Slouží jako baseline „co zvládne hotový model přímo na skenu".
   - Měřítko originálu **1 : 10 000**, ekvidistance **5 m**, autor SW **OCAD 2020** (→ ISOM **2017-2**).
   - Rozlišení skenu cca **0,89 mm/px** v terénu (zmenšeno oproti nativnímu).
 
-## Reference (přiloženo)
-- **`isom-2000-spec.pdf`** — definice a vzhled symbolů. ⚠ **Je to ISOM 2000**, mapa je
-  **ISOM 2017-2**. Pro *vzhled* symbolů jsou obě verze prakticky shodné; liší se ale **číslování**
-  (a OCAD navíc používá vlastní sadu kódů 535–540 pro umělé body tam, kde OOM dává 524–531).
-  → **Reportuj v kanonických kódech ISOM 2017-2 a VŽDY uveď i anglický název symbolu** — název je
-  jednoznačný napříč číslovacími sadami, kód sám ne.
-- **`iof-printing-colour-2022.pdf`** — normovaná barevná paleta ISOM (CMYK/RGB) + pořadí tisku
-  (color order). Barva je silný klasifikační klíč (hnědá = terén, modrá = voda, zelená = porost,
-  černá = umělé/skály/cesty, žlutá = otevřená plocha, olivová = zákaz vstupu).
-
 ## Úkol
 Najdi v `task_isom_scan.png` **všechny ISOM symboly, které dokážeš rozpoznat**, a vrať je v tabulce
 níže. Cílem je maximální pokrytí *při zachování přesnosti* — viz pravidla.
