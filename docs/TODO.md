@@ -4,6 +4,22 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita. Hotové položky p
 v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
+## Sezení 165 — carry / follow-ups
+- [!] *(CUDA, fokus B doběhnutí)* **Png2Area retrain `s165_area409_s42` — eval + promote rozhodnutí.** Pipeline
+  `temp/retrain_409_pipeline.py` (regen 207 → tiles n_area=21 → train) běžela na konci Sez.165. Až doběhne:
+  `eval_real` Bedř/Blatná → **promote JEN když neregreduje** (baseline synt 0,577 / Bedř soft 0,525 / Blatná 0,363).
+  **`promote_run` NEzálohuje** → ruční backup `resources/area_model/unet_best.pt`→`.bak` PŘED promote (vzor Sez.156).
+  Caveat: 409 reálný transfer možná skromný (vzácné v ČR, Sez.156); hodnota = trénink na opravených datech (+407).
+- [ ] *(isom_scan %AUDIT:CODE opt-iny, Sez.165 — measure-first, MĚNÍ výstup detektorů)* **D2/D3 component-leak fix +
+  D4 detector name-SSoT.** Fork je nechal jako dokumentovaný opt-in v `points_common` (label-izolace přepíše skóre,
+  SSoT názvy přepíšou `name`). Aplikovat jen s měřením dopadu na kvalitu detekce, ne slepě. + **D7** `gt_ui` „celá
+  paleta" docstring vs frontend theme-filtr = **UX rozhodnutí uživatele** (filtr je možná záměrný fokus „čistá
+  pracovní paleta", nebo bug proti recall-first). + `gt_ui`→`symbol_index` palette loader (marginální, gt_ui potřebuje svg filename).
+- [ ] *(benchmark fér, Sez.165)* **ISOM-scan re-run iter3 pro VŠECHNY modely.** Copilot iteroval v1→v3 se score.py
+  feedbackem (`results.csv` `build=iter3-coached`); Opus/ChatGPT (Sez.146) měli jen 1 uncoached pokus → leaderboard
+  interim. Volba uživatele: iter3 umožnit všem → re-run pro fér srovnání. Klíčový nález: headline `point_F1` (bodová
+  prostorová lokalizace) je zeď i po coachingu — coaching zvedá jen class_recall/counts (znalost kódů).
+
 ## Audit supervisor (2026-06-19) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260619.md`**. Tento audit navazuje na
 průlom Sez. 146/147: classic-CV práce nad reálným skenem je legitimní `Generator() / scan mining`,

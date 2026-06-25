@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 165 (2026-06-25) — Png2Area 409 retrain (pipeline) + %AUDIT:DOCS + isom_scan %AUDIT:CODE + Copilot benchmark (HAL3000)
+Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-165--png2area-409-retrain-pipeline-běží--auditdocs--isom_scan-auditcode--copilot-benchmark-hal3000).
+- [x] **Anti-A1 probe 409 v Livelox korpusu** (`temp/probe_409_pairs.py`): doložil, že nový gate (Sez.164) zvedl
+  409 v tréninkových párech **0→18389 px / 10-13 map** (per-mapa až 0,84 %) vs Sez.156 datový strop (470 px) →
+  retrain obhájen jako vytěžení, ne mrhání. (Pipeline regen→tiles→train BĚŽÍ; eval+promote = carry, viz TODO.)
+- [x] **%AUDIT:DOCS** (cadence +2 vynucený; 5 agentů + verify proti zdroji; 16 oprav / 9 souborů): vzorec =
+  expanze **Png2Point 5→10** (Sez.158-162) + přidání **Png2Line** se NEÚPLNĚ propagovaly. **K1** scope/mF1 stale
+  v 5 docs (AGENTS/GLOSSARY:588/tools-models:48/model-README/architecture) → sladěno na 10 tříd / mF1 0,745.
+  **K2** CLAUDE.md vynechával Png2Line úplně + „tři"→„čtyři podadresáře". **K3** architecture subdir. **D1** CLAUDE
+  png2area 0,683→0,577. **D2 root-cause:** PROMPTS %END dostalo propagační pravidlo model-scope (SSoT =
+  `isom.capabilities.SCAN_LIVE_POINT`). Kosmetika: „jen mrkla"→„mrkla/HAL3000", isom-colour/issprom, resources/isom→čeština.
+  3 verify-driven korekce vůči agentům (GLOSSARY:500 ponecháno, terminologie OK, termíny nepřidány). Grep sweep čistý.
+- [x] **isom_scan %AUDIT:CODE** (4478 LOC, nikdy auditováno; 4 agenti + verify; volba „vše vč. C1"). **C1 DRY refactor
+  (fork, behavior-preserving):** `points_common.py` (436 ř.) — 5 byte-identických helperů + classify/payload/overlay/
+  run_detector + schéma kurace; 4 detektory → tenké configy; `manmade_omap/review`→`points_omap/review` (git mv,
+  misnomer K2). **Net −420 LOC.** Ověřeno 3× (fork byte-diff detections+stats × má runtime smoke × 48 testů). Fork
+  správně NEAPLIKOVAL D2/D3 leak-fix + D4 name-SSoT (mění výstup → opt-in). **C2:** `build_tile_set` silent-fallback
+  `--src-mpp` → hlasité varování. **Phase A:** ps1 smazán, future-imports pryč, README file-tree +7 souborů +governance
+  („ledger prahů 1/12 recall" — A2 daty potvrzeno, validátor 28 WARN), mark_isoms CODE_LABELS 311/418→SSoT +
+  **APP_HTML extrakce 1330→704** (`mark_isoms.html`, 11 testů), overlay with-open, review_ui SSoT komentáře.
+- [x] **Copilot ISOM-scan benchmark** (ad-hoc, iterace v1→v3 se score.py feedbackem): class_recall 0,25→0,44→0,75
+  (zná kódy), ale **headline point_F1 drží 0,0** (526/530 správný kód, halucinované pozice 22/14 vs 1 GT → TP=0) =
+  bodová lokalizace je zeď. Záznam `runs/2026-06-25_copilot.json` (gitignored) + `results.csv` `build=iter3-coached`.
+  Uživatel: iter3 pro VŠECHNY + brzy re-run (řeší fér výhradu coachingu). Leaderboard interim: ChatGPT 0,50 ≫ Copilot/Opus 0,0.
+
 ## Sezení 164 (2026-06-24) — 409 KPI díra (gate fix) + .pgw do gitu + plná regenerace maps/ (HAL3000)
 Detail: [diary/2026-06-24.md](diary/2026-06-24.md#sezení-164--409-kpi-díra-gate-fix--pgw-do-gitu--plná-regenerace-maps-hal3000).
 - [x] **`.pgw` world-files do gitu** (požadavek uživatele + audit A4): `.gitignore` výjimka `!resources/*.pgw`,
