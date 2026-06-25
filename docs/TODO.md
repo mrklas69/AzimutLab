@@ -24,6 +24,10 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   linií/srázů — řeší **doložený balvany 204/210 vs skalní kresba FP** (Sez.138 E3, audit), dnes jen rejection/shape_f1.
   Cheap geometrický diskriminátor do `points_common.component_candidates` (komplementární k shape_f1). Measure-first
   na review manifestu. (HoughCircles pro kroužkové symboly = IDEAS, marginální vůči CenterNet.)
+  **+ skeleton-endpoint topologie** (vytěžek ChatGPT iter3 trace `chatgpt_aktivita2_3.pdf` Sez.165): počet koncových
+  bodů skeletonu rozliší man-made glyfy specifičtěji než shape_f1/circularity — **⊤** (525/526) = 3 konce (2 horní +
+  středový dřík), **×** (530/531) = 4 diagonální konce, **Λ** (527) = 2-3 konce. Levný topologický diskriminátor pro
+  lineární bodové znaky; doplnit k circularity (kulaté) ve `points_common`.
 - [ ] *(benchmark robustnost, nález uživatele Sez.165)* **Ruční benchmark GT přes GT factory → zrušit `score_codes` ořez.**
   Dnešní `gt/ground_truth.json` je GENERÁTOROVÁ (`generate_map only_real`) → skóruje jen data-derivovatelné kódy
   (z bodů JEN 2: 526/530) → headline `point_F1` visí na 2 bodech = křehký {0; 0,5; 1}, super šumivý. GT factory
@@ -32,6 +36,12 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   naklikat `task_isom_scan.png` (Branžež) přes factory → uložit jako ruční GT, **zvýšit `BENCHMARK_VERSION`** (nemíchat
   tiše s generátorovou, README pravidlo). **Caveaty:** ruční práce uživatele · 1 sken (robustní benchmark chce víc map) ·
   subjektivita u některých symbolů (balvan vs sráz). Legitimní Etapa1 (anti-Goodhart, dokládá recall; [[isom-gt-factory-tool]]).
+  **GT red flag (ChatGPT iter3 trace Sez.165):** GT `526` (1512,1041) a `530` (1521,1035) jsou **~11 px od sebe** = dva
+  RŮZNÉ kódy na ~1 lokaci → nejspíš artefakt `only_real` (oba z téhož ZABAGED objektu); headline tedy nevisí na 2 bodech,
+  ale na ~1 lokaci se 2 kódy = ještě křehčí. **+ GT sanity-check:** dva různé bodové kódy na <20 px = podezřelé, hlásit
+  při build_gt. **Silný doklad pro ruční GT:** ChatGPT s plnou shape-CV mašinérií (globální průchod + skeleton + kontext)
+  trefil instance 429/1056 px vedle — sken je plný stejně vypadajících ⊤/× (40 kandidátů) → tvar SÁM nestačí, jen ruční
+  GT zná, který znak kartograf myslel. NENÍ to slabina metody, ale informační mezera.
 
 ## Audit supervisor (2026-06-19) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260619.md`**. Tento audit navazuje na
