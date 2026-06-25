@@ -19,6 +19,11 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   feedbackem (`results.csv` `build=iter3-coached`); Opus/ChatGPT (Sez.146) měli jen 1 uncoached pokus → leaderboard
   interim. Volba uživatele: iter3 umožnit všem → re-run pro fér srovnání. Klíčový nález: headline `point_F1` (bodová
   prostorová lokalizace) je zeď i po coachingu — coaching zvedá jen class_recall/counts (znalost kódů).
+- [ ] *(isom_scan candidate quality, vytěžek ChatGPT trace Sez.165 — `isom_scan/chatgpt_40min_aktivita1.pdf`)*
+  **Circularity `4πA/P²` + solidity filtr pro bodové kandidáty.** ChatGPT jím odděluje kruhové body od fragmentů
+  linií/srázů — řeší **doložený balvany 204/210 vs skalní kresba FP** (Sez.138 E3, audit), dnes jen rejection/shape_f1.
+  Cheap geometrický diskriminátor do `points_common.component_candidates` (komplementární k shape_f1). Measure-first
+  na review manifestu. (HoughCircles pro kroužkové symboly = IDEAS, marginální vůči CenterNet.)
 
 ## Audit supervisor (2026-06-19) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260619.md`**. Tento audit navazuje na

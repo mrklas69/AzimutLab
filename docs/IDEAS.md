@@ -83,3 +83,12 @@ práce patří do `architecture.md`, `GLOSSARY.md` a `DONE.md`.
   (4) **render-first spec + O-Map Wiki** na přesné tvary před commitem (dotahuje [[isom-spec-before-render]]).
   Plný seznam (TOP 5 + tagy METHOD/GEN/REC/BENCH/ISOM/TOOL) v doku. ISOM fakta tam jsou ChatGPT-sourced →
   verify proti IOF spec před adopcí ([[external-ai-artifacts-verify-not-accept]]).
+- **Vytěžek z druhého běhu ChatGPT (Sez. 165, `isom_scan/chatgpt_40min_aktivita1.pdf`).** Pipeline ≈ naše
+  scan-mining (color masky + `connectedComponents` + kontaktní listy + template — už máme v `separate.py`/
+  `points_common`/`black_brown_poc`/`gt_ui`). **Nové k převzetí:** (1) **circularity `4πA/P²` + convex-hull
+  solidity** = geometrický diskriminátor kruhových bodů od fragmentů linií/srázů → **přesunuto do TODO** (řeší
+  doložený balvany-vs-sráz FP); (2) **HoughCircles** (`dp=1, minDist=10, param2=18, r 4-10px`) na kroužkové
+  symboly (417/419/109/526) = levná classic-CV alternativa k CenterNet pro scan-mining kandidáty (marginální vůči
+  Png2Point, ale cheap). **Klíčový postřeh:** benchmark sken `task_isom_scan.png` = NÁŠ gen render (čisté barvy)
+  → exact-RGB masky ChatGPTu fungují jen tam; na reálném použitém skenu drží naše nearest-color. ISOM/CV fakta
+  verify před adopcí ([[external-ai-artifacts-verify-not-accept]]).
