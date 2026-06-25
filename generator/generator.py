@@ -444,7 +444,9 @@ PSEUDO_ROCK_DILATE_M = 150.0       # dilatace doložené skalnatosti o okolí [m
 # gen_share(204+210) ≈ orig_share (~15 % průměr). Maska (doložená skalnatost) určuje KDE + hrubě korelaci,
 # hustota globální. Věrná per-mapa distribuce z dat NEJDE (skalnatost není v geodatech, data-gate Sez. 107).
 PSEUDO_BOULDER_PER_KM2 = 900.0     # hustota 204 boulderů na km² masky (KALIBRACE Sez. 152: KPI 63,3→66,0)
-PSEUDO_STONY_FIELD_PER_KM2 = 12.0  # hustota 210 polí teček na km² masky (KALIBRACE)
+PSEUDO_STONY_FIELD_PER_KM2 = 7.0   # hustota 210 polí teček na km² masky (KALIBRACE Sez. 166: 210 proporčně
+                                   # přestřeloval 3-map sadu — gen_share 11,8 % vs orig 7,3 %, inverze poměru
+                                   # 204:210 gen 0,73 vs orig 1,09 → 12→7 sladí proporci/poměr, sim KPI +~1,6 pb)
 PSEUDO_STONY_DOT_SPACING_PX = 1.2 * PX_PER_MM                 # rozestup teček 210 (spec point_distance 1200 µm)
 PSEUDO_STONY_DOT_RADIUS_PX = max(1, round(0.15 * PX_PER_MM))  # 210.1 tečka (inner_radius 150 µm)
 
