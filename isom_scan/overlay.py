@@ -33,7 +33,8 @@ GEOM_STYLE = {  # geom: (barva, marker)
 
 
 def load_detections(path):
-    d = json.load(open(path, encoding="utf-8"))
+    with open(path, encoding="utf-8") as fh:   # with = neunikne file handle (KO5, izomorf score.load_json)
+        d = json.load(fh)
     out = d.get("output", d)
     return d, out.get("detections", [])
 

@@ -146,6 +146,14 @@ def main() -> int:
             H, W = arr.shape[:2]
             points = [(c, x * f, y * f, s) for (c, x, y, s) in points]
             print(f"resample {args.src_mpp:.3f} -> {CANONICAL_MPP} m/px (faktor {f:.3f}) -> {W}x{H}")
+    else:
+        # No silent fallback (CLAUDE.md + paměť canonical-mpp): bez --src-mpp se set staví v NATIVNÍM
+        # měřítku skenu (~0,56 m/px u Livelox), takže dlaždice NElícují s reconstructory na CANONICAL_MPP
+        # 1,33. Nepadáme (set je použitelný pro čistou kuraci), ale hlasitě varujeme — tichý skip dělal
+        # dlaždice neviditelně v jiném měřítku.
+        print(f"VAROVÁNÍ: --src-mpp nezadán → dlaždice zůstávají v NATIVNÍM měřítku skenu, NE na kanonickém "
+              f"{CANONICAL_MPP} m/px → NElícují s reconstructory. Zadej --src-mpp z meta.json effectiveMppX, "
+              f"míří-li set do tréninku.", file=sys.stderr)
 
     out = args.out
     if (out / "tiles").exists():

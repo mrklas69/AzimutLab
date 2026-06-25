@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Vytvoří review manifest pro kuraci 525/527/531 kandidátů.
+"""Vytvoří review manifest pro kuraci bodových scan-mining kandidátů.
 
 Použití:
-  python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedrichovka/detections.json
+  python isom_scan/points_review.py --detections temp/manmade_points_bedrichovka/detections.json
 
-Skript z PoC `detections.json` vyrobí:
+Generický nástroj — funguje na `detections.json` z LIBOVOLNÉHO `*_points_poc` detektoru
+(water/terrain/vegetation/manmade), ne jen man-made (dřív se jmenoval `manmade_points_review`,
+audit Sez. 165 misnomer). Z PoC `detections.json` vyrobí:
   - `review_manifest.json` se stabilními kandidáty a review polem
   - `review_sheet.png` pro rychlou kontrolu očima
   - `crops/*.png` jednotlivé výřezy
@@ -14,54 +16,29 @@ Záměrně NErozhoduje TP/FP automaticky. Kurátor do manifestu doplní `review.
 skript zachová existující review rozhodnutí podle stabilního `id`.
 """
 
-from __future__ import annotations
-
 import argparse
-import hashlib
 import json
 import math
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+
+from points_common import REVIEW_VALUES, candidate_id, crop_box, load_font, resolve_existing_path, sha256
 
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 DEFAULT_DETECTIONS = HERE / "manmade_points_poc" / "detections.json"
-REVIEW_VALUES = ("unreviewed", "tp", "fp", "ignore")
 
 # Lokální mapové skeny mohou být velké. Jsou to naše vstupy, ne nedůvěryhodný upload.
 Image.MAX_IMAGE_PIXELS = None
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _load_font(size: int) -> ImageFont.ImageFont:
-    for name in ("arial.ttf", "DejaVuSans.ttf", "segoeui.ttf"):
-        try:
-            return ImageFont.truetype(name, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
 def _resolve_image_path(payload: dict[str, Any], override: Path | None) -> Path:
     """Najde sken z override nebo z `detections.json`; bez skenu selže nahlas."""
     raw = override if override is not None else Path(str(payload.get("image", "")))
-    candidates = [raw]
-    if not raw.is_absolute():
-        candidates.append(REPO_ROOT / raw)
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate.resolve()
-    raise SystemExit(f"Chybi sken pro review: {raw}")
+    return resolve_existing_path(raw, [REPO_ROOT])
 
 
 def _iter_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -74,9 +51,8 @@ def _iter_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
             x = float(point["x"])
             y = float(point["y"])
             score = float(point.get("score", 0.0))
-            candidate_id = f"{pred_code}_x{round(x)}_y{round(y)}"
             out.append({
-                "id": candidate_id,
+                "id": candidate_id(pred_code, x, y),
                 "pred_code": pred_code,
                 "pred_name": pred_name,
                 "score": round(score, 3),
@@ -104,10 +80,10 @@ def _load_existing_reviews(out_dir: Path) -> dict[str, dict[str, Any]]:
 
     reviews: dict[str, dict[str, Any]] = {}
     for candidate in payload.get("candidates", []):
-        candidate_id = str(candidate.get("id", ""))
+        candidate_key = str(candidate.get("id", ""))
         review = candidate.get("review", {})
-        if candidate_id and isinstance(review, dict):
-            reviews[candidate_id] = review
+        if candidate_key and isinstance(review, dict):
+            reviews[candidate_key] = review
     return reviews
 
 
@@ -142,27 +118,8 @@ def _review_summary(candidates: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _crop_box(candidate: dict[str, Any], img: Image.Image, crop_px: int) -> tuple[int, int, int, int]:
-    """Crop centrovaný na kandidátovi; bbox se vejde i s okolím."""
-    cx = float(candidate["center"]["x"])
-    cy = float(candidate["center"]["y"])
-    bbox = candidate.get("bbox") or []
-    if len(bbox) == 4:
-        w = float(bbox[2]) - float(bbox[0])
-        h = float(bbox[3]) - float(bbox[1])
-        half = max(crop_px / 2.0, max(w, h) * 2.0)
-    else:
-        half = crop_px / 2.0
-    return (
-        max(0, round(cx - half)),
-        max(0, round(cy - half)),
-        min(img.width, round(cx + half)),
-        min(img.height, round(cy + half)),
-    )
-
-
 def _candidate_crop(img: Image.Image, candidate: dict[str, Any], crop_px: int) -> Image.Image:
-    crop = img.crop(_crop_box(candidate, img, crop_px)).convert("RGB")
+    crop = img.crop(crop_box(candidate, img, crop_px)).convert("RGB")
     draw = ImageDraw.Draw(crop)
     # Středový kříž ukazuje kandidáta i v rušném mapovém okolí.
     cx, cy = crop.width // 2, crop.height // 2
@@ -193,7 +150,7 @@ def _write_sheet(img: Image.Image, candidates: list[dict[str, Any]], out_path: P
     rows = math.ceil(len(chosen) / cols)
     sheet = Image.new("RGB", (cols * tile, rows * (tile + label_h)), "white")
     draw = ImageDraw.Draw(sheet)
-    font = _load_font(12)
+    font = load_font(12)
     for i, candidate in enumerate(chosen):
         row, col = divmod(i, cols)
         crop = _candidate_crop(img, candidate, crop_px).resize((tile, tile), Image.Resampling.BILINEAR)
@@ -217,7 +174,7 @@ def _manifest(payload: dict[str, Any], detections_path: Path, image_path: Path,
         "source_detections": str(detections_path),
         "source_status": payload.get("_status", ""),
         "image": str(image_path),
-        "image_sha256": _sha256(image_path),
+        "image_sha256": sha256(image_path),
         "codes": codes,
         "review_values": list(REVIEW_VALUES),
         "review_summary": _review_summary(candidates),

@@ -6,8 +6,6 @@ Vytěží trik z běhu ChatGPT 5.5: neutrálně tmavé pixely
 vrstevnic. Skript ukládá diagnostické masky a contact sheet pro rychlý vizuální
 verify; nevstupuje do tréninkové pipeline.
 """
-from __future__ import annotations
-
 import argparse
 import json
 from pathlib import Path

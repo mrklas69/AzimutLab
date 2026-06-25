@@ -39,10 +39,12 @@ CALIBRATION_PATH = HERE / "calibration_manifest.json"
 # Mapové skeny jsou velké, ale jsou to naše vstupy (ne nedůvěryhodný upload).
 Image.MAX_IMAGE_PIXELS = None
 
-# Povolené verdikty (zrcadlí REVIEW_VALUES v manmade_points_review.py = jeden zdroj pravdy konvence).
+# Povolené verdikty. SSoT konvence je `points_common.REVIEW_VALUES`; tady držíme LEHKOU kopii
+# záměrně — review_ui je stdlib UI server a import points_common by zbytečně přitáhl CV deps
+# (numpy/scipy). Při změně enumerace synchronizuj obě (Sez. 165 audit D2).
 REVIEW_VALUES = ("unreviewed", "tp", "fp", "ignore")
 
-# Základní velikost výřezu v px skenu, než se přizpůsobí bboxu kandidáta (jako _review.py).
+# Základní velikost výřezu v px skenu, než se přizpůsobí bboxu kandidáta (jako points_review.py).
 BASE_CROP_PX = 180
 # Výstupní crop nikdy nepošleme větší než tohle (zoom-out na velký kontext jinak nafoukne PNG).
 MAX_CROP_OUT_PX = 1100
@@ -71,9 +73,10 @@ def _load_isom_codes() -> dict:
 
 # ----------------------------------------------------------------------- crop geometrie
 def _crop_box(center: dict, bbox: list, base_px: int) -> tuple:
-    """Výřez centrovaný na kandidátovi; bbox se vejde i s okolím (kopie _review._crop_box).
+    """Výřez centrovaný na kandidátovi; bbox se vejde i s okolím.
 
-    Vrací (left, top, right, bottom) v px skenu."""
+    SSoT geometrie je `points_common.crop_box`; lehká kopie záměrně (UI server netáhne CV deps,
+    viz REVIEW_VALUES výše). Vrací (left, top, right, bottom) v px skenu."""
     cx = float(center["x"])
     cy = float(center["y"])
     if bbox and len(bbox) == 4:

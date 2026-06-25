@@ -2,14 +2,12 @@
 r"""Exportuje scan-mining bodové kandidáty do pracovní `.omap` kopie.
 
 Použití:
-  python isom_scan/manmade_points_omap.py --detections temp/manmade_points_buschdorfl/detections.json --map "maps/Buschdörfl/Buschdörfl.omap" --out temp/manmade_points_buschdorfl/Buschdörfl_candidates.omap
-  python isom_scan/manmade_points_omap.py --review temp/manmade_points_buschdorfl/review/review_manifest.json --include-unreviewed --map "maps/Buschdörfl/Buschdörfl.omap" --out temp/manmade_points_buschdorfl/Buschdörfl_candidates.omap
+  python isom_scan/points_omap.py --detections temp/manmade_points_buschdorfl/detections.json --map "maps/Buschdörfl/Buschdörfl.omap" --out temp/manmade_points_buschdorfl/Buschdörfl_candidates.omap
+  python isom_scan/points_omap.py --review temp/manmade_points_buschdorfl/review/review_manifest.json --include-unreviewed --map "maps/Buschdörfl/Buschdörfl.omap" --out temp/manmade_points_buschdorfl/Buschdörfl_candidates.omap
 
 Skript nepřepisuje zdrojovou mapu. Přidá bodové objekty do kopie, aby šly kandidáty
 zkontrolovat v OOM/OCAD nad stejným `bg_scan.png` podkladem.
 """
-
-from __future__ import annotations
 
 import argparse
 import json
@@ -19,32 +17,14 @@ from typing import Any
 
 from PIL import Image
 
+from points_common import REVIEW_VALUES, candidate_id, load_json, resolve_existing_path
+
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-REVIEW_VALUES = ("unreviewed", "tp", "fp", "ignore")
 
 # Skeny jsou lokální projektová data, ne upload od cizího uživatele.
 Image.MAX_IMAGE_PIXELS = None
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"JSON nejde nacist: {path}: {exc}") from exc
-
-
-def _resolve_existing_path(raw: str | Path, bases: list[Path]) -> Path:
-    """Najde soubor z absolutní cesty nebo relativně vůči známým bázím."""
-    path = Path(raw)
-    candidates = [path]
-    if not path.is_absolute():
-        candidates.extend(base / path for base in bases)
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate.resolve()
-    raise SystemExit(f"Chybi soubor: {raw}")
 
 
 def _image_size_from_payload(payload: dict[str, Any], source_path: Path) -> tuple[int, int]:
@@ -56,7 +36,7 @@ def _image_size_from_payload(payload: dict[str, Any], source_path: Path) -> tupl
     image_raw = payload.get("image")
     if not image_raw:
         raise SystemExit(f"Detekce nemaji image_size ani image: {source_path}")
-    image_path = _resolve_existing_path(str(image_raw), [source_path.parent, REPO_ROOT])
+    image_path = resolve_existing_path(str(image_raw), [source_path.parent, REPO_ROOT])
     with Image.open(image_path) as img:
         return img.size
 
@@ -71,7 +51,7 @@ def _candidates_from_detections(payload: dict[str, Any]) -> list[dict[str, Any]]
             x = float(point["x"])
             y = float(point["y"])
             candidates.append({
-                "id": f"{pred_code}_x{round(x)}_y{round(y)}",
+                "id": candidate_id(pred_code, x, y),
                 "pred_code": pred_code,
                 "pred_name": pred_name,
                 "score": float(point.get("score", 0.0)),
@@ -84,7 +64,7 @@ def _candidates_from_detections(payload: dict[str, Any]) -> list[dict[str, Any]]
 def _load_input(args: argparse.Namespace) -> tuple[Path, list[dict[str, Any]], tuple[int, int], str]:
     """Načte buď raw detekce, nebo ručně kurátorovaný review manifest."""
     if args.detections is not None:
-        payload = _load_json(args.detections)
+        payload = load_json(args.detections)
         return (
             args.detections.resolve(),
             _candidates_from_detections(payload),
@@ -92,17 +72,17 @@ def _load_input(args: argparse.Namespace) -> tuple[Path, list[dict[str, Any]], t
             "detections",
         )
 
-    manifest = _load_json(args.review)
+    manifest = load_json(args.review)
     candidates = list(manifest.get("candidates", []))
     source_raw = manifest.get("source_detections")
     if source_raw:
-        source_path = _resolve_existing_path(str(source_raw), [args.review.parent, REPO_ROOT])
-        image_size = _image_size_from_payload(_load_json(source_path), source_path)
+        source_path = resolve_existing_path(str(source_raw), [args.review.parent, REPO_ROOT])
+        image_size = _image_size_from_payload(load_json(source_path), source_path)
     else:
         image_raw = manifest.get("image")
         if not image_raw:
             raise SystemExit(f"Review manifest nema source_detections ani image: {args.review}")
-        image_path = _resolve_existing_path(str(image_raw), [args.review.parent, REPO_ROOT])
+        image_path = resolve_existing_path(str(image_raw), [args.review.parent, REPO_ROOT])
         with Image.open(image_path) as img:
             image_size = img.size
     return args.review.resolve(), candidates, image_size, "review"

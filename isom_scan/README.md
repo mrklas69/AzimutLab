@@ -9,6 +9,7 @@ model…", Sez. 142). Testuje cloudové i lokální modely **stejným promptem n
 Model nikdy neskóruje sám sebe (self-scoring je nedůvěryhodné + lokální modely nemají file-write).
 
 ```
+# Benchmark harness (sken → JSON odpověď modelu → score)
 task_isom_scan.md          # fixní prompt (vč. JSON schématu výstupu)
 task_isom_scan.png         # LOKÁLNÍ vstup: ořez skenu 1127443 Branžež (1655×1868), necommitovat
 *.pdf                      # LOKÁLNÍ reference: ISOM spec + IOF barvy, necommitovat
@@ -20,14 +21,28 @@ results.csv                # verzovaný leaderboard, připisuje score.py
 score.py                   # runs/*.json × gt → metriky → results.csv
 build_gt.py                # obnoví GT z lokálního resources/livelox/1127443 korpusu
 overlay.py                 # vykreslí GT/run body nad lokální sken
-black_brown_poc*.{py,ps1}  # scan-mining PoC: černá vs hnědá maska ze skenu
+
+# Scan-mining PoC (per-barva bodoví kandidáti ze skenu → detections.json)
+points_common.py           # sdílená mašinérie 4 detektorů (CV pipeline, shape-match, payload, vizualizace)
+black_brown_poc.py         # scan-mining PoC: černá vs hnědá maska ze skenu
+water_points_poc.py        # scan-mining PoC: 311/312/313 z modrých komponent
 manmade_points_poc.py      # scan-mining PoC: 525/527/531 z izolovaných černých komponent
 terrain_points_poc.py      # scan-mining PoC: 109/111/112/115 z malých hnědých komponent
 vegetation_points_poc.py   # scan-mining PoC: 417/418 z malých zelených komponent
-manmade_points_review.py   # kurátorský manifest + crop sheet pro PoC kandidáty
-manmade_points_omap.py     # export bodových kandidátů do pracovní .omap kopie pro vizuální kontrolu
+
+# Kurace / review kandidátů (rodinově AGNOSTICKÉ — běží na kterékoli detekci, ne jen manmade)
+points_review.py           # kurátorský manifest + crop sheet pro PoC kandidáty
+points_omap.py             # export bodových kandidátů do pracovní .omap kopie pro vizuální kontrolu
+review_ui.{html,py}        # lokální HTTP UI: odškrtávání tp/fp/ignore nad review manifestem
 mark_isoms.py              # lokální canvas marker: ruční point markery do JSON, ne do `.omap`
-calibration_manifest.json  # verzovaný per-ISOM ledger parametrů, markerů, review a export stavu
+markers/*.json             # ruční pozitivní markery (recall důkaz pro KOMPAS)
+
+# GT factory (Část A → B: SET dlaždic 512×512 → ruční dokurace GT)
+build_tile_set.py          # Část A: z reálné mapy vyrobí SET dlaždic ke kuraci
+gt_ui.{html,py}            # Část B: lokální HTTP UI pro dokuraci tile GT
+
+# Kalibrační ledger
+calibration_manifest.json  # per-ISOM ledger prahů/markerů/review (rozpracováno: 1/12 záznamů má doplněný recall)
 calibration_manifest.py    # validace tvaru ledgeru; strict až po ruční kuraci
 ```
 
@@ -77,7 +92,7 @@ registry je označuje jen jako `classic_cv_poc`, ne jako live mapper-scan.
 
 Kurace kandidátů:
 ```powershell
-python isom_scan/manmade_points_review.py --detections temp/manmade_points_bedrichovka/detections.json
+python isom_scan/points_review.py --detections temp/manmade_points_bedrichovka/detections.json
 ```
 To vytvoří `review_manifest.json`, `review_sheet.png` a `crops/*.png`. Do manifestu se ručně
 doplní `review.verdict` (`tp` / `fp` / `ignore`) a případně `review.true_code`. Teprve takový
@@ -91,7 +106,9 @@ Kalibrační protokol pro jeden ISOM kód:
 4. Změř recall vůči markerům, false positives vůči negativním příkladům a uprav prahy pro konkrétní kód.
 5. Parametry zapiš jako per-ISOM kalibraci; dokud nejsou opakovatelné, výstup zůstává jen pracovní vrstva.
 
-Verzovaný ledger kalibrací je `calibration_manifest.json`. Základní kontrola:
+Verzovaný ledger prahů (a rozpracované kalibrace) je `calibration_manifest.json` — **stav: rozpracováno**,
+`marker_recall` je doplněn jen u 1/12 kódů (zbytek `null`, `_status: IN_PROGRESS`). Je to ledger prahů, ne
+hotová kalibrace s recall. Základní kontrola:
 ```powershell
 python isom_scan/calibration_manifest.py
 ```
@@ -105,7 +122,7 @@ negativní příklady odstranil při zachování marker recall.
 
 Pracovní `.omap` kopie pro kontrolu kandidátů:
 ```powershell
-python isom_scan/manmade_points_omap.py `
+python isom_scan/points_omap.py `
   --review temp/manmade_points_buschdorfl/review/review_manifest.json `
   --include-unreviewed `
   --map "maps/Buschdörfl/Buschdörfl.omap" `
@@ -129,7 +146,7 @@ python isom_scan/terrain_points_poc.py `
   --max-dim 3000 `
   --score-threshold 0.87 `
   --min-area 25
-python isom_scan/manmade_points_review.py `
+python isom_scan/points_review.py `
   --detections temp/terrain_points_buschdorfl/detections.json `
   --crop-px 220
 ```
@@ -143,7 +160,7 @@ Zelené vegetation-point kandidáty 417/418:
 python isom_scan/vegetation_points_poc.py `
   --input "maps/Buschdörfl/bg_scan.png" `
   --out-dir temp/vegetation_points_buschdorfl
-python isom_scan/manmade_points_review.py `
+python isom_scan/points_review.py `
   --detections temp/vegetation_points_buschdorfl/detections.json `
   --crop-px 180
 ```

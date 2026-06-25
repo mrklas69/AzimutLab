@@ -6,20 +6,32 @@ Použití:
 
 Výstup je kandidátní diagnostika, ne GT. Detektor hledá malé izolované modré
 komponenty a porovnává je se zjednodušenými šablonami ISOM symbolů.
-"""
 
-from __future__ import annotations
+Na rozdíl od ostatních *_points_poc je tu navíc ROTACE šablon (vodní symboly mají orientaci)
+a volitelná MARKER KALIBRACE — proto má vlastní `main`/`_classify`. Sdílené helpery
+(font/resize/shape-match/komponenty/payload/vizualizace) bere z `points_common` (C1 dedup, Sez. 165).
+"""
 
 import argparse
 import json
 import math
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from scipy import ndimage as ndi
+
+from points_common import (
+    Candidate,
+    component_candidates,
+    contact_sheet,
+    detections_payload,
+    draw_overlay,
+    resize_for_processing,
+    save_mask,
+    shape_f1,
+)
 
 
 Image.MAX_IMAGE_PIXELS = None
@@ -34,38 +46,6 @@ CODE_NAMES = {
     "313": "Prominent water feature",
 }
 CODE_ORDER = {code: i for i, code in enumerate(TARGET_CODES)}
-
-
-@dataclass(frozen=True)
-class Candidate:
-    """Jedna modrá komponenta klasifikovaná podle nejlepší vodní point šablony."""
-
-    code: str
-    score: float
-    angle_deg: int
-    x: float
-    y: float
-    bbox: tuple[float, float, float, float]
-    area_px: int
-    fill: float
-
-
-def _load_font(size: int) -> ImageFont.ImageFont:
-    for name in ("arial.ttf", "DejaVuSans.ttf", "segoeui.ttf"):
-        try:
-            return ImageFont.truetype(name, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
-def _resize_for_processing(img: Image.Image, max_dim: int) -> tuple[Image.Image, float]:
-    """Vrátí pracovní obraz a měřítko proc_px/orig_px."""
-    if max_dim <= 0 or max(img.size) <= max_dim:
-        return img.copy(), 1.0
-    scale = max_dim / max(img.size)
-    size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
-    return img.resize(size, Image.Resampling.BILINEAR), scale
 
 
 def _blue_mask(arr: np.ndarray, blue_min: int, green_min: int, red_max: int,
@@ -127,63 +107,22 @@ def _render_template(code: str, angle_deg: int) -> np.ndarray:
     return _crop_nonempty(np.asarray(img) > 20)
 
 
-def _resize_bool(mask: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
-    """Nearest-neighbour resize binární šablony přes PIL, bez OpenCV závislosti."""
-    h, w = shape
-    im = Image.fromarray(mask.astype(np.uint8) * 255, mode="L")
-    return np.asarray(im.resize((w, h), Image.Resampling.NEAREST)) > 0
-
-
-def _shape_f1(component: np.ndarray, template: np.ndarray) -> float:
-    """F1 překryvu komponenty se šablonou přetaženou na stejný bbox."""
-    if not component.any():
-        return 0.0
-    tmpl = _resize_bool(template, component.shape)
-    overlap = component & tmpl
-    tp = int(overlap.sum())
-    if tp == 0:
-        return 0.0
-    precision = tp / int(component.sum())
-    recall = tp / int(tmpl.sum())
-    return 2 * precision * recall / (precision + recall)
-
-
-def _component_candidates(mask: np.ndarray, args: argparse.Namespace) -> list[tuple[int, slice, slice]]:
-    """Vybere malé modré komponenty; dlouhé potoky, šrafy a vodní plochy nechá mimo."""
-    label_mask = mask
-    if args.close_px > 0:
-        structure = np.ones((3, 3), dtype=bool)
-        label_mask = ndi.binary_closing(mask, structure=structure, iterations=args.close_px)
-    labels, _ = ndi.label(label_mask)
-    objects = ndi.find_objects(labels)
-
-    out: list[tuple[int, slice, slice]] = []
-    for idx, obj in enumerate(objects, start=1):
-        if obj is None:
-            continue
-        sy, sx = obj
-        h = sy.stop - sy.start
-        w = sx.stop - sx.start
-        if h < args.min_size or w < args.min_size or h > args.max_size or w > args.max_size:
-            continue
-        component = labels[sy, sx] == idx
-        area = int(component.sum())
-        if area < args.min_area or area > args.max_area:
-            continue
-        fill = area / (w * h)
-        if fill < args.min_fill or fill > args.max_fill:
-            continue
-        out.append((idx, sy, sx))
-    return out
-
-
 def _classify(mask: np.ndarray, scale: float, args: argparse.Namespace) -> tuple[list[Candidate], dict[str, object]]:
+    """Rotující klasifikace: každou šablonu zkouší po `angle_step` stupních a bere nejlepší F1.
+
+    POZN. (audit Sez. 165): `labels = ndi.label(mask)` re-labeluje RAW masku, idx ale přichází
+    z `component_candidates` (label_mask). Při default `close_px=0` jsou obě labelingy shodné →
+    chování beze změny; latentní rozjezd při `close_px>0` je známá vada, vědomě neopravená zde."""
     templates = {
         code: [(angle, _render_template(code, angle)) for angle in range(0, 360, args.angle_step)]
         for code in TARGET_CODES
     }
     labels, _ = ndi.label(mask)
-    raw_components = _component_candidates(mask, args)
+    raw_components = component_candidates(
+        mask, min_size=args.min_size, max_size=args.max_size, min_area=args.min_area,
+        max_area=args.max_area, min_fill=args.min_fill, max_fill=args.max_fill,
+        close_px=args.close_px, return_idx=True,
+    )
     candidates: list[Candidate] = []
 
     for idx, sy, sx in raw_components:
@@ -193,7 +132,7 @@ def _classify(mask: np.ndarray, scale: float, args: argparse.Namespace) -> tuple
         best_score = 0.0
         for code, rotations in templates.items():
             for angle, template in rotations:
-                score = _shape_f1(component, template)
+                score = shape_f1(component, template)
                 if score > best_score or (score == best_score and CODE_ORDER[code] < CODE_ORDER.get(best_code, 99)):
                     best_code = code
                     best_angle = angle
@@ -239,64 +178,6 @@ def _classify(mask: np.ndarray, scale: float, args: argparse.Namespace) -> tuple
         },
     }
     return capped, stats
-
-
-def _detections_payload(candidates: list[Candidate], image_path: Path, image_size: tuple[int, int],
-                        scale: float, args: argparse.Namespace, stats: dict[str, object],
-                        calibration: dict[str, Any] | None) -> dict[str, object]:
-    detections = []
-    for code in TARGET_CODES:
-        pts = [
-            {
-                "x": round(c.x, 1),
-                "y": round(c.y, 1),
-                "score": round(c.score, 3),
-                "angle_deg": c.angle_deg,
-                "bbox": [round(v, 1) for v in c.bbox],
-                "area_px_proc": c.area_px,
-                "fill": round(c.fill, 3),
-            }
-            for c in candidates
-            if c.code == code
-        ]
-        detections.append({
-            "code": code,
-            "name": CODE_NAMES[code],
-            "geom": "point",
-            "count": len(pts),
-            "points": pts,
-            "confidence": round(float(np.mean([p["score"] for p in pts])) if pts else 0.0, 3),
-        })
-
-    payload: dict[str, object] = {
-        "_status": "POC classic_cv 2026-06-21; needs visual/curated validation before generator use",
-        "_doc": "Detekce 311/312/313 z modre kresby skenu; vystup je review kandidat, ne GT.",
-        "image": str(image_path),
-        "image_size": {"w": image_size[0], "h": image_size[1]},
-        "processing_scale": scale,
-        "parameters": {
-            "blue_min": args.blue_min,
-            "green_min": args.green_min,
-            "red_max": args.red_max,
-            "blue_red_diff": args.blue_red_diff,
-            "green_red_diff": args.green_red_diff,
-            "score_threshold": args.score_threshold,
-            "min_size": args.min_size,
-            "max_size": args.max_size,
-            "min_area": args.min_area,
-            "max_area": args.max_area,
-            "min_fill": args.min_fill,
-            "max_fill": args.max_fill,
-            "close_px": args.close_px,
-            "angle_step": args.angle_step,
-            "max_per_code": args.max_per_code,
-        },
-        "stats": stats,
-        "detections": detections,
-    }
-    if calibration is not None:
-        payload["calibration"] = calibration
-    return payload
 
 
 def _load_markers(path: Path) -> list[dict[str, Any]]:
@@ -380,58 +261,6 @@ def _calibrate_with_markers(candidates: list[Candidate], marker_path: Path, tol_
     }
 
 
-def _draw_overlay(img: Image.Image, candidates: list[Candidate], out_path: Path) -> None:
-    colors = {"311": (0, 110, 255), "312": (255, 0, 180), "313": (120, 40, 220)}
-    out = img.copy()
-    draw = ImageDraw.Draw(out)
-    font = _load_font(16)
-    for c in candidates:
-        color = colors.get(c.code, (255, 0, 0))
-        x0, y0, x1, y1 = c.bbox
-        pad = 5
-        draw.rectangle([x0 - pad, y0 - pad, x1 + pad, y1 + pad], outline=color, width=3)
-        label = f"{c.code} {c.score:.2f} {c.angle_deg}°"
-        box = draw.textbbox((x1 + 6, y0 - 2), label, font=font)
-        draw.rectangle([box[0] - 2, box[1] - 2, box[2] + 2, box[3] + 2], fill=(255, 255, 255))
-        draw.text((x1 + 6, y0 - 2), label, fill=color, font=font)
-    out.save(out_path)
-
-
-def _contact_sheet(img: Image.Image, candidates: list[Candidate], out_path: Path, limit: int = 72) -> None:
-    if not candidates:
-        Image.new("RGB", (420, 80), "white").save(out_path)
-        return
-    chosen = sorted(candidates, key=lambda c: -c.score)[:limit]
-    tile = 170
-    label_h = 28
-    cols = min(6, len(chosen))
-    rows = math.ceil(len(chosen) / cols)
-    sheet = Image.new("RGB", (cols * tile, rows * (tile + label_h)), "white")
-    draw = ImageDraw.Draw(sheet)
-    font = _load_font(12)
-    for i, c in enumerate(chosen):
-        row, col = divmod(i, cols)
-        x0, y0, x1, y1 = c.bbox
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-        half = max(55, (max(x1 - x0, y1 - y0) / 2) + 34)
-        crop_box = (
-            max(0, int(cx - half)),
-            max(0, int(cy - half)),
-            min(img.width, int(cx + half)),
-            min(img.height, int(cy + half)),
-        )
-        crop = img.crop(crop_box).resize((tile, tile), Image.Resampling.BILINEAR)
-        px = col * tile
-        py = row * (tile + label_h)
-        sheet.paste(crop, (px, py))
-        draw.text((px + 4, py + tile + 4), f"{c.code} s={c.score:.2f} a={c.angle_deg}", fill=(0, 0, 0), font=font)
-    sheet.save(out_path)
-
-
-def _save_mask(mask: np.ndarray, out_path: Path) -> None:
-    Image.fromarray(mask.astype(np.uint8) * 255, mode="L").save(out_path)
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -467,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     original = Image.open(args.input).convert("RGB")
-    proc, scale = _resize_for_processing(original, args.max_dim)
+    proc, scale = resize_for_processing(original, args.max_dim)
     arr = np.asarray(proc)
     blue = _blue_mask(arr, args.blue_min, args.green_min, args.red_max,
                       args.blue_red_diff, args.green_red_diff)
@@ -476,7 +305,32 @@ def main(argv: list[str] | None = None) -> int:
         _calibrate_with_markers(candidates, args.markers, args.match_tol_px)
         if args.markers is not None else None
     )
-    payload = _detections_payload(candidates, args.input, original.size, scale, args, stats, calibration)
+    payload = detections_payload(
+        candidates, args.input, original.size, scale, target_codes=TARGET_CODES,
+        code_names=CODE_NAMES,
+        parameters={
+            "blue_min": args.blue_min,
+            "green_min": args.green_min,
+            "red_max": args.red_max,
+            "blue_red_diff": args.blue_red_diff,
+            "green_red_diff": args.green_red_diff,
+            "score_threshold": args.score_threshold,
+            "min_size": args.min_size,
+            "max_size": args.max_size,
+            "min_area": args.min_area,
+            "max_area": args.max_area,
+            "min_fill": args.min_fill,
+            "max_fill": args.max_fill,
+            "close_px": args.close_px,
+            "angle_step": args.angle_step,
+            "max_per_code": args.max_per_code,
+        },
+        status="POC classic_cv 2026-06-21; needs visual/curated validation before generator use",
+        doc="Detekce 311/312/313 z modre kresby skenu; vystup je review kandidat, ne GT.",
+        stats=stats,
+        include_angle=True,
+        calibration=calibration,
+    )
 
     (args.out_dir / "detections.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -487,9 +341,13 @@ def main(argv: list[str] | None = None) -> int:
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    _save_mask(blue, args.out_dir / "blue_mask.png")
-    _draw_overlay(original, candidates, args.out_dir / "water_points_overlay.png")
-    _contact_sheet(original, candidates, args.out_dir / "water_points_contact_sheet.png")
+    save_mask(blue, args.out_dir / "blue_mask.png")
+    draw_overlay(original, candidates, args.out_dir / "water_points_overlay.png",
+                 colors={"311": (0, 110, 255), "312": (255, 0, 180), "313": (120, 40, 220)},
+                 label_fn=lambda c: f"{c.code} {c.score:.2f} {c.angle_deg}°")
+    contact_sheet(original, candidates, args.out_dir / "water_points_contact_sheet.png",
+                  limit=72, tile=170, label_h=28, font_size=12, half_min=55, half_extra=34,
+                  label_fn=lambda c: f"{c.code} s={c.score:.2f} a={c.angle_deg}")
 
     print(json.dumps(payload["stats"], ensure_ascii=False, indent=2))
     if calibration is not None:
