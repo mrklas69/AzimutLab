@@ -71,13 +71,18 @@ CODE_LABELS = {
     "417": {"short": "výrazný strom", "name": "Prominent large tree"},
     "418": {"short": "keř/strom", "name": "Prominent bush or small tree"},
     "419": {"short": "výrazná vegetace", "name": "Prominent vegetation feature"},
+    "512.1": {"short": "most/tunel min.", "name": "Bridge / tunnel, minimum size"},
+    "512.2": {"short": "lávka", "name": "Footbridge"},
     "519": {"short": "přechod", "name": "Crossing point"},
+    "521.1": {"short": "budova min.", "name": "Building, minimum size"},
+    "523.1": {"short": "zřícenina min.", "name": "Ruin, minimum size"},
     "524": {"short": "vysoká věž", "name": "High tower"},
     "525": {"short": "věžička", "name": "Small tower"},
     "526": {"short": "mohyla", "name": "Cairn"},
     "527": {"short": "krmelec", "name": "Fodder rack"},
     "530": {"short": "umělý objekt O", "name": "Prominent man-made feature: ring"},
     "531": {"short": "umělý objekt X", "name": "Prominent man-made feature: x"},
+    "603": {"short": "kóta (spot height)", "name": "Spot height"},
     "unknown": {"short": "neznámý", "name": "Unknown symbol"},
 }
 

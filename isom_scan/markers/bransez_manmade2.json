@@ -1,0 +1,66 @@
+{
+  "_status": "MARKER_DONE",
+  "_doc": "Rucni point markery ve scan px souradnicich; zdroj pravdy pro kalibraci, ne .omap overlay.",
+  "schema_version": 1,
+  "updated": "2026-06-26T20:21:41+0200",
+  "title": "isom_scan · 525/526/527/530/531/603",
+  "image": "C:\\Users\\hejna\\source\\AzimutLab\\isom_scan\\task_isom_scan.png",
+  "image_sha256": "9de565496b9c68206d5adc5825f016be9e12466320a93c84f2837aa1f8c9fe0c",
+  "image_size": {
+    "w": 1655,
+    "h": 1868
+  },
+  "codes": [
+    "525",
+    "526",
+    "527",
+    "530",
+    "531",
+    "603"
+  ],
+  "tiles": {
+    "enabled": false,
+    "count": 0
+  },
+  "markers": [
+    {
+      "id": "527_x1190_y1326",
+      "code": "527",
+      "x": 1190.4,
+      "y": 1325.5,
+      "note": ""
+    },
+    {
+      "id": "531_x676_y1654",
+      "code": "531",
+      "x": 676.4,
+      "y": 1653.8,
+      "note": ""
+    },
+    {
+      "id": "527_x111_y1652",
+      "code": "527",
+      "x": 111.2,
+      "y": 1652.2,
+      "note": ""
+    },
+    {
+      "id": "526_x1506_y1035",
+      "code": "526",
+      "x": 1505.7,
+      "y": 1034.8,
+      "note": ""
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "by_code": {
+      "525": 0,
+      "526": 1,
+      "527": 2,
+      "530": 0,
+      "531": 1,
+      "603": 0
+    }
+  }
+}

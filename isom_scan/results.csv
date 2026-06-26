@@ -11,3 +11,6 @@ run_id,date,benchmark_version,model,build,provider,quant,ctx_window,vision,pdf_i
 2026-06-18_gpt-5-5-thinking_full,2026-06-18,2.0,gpt-5.5-thinking,,cloud,,,True,True,,,,,,,0,0,0,0,0.0,0.0,0.0,0.0
 2026-06-18_chatgpt-5-5,2026-06-18,2.0,chatgpt-5-5,,cloud,,,True,,,0,,,,,13,20,17,50,0.1206,0.4178,0.6429,0.1206
 2026-06-18_claude-opus-4-8_full,2026-06-18,2.0,claude-opus-4-8,1m,cloud,,1000000,True,False,0.0,0,,,,,8,9,9,26,0.0,0.0461,0.1429,0.0
+2026-06-18_chatgpt-5-5,2026-06-18,2.0,chatgpt-5-5,,cloud,,,True,,,0,,,,,13,20,17,50,0.2685,0.4178,0.6857,0.2685
+2026-06-18_claude-opus-4-8_full,2026-06-18,2.0,claude-opus-4-8,1m,cloud,,1000000,True,False,0.0,0,,,,,8,9,9,26,0.0,0.0461,0.2,0.0
+2026-06-18_gpt-5-5-thinking_full,2026-06-18,2.0,gpt-5.5-thinking,,cloud,,,True,True,,,,,,,0,0,0,0,0.0,0.0,0.0,0.0
