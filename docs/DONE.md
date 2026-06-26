@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 169 (2026-06-26) — GT factory: ruční bodová GT Branžež 155 bodů / 14 kódů + detektor tuning (ntbhej)
+Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-169--gt-factory-ruční-bodová-gt-branžež-155-bodů--14-kódů--detektor-tuning-na-uživatelových-diskriminátorech-ntbhej).
+- [x] **Prolomena zeď `point_F1`** (Příště #1 Sez. 168): ruční bodová GT Branžež přes `mark_isoms` factory, 5 setů
+  klikání (uživatel) spojeno do master `bransez_gt.json` → **155 bodů / 14 kódů** (z 2 šumivých 526/530 na 1 lokaci).
+  `point_F1`: ChatGPT 5.5 **0,121** (z 0,0), Opus 0,0. Řetězec ověřen PŘED klikáním (dummy → `gt_from_markers` → `score`).
+- [x] **Detektor 109 kalibrace + 3 uživatelovy diskriminátory:** recall 2 %→96 % (opening rozbije slité kupky),
+  precision 13 %→**58 %** (108 menší-v-řadě = velikost medián 7,8 vs 4,8 + linearita 0 vs 2 sousedi; 110 elipsa
+  ecc<0,77; 105 průchozí val = angular limit CV → oko/ML). **1 zásah** (přehlédnutá 109 @383,4/960,3).
+- [x] **Detektor balvanů (černá maska):** **3 zásahy**; velikost RELATIVNÍ (204.5 spec „larger than neighboring",
+  abs práh shoda jen 39 %) → ⌀ jako vodítko, kategorii určí kartograf. FP = budovy (pravoúhelník) / 206 (plošné).
+- [x] **`mark_isoms.CODE_LABELS` 12 → 39 kódů** (101.1-104.1 vrstevnicové / 105/106/108 val-rýha / 110-115 terénní /
+  201.1-205 skalní-balvany / 303-313 vodní; name verify-against-source z `template_classic.omap`, 311/313 drift fix).
+- [x] Strop classic-CV doložen (výrazné tvary ano, jemné 111/112 ne, kontext 105/204.5 ne) = **potvrzená vize ML
+  rekonstruktoru** (uživatelova meta-feedback). Detektory zůstaly scratchpad (zabudování do `terrain_points_poc` = carry). KPI 67,1 % netknuto.
+
 ## Sezení 168 (2026-06-26) — Podklady SSoT layout + GT factory bodová infrastruktura (ntbhej)
 Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-168--podklady-ssot-layout-pořadíopacitybg_-prefix--gt-factory-bodová-infrastruktura-ntbhej).
 - [x] **Podklady map SSoT layout** (požadavek uživatele): `gen_backgrounds.BG_LAYOUT` = jediný zdroj pořadí (z-order
