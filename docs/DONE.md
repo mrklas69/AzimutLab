@@ -2,6 +2,23 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 172 (2026-06-26) — Scan-transfer 109/111 z polovičních vrstevnic (reframe: podstřel, ne díra) → KPI bod +2,3 pb (ntbhej)
+Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-172--scan-transfer-109111-z-polovičních-vrstevnic-reframe-podstřel-ne-díra--kpi-bod-23-pb-ntbhej).
+- [x] **Reframe (verify-against-source, zabránil falešné pseudo práci):** 109 NENÍ díra — generátor ho kreslí z uzavřených
+  vrstevnic (`_classify_loop` §4.10, lokální max < 600 m² → hnědý disk). `measure_dod --table` (crosswalk-aware, ne ad-hoc):
+  **109 orig 251 / gen 18 (7 %) = největší terénní PODSTŘEL**, 111 173/31. Příčina (kód): 109/111 jen z plných 5 m vrstevnic
+  (`CONTOUR_STEP`); kupka 2,5–5 m → uzavřená smyčka na poloviční hladině, dnes jen čárkovaná formline (`_classify_loop` se nevolá).
+- [x] **Volba uživatele Q1 = A) poloviční vrstevnicové smyčky** (kartograficky správné §4.10, reuse, fyzikálně z DMR; B DMR-maxima riziko šum / C pseudo zavrženo: terénní bod ≠ náhodné rozmístění).
+- [x] **Kód (3 edity `generator.py`, +23/−8):** `_classify_loop` vrací `"elev"`; half-hladina (`level+2,5 m`) ji volá PŘED
+  formline cestou s **guardem `|elev − hlevel| < 2,5 m`** (extrém celý mezi plnými vrstevnicemi → bez zdvojení + vyloučí
+  vrcholy velkých kopců, které dosáhnou plné). Jen `terrain=="real"` → noise byte-identický.
+- [x] **Verify (ntbhej, measure-first PŘED i PO):** **109 18→32 (+78 %)**, **111 31→52 → „ok"** (bonus, izomorf — jedna
+  změna obě). **KPI 67,1→67,3 % (+0,2 pb), bod 67,9→70,2 (+2,3 pb)**, žádná regrese (past [[kpi-fill-undershoot-dilutes]]
+  se nenaplnila — velká mezera překonala dilution; agreg. sim PŘED kódem +3,5 pb směr). 109 vypadlo z top-5 děr. Smoke OK
+  (97 s); žádný unit test se `_classify_loop` nedotýká. **Vizuál Soví vrch** (GPS lokalita): plné 76 + half **77**, crop =
+  hnědé tečky v uzavřených vrstevnicích = kupky na max, bez šumu/zdvojení. **DMR strop uznán** (drobné kupky pod rozlišením).
+- [x] **Sirotek (audit A3, nemíchat):** 67,3 = NTBHEJ; canonical HAL3000 67,5 (Sez. 164) NEpřeměřeno → carry. Volba Q2 = přijmout & commit.
+
 ## Sezení 171 (2026-06-26) — GT factory dokončení bodových ISOM (zelené + man-made, master 155→187, zeď point_F1 prolomena) (ntbhej)
 Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-171--gt-factory-dokončení-bodových-isom-zelené--man-made-master-155187-zeď-point_f1-prolomena-ntbhej).
 - [x] **3 sety ručních bodů přes `mark_isoms`** (Příště #1 Sez. 170, uživatelova série): zelené **417/418/419** (27,

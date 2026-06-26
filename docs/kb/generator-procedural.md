@@ -608,6 +608,11 @@ se bodovým symbolem (ISOM kartografická generalizace). Detekce: smyčka uzavř
 (poměr stran bbox > 2,5) → **110 Small elongated knoll** (hnědá elipsa); lokální min →
 **111 Small depression** (hnědý oblouk „⌣"). **112 Pit vynechán** — je to jiná
 feature class (umělá/erozní díra), z výškového pole neodlišitelný od 111.
+**Detekce běží na plných (5 m) i polovičních hladinách** (`level + 2,5 m`, Sez. 172): kupka/prohlubeň
+vysoká 2,5–5 m, kterou plná ekvidistance nezachytí jako uzavřenou smyčku (DMR 5G), tak dostane bod. Guard
+`|výška uvnitř − hladina| < 2,5 m` zaručí, že extrém leží CELÝ mezi dvěma plnými vrstevnicemi → bez zdvojení
+s bodem/kroužkem z plné cesty a bez vrcholů velkých kopců (ty dosáhnou plné). Zvedlo gen 109 18→32 / 111 31→52
+(KPI bod +2,3 pb, ntbhej). Zbytek díry 109 = DMR strop (drobné kupky pod rozlišením 5 m vrstevnic).
 Rastr z-order (Sez. 18): hned po vrstevnicích (§4.5) = POD vodou/cestami/budovami (hnědý
 terénní detail, černé komunikace ho překryjí). GT do `mask_symbols.png` (multi-class) +
 seznam pozic `point_symbols` v `meta.json`. (Realizace Sez. 10, z-order opraven Sez. 18.)

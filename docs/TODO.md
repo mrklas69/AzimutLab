@@ -249,6 +249,11 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
 > fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.
 > Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.
+> **Sez. 172 (ntbhej): 109/111 půlhladinová detekce** — half-vrstevnicové smyčky (`level+2,5 m`) → `_classify_loop`
+> s guardem `|elev−hlevel|<2,5 m` (bez zdvojení / vrcholů velkých kopců): **109 18→32 (+78 %), 111 31→52 →„ok"**.
+> ntbhej KPI 67,1→**67,3** (+0,2 pb), bod 67,9→**70,2** (+2,3 pb), žádná regrese (109 vypadlo z top-5 děr). Reframe:
+> 109 nebyl díra, ale podstřel (gen ho kreslí z plných 5 m vrstevnic; DMR strop na drobné kupky). Canonical HAL3000
+> (67,5) NEpřeměřeno → carry (sirotek-disciplína, nemíchat). Trénink netknut (Png2Point z `inject.py`, ne gen .omap).
 >
 > **Plošná + liniová páka z čistě ČÚZK dat je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1,
 > 508 smíšený podstřel +0,34; Sez. 152 potvrzuje, že 404/407/409 patří do mapper-scan separace, ne do ČÚZK).
@@ -308,7 +313,7 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   README 58,5 vs TODO 61,9 — i HAL3000 doklady se rozcházejí); Blatná/Velbloud sedí napříč stroji. Kód generátoru 164→HEAD
   NEZMĚNĚN → STROJOVÝ rozdíl (Bedř = největší sken, separace RAM-downscale / DMR fetch citlivá). **Prozkoumat** (ntbhej↔HAL3000
   separace téže mapy) + sjednotit headline (audit A3: dva labely KPI_3MAP_NTBHEJ / KPI_3MAP_CANONICAL, nemíchat). **+ HAL3000
-  přeměření po 210 kalibraci** (canonical 67,5 → ~69? — Δ +1,5 pb přenositelný = změna kódu).
+  přeměření po 210 kalibraci + 109/111 půlhladinové detekci** (canonical 67,5 → ~69,2? — Δ 210 +1,5 + 109/111 +0,2 přenositelné = změny kódu).
 - [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
   523.1 / 525 / 527 / 531.** **HOTOVO Sez. 141:** 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x
   jako **pseudo man-made body** (ZABAGED je nevede → čistě pseudo na měřenou hustotu, izomorf veg 418/419;
