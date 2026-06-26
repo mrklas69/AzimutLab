@@ -2,6 +2,26 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 168 (2026-06-26) — Podklady SSoT layout + GT factory bodová infrastruktura (ntbhej)
+Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-168--podklady-ssot-layout-pořadíopacitybg_-prefix--gt-factory-bodová-infrastruktura-ntbhej).
+- [x] **Podklady map SSoT layout** (požadavek uživatele): `gen_backgrounds.BG_LAYOUT` = jediný zdroj pořadí (z-order
+  `bg_dmr / bg_ortho / bg_scan`) + opacity (`1,0 / 0,5 / 0,25`). Nová `omap_export.apply_image_template_layout(doc, layout)`
+  (re-order def bloků + přemapování view `<ref>` indexů + opacity dle jména; izomorf `remove_image_templates`), aplikovaná
+  přes `_write_omap_with_layout` na KAŽDÉ připnutí podkladu → jeden bod sjednocení nezávislý na pořadí připnutí.
+- [x] **Ortofoto podklad sjednocen na `bg_ortho.png`** (zrušen dvojí název `ortofoto.png`/`bg_ortho.png`): `generator.py`
+  (save + ortho_template) + `omap_export.py` (default) + help; `_existing_ortho_templates` docstring sladěn.
+- [x] **Migrace 14 map** (scratchpad, reuse SSoT): legacy rename reference + re-order + opacity + rename souboru;
+  re-aplikace layoutu BEZ full-regenu (post-process nad `.omap`, nemění kresbu). Idempotentní (2. běh beze změny).
+- [x] **`tests/test_omap_export.py`** (6 testů: reorder/opacity/idempotence/unknown-kept-last/no-op/geometrie) →
+  **54 unittestů OK**, smoke OK. CLI `gen_backgrounds.py layout <.omap>` pro ruční re-aplikaci.
+- [x] **GT factory bodová infrastruktura** (fokus, prolomit zeď `point_F1=0` ručním GT): scope = „všechny ISOM, začneme
+  bodovými" + Branžež MVP. `mark_isoms.CODE_LABELS` 12→**21 bodových kódů** (doplněno 204/526/530/110/419/207/524/519/203.2,
+  anglické `name` ze capability SSoT).
+- [x] **`isom_scan/gt_from_markers.py`** (nový): markery (`mark_isoms`) → **hybrid GT** (ruční body nahradí gen body,
+  gen linie/plochy zůstanou) + **sanity-check** blízkých bodů různých kódů (526/530 red flag) + záloha v1. `score.py`
+  čte `_benchmark_version` z GT → hybrid v2 / generátorová v1 (nemíchat tiše). Klikání = carry uživatel.
+- [x] *(KPI)* Beze změny **67,1 % ntbhej / 67,5 % canonical** — podklady post-process, GT factory benchmark; ISOM kresba netknuta.
+
 ## Sezení 167 (2026-06-25) — Branžež prohlížecí mapa z Liveloxu + minimalizace na NCC crop box (ntbhej)
 Detail: [diary/2026-06-25.md](diary/2026-06-25.md#sezení-167--branžež-prohlížecí-mapa-z-liveloxu--minimalizace-na-ncc-crop-box-ntbhej).
 - [x] **Prohlížecí mapa `maps/Branžež` z Livelox 1127443** — `pairs.py map` (make_map): real ČÚZK + 289 ploch

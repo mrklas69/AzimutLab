@@ -27,7 +27,12 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   bodů skeletonu rozliší man-made glyfy specifičtěji než shape_f1/circularity — **⊤** (525/526) = 3 konce (2 horní +
   středový dřík), **×** (530/531) = 4 diagonální konce, **Λ** (527) = 2-3 konce. Levný topologický diskriminátor pro
   lineární bodové znaky; doplnit k circularity (kulaté) ve `points_common`.
-- [ ] *(benchmark robustnost, nález uživatele Sez.165)* **Ruční benchmark GT přes GT factory → zrušit `score_codes` ořez.**
+- [~] *(benchmark robustnost, Sez.165 → INFRASTRUKTURA HOTOVO Sez. 168)* **Ruční benchmark GT přes GT factory.**
+  **Sez. 168 hotovo:** `mark_isoms.CODE_LABELS` 12→**21 bodových kódů**, nový `gt_from_markers.py` (markery→**hybrid GT v2**:
+  ruční body nahradí gen body, gen linie/plochy zůstanou, + sanity-check blízkých bodů 526/530), `score.py` čte
+  `_benchmark_version` z GT (v1/v2 nemíchat). Scope (volba): „všechny ISOM, začneme bodovými", Branžež MVP (skalnatá →
+  body sporné u skalní kresby). **ZBÝVÁ: uživatel naklikat GT (`mark_isoms` task_isom_scan.png 21 kódů) → `gt_from_markers`
+  → `score` → první reálný `point_F1`.** Motivace (dnešní křehká generátorová GT) níže:
   Dnešní `gt/ground_truth.json` je GENERÁTOROVÁ (`generate_map only_real`) → skóruje jen data-derivovatelné kódy
   (z bodů JEN 2: 526/530) → headline `point_F1` visí na 2 bodech = křehký {0; 0,5; 1}, super šumivý. GT factory
   (`mark_isoms`/`gt_ui`/`build_tile_set`, Sez.157) umí naklikat **SKUTEČNÉ polohy VŠECH symbolů na reálném skenu**
