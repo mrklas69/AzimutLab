@@ -19,7 +19,8 @@ runs/_run_template.json    # verzovaná šablona běhu
 runs/*.json, runs/*.png    # LOKÁLNÍ syrové výstupy modelů a overlaye, necommitovat
 results.csv                # verzovaný leaderboard, připisuje score.py
 score.py                   # runs/*.json × gt → metriky → results.csv
-build_gt.py                # obnoví GT z lokálního resources/livelox/1127443 korpusu
+build_gt.py                # obnoví generátorovou GT (v1) z lokálního resources/livelox/1127443 korpusu
+gt_from_markers.py         # markery (mark_isoms) → hybrid GT (v2): ruční body + generátorové linie/plochy + sanity-check
 overlay.py                 # vykreslí GT/run body nad lokální sken
 
 # Scan-mining PoC (per-barva bodoví kandidáti ze skenu → detections.json)

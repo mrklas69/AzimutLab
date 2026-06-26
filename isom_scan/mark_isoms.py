@@ -36,17 +36,28 @@ DEFAULT_MIN_INK_RATIO = 0.003
 # Anglické `name` = SSoT `isom/capabilities.py` (sync ručně, dokud se negeneruje); české `short`
 # je lokální popisek pro UI. Audit Sez. 165 (D2/D3): 311/418 se rozcházely s capabilities → sladěno.
 CODE_LABELS = {
+    # Bodové ISOM symboly = paleta GT factory (Sez. 168 rozšířeno na kompletní bodovou sadu, „začneme
+    # bodovými"). Seskupeno: terénní hnědé · skalní černé · vodní modré · vegetační zelené · man-made černé.
     "109": {"short": "kupka", "name": "Small knoll"},
+    "110": {"short": "protáhlá kupka", "name": "Small elongated knoll"},
     "111": {"short": "prohlubeň", "name": "Small depression"},
     "112": {"short": "jáma", "name": "Pit"},
     "115": {"short": "tvar terénu", "name": "Prominent landform feature"},
+    "203.2": {"short": "jeskyně/jáma", "name": "Dangerous pit / cave"},
+    "204": {"short": "balvan", "name": "Boulder"},
+    "207": {"short": "balvanové pole", "name": "Boulder cluster"},
     "311": {"short": "studna/fontána/nádrž", "name": "Small fountain or well"},
     "312": {"short": "pramen", "name": "Spring"},
     "313": {"short": "vodní objekt", "name": "Special water feature"},
     "417": {"short": "výrazný strom", "name": "Prominent large tree"},
     "418": {"short": "keř/strom", "name": "Prominent bush or small tree"},
+    "419": {"short": "výrazná vegetace", "name": "Prominent vegetation feature"},
+    "519": {"short": "přechod", "name": "Crossing point"},
+    "524": {"short": "vysoká věž", "name": "High tower"},
     "525": {"short": "věžička", "name": "Small tower"},
+    "526": {"short": "mohyla", "name": "Cairn"},
     "527": {"short": "krmelec", "name": "Fodder rack"},
+    "530": {"short": "umělý objekt O", "name": "Prominent man-made feature: ring"},
     "531": {"short": "umělý objekt X", "name": "Prominent man-made feature: x"},
     "unknown": {"short": "neznámý", "name": "Unknown symbol"},
 }

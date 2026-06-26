@@ -32,7 +32,7 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-BENCHMARK_VERSION = "1.0"
+BENCHMARK_VERSION = "1.0"   # default pro generátorovou GT; hybrid ruční GT přepíše přes gt["_benchmark_version"] (Sez. 168)
 DEFAULT_TOL_PX = 20  # tolerance distance-matchu bodů (px na 1655×1868; ~18 mm v terénu)
 
 CSV_FIELDS = [
@@ -172,7 +172,7 @@ def score_run(run_path, gt, tol):
 
     row = {f: meta.get(f, "") for f in CSV_FIELDS}
     row["run_id"] = meta.get("run_id") or os.path.splitext(os.path.basename(run_path))[0]
-    row["benchmark_version"] = BENCHMARK_VERSION
+    row["benchmark_version"] = gt.get("_benchmark_version") or BENCHMARK_VERSION
     row["n_point"], row["n_line"], row["n_area"], row["n_codes"] = n_point, n_line, n_area, n_codes
 
     if not gt_is_filled(gt):
