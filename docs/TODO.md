@@ -35,8 +35,12 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   **Sez. 168 hotovo:** `mark_isoms.CODE_LABELS` 12→**21 bodových kódů**, nový `gt_from_markers.py` (markery→**hybrid GT v2**:
   ruční body nahradí gen body, gen linie/plochy zůstanou, + sanity-check blízkých bodů 526/530), `score.py` čte
   `_benchmark_version` z GT (v1/v2 nemíchat). Scope (volba): „všechny ISOM, začneme bodovými", Branžež MVP (skalnatá →
-  body sporné u skalní kresby). **ZBÝVÁ: uživatel naklikat GT (`mark_isoms` task_isom_scan.png 21 kódů) → `gt_from_markers`
-  → `score` → první reálný `point_F1`.** Motivace (dnešní křehká generátorová GT) níže:
+  body sporné u skalní kresby). **Sez. 171 HOTOVO — klikání + řetězec:** 3 sety (`mark_isoms`) → **187 bodů / 21 kódů**
+  (zelené 417/418/419 s 419×24, man-made 512.1/512.2/521.1/523.1/603 + 525/526/527/531; +5 kódů do palety
+  verify-against-source z template; nový durable `merge_marker_set.py` set→master). `gt_from_markers`→hybrid v2.0 →
+  **`score`: ChatGPT 5.5 point_F1 0,269 (z 0,0!) = ZEĎ PROLOMENA**, Opus 0,0. Recall nález: přehlédnutá jáma 112.
+  **ZBÝVÁ: re-run modelů na v2 GT** (Opus 4.8 / ChatGPT 5.5 aktuálním promptem → fér leaderboard; staré Sez.146 běhy
+  byly na 2-bodový úkol = orientační dolní odhad). Motivace (dnešní křehká generátorová GT) níže:
   Dnešní `gt/ground_truth.json` je GENERÁTOROVÁ (`generate_map only_real`) → skóruje jen data-derivovatelné kódy
   (z bodů JEN 2: 526/530) → headline `point_F1` visí na 2 bodech = křehký {0; 0,5; 1}, super šumivý. GT factory
   (`mark_isoms`/`gt_ui`/`build_tile_set`, Sez.157) umí naklikat **SKUTEČNÉ polohy VŠECH symbolů na reálném skenu**

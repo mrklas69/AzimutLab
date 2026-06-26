@@ -2,6 +2,28 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 171 (2026-06-26) — GT factory dokončení bodových ISOM (zelené + man-made, master 155→187, zeď point_F1 prolomena) (ntbhej)
+Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-171--gt-factory-dokončení-bodových-isom-zelené--man-made-master-155187-zeď-point_f1-prolomena-ntbhej).
+- [x] **3 sety ručních bodů přes `mark_isoms`** (Příště #1 Sez. 170, uživatelova série): zelené **417/418/419** (27,
+  419×24 dominuje skalnaté Branžeži), man-made **512.1/512.2/519/521.1/523.1/524** (1 — jen 523.1 zřícenina), man-made2
+  **525/526/527/530/531/603** (4: 527×2/526/531). +32 bodů.
+- [x] **Přehlédnutá jáma 112** @(130,610): tvé oko při zelených, `unknown`→ změřeno (nejbližší 112 = 737 px, cokoliv
+  61 px = val 106) → přehlédnuto Sez. 169 → přemapováno `unknown→112`. Recall nález (jako „přehlédnutá kupka 109" Sez. 169).
+- [x] **Past `mark_isoms.save()` odhalena PŘED klikáním:** full-replace souboru + `_load_existing_markers` paletní filtr
+  → spuštění s `--markers <master> --codes <filtr>` by přepsalo master 155 jen novými → **per-set čistý soubor**, master chráněný.
+- [x] **`isom_scan/merge_marker_set.py`** (NOVÝ durable, povýšení ad-hoc `add_markers.py` Sez. 169): set→master merge
+  (dedup ≤3 px, sanity red-flag různých kódů <20 px, přepočet codes/summary, záloha `.pre_merge.bak`, dry-run default +
+  `--apply`, no-silent-fallback). **Ověřen na dummy PŘED reálným mergem** (155→159, 109 zachováno, sanity chytá kolizi).
+- [x] **`mark_isoms` paleta +5 kódů** (512.1 most/tunel min / 512.2 lávka / 521.1 budova min / 523.1 zřícenina min /
+  603 Spot height) — name **verify-against-source z `template_classic.omap`** (všech 6 man-made = `type="1"` body,
+  uživatel vybral `.1` minimum-size; 603 = Spot height dot, ne 102.1 Contour value).
+- [x] **Master GT 155→187 / 21 kódů** (3× merge --apply, žádné dedup/kolize) → `gt_from_markers` **hybrid GT v2.0**
+  (187 bodů + 16 ne-bodových gen, score_codes 35) → **`score`: ChatGPT 5.5 point_F1 0,269 (z 0,0!) / class_recall 0,69**,
+  Opus 0,0 / GPT-5.5-thinking 0,0 (slabé Sez.146 běhy). **Zeď `point_F1=0` prolomena** (Sez. 165 carry). Caveat: staré
+  běhy na 2-bodový úkol = orientační, fér leaderboard chce re-run modelů na v2 GT.
+- [x] **Verify:** 65 unittestů OK (paleta edit nerozbil) · overlay GT 187 bodů vykreslen+ukázán (always-show-visual) ·
+  merge ověřen na dummy. KPI 67,1 % netknuto (GT factory = benchmark, ne generátor).
+
 ## Sezení 170 (2026-06-26) — Zabudování terrain diskriminátorů + měřená kalibrace 109/111/112/115 proti ruční GT (ntbhej)
 Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-170--zabudování-terrain-diskriminátorů-do-detektoru--měřená-kalibrace-109111112115-proti-ruční-gt-ntbhej).
 - [x] **Diskriminátory ze scratchpadu Sez. 169 → trvalý `points_common`** (Příště #2): `eccentricity()` (z druhých
