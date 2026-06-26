@@ -2067,8 +2067,9 @@ def _classify_loop(line: np.ndarray, level: float, elev: np.ndarray,
                    cell_w_m: float, cell_h_m: float) -> dict | None:
     """Rozhodne, zda uzavřená malá smyčka vrstevnice je bodový extrém (§4.10).
 
-    Vrací záznam symbolu `{symbol, gx, gy, horiz}` (souřadnice mřížky), nebo None,
-    pokud se má `line` kreslit jako normální vrstevnice. Metoda: uzavřenost
+    Vrací záznam symbolu `{symbol, gx, gy, horiz, elev}` (souřadnice mřížky + výška
+    uvnitř smyčky — pro guard zdvojení na poloviční hladině), nebo None, pokud se má
+    `line` kreslit jako normální vrstevnice. Metoda: uzavřenost
     + plocha pod ISOM prahem + výška uvnitř smyčky vs úroveň vrstevnice.
     """
     # uzavřenost: contourpy vrací vnitřní smyčky s prvním bodem == poslední. Linie
@@ -2083,14 +2084,15 @@ def _classify_loop(line: np.ndarray, level: float, elev: np.ndarray,
     cx, cy = float(line[:, 0].mean()), float(line[:, 1].mean())
     ix = int(np.clip(round(cx), 0, GW - 1))    # gx = sloupec, gy = řádek
     iy = int(np.clip(round(cy), 0, GH - 1))
-    if float(elev[iy, ix]) > level:
+    e = float(elev[iy, ix])                    # výška uvnitř smyčky (guard zdvojení na half hladině)
+    if e > level:
         # lokální maximum → kopeček. Protáhlý? poměr stran bounding boxu smyčky
         w = float(line[:, 0].max() - line[:, 0].min())
         h = float(line[:, 1].max() - line[:, 1].min())
         if max(w, h) / (min(w, h) + 1e-9) >= KNOLL_ELONGATED_RATIO:
-            return {"symbol": ISOM_ELONGATED_KNOLL, "gx": cx, "gy": cy, "horiz": w >= h}
-        return {"symbol": ISOM_SMALL_KNOLL, "gx": cx, "gy": cy, "horiz": True}
-    return {"symbol": ISOM_SMALL_DEPRESSION, "gx": cx, "gy": cy, "horiz": True}   # lokální min
+            return {"symbol": ISOM_ELONGATED_KNOLL, "gx": cx, "gy": cy, "horiz": w >= h, "elev": e}
+        return {"symbol": ISOM_SMALL_KNOLL, "gx": cx, "gy": cy, "horiz": True, "elev": e}
+    return {"symbol": ISOM_SMALL_DEPRESSION, "gx": cx, "gy": cy, "horiz": True, "elev": e}   # lokální min
 
 
 def _box_smooth(a: np.ndarray) -> np.ndarray:
@@ -4055,8 +4057,20 @@ def generate_map(
         min_len_px = FORMLINE_MIN_LEN_MM * PX_PER_MM
         # poloviční hladina mezi každou dvojicí sousedních vrstevnic = právě JEDNA form line
         # (level+2,5 m) → ISOM pravidlo „jen jedna mezi vrstevnicemi" splněno automaticky
+        n_full_pts = len(point_symbols)             # body z plných vrstevnic (výše) — pro log half přírůstku
         for level in range(lo, hi + 1, CONTOUR_STEP):
-            for line in cont.lines(level + half):
+            hlevel = level + half
+            for line in cont.lines(hlevel):
+                # §4.10 i MEZI plnými vrstevnicemi: malá uzavřená smyčka na poloviční
+                # hladině = kupka/prohlubeň vysoká 2,5–5 m, kterou 5m ekvidistance
+                # nezachytí jako bod (Sez. 172, KPI 109 podstřel orig 251 / gen 18).
+                # Guard |výška uvnitř − hlevel| < half ⇒ extrém leží CELÝ mezi dvěma
+                # plnými vrstevnicemi → nezdvojí se s bodem/kroužkem z plné cesty
+                # (a vyloučí vrcholy velkých kopců, které dosáhnou plné vrstevnice).
+                ps = _classify_loop(line, hlevel, elev, cell_w_m, cell_h_m)
+                if ps is not None and abs(ps["elev"] - hlevel) < half:
+                    point_symbols.append(ps)
+                    continue
                 for seg in _clip_line_to_mask(line, fmask):
                     pts = [_grid_to_px(x, y) for x, y in seg]
                     if _polyline_len_px(pts) < min_len_px:   # ISOM minimální délka (1,1 mm)
@@ -4064,7 +4078,8 @@ def generate_map(
                     _draw_dashed(draw, fdraw, pts, C_BROWN, FORMLINE_CLASS,
                                  dash=FORMLINE_DASH_PX, gap=FORMLINE_BREAK_PX, width=1)
                     formline_features.append((np.asarray(seg, dtype=float), ISOM_FORMLINE))
-        _log.info("  pomocné vrstevnice (103): %d", len(formline_features))
+        _log.info("  pomocné vrstevnice (103): %d · body extrémů (half): %d",
+                  len(formline_features), len(point_symbols) - n_full_pts)
 
     # --- bodové symboly lokálních extrémů (§4.10): hnědé kopečky/prohlubně ---
     # Rastr z-order: hned po vrstevnicích = POD vodou/cestami/budovami (hnědý terénní detail,
