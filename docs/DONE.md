@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 170 (2026-06-26) — Zabudování terrain diskriminátorů + měřená kalibrace 109/111/112/115 proti ruční GT (ntbhej)
+Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-170--zabudování-terrain-diskriminátorů-do-detektoru--měřená-kalibrace-109111112115-proti-ruční-gt-ntbhej).
+- [x] **Diskriminátory ze scratchpadu Sez. 169 → trvalý `points_common`** (Příště #2): `eccentricity()` (z druhých
+  centrálních momentů, jen numpy) + `component_candidates(open_px, max_eccentricity)` **volitelné default-off** (water/
+  vegetation/manmade byte-identické — audit Sez. 165 D2/D3) + `reject_collinear_runs()` per-code post-filtr +
+  `run_simple_detector(post_filter=)` hook. `terrain_points_poc` CLI + 109 do `DEFAULT_CODES`.
+- [x] **Měřená kalibrace proti ruční GT Branžež** (C2, reuse `score.match_points`, tol 20 px): **109 recall 2→74,5 % /
+  precision 57,6 % / F1 0,65** (opening rozbije slité kupky; `max_fill` 0,75→0,95 pustí plný disk; ecc<0,77 oddělí od
+  protáhlých fragmentů vrstevnic). Per-symbol params (109 ≠ 111/112/115). Reprodukuje Sez. 169 precision 58 %.
+- [x] **reject_collinear na Branžeži NEPOMÁHÁ** (poctivý nález): precision 0,150→0,161, recall klesá — FP nejsou
+  kolineární řady (Branžež bez 108 erozních rýh). Ponechán jako otestovaný opt-in (default off, pro mapy s 108).
+- [x] **111/112/115 = strop classic-CV doložen:** recall 0,67–1,0, precision 0,007–0,14 (3–10 GT). **Neladěno na šumu**
+  (anti-Goodhart A4) — jemné tvary husté Branžeže pod rozlišovací schopností → potvrzená vize ML rekonstruktoru.
+- [x] **`calibration_manifest.json` 109/111/112/115 měřený recall+precision+per-code params+command** → **A2/C3
+  PoC-limbo uzavřeno** (4 kódy zmizely z `marker_recall null` warnings; 109 status `candidate_calibrated`,
+  111/112/115 `classic_cv_ceiling`).
+- [x] **Verify:** 65 unittestů OK (54→65, nový `tests/test_points_common.py` 11 testů) · validátor OK · vegetation
+  regrese OK · compileall OK · vizuál overlay 109. KPI 67,1 % netknuto (detektor = kalibrace, ne generátor).
+
 ## Sezení 169 (2026-06-26) — GT factory: ruční bodová GT Branžež 155 bodů / 14 kódů + detektor tuning (ntbhej)
 Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-169--gt-factory-ruční-bodová-gt-branžež-155-bodů--14-kódů--detektor-tuning-na-uživatelových-diskriminátorech-ntbhej).
 - [x] **Prolomena zeď `point_F1`** (Příště #1 Sez. 168): ruční bodová GT Branžež přes `mark_isoms` factory, 5 setů

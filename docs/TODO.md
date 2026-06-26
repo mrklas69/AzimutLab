@@ -18,11 +18,15 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   (`results.csv` `build=iter3-coached`); zbývá **Opus 4.8** (Sez.146 jen 1 uncoached) + **ChatGPT5.5** (starý 0,50 běh) →
   re-run pod stejným iter3 pravidlem pro fér leaderboard. Ne-CUDA (uživatel pustí modely, já skóruju). Nález: headline
   `point_F1` (bodová lokalizace) je zeď i po coachingu (ChatGPT recall 1,0 / point_F1 0,0) → klíč = ruční GT (viz níže).
-- [ ] *(isom_scan candidate quality, vytěžek ChatGPT trace Sez.165 — `isom_scan/chatgpt_40min_aktivita1.pdf`)*
+- [~] *(isom_scan candidate quality, vytěžek ChatGPT trace Sez.165 — `isom_scan/chatgpt_40min_aktivita1.pdf`; **ČÁST HOTOVO Sez.170**)*
   **Circularity `4πA/P²` + solidity filtr pro bodové kandidáty.** ChatGPT jím odděluje kruhové body od fragmentů
   linií/srázů — řeší **doložený balvany 204/210 vs skalní kresba FP** (Sez.138 E3, audit), dnes jen rejection/shape_f1.
   Cheap geometrický diskriminátor do `points_common.component_candidates` (komplementární k shape_f1). Measure-first
   na review manifestu. (HoughCircles pro kroužkové symboly = IDEAS, marginální vůči CenterNet.)
+  **Sez. 170:** zabudována **excentricita** (z momentů, ne `4πA/P²`) jako `component_candidates(max_eccentricity=…)`
+  + `open_px` (opening) + `reject_collinear_runs` (vše volitelné default-off, ostatní detektory beze změny); **109
+  measure-calibrated** proti ruční GT (recall 74,5 / prec 58 / F1 0,65). **ZBÝVÁ:** circularity `4πA/P²` + solidity
+  (jiná metrika než ecc — zvážit pro balvany 204/210 černou maskou) + skeleton-endpoint topologie (níže).
   **+ skeleton-endpoint topologie** (vytěžek ChatGPT iter3 trace `chatgpt_aktivita2_3.pdf` Sez.165): počet koncových
   bodů skeletonu rozliší man-made glyfy specifičtěji než shape_f1/circularity — **⊤** (525/526) = 3 konce (2 horní +
   středový dřík), **×** (530/531) = 4 diagonální konce, **Λ** (527) = 2-3 konce. Levný topologický diskriminátor pro
