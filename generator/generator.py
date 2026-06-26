@@ -4440,9 +4440,9 @@ def generate_map(
                               lambda: fetch_ortofoto(lat, lon, GW, GH, TILE_M, o_w, o_h),
                               None, tolerant, layer_errors)
         if orto_arr is not None:
-            Image.fromarray(orto_arr).save(out / "ortofoto.png")
+            Image.fromarray(orto_arr).save(out / "bg_ortho.png")   # prefix bg_ sjednocen napříč podklady
             # podklad pod mapou s 50% průhledností; img_w/h = skutečné rozlišení fetche
-            ortho_template = {"name": "ortofoto.png", "img_w": o_w, "img_h": o_h, "opacity": 0.5}
+            ortho_template = {"name": "bg_ortho.png", "img_w": o_w, "img_h": o_h, "opacity": 0.5}
     cmask_img.save(out / "mask_contours.png")
     fmask_img.save(out / "mask_formlines.png")                              # pomocné vrstevnice 103 (GT)
     path_mask_img.save(out / "mask_paths.png")                              # cesty (GT, multi-class)
@@ -4737,7 +4737,7 @@ def main() -> None:
                    help="vypne pseudorealistickou fázi 2 (dekorace nad rámec tvrdých dat); "
                         "default = fáze 2 zapnuta. Zatím: příčky vedení mimo evidované sloupy")
     p.add_argument("--no-ortho", dest="ortho", action="store_false",
-                   help="nestahovat ortofoto podklad (default = ČÚZK ortofoto výseku do ortofoto.png "
+                   help="nestahovat ortofoto podklad (default = ČÚZK ortofoto výseku do bg_ortho.png "
                         "+ připnutí do .omap; jen s --terrain real)")
     p.add_argument("--ortho-mpp", type=float, default=0.5,
                    help="rozlišení ortofoto podkladu [m/px] (default 0,5; menší = ostřejší, ale "

@@ -288,6 +288,77 @@ def append_image_templates(doc: str, templates: list[dict]) -> str:
     return doc
 
 
+def apply_image_template_layout(doc: str, layout: list[tuple[str, float]]) -> str:
+    """Přeskládá obrázkové podklady v .omap do z-order pořadí dle `layout` a nastaví view opacity.
+
+    `layout` = [(name, opacity), …] v cílovém pořadí DEFINICE (OOM z-order). Podklady, jejichž jméno
+    není v `layout`, zůstanou za seřazenými v původním pořadí (nezahodí se). Přemapuje view
+    `<ref template="i">` indexy a přepíše opacitu podle jména (jména mimo layout si nechají svou).
+    Idempotentní (opakované volání nemění výsledek) — proto je bezpečná i jako migrace existujících map
+    i jako finální krok připínání podkladů (jeden SSoT pořadí/opacity místo per-cesta záplaty).
+    Žádné podklady (count=0 / žádný TemplateImage) → no-op. Raise když <templates> bloky nesedí.
+
+    Index-přemapování je izomorfní s `remove_image_templates` (OOM drží definice a view ref odděleně)."""
+    map_pat = re.compile(
+        r'<templates count="(?P<c>\d+)" first_front_template="\d+">(?P<body>.*?)</templates>',
+        re.DOTALL,
+    )
+    mt = map_pat.search(doc)
+    if mt is None or int(mt.group("c")) == 0:
+        return doc
+
+    tpl_pat = re.compile(
+        r'<template\s+type="TemplateImage"[^>]*\bname="(?P<name>[^"]+)"[^>]*>.*?</template>',
+        re.DOTALL,
+    )
+    templates = list(tpl_pat.finditer(mt.group("body")))
+    if not templates:
+        return doc
+
+    order = {name: i for i, (name, _) in enumerate(layout)}
+    old_names = [tm.group("name") for tm in templates]
+    # stabilní řazení: známé dle pozice v layout, neznámé na konec v původním pořadí (sekundární klíč i)
+    new_order = sorted(range(len(templates)), key=lambda i: (order.get(old_names[i], len(order)), i))
+    old_to_new = {old: new for new, old in enumerate(new_order)}
+
+    # template blok smí obsahovat jen TemplateImage (+ volitelný <defaults/>) — jinak selhat nahlas
+    residual = tpl_pat.sub("", mt.group("body"))
+    if residual.strip() and not re.fullmatch(r'\s*(<defaults\b[^>]*/>\s*)?', residual, flags=re.DOTALL):
+        raise ValueError("apply_image_template_layout: template blok obsahuje nečekaný obsah")
+
+    n = len(templates)
+    reordered = "".join(templates[i].group(0) for i in new_order)
+    new_map = f'<templates count="{n}" first_front_template="{n}">{reordered}{residual}</templates>'
+    doc = doc[:mt.start()] + new_map + doc[mt.end():]
+
+    opacity_by_name = dict(layout)
+
+    def _rewrite_view(mt_view: "re.Match") -> str:
+        ref_pat = re.compile(r'<ref template="(?P<i>\d+)"(?P<rest>[^>]*)/>')
+        refs: list[str] = []
+        for rm in ref_pat.finditer(mt_view.group("body")):
+            old_i = int(rm.group("i"))
+            if old_i not in old_to_new:
+                continue
+            rest = rm.group("rest")
+            name = old_names[old_i]
+            if name in opacity_by_name:                      # přepiš opacitu (jméno mimo layout si nechá svou)
+                rest = re.sub(r'\s*opacity="[^"]*"', '', rest) + f' opacity="{opacity_by_name[name]:g}"'
+            refs.append(f'<ref template="{old_to_new[old_i]}"{rest}/>')
+        return f'<templates count="{len(refs)}">{"".join(refs)}</templates>'
+
+    doc, n_ref = re.subn(
+        r'<templates count="(?P<c>\d+)">(?P<body>(?:(?!<templates).)*?)</templates>',
+        _rewrite_view,
+        doc,
+        count=1,
+        flags=re.DOTALL,
+    )
+    if n_ref != 1:
+        raise ValueError(f"apply_image_template_layout: view <templates> blok nesedí ({n_ref})")
+    return doc
+
+
 def write_omap(contour_features: list[tuple], path_features: list[tuple],
                point_symbols: list[dict], water_features: list[tuple],
                building_features: list[tuple], powerline_features: list[tuple],
@@ -649,7 +720,7 @@ def write_omap(contour_features: list[tuple], path_features: list[tuple],
         sx = pw / 1000.0 / iw                       # map mm na pixel obrazu (E-W)
         sy = ph / 1000.0 / ih                       # map mm na pixel obrazu (S-J)
         doc = inject_image_templates(doc, [{                # sdílený helper (Sez. 104 extrakce)
-            "name": ortho_template.get("name", "ortofoto.png"),
+            "name": ortho_template.get("name", "bg_ortho.png"),  # prefix bg_ sjednocen napříč podklady
             "sx": sx, "sy": sy, "opacity": ortho_template.get("opacity", 0.5)}])
 
     out_path.write_text(doc, encoding="utf-8")

@@ -34,7 +34,9 @@ sys.path.insert(0, str(_REPO_ROOT / "generator"))
 
 from pyproj import Transformer  # noqa: E402
 from livelox import _georef_grid, _map_affine  # noqa: E402
-from omap_export import inject_image_templates, append_image_templates, image_template_names  # noqa: E402
+from omap_export import (  # noqa: E402
+    inject_image_templates, append_image_templates, image_template_names, apply_image_template_layout,
+)
 from dmr import fetch_elevation_grid  # noqa: E402  (DMR 5G hillshade podklad)
 from map_gt import IGNORE as _GT_IGNORE, SEMANTIC_LABEL_VIS as _GT_VIS  # noqa: E402
 
@@ -47,7 +49,17 @@ _CORPUS = _REPO_ROOT / "resources" / "livelox"
 _BG_MAX_PX = 6000          # delší strana warpnutého podkladu. Gen grid bývá HRUBÝ (~2 m/px) → bez
                            # nadvzorkování je sken v OOM rozmazaný (Sez. 111, stížnost uživatele);
                            # supersamplujeme jemně ze zdroje (100+ Mpx skeny → pořád downsample).
-_BG_OPACITY = 0.6          # výchozí průhlednost ref ve <view> (uživatel doladí v OOM)
+# SSoT layout podkladů (zadání uživatele, Sez. 168): pořadí DEFINICE = OOM z-order (index 0 = nejníž/back)
+# + view opacity. DMR hillshade vespod plně krycí = reliéfní základ, ortofoto poloprůhledně, sken navrchu
+# jen lehce naznačený (verify kresby, ať neruší). Re-order + opacity aplikuje jednotně
+# `omap_export.apply_image_template_layout` přes `_write_omap_with_layout` — jeden zdroj pravdy pro VŠECHNY
+# generační cesty (DEV/Livelox/KPI) i migraci existujících map (žádná per-cesta záplata pořadí/opacity).
+BG_LAYOUT: list[tuple[str, float]] = [
+    ("bg_dmr.png", 1.0),
+    ("bg_ortho.png", 0.5),
+    ("bg_scan.png", 0.25),
+]
+BG_OPACITY: dict[str, float] = dict(BG_LAYOUT)
 
 
 def _read_pgw(path: pathlib.Path):
@@ -129,8 +141,31 @@ def _resolve_omap(map_dir: pathlib.Path, omap_name: str | None = None) -> pathli
     return map_dir / f"{map_dir.name}.omap"
 
 
+def _write_omap_with_layout(omap: pathlib.Path, doc: str) -> None:
+    """Zapíše `.omap` s podklady přeskládanými do `BG_LAYOUT` (re-order + opacity, SSoT).
+
+    Jediný bod, kde se layout aplikuje na zápis podkladů → každá attach/add cesta skončí stejně
+    (izomorfismus), nezávisle na pořadí, v jakém se podklady připínaly. Idempotentní."""
+    omap.write_text(apply_image_template_layout(doc, BG_LAYOUT), encoding="utf-8")
+
+
+def apply_background_layout(omap_path: str | pathlib.Path) -> bool:
+    """Re-aplikuje `BG_LAYOUT` (pořadí + opacity) na EXISTUJÍCÍ `.omap` na disku. Vrací True, když změnil.
+
+    Pro migraci / ruční opravu už hotových map (CLI `layout`). Idempotentní: druhý běh vrátí False.
+    Pozn.: NEřeší legacy přejmenování `ortofoto.png`→`bg_ortho.png` (to je jednorázová migrace souboru
+    i reference, ne runtime layout) — staré jméno by skončilo jako neznámý podklad na konci pořadí."""
+    omap_path = pathlib.Path(omap_path)
+    doc = omap_path.read_text(encoding="utf-8")
+    new = apply_image_template_layout(doc, BG_LAYOUT)
+    if new != doc:
+        omap_path.write_text(new, encoding="utf-8")
+        return True
+    return False
+
+
 def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | None = None,
-                    opacity: float = _BG_OPACITY) -> dict:
+                    opacity: float = 0.5) -> dict:   # fallback pro podklady mimo BG_OPACITY (bg_mobile/bg_gt)
     """Warpne dostupné podklady do gen gridu a vloží je jako background templates do gen.omap.
 
     `gen_dir` = složka páru (rgb.png/rgb.pgw/meta.json/gen.omap). `cid_dir` None → rodič gen_dir
@@ -156,7 +191,8 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
     cid_meta = cid_dir / "meta.json"
     g = _georef_grid(json.loads(cid_meta.read_text(encoding="utf-8"))) if cid_meta.exists() else None
 
-    # zdroje: (jméno_bg, zdrojový_soubor, inverzní_transformace, recolor). pořadí = z-order (sken vespod).
+    # zdroje: (jméno_bg, zdrojový_soubor, inverzní_transformace, recolor). Pořadí připnutí je libovolné —
+    # finální z-order + opacita se sjednotí přes `_write_omap_with_layout` (BG_LAYOUT SSoT), ne tady.
     # recolor {from_rgb: to_rgb} aplikováno na zdroj PŘED warpem; u GT: IGNORE magenta → bílá (mimo
     # Livelox mapu = papír, v OOM neviditelné), jinak by zaplnila celý čtverec rušivou růžovou.
     sources = []
@@ -203,18 +239,18 @@ def add_backgrounds(gen_dir: str | pathlib.Path, cid_dir: str | pathlib.Path | N
         warped = _warp_to_gen(src, inv, gpgw, gW, gH, out_w, out_h)
         Image.fromarray(warped).save(gen_dir / bg_name)
         templates.append({"name": bg_name, "sx": pw / 1000.0 / out_w,
-                          "sy": ph / 1000.0 / out_h, "opacity": opacity})
+                          "sy": ph / 1000.0 / out_h, "opacity": BG_OPACITY.get(bg_name, opacity)})
         result["added"].append(bg_name)
 
     if templates:
         doc = omap.read_text(encoding="utf-8")
         doc = inject_image_templates(doc, templates)
-        omap.write_text(doc, encoding="utf-8")
+        _write_omap_with_layout(omap, doc)
     return result
 
 
 def add_resources_scan_background(name: str, gen_dir: str | pathlib.Path,
-                                  opacity: float = _BG_OPACITY) -> dict:
+                                  opacity: float = BG_OPACITY["bg_scan.png"]) -> dict:
     """Připne reálný resources sken (`resources/<name>.png` + `.pgw`) jako bg podklad do `<name>.omap`.
 
     Izomorf `add_backgrounds`, ale pro resources MĚŘICÍ mapy (Bedřichovka/Blatná/…, ne Livelox pár):
@@ -333,7 +369,7 @@ def _bbox_from_pgw(gpgw: tuple, gW: int, gH: int) -> tuple[float, float, float, 
 
 
 def attach_dmr_hillshade(map_dir: str | pathlib.Path, omap_name: str | None = None,
-                         opacity: float = _BG_OPACITY, target_mpp: float = _DMR_BG_MPP) -> dict:
+                         opacity: float = BG_OPACITY["bg_dmr.png"], target_mpp: float = _DMR_BG_MPP) -> dict:
     """Připne DMR 5G hillshade jako podkladový template do `.omap` mapy (DEV/KPI/Buschdörfl).
 
     Pracuje JEN z obsahu složky (`rgb.pgw` + `rgb.png` + `meta.json` + `.omap`) → společný jmenovatel
@@ -380,10 +416,10 @@ _ORTHO_BG_MPP = 1.0        # rozlišení ortofoto podkladu [m/px]; 1 m stačí n
 
 
 def _existing_ortho_templates(doc: str) -> list[str]:
-    """Najde ortofoto podklady bez ohledu na historický název (`ortofoto.png` vs `bg_ortho.png`).
+    """Najde ortofoto podklady tokenem v názvu (bez ohledu na variantu `bg_ortho.png` / starý `ortofoto.png`).
 
-    Důležité pro idempotenci: DEV mapy dostanou `ortofoto.png` už při `generate_map(ortho=True)`,
-    zatímco dodatečný helper používá `bg_ortho.png`. Oba jsou stejný typ podkladu, takže stačí jeden.
+    Idempotence: `generate_map(ortho=True)` i helper `attach_ortho` dnes oba píší `bg_ortho.png` (Sez. 168
+    sjednoceno), ale tokenový test snese i staré `ortofoto.png` z dříve vygenerovaných map → stačí jeden.
     """
     return [
         name for name in image_template_names(doc)
@@ -392,7 +428,7 @@ def _existing_ortho_templates(doc: str) -> list[str]:
 
 
 def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
-                 opacity: float = 0.5, target_mpp: float = _ORTHO_BG_MPP) -> dict:
+                 opacity: float = BG_OPACITY["bg_ortho.png"], target_mpp: float = _ORTHO_BG_MPP) -> dict:
     """Připne ČÚZK ortofoto obdélník jako podkladový template do `.omap` mapy (izomorf
     `attach_dmr_hillshade`). Pro mapy bez ortofota (KPI měřicí mapy — `measure_dod` je dělá s
     ortho=False); DEV mapy ho už mají z `--ortho`, Buschdörfl z `add_backgrounds`. APPEND (zachová
@@ -431,7 +467,7 @@ def attach_ortho(map_dir: str | pathlib.Path, omap_name: str | None = None,
 
 
 def attach_livelox_scan(map_dir: str | pathlib.Path, cid_dir: str | pathlib.Path,
-                        omap_name: str | None = None, opacity: float = _BG_OPACITY) -> dict:
+                        omap_name: str | None = None, opacity: float = BG_OPACITY["bg_scan.png"]) -> dict:
     """Připne ORIGINÁLNÍ Livelox sken (`<cid_dir>/map.png`) jako podkladový template do `.omap` mapy.
 
     Izomorf `attach_dmr_hillshade`/`attach_ortho`, ale zdroj = sken kartografovy mapy a georef = rotovaný
@@ -603,6 +639,10 @@ if __name__ == "__main__":
         suffix = (f" · {cand['class_id']} {cand['name']} map={cand['map_coverage']:.1%} "
                   f"scan={cand['scan_coverage']:.1%}") if cand else ""
         print(f"{sys.argv[2]}: Livelox sken {r['added']} {r['skipped']}{suffix}")
+    elif arg == "layout":
+        # `layout <.omap>` = re-aplikuj BG_LAYOUT (pořadí + opacity) na hotovou mapu (idempotentní)
+        changed = apply_background_layout(sys.argv[2])
+        print(f"{sys.argv[2]}: layout {'aktualizován' if changed else 'beze změny'}")
     else:
         r = add_backgrounds(_CORPUS / arg / "gen")
         print(f"{arg}: přidáno {r['added']}, přeskočeno {r['skipped']}")
