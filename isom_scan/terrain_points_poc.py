@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-from points_common import run_simple_detector
+from points_common import reject_collinear_runs, run_simple_detector
 
 
 Image.MAX_IMAGE_PIXELS = None
@@ -26,7 +26,7 @@ Image.MAX_IMAGE_PIXELS = None
 HERE = Path(__file__).resolve().parent
 DEFAULT_INPUT = HERE / "task_isom_scan.png"
 DEFAULT_OUT = HERE / "terrain_points_poc"
-DEFAULT_CODES = ("111", "112", "115")
+DEFAULT_CODES = ("109", "111", "112", "115")
 CODE_NAMES = {
     "109": "Small knoll",
     "111": "Small depression",
@@ -105,6 +105,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-fill", type=float, default=0.05)
     parser.add_argument("--max-fill", type=float, default=0.75)
     parser.add_argument("--close-px", type=int, default=0)
+    parser.add_argument("--open-px", type=int, default=0,
+                        help="binary_opening masky před komponentami; odtrhne kupky 109 od vrstevnic (Sez. 169).")
+    parser.add_argument("--max-eccentricity", type=float, default=None,
+                        help="Odmítne protáhlé komponenty (fragmenty vrstevnic, elipsy 110); 0=kruh, 1=úsečka.")
+    parser.add_argument("--reject-collinear", action="store_true",
+                        help="Odmítne kandidáty v ~přímé řadě (fragmenty vrstevnic / erozní rýhy 108).")
+    parser.add_argument("--collinear-radius", type=float, default=35.0)
+    parser.add_argument("--collinear-min-neighbors", type=int, default=2)
+    parser.add_argument("--collinear-tol-deg", type=float, default=35.0)
     parser.add_argument("--max-per-code", type=int, default=80)
     args = parser.parse_args(argv)
     target_codes = tuple(code.strip() for code in args.codes.split(",") if code.strip())
@@ -141,6 +150,12 @@ def main(argv: list[str] | None = None) -> int:
             "min_fill": args.min_fill,
             "max_fill": args.max_fill,
             "close_px": args.close_px,
+            "open_px": args.open_px,
+            "max_eccentricity": args.max_eccentricity,
+            "reject_collinear": args.reject_collinear,
+            "collinear_radius": args.collinear_radius,
+            "collinear_min_neighbors": args.collinear_min_neighbors,
+            "collinear_tol_deg": args.collinear_tol_deg,
             "max_per_code": args.max_per_code,
         },
         status="POC classic_cv 2026-06-20; needs visual/curated validation before generator use",
@@ -154,7 +169,11 @@ def main(argv: list[str] | None = None) -> int:
             "min_size": args.min_size, "max_size": args.max_size,
             "min_area": args.min_area, "max_area": args.max_area,
             "min_fill": args.min_fill, "max_fill": args.max_fill, "close_px": args.close_px,
+            "open_px": args.open_px, "max_eccentricity": args.max_eccentricity,
         },
+        post_filter=(lambda cands: reject_collinear_runs(
+            cands, radius=args.collinear_radius, min_neighbors=args.collinear_min_neighbors,
+            collinear_tol_deg=args.collinear_tol_deg)) if args.reject_collinear else None,
     )
 
 

@@ -16,6 +16,7 @@ Sys.path skript (fáze B), ne balík; importuje se jako sibling z `isom_scan/`.
 import hashlib
 import json
 import math
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -96,6 +97,28 @@ class Candidate:
     angle_deg: int = 0
 
 
+def eccentricity(component: np.ndarray) -> float:
+    """Excentricita komponenty z druhých centrálních momentů: 0 = kruh, →1 = úsečka.
+
+    Definice jako `skimage.measure.regionprops().eccentricity`, ale jen numpy (bez skimage
+    závislosti). Diskriminátor disku 109 (nízká ecc) od protáhlých fragmentů vrstevnic a
+    elips 110 (vysoká ecc) — Sez. 169 doložil ecc<0,77 odfiltruje elipsy."""
+    ys, xs = np.where(component)
+    if len(xs) < 2:
+        return 0.0
+    x = xs.astype(np.float64) - xs.mean()
+    y = ys.astype(np.float64) - ys.mean()
+    mu20 = float((x * x).mean())
+    mu02 = float((y * y).mean())
+    mu11 = float((x * y).mean())
+    common = math.sqrt((mu20 - mu02) ** 2 + 4.0 * mu11 ** 2)
+    l1 = (mu20 + mu02 + common) / 2.0  # větší vlastní číslo kovariance
+    l2 = (mu20 + mu02 - common) / 2.0
+    if l1 <= 0:
+        return 0.0
+    return math.sqrt(max(0.0, 1.0 - l2 / l1))
+
+
 def component_candidates(
     mask: np.ndarray,
     *,
@@ -106,18 +129,29 @@ def component_candidates(
     min_fill: float,
     max_fill: float,
     close_px: int,
+    open_px: int = 0,
     max_aspect: float | None = None,
+    max_eccentricity: float | None = None,
     return_idx: bool = False,
 ) -> list:
     """Vybere rozumně malé komponenty; dlouhé linie / plošné šrafy nechá mimo.
 
-    Filtry (size bboxu, volitelně aspect, plocha, fill) jsou v původním pořadí, aby výsledná
-    množina seděla 1:1 s předrefaktorovými detektory. `return_idx=True` (water) vrací i label
-    index; jinak vrací jen (sy, sx) slices."""
+    Filtry (size bboxu, volitelně aspect, plocha, fill, volitelně excentricita) jsou v původním
+    pořadí, aby výsledná množina seděla 1:1 s předrefaktorovými detektory. `return_idx=True`
+    (water) vrací i label index; jinak vrací jen (sy, sx) slices.
+
+    Volitelné `open_px` (binary_opening PŘED label, izomorf `close_px`) odtrhne bodové symboly
+    slité s tenkými vrstevnicemi — Sez. 169: bez něj recall 109 = 2 %, s ním 96 %. `max_eccentricity`
+    odmítne protáhlé komponenty (fragmenty vrstevnic, elipsy 110). Oba default vypnuté → ostatní
+    detektory (water/vegetation/manmade) zůstávají byte-identické (audit Sez. 165 D2/D3:
+    změna chování jen jako měřený opt-in)."""
     label_mask = mask
+    if open_px > 0:
+        structure = np.ones((3, 3), dtype=bool)
+        label_mask = ndi.binary_opening(label_mask, structure=structure, iterations=open_px)
     if close_px > 0:
         structure = np.ones((3, 3), dtype=bool)
-        label_mask = ndi.binary_closing(mask, structure=structure, iterations=close_px)
+        label_mask = ndi.binary_closing(label_mask, structure=structure, iterations=close_px)
     labels, _ = ndi.label(label_mask)
     objects = ndi.find_objects(labels)
 
@@ -140,6 +174,8 @@ def component_candidates(
             continue
         fill = area / (w * h)
         if fill < min_fill or fill > max_fill:
+            continue
+        if max_eccentricity is not None and eccentricity(component) > max_eccentricity:
             continue
         out.append((idx, sy, sx) if return_idx else (sy, sx))
     return out
@@ -198,6 +234,57 @@ def classify_simple(
                       for code, t in templates.items()},
     }
     return capped, stats
+
+
+def _has_collinear_pair(neigh: list[tuple[float, float, float]], cos_thr: float) -> bool:
+    """Mají aspoň dva sousedé (dx, dy, dist) vůči kandidátu úhel ≥ práh (cos ≤ cos_thr)?
+
+    Soused na obou stranách v přibližné přímce = kandidát leží UVNITŘ řady (vrstevnicový
+    fragment), ne izolovaný bod."""
+    for a in range(len(neigh)):
+        dxa, dya, da = neigh[a]
+        for b in range(a + 1, len(neigh)):
+            dxb, dyb, db = neigh[b]
+            if da > 0 and db > 0 and (dxa * dxb + dya * dyb) / (da * db) <= cos_thr:
+                return True
+    return False
+
+
+def reject_collinear_runs(
+    candidates: list[Candidate],
+    *,
+    radius: float,
+    min_neighbors: int,
+    collinear_tol_deg: float,
+) -> list[Candidate]:
+    """Odmítne kandidáty ležící v ~přímé řadě (fragmenty vrstevnic / erozní rýhy 108).
+
+    Vrstevnice po openingu zůstane jako řada teček rovnoměrně podél křivky; izolovaný terénní
+    bod (109 kupka) řadu nemá (Sez. 169: 0 vs 2 sousedi → precision 13 → 58 %). Kandidát je
+    „v řadě", má-li aspoň `min_neighbors` sousedů TÉHOŽ kódu do `radius` px a aspoň jedna jejich
+    dvojice s ním svírá úhel ≥ 180°−`collinear_tol_deg` (leží po obou stranách na linii).
+    Per-code, protože různé symboly se navzájem do řady neskládají. Pořadí zachováno."""
+    cos_thr = math.cos(math.radians(180.0 - collinear_tol_deg))  # blízko -1 (opačné strany)
+    by_code: dict[str, list[int]] = defaultdict(list)
+    for idx, c in enumerate(candidates):
+        by_code[c.code].append(idx)
+
+    rejected: set[int] = set()
+    for indices in by_code.values():
+        for ia in indices:
+            ca = candidates[ia]
+            neigh: list[tuple[float, float, float]] = []
+            for ib in indices:
+                if ib == ia:
+                    continue
+                dx = candidates[ib].x - ca.x
+                dy = candidates[ib].y - ca.y
+                d2 = dx * dx + dy * dy
+                if 0 < d2 <= radius * radius:
+                    neigh.append((dx, dy, math.sqrt(d2)))
+            if len(neigh) >= min_neighbors and _has_collinear_pair(neigh, cos_thr):
+                rejected.add(ia)
+    return [c for idx, c in enumerate(candidates) if idx not in rejected]
 
 
 # ---------------------------------------------------------------------------
@@ -340,12 +427,14 @@ def run_simple_detector(
     overlay_colors: dict[str, tuple[int, int, int]],
     sheet_kwargs: dict[str, object],
     component_kwargs: dict[str, object],
+    post_filter: Callable[[list[Candidate]], list[Candidate]] | None = None,
 ) -> int:
     """Společná main-pipeline pro NErotující detektory (manmade/terrain/vegetation).
 
-    Otevře sken → resize → barevná maska → component_candidates → classify_simple → payload →
-    zápis detections/stats/mask + overlay + contact sheet → print. Water má vlastní main
-    (rotace + marker kalibrace)."""
+    Otevře sken → resize → barevná maska → component_candidates → classify_simple →
+    (volitelný `post_filter` nad kandidáty) → payload → zápis detections/stats/mask + overlay +
+    contact sheet → print. Water má vlastní main (rotace + marker kalibrace). `post_filter`
+    (default None → beze změny) plní např. terrain `reject_collinear_runs`."""
     args.out_dir.mkdir(parents=True, exist_ok=True)
     original = Image.open(args.input).convert("RGB")
     proc, scale = resize_for_processing(original, args.max_dim)
@@ -357,6 +446,13 @@ def run_simple_detector(
         mask, scale, templates=templates, target_codes=target_codes, code_order=code_order,
         score_threshold=args.score_threshold, max_per_code=args.max_per_code, raw_components=raw_components,
     )
+    if post_filter is not None:
+        before = len(candidates)
+        candidates = post_filter(candidates)
+        stats["post_filter_removed"] = before - len(candidates)
+        stats["kept_total"] = len(candidates)
+        stats["kept_by_code"] = {code: sum(1 for c in candidates if c.code == code)
+                                 for code in target_codes}
     payload = detections_payload(
         candidates, args.input, original.size, scale, target_codes=target_codes,
         code_names=code_names, parameters=parameters, status=status, doc=doc, stats=stats,

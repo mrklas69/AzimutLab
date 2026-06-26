@@ -2,7 +2,7 @@
   "_status": "IN_PROGRESS",
   "_doc": "Per-ISOM kalibracni ledger pro scan-transfer kandidaty. Temp cesty jsou dukazove artefakty, ne commitovany zdroj pravdy.",
   "schema_version": 1,
-  "updated": "2026-06-21",
+  "updated": "2026-06-26",
   "marker_symbol": "602",
   "planned_next": [
     "311",
@@ -19,31 +19,30 @@
     {
       "code": "109",
       "name": "Small knoll",
-      "status": "candidate_calibrated_needs_review",
-      "source_map": "maps/Hamr na Jezeře/Hamr na Jezeře.omap",
-      "scan": "maps/Hamr na Jezeře/bg_scan.png",
-      "marker_source_omap": "temp/cleanup_user_marks_20260621_103454/Hamr na Jezeře.omap",
-      "marker_symbol": "602",
-      "positive_marker_count": 40,
+      "status": "candidate_calibrated",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 51,
       "negative_examples": [
         {
-          "labels": [
-            "A",
-            "B",
-            "C",
-            "D"
-          ],
+          "labels": [],
           "confusion_codes": [
-            "108"
+            "101",
+            "102",
+            "103"
           ],
-          "note": "Slabe tecky z linioveho 108 vypadaji jako 109; min_area 25 je zatim hlavni filtr. Pracovni Hamr mapa byla 2026-06-21 vycistena, puvodni 602/704 znacky jsou v lokalni zaloze."
+          "note": "Hlavni FP = protahle fragmenty vrstevnic 101/103 po openingu; ecc<0.77 je odfiltruje. reject_collinear na Branzezi NEpomaha (fragmenty nejsou ciste kolinearni rady; 108 erozni ryhy zde nejsou)."
         }
       ],
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "source_detections": "temp/terrain109_hamr_area25/detections.json",
-        "review_manifest": "temp/terrain109_hamr_area25/review/review_manifest.json"
+        "command": "python isom_scan/terrain_points_poc.py --codes 109 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300 --max-fill 0.95 --min-fill 0.08 --min-area 25 --max-size 54 --max-eccentricity 0.77",
+        "source_detections": "temp/terrain_109_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
       "parameters": {
         "brown_red_min": 110,
@@ -53,7 +52,7 @@
         "codes": [
           "109"
         ],
-        "score_threshold": 0.87,
+        "score_threshold": 0.5,
         "min_size": 3,
         "max_size": 54,
         "min_area": 25,
@@ -61,24 +60,31 @@
         "min_fill": 0.08,
         "max_fill": 0.95,
         "close_px": 0,
-        "max_per_code": 1000
+        "open_px": 1,
+        "max_eccentricity": 0.77,
+        "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 146,
+        "candidate_count": 66,
         "review_summary": {
-          "total": 146,
-          "tp": 0,
-          "fp": 0,
+          "total": 66,
+          "tp": 38,
+          "fp": 28,
           "ignore": 0,
-          "unreviewed": 146
+          "unreviewed": 0
         },
-        "marker_recall": null,
-        "false_positive_count": null
+        "marker_recall": 0.745,
+        "false_positive_count": 28,
+        "gt_source": "manual_branzez_155pt",
+        "tp": 38,
+        "fn": 13,
+        "precision": 0.576,
+        "tol_px": 20
       },
       "review": {
-        "status": "unreviewed",
-        "sheet": "temp/terrain109_hamr_area25/review/review_sheet.png",
-        "note": "Dalsi krok: porovnat kandidaty s 40 markery 602 z lokalni zalozni kopie a doplnit marker_recall."
+        "status": "calibrated_against_manual_gt",
+        "sheet": "temp/terrain_109_bransez/terrain_points_contact_sheet.png",
+        "note": "Opening 1px odtrhne kupku od vrstevnice (recall 2->88%); ecc<0.77 oddeli disk od protahlych fragmentu vrstevnic (precision 15->58%). F1 0.65 na 51 rucnich GT bodech (tol 20px)."
       },
       "export": {
         "status": "not_exported",
@@ -88,31 +94,40 @@
     {
       "code": "111",
       "name": "Small depression",
-      "status": "candidate_needs_markers",
-      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
-      "scan": "maps/Buschdörfl/bg_scan.png",
-      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
-      "marker_symbol": "602",
-      "positive_marker_count": 0,
+      "status": "classic_cv_ceiling",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 10,
       "negative_examples": [
         {
           "labels": [],
-          "confusion_codes": [],
-          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+          "confusion_codes": [
+            "101",
+            "102",
+            "103"
+          ],
+          "note": "FP = oblouky vrstevnic a sum hnede kresby; classic-CV je neodlisi, ceka na ML rekonstruktor."
         }
       ],
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
-        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+        "command": "python isom_scan/terrain_points_poc.py --codes 111 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300",
+        "source_detections": "temp/terrain_111_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
       "parameters": {
         "brown_red_min": 110,
         "brown_red_green_diff": 28,
         "brown_green_max": 170,
         "brown_blue_max": 140,
-        "score_threshold": 0.76,
+        "codes": [
+          "111"
+        ],
+        "score_threshold": 0.5,
         "min_size": 3,
         "max_size": 42,
         "min_area": 6,
@@ -120,24 +135,31 @@
         "min_fill": 0.05,
         "max_fill": 0.75,
         "close_px": 0,
-        "max_per_code": 60
+        "open_px": 1,
+        "max_eccentricity": null,
+        "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 2,
+        "candidate_count": 58,
         "review_summary": {
-          "total": 15,
-          "tp": 0,
-          "fp": 0,
+          "total": 58,
+          "tp": 8,
+          "fp": 50,
           "ignore": 0,
-          "unreviewed": 15
+          "unreviewed": 0
         },
-        "marker_recall": null,
-        "false_positive_count": null
+        "marker_recall": 0.8,
+        "false_positive_count": 50,
+        "gt_source": "manual_branzez_155pt",
+        "tp": 8,
+        "fn": 2,
+        "precision": 0.138,
+        "tol_px": 20
       },
       "review": {
-        "status": "unreviewed",
-        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
-        "note": "Sdileny review sheet pro 111/112/115."
+        "status": "calibrated_against_manual_gt",
+        "sheet": "temp/terrain_111_bransez/terrain_points_contact_sheet.png",
+        "note": "Recall 0.80 (oblouk se trasuje), ale precision 0.14 = zaplava FP z vrstevnic. ecc se NEpouziva (oblouk je legitimne protahly). Jen 10 GT bodu -> krehke, neladim prah na sumu (anti-Goodhart). Strop classic-CV (Sez. 169): jemny tvar pod rozlisovaci schopnosti na huste Branzezi."
       },
       "export": {
         "status": "not_exported",
@@ -147,31 +169,40 @@
     {
       "code": "112",
       "name": "Pit",
-      "status": "candidate_needs_markers",
-      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
-      "scan": "maps/Buschdörfl/bg_scan.png",
-      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
-      "marker_symbol": "602",
-      "positive_marker_count": 0,
+      "status": "classic_cv_ceiling",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 3,
       "negative_examples": [
         {
           "labels": [],
-          "confusion_codes": [],
-          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+          "confusion_codes": [
+            "101",
+            "102",
+            "103"
+          ],
+          "note": "FP = vsechny vyplnene hnede skvrny; tvar ▽ je pod rozlisovaci schopnosti."
         }
       ],
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
-        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+        "command": "python isom_scan/terrain_points_poc.py --codes 112 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300",
+        "source_detections": "temp/terrain_112_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
       "parameters": {
         "brown_red_min": 110,
         "brown_red_green_diff": 28,
         "brown_green_max": 170,
         "brown_blue_max": 140,
-        "score_threshold": 0.76,
+        "codes": [
+          "112"
+        ],
+        "score_threshold": 0.5,
         "min_size": 3,
         "max_size": 42,
         "min_area": 6,
@@ -179,24 +210,31 @@
         "min_fill": 0.05,
         "max_fill": 0.75,
         "close_px": 0,
-        "max_per_code": 60
+        "open_px": 1,
+        "max_eccentricity": null,
+        "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 11,
+        "candidate_count": 300,
         "review_summary": {
-          "total": 15,
-          "tp": 0,
-          "fp": 0,
+          "total": 300,
+          "tp": 2,
+          "fp": 298,
           "ignore": 0,
-          "unreviewed": 15
+          "unreviewed": 0
         },
-        "marker_recall": null,
-        "false_positive_count": null
+        "marker_recall": 0.667,
+        "false_positive_count": 298,
+        "gt_source": "manual_branzez_155pt",
+        "tp": 2,
+        "fn": 1,
+        "precision": 0.007,
+        "tol_px": 20
       },
       "review": {
-        "status": "unreviewed",
-        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
-        "note": "Sdileny review sheet pro 111/112/115."
+        "status": "calibrated_against_manual_gt",
+        "sheet": "temp/terrain_112_bransez/terrain_points_contact_sheet.png",
+        "note": "Recall 0.67, ale precision 0.007 (cap 300 narazen). Jen 3 GT body -> mereni krehke {0;0.33;0.67;1}. ecc nepomaha (vyplneny klin splyva s plnymi fragmenty). Strop classic-CV, ceka ML."
       },
       "export": {
         "status": "not_exported",
@@ -206,31 +244,40 @@
     {
       "code": "115",
       "name": "Prominent landform feature",
-      "status": "candidate_needs_markers",
-      "source_map": "maps/Buschdörfl/Buschdörfl.omap",
-      "scan": "maps/Buschdörfl/bg_scan.png",
-      "marker_source_omap": "maps/Buschdörfl/Buschdörfl.omap",
-      "marker_symbol": "602",
-      "positive_marker_count": 0,
+      "status": "classic_cv_ceiling",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 3,
       "negative_examples": [
         {
           "labels": [],
-          "confusion_codes": [],
-          "note": "Pracovni Buschdorfl mapa byla 2026-06-21 vycistena od 704 stitku; puvodni A/B/C jsou jen v lokalni zaloze."
+          "confusion_codes": [
+            "101",
+            "102",
+            "103"
+          ],
+          "note": "FP = trojuhelnikove fragmenty krizeni vrstevnic; ecc<0.85 cast odfiltruje."
         }
       ],
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "source_detections": "temp/terrain_points_buschdorfl/detections.json",
-        "review_manifest": "temp/terrain_points_buschdorfl/review/review_manifest.json"
+        "command": "python isom_scan/terrain_points_poc.py --codes 115 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300 --max-eccentricity 0.85",
+        "source_detections": "temp/terrain_115_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
       "parameters": {
         "brown_red_min": 110,
         "brown_red_green_diff": 28,
         "brown_green_max": 170,
         "brown_blue_max": 140,
-        "score_threshold": 0.76,
+        "codes": [
+          "115"
+        ],
+        "score_threshold": 0.5,
         "min_size": 3,
         "max_size": 42,
         "min_area": 6,
@@ -238,24 +285,31 @@
         "min_fill": 0.05,
         "max_fill": 0.75,
         "close_px": 0,
-        "max_per_code": 60
+        "open_px": 1,
+        "max_eccentricity": 0.85,
+        "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 2,
+        "candidate_count": 24,
         "review_summary": {
-          "total": 15,
-          "tp": 0,
-          "fp": 0,
+          "total": 24,
+          "tp": 3,
+          "fp": 21,
           "ignore": 0,
-          "unreviewed": 15
+          "unreviewed": 0
         },
-        "marker_recall": null,
-        "false_positive_count": null
+        "marker_recall": 1.0,
+        "false_positive_count": 21,
+        "gt_source": "manual_branzez_155pt",
+        "tp": 3,
+        "fn": 0,
+        "precision": 0.125,
+        "tol_px": 20
       },
       "review": {
-        "status": "unreviewed",
-        "sheet": "temp/terrain_points_buschdorfl/review/review_sheet.png",
-        "note": "Sdileny review sheet pro 111/112/115."
+        "status": "calibrated_against_manual_gt",
+        "sheet": "temp/terrain_115_bransez/terrain_points_contact_sheet.png",
+        "note": "Recall 1.0 (vsechny 3 trefeny), ecc<0.85 zvedl precision 0.03->0.13 bez ztraty recallu. Jen 3 GT body -> krehke. Strop classic-CV: trojuhelnik mezi vrstevnicovym sumem."
       },
       "export": {
         "status": "not_exported",
