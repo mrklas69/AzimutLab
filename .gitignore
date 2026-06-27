@@ -53,6 +53,10 @@ resources/*
 # copyright mapový obsah → commitnout (audit A4 reprodukovatelnost — bez nich nejde měřit KPI
 # na druhém stroji; resources/*.png/.omap zůstávají lokální).
 !resources/*.pgw
+# Výjimka: ruční crop polygon mapového pole (Sez. 173) = jen souřadnice rohů v px skenu, žádný
+# copyright obsah → commitnout (neopakovatelná ruční práce, audit A6; bez něj separace/KPI padají
+# na auto detekci, která propouští barevný layout = falešný les + kontaminace counts).
+!resources/*_mapfield.json
 
 # ISOM symbolový katalog: verzovat jen bezpečný kontrakt. Samotné SVG dumpy zůstávají
 # lokální, dokud není vyjasněná licence/provenance.

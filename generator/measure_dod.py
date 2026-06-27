@@ -60,7 +60,7 @@ from generator import generate_map        # noqa: E402
 from compare_isom import (coverage, _load_crosswalk, _resolve_targets, detect_version,   # noqa: E402
                           isom_usage, used_geometry)   # crosswalk-aware Sez. 94; used_geom + tabulka Sez. 96
 from separate import separate_areas, TARGET_MPP  # noqa: E402  (cesta b: separace-ze-skenu)
-from map_gt import segment_gt             # noqa: E402  (runnability GT z resources skenu)
+from map_gt import segment_gt, rasterize_map_field   # noqa: E402  (runnability GT + ruční mapfield, Sez. 173)
 from omap_raster import _paper_to_px, _strip  # noqa: E402  (paper µm→gen px + strip namespace; ořez Sez. 104)
 
 try:
@@ -101,6 +101,16 @@ def _extent_from_pgw(name: str):
     return lat, lon, (xmax - xmin) / 1000.0, (ymax - ymin) / 1000.0
 
 
+def _load_map_field(name: str) -> list | None:
+    """Ruční crop polygon mapového pole (Sez. 173): resources/<name>_mapfield.json → [[col,row],…]
+    v px PLNÉHO skenu, nebo None když chybí. Robustní náhrada auto detekce (detect_map_area /
+    convex hull) tam, kde barevný layout (zelený banner/loga) selhává — viz tools/mark_mapfield.py."""
+    p = REPO / "resources" / f"{name}_mapfield.json"
+    if not p.exists():
+        return None
+    return json.loads(p.read_text(encoding="utf-8"))["polygon_px"]
+
+
 def _separate_resources_to_sjtsk(name: str, sep_dir: pathlib.Path) -> list:
     """resources sken → downscale → map_gt → separace → polygony v S-JTSK (přes .pgw afinní).
 
@@ -118,7 +128,14 @@ def _separate_resources_to_sjtsk(name: str, sep_dir: pathlib.Path) -> list:
         small = im.resize((nW, nH), Image.BILINEAR)
     sep_dir.mkdir(parents=True, exist_ok=True)
     small.save(sep_dir / "map.png")
-    segment_gt(sep_dir / "map.png", out_dir=sep_dir)     # → gt_labels.png (runnability 0-4/255)
+    mfield = _load_map_field(name)                        # ruční crop polygon (Sez. 173)
+    if mfield is not None:
+        mfmask = rasterize_map_field(mfield, (W, H), (nH, nW))   # full px polygon → downscaled maska
+    else:
+        mfmask = None
+        print(f"⚠ {name}: bez ručního mapfield → auto detect_map_area (riziko: zelený layout banner/loga "
+              f"jako falešný les)", file=sys.stderr)
+    segment_gt(sep_dir / "map.png", out_dir=sep_dir, map_field_mask=mfmask)   # → gt_labels.png (0-4/255)
     gt = np.asarray(Image.open(sep_dir / "gt_labels.png"))
     polys = separate_areas(gt, rgb=np.asarray(small), src_mpp=None)   # už v target rozlišení
 
@@ -225,6 +242,11 @@ def _mapped_area_mask(name: str) -> np.ndarray:
         Wf, Hf = im.size
         sm = np.asarray(im.resize((Wf // _CLIP_DS, Hf // _CLIP_DS), Image.BILINEAR))
     hs, ws = sm.shape[:2]
+    mfield = _load_map_field(name)                     # ruční crop polygon (Sez. 173) přebíjí convex hull
+    if mfield is not None:
+        return rasterize_map_field(mfield, (Wf, Hf), (hs, ws))
+    print(f"⚠ {name}: bez ručního mapfield → convex hull KPI ořezu (může přestřelit na loga/rohy "
+          f"nekonvexní mapy → kontaminace counts)", file=sys.stderr)
     nonwhite = ~((sm[:, :, 0] > 245) & (sm[:, :, 1] > 245) & (sm[:, :, 2] > 245))
     mask = ndi.binary_fill_holes(ndi.binary_closing(nonwhite, iterations=_CLIP_CLOSE))
     lbl, nlab = ndi.label(mask)                       # největší souvislá komponenta = mapová silueta

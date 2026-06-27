@@ -39,7 +39,7 @@ Spouštět z kořene přes .venv (sys.path skript, fáze B).
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
@@ -240,10 +240,29 @@ def colorize(labels: np.ndarray, palette: dict[int, tuple[int, int, int]]) -> np
     return vis
 
 
-def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
+def rasterize_map_field(polygon_px: list, scan_wh: tuple, target_hw: tuple) -> np.ndarray:
+    """Ruční polygon mapového pole (px PLNÉHO skenu) → bool maska v cílovém rozlišení.
+
+    `polygon_px` = [[col,row],…] v px skenu `scan_wh`=(W,H); `target_hw`=(H,W) výstupu (downscaled
+    map.png nebo KPI ×_CLIP_DS). True = uvnitř mapového pole. Robustní náhrada `_detect_map_area`
+    (connected-component) i convex hullu, kde barevný layout (zelený banner/loga) selhává — Sez. 173.
+    """
+    Wf, Hf = scan_wh
+    Ht, Wt = target_hw
+    sx, sy = Wt / Wf, Ht / Hf
+    img = Image.new("L", (Wt, Ht), 0)
+    ImageDraw.Draw(img).polygon([(c * sx, r * sy) for c, r in polygon_px], fill=1)
+    return np.asarray(img, dtype=bool)
+
+
+def segment_gt(map_png: str | Path, out_dir: str | Path | None = None,
+               map_field_mask: np.ndarray | None = None) -> dict:
     """Z map.png vytvoří runnability i sémantický GT. Vrací rozpad runnability v %.
 
     out_dir default = adresář vstupní mapy (vedle map.png/meta.json v korpusu).
+    `map_field_mask` (Sez. 173): volitelná bool maska mapového pole (rozměr rgb) z RUČNÍHO crop
+    polygonu — použije se MÍSTO auto `_detect_map_area`. Řeší barevný layout (zelený banner/loga),
+    který connected-component nevyřízne (má mapovou barvu + je spojen s mapou). None = auto detekce.
     """
     map_png = Path(map_png)
     out_dir = Path(out_dir) if out_dir else map_png.parent
@@ -280,8 +299,11 @@ def segment_gt(map_png: str | Path, out_dir: str | Path | None = None) -> dict:
     # layout mimo mapové území → IGNORE (Sez. 73). Spočítá se z mapově-barevných pixelů
     # (stejný color_idx) a aplikuje AŽ NAKONEC: vše mimo mapu (legenda/tabulka/titulek/papír)
     # přepíše na 255 bez ohledu na runnability/přetisk uvnitř toho okraje.
-    is_map_color = np.array([k in _MAP_COLOR_KEYS for k in keys])
-    map_area = _detect_map_area(is_map_color[color_idx])
+    if map_field_mask is not None:               # ruční crop polygon (Sez. 173) — přebíjí auto detekci
+        map_area = map_field_mask
+    else:
+        is_map_color = np.array([k in _MAP_COLOR_KEYS for k in keys])
+        map_area = _detect_map_area(is_map_color[color_idx])
     labels[~map_area] = IGNORE
     semantic[~map_area] = IGNORE
 
