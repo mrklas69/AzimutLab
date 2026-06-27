@@ -12,7 +12,6 @@
     "524",
     "526",
     "530",
-    "207",
     "512.2"
   ],
   "entries": [
@@ -845,6 +844,82 @@
         "status": "calibrated_against_manual_gt",
         "sheet": "temp/terrain_109_bransez/terrain_points_contact_sheet.png",
         "note": "Opening 1px odtrhne kupku od vrstevnice (recall 2->88%); ecc<0.77 oddeli disk od protahlych fragmentu vrstevnic (precision 15->58%). F1 0.65 na 51 rucnich GT bodech (tol 20px)."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "204",
+      "name": "Boulder (204/205/204.5 sjednoceno)",
+      "status": "classic_cv_ceiling",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 26,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [
+            "202"
+          ],
+          "note": "Hlavni FP = fragmenty cerne srazove kresby 202 (Branzez extremne skalnata). Balvan (plny cerny disk) lezi UVNITR skalnich poli a je pixelove NEROZLISITELNY od srazoveho fragmentu: fill (TP 0.84 vs FP 0.83), eccentricity (slite balvany 0.75-0.92 jako linie), solidity (1.30 vs 1.37), area (45 vs 38) i kontextova okolni-cerna hustota (0.15 vs 0.18) maji STEJNE rozdeleni. reject_collinear nepomaha (FP nejsou ciste kolinearni rady). Strop classic-CV -> ML rekonstruktor (204 uz v Png2Point scope, realny transfer 0.44-0.73)."
+        }
+      ],
+      "detector": {
+        "family": "boulder_points",
+        "script": "isom_scan/boulder_points_poc.py",
+        "command": "python isom_scan/boulder_points_poc.py --input isom_scan/task_isom_scan.png --out-dir temp/boulder_bransez --open-px 0 --close-px 1 --min-area 12 --max-eccentricity 0.72 --min-fill 0.45",
+        "source_detections": "temp/boulder_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
+      },
+      "parameters": {
+        "dark_max": 130,
+        "neutral_spread": 18,
+        "score_threshold": 0.6,
+        "min_size": 4,
+        "max_size": 18,
+        "min_area": 12,
+        "max_area": 230,
+        "min_fill": 0.45,
+        "max_fill": 0.95,
+        "max_eccentricity": 0.72,
+        "close_px": 1,
+        "open_px": 0,
+        "max_per_code": 200,
+        "gt_codes_unified": [
+          "204",
+          "205",
+          "204.5"
+        ]
+      },
+      "metrics": {
+        "candidate_count": 51,
+        "review_summary": {
+          "total": 51,
+          "tp": 10,
+          "fp": 41,
+          "ignore": 0,
+          "unreviewed": 0
+        },
+        "marker_recall": 0.385,
+        "false_positive_count": 41,
+        "gt_source": "manual_branzez_26pt_204_205_2045",
+        "tp": 10,
+        "fn": 16,
+        "precision": 0.196,
+        "tol_px": 12,
+        "recall_max_variant": {
+          "note": "open_px=1 odtrhne disk od linie -> recall 0.85, ale precision kolabuje na 0.11 (srazova kresba se rozpadne na FP disky). Zadny prah (collinear/solidity) F1 nezvedl nad ~0.22."
+        }
+      },
+      "review": {
+        "status": "ceiling_documented_against_manual_gt",
+        "sheet": "temp/boulder_bransez/boulder_points_contact_sheet.png",
+        "note": "F1 0.26 (P 0.20 / R 0.385, tol 12) na 26 rucnich GT bodech. Nejde vys: balvan nerozlisitelny od srazove kresby 202 na skalnate mape (vsechny tvarove i kontextove rysy stejne rozdeleni TP/FP). Doloženy strop classic-CV. NEexportovat do generatoru; 204 resi Png2Point (ML). Nastroj znovupouzitelny na MENE skalnatych mapach s izolovanymi balvany."
       },
       "export": {
         "status": "not_exported",
