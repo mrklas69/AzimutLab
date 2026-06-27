@@ -94,7 +94,7 @@
     {
       "code": "111",
       "name": "Small depression",
-      "status": "classic_cv_ceiling",
+      "status": "candidate_calibrated",
       "source_map": "isom_scan/task_isom_scan.png",
       "scan": "isom_scan/task_isom_scan.png",
       "marker_source_omap": null,
@@ -115,7 +115,7 @@
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "command": "python isom_scan/terrain_points_poc.py --codes 111 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300",
+        "command": "python isom_scan/terrain_points_poc.py --codes 111 --input isom_scan/task_isom_scan.png --min-area 30 --score-threshold 0.7",
         "source_detections": "temp/terrain_111_bransez/detections.json",
         "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
@@ -127,10 +127,10 @@
         "codes": [
           "111"
         ],
-        "score_threshold": 0.5,
+        "score_threshold": 0.7,
         "min_size": 3,
         "max_size": 42,
-        "min_area": 6,
+        "min_area": 30,
         "max_area": 900,
         "min_fill": 0.05,
         "max_fill": 0.75,
@@ -140,21 +140,22 @@
         "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 58,
+        "candidate_count": 14,
         "review_summary": {
-          "total": 58,
-          "tp": 8,
-          "fp": 50,
+          "total": 14,
+          "tp": 7,
+          "fp": 7,
           "ignore": 0,
           "unreviewed": 0
         },
-        "marker_recall": 0.8,
-        "false_positive_count": 50,
-        "gt_source": "manual_branzez_155pt",
-        "tp": 8,
-        "fn": 2,
-        "precision": 0.138,
-        "tol_px": 20
+        "gt_source": "manual_branzez_187pt",
+        "marker_recall": 0.7,
+        "precision": 0.5,
+        "tp": 7,
+        "fn": 3,
+        "false_positive_count": 7,
+        "tol_px": 12,
+        "note": "Sez.173 rekalibrace: score-threshold 0.7 + min-area 30 zvedlo precision (z ~0.03-0.10). ecc kontraproduktivni (U/▽ maji vysoky ecc)."
       },
       "review": {
         "status": "calibrated_against_manual_gt",
@@ -190,7 +191,7 @@
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "command": "python isom_scan/terrain_points_poc.py --codes 112 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300",
+        "command": "python isom_scan/terrain_points_poc.py --codes 112 --input isom_scan/task_isom_scan.png --min-area 30 --score-threshold 0.7",
         "source_detections": "temp/terrain_112_bransez/detections.json",
         "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
@@ -202,10 +203,10 @@
         "codes": [
           "112"
         ],
-        "score_threshold": 0.5,
+        "score_threshold": 0.7,
         "min_size": 3,
         "max_size": 42,
-        "min_area": 6,
+        "min_area": 30,
         "max_area": 900,
         "min_fill": 0.05,
         "max_fill": 0.75,
@@ -215,21 +216,22 @@
         "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 300,
+        "candidate_count": 5,
         "review_summary": {
-          "total": 300,
+          "total": 5,
           "tp": 2,
-          "fp": 298,
+          "fp": 3,
           "ignore": 0,
           "unreviewed": 0
         },
-        "marker_recall": 0.667,
-        "false_positive_count": 298,
-        "gt_source": "manual_branzez_155pt",
+        "gt_source": "manual_branzez_187pt",
+        "marker_recall": 0.5,
+        "precision": 0.4,
         "tp": 2,
-        "fn": 1,
-        "precision": 0.007,
-        "tol_px": 20
+        "fn": 2,
+        "false_positive_count": 3,
+        "tol_px": 12,
+        "note": "Sez.173 rekalibrace: score-threshold 0.7 + min-area 30 zvedlo precision (z ~0.03-0.10). ecc kontraproduktivni (U/▽ maji vysoky ecc)."
       },
       "review": {
         "status": "calibrated_against_manual_gt",
@@ -265,7 +267,7 @@
       "detector": {
         "family": "terrain_points",
         "script": "isom_scan/terrain_points_poc.py",
-        "command": "python isom_scan/terrain_points_poc.py --codes 115 --input isom_scan/task_isom_scan.png --open-px 1 --max-per-code 300 --max-eccentricity 0.85",
+        "command": "python isom_scan/terrain_points_poc.py --codes 115 --input isom_scan/task_isom_scan.png --min-area 30 --score-threshold 0.7",
         "source_detections": "temp/terrain_115_bransez/detections.json",
         "review_manifest": "isom_scan/markers/bransez_gt.json"
       },
@@ -277,10 +279,10 @@
         "codes": [
           "115"
         ],
-        "score_threshold": 0.5,
+        "score_threshold": 0.7,
         "min_size": 3,
         "max_size": 42,
-        "min_area": 6,
+        "min_area": 30,
         "max_area": 900,
         "min_fill": 0.05,
         "max_fill": 0.75,
@@ -290,21 +292,22 @@
         "max_per_code": 300
       },
       "metrics": {
-        "candidate_count": 24,
+        "candidate_count": 2,
         "review_summary": {
-          "total": 24,
-          "tp": 3,
-          "fp": 21,
+          "total": 2,
+          "tp": 2,
+          "fp": 0,
           "ignore": 0,
           "unreviewed": 0
         },
-        "marker_recall": 1.0,
-        "false_positive_count": 21,
-        "gt_source": "manual_branzez_155pt",
-        "tp": 3,
-        "fn": 0,
-        "precision": 0.125,
-        "tol_px": 20
+        "gt_source": "manual_branzez_187pt",
+        "marker_recall": 0.67,
+        "precision": 1.0,
+        "tp": 2,
+        "fn": 1,
+        "false_positive_count": 0,
+        "tol_px": 12,
+        "note": "Sez.173 rekalibrace: score-threshold 0.7 + min-area 30 zvedlo precision (z ~0.03-0.10). ecc kontraproduktivni (U/▽ maji vysoky ecc)."
       },
       "review": {
         "status": "calibrated_against_manual_gt",
