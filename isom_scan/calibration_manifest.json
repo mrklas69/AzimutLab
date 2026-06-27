@@ -2,7 +2,7 @@
   "_status": "IN_PROGRESS",
   "_doc": "Per-ISOM kalibracni ledger pro scan-transfer kandidaty. Temp cesty jsou dukazove artefakty, ne commitovany zdroj pravdy.",
   "schema_version": 1,
-  "updated": "2026-06-26",
+  "updated": "2026-06-27",
   "marker_symbol": "602",
   "planned_next": [
     "311",
@@ -768,6 +768,80 @@
         "status": "no_positive_markers",
         "sheet": "temp/water_points_buschdorfl/water_points_contact_sheet.png",
         "note": "Tahle mapa zatim neni pozitivni kalibracni vzorek pro 313; pro 313 je potreba jina mapa nebo rucni pozitivni marker."
+      },
+      "export": {
+        "status": "not_exported",
+        "omap": null
+      }
+    },
+    {
+      "code": "419",
+      "name": "Prominent vegetation feature: x",
+      "status": "candidate_calibrated",
+      "source_map": "isom_scan/task_isom_scan.png",
+      "scan": "isom_scan/task_isom_scan.png",
+      "marker_source_omap": null,
+      "marker_source_json": "isom_scan/markers/bransez_gt.json",
+      "marker_symbol": "manual_canvas",
+      "positive_marker_count": 24,
+      "negative_examples": [
+        {
+          "labels": [],
+          "confusion_codes": [
+            "405",
+            "406",
+            "408"
+          ],
+          "note": "Zeleny X (419) tenky diagonalni kriz; classic-CV strop recall ~0.38 (15/24 nezachyceno, casto prekryte plosnou zeleni). Precision 0.90. Argument pro ML (jako 111/112/115 Sez.170)."
+        }
+      ],
+      "detector": {
+        "family": "vegetation_points",
+        "script": "isom_scan/vegetation_points_poc.py",
+        "command": "python isom_scan/vegetation_points_poc.py --codes 419 --input isom_scan/task_isom_scan.png --green-min 70 --green-red-diff 20 --green-blue-diff 5",
+        "source_detections": "temp/vegetation_419_bransez/detections.json",
+        "review_manifest": "isom_scan/markers/bransez_gt.json"
+      },
+      "parameters": {
+        "green_min": 70,
+        "red_max": 125,
+        "blue_max": 145,
+        "green_red_diff": 20,
+        "green_blue_diff": 5,
+        "score_threshold": 0.55,
+        "min_size": 5,
+        "max_size": 60,
+        "min_area": 10,
+        "max_area": 1400,
+        "min_fill": 0.1,
+        "max_fill": 0.85,
+        "max_aspect": 1.8,
+        "close_px": 1,
+        "codes": [
+          "419"
+        ]
+      },
+      "metrics": {
+        "candidate_count": 10,
+        "review_summary": {
+          "total": 10,
+          "tp": 9,
+          "fp": 1,
+          "ignore": 0,
+          "unreviewed": 0
+        },
+        "gt_source": "manual_branzez_187pt",
+        "marker_recall": 0.38,
+        "precision": 0.9,
+        "tp": 9,
+        "fn": 15,
+        "false_positive_count": 1,
+        "tol_px": 12
+      },
+      "review": {
+        "status": "calibrated_against_manual_gt",
+        "sheet": "temp/terrain_109_bransez/terrain_points_contact_sheet.png",
+        "note": "Opening 1px odtrhne kupku od vrstevnice (recall 2->88%); ecc<0.77 oddeli disk od protahlych fragmentu vrstevnic (precision 15->58%). F1 0.65 na 51 rucnich GT bodech (tol 20px)."
       },
       "export": {
         "status": "not_exported",

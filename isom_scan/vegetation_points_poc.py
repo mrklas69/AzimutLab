@@ -25,10 +25,11 @@ Image.MAX_IMAGE_PIXELS = None
 HERE = Path(__file__).resolve().parent
 DEFAULT_INPUT = HERE / "task_isom_scan.png"
 DEFAULT_OUT = HERE / "vegetation_points_poc"
-TARGET_CODES = ("417", "418")
+TARGET_CODES = ("417", "418", "419")
 CODE_NAMES = {
     "417": "Prominent large tree",
     "418": "Prominent bush or tree",
+    "419": "Prominent vegetation feature: x",
 }
 
 
@@ -61,13 +62,24 @@ def _ellipse_template(size: int, bbox: list[int], *, fill: bool, width: int = 4)
     return np.asarray(img) > 0
 
 
+def _cross_template(size: int, margin: int, width: int) -> np.ndarray:
+    """Diagonální X (419 Prominent vegetation feature) — dvě úhlopříčky daného marginu/tloušťky."""
+    img = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(img)
+    draw.line([margin, margin, size - margin, size - margin], fill=255, width=width)
+    draw.line([margin, size - margin, size - margin, margin], fill=255, width=width)
+    return np.asarray(img) > 0
+
+
 def _render_template(code: str) -> np.ndarray:
-    """Vyrenderuje jednoduchý shape template pro 417/418 a ořízne neprázdný bbox."""
+    """Vyrenderuje jednoduchý shape template pro 417/418/419 a ořízne neprázdný bbox."""
     size = 64
     if code == "417":
         mask = _ellipse_template(size, [16, 16, 48, 48], fill=False, width=5)
     elif code == "418":
         mask = _ellipse_template(size, [20, 20, 44, 44], fill=True)
+    elif code == "419":
+        mask = _cross_template(size, margin=14, width=5)   # zelený X (mirror gen render, Sez. 136)
     else:
         raise RuntimeError(f"Nepodporovany vegetation-point symbol {code}")
 
@@ -136,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         doc="Detekce 417/418 ze zelene kresby skenu; vystup je review kandidat, ne GT.",
         overlay_name="vegetation_points_overlay.png",
         sheet_name="vegetation_points_contact_sheet.png",
-        overlay_colors={"417": (255, 0, 255), "418": (0, 120, 255)},
+        overlay_colors={"417": (255, 0, 255), "418": (0, 120, 255), "419": (255, 140, 0)},
         sheet_kwargs={"limit": 72, "tile": 150, "label_h": 24, "font_size": 12,
                       "half_min": 40, "half_extra": 28},
         component_kwargs={
