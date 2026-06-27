@@ -307,11 +307,16 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   „Kůlna…" (doménové rozhodnutí kartografa) + `BUILDING_MIN_AREA_PX2` 0,2 mm² (ISOM 0,4×0,5 mm, jen 521 ne 523). gen 498→370,
   čisté A/B **plocha +1,9 pb** (Bedř +4,9 / Blatná 0 kontrola). Headline neutrální = bodový měřicí šum, ne vada. Sim agregátní
   HI přestřelila (per-mapa norm). **ZBÝVÁ:** 503/304 (taky real-data přestřel granularita/projekce) — zvážit izomorfně.
-- [ ] *(scan-vytěžení bodů, ROADMAP Etapa 1 — nález/přesměrování uživatele Sez. 173)* **Rozšířit scan-detekci bodů na další
-  ISOM typy proti GT Branžež.** Baseline Sez.173 (vs ruční GT 187/21): kalibrovaný 109/111/112/115 + 419; **9 bohatě-GT kódů
-  BEZ detektoru** = roadmapa: **103.1(26) / 101.1(14) / 204.5(10) / 204(9) / 205(7) / 106(7) / 308.1(6) / 203.1(5)**. Skály
-  204/205 = nová detektor rodina, KOMPAS velké. Match infrastruktura `scratchpad/baseline_points.py` (GT↔detekce scan px, tol
-  12px). Anti-Goodhart: kódy s <5 GT neladit do přemíry (strop CV = argument pro ML, jako 112/115). Kalibrace → `calibration_manifest`.
+- [~] *(scan-vytěžení bodů, ROADMAP Etapa 1 — nález/přesměrování uživatele Sez. 173; **balvany UZAVŘENY Sez. 174 = strop CV**)*
+  **Rozšířit scan-detekci bodů na další ISOM typy proti GT Branžež.** Baseline Sez.173 (vs ruční GT 187/21): kalibrovaný
+  109/111/112/115 + 419; **9 bohatě-GT kódů BEZ detektoru**. **Sez. 174: balvany 204(9)/205(7)/204.5(10) = jedna třída
+  „boulder" → DOLOŽENÝ STROP classic-CV** (`boulder_points_poc.py`, F1 0,260; balvan pixelově nerozlišitelný od fragmentu
+  srázové kresby 202 na skalnaté Branžeži — fill/ecc/solidity/area/okolní-černá VŠECHNY stejné rozdělení TP/FP; manifest
+  `204 classic_cv_ceiling`, NEexportováno, řeší Png2Point ML). **ZBÝVÁ roadmapa (priorita dle šance):** **308.1(6) bažina**
+  (modrá maska = distinktivní barva, NE černá v moři srázů → lepší šance) · **106(7) val rozpadlý** · spádovky **103.1(26) /
+  101.1(14)** = NÍZKÁ priorita (směrové čárky NA vrstevnicích = fragmentový FP šum jako 109, riziko Goodhart). 203.1(5) <5-ish
+  shluk. Match infra = `score.match_points` (Hungarian, tol 12; scratch `score_boulder.py` vzor). Anti-Goodhart: kódy s <5 GT
+  neladit do přemíry (strop CV = argument pro ML, jako 112/115/204). Kalibrace → `calibration_manifest`.
 - [ ] *(scan-vytěžení, nález Sez. 173)* **418 přestřel ze skenu.** `vegetation_points_poc` default masivně přestřeluje 418
   (overlay stovky FP modrých) → kalibrovat proti GT (jako 419/111). Pozn: 418 GT na Branžeži jen 1 → potřeba víc GT / jiná mapa.
 - [ ] *(mapfield doladit, nález Sez. 173)* **Bedřichovka mapfield provizorní → přesný** (`tools/mark_mapfield.py`, drobnost

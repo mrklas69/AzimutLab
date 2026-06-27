@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 174 (2026-06-27) — Scan-detekce balvanů 204/205/204.5 → doložený strop classic-CV (ntbhej)
+Detail: [diary/2026-06-27.md](diary/2026-06-27.md#sezení-174--scan-detekce-balvanů-204205204.5--doložený-strop-classic-cv-ntbhej).
+- [x] **`isom_scan/boulder_points_poc.py`** (nový, 4. detektor rodina, izomorf `manmade_points_poc`): černá
+  neutral maska + disk-template + `run_simple_detector`, opačná fill-logika (plný disk → vysoký `min_fill`).
+  Verify-against-source: 204 Boulder = plný černý KRUH (ne △, to je 207/208). Help-fix ne-ASCII `∪`/`→` cp1250.
+- [x] **`isom_scan/calibration_manifest.json`** entry 204 `classic_cv_ceiling`: měření proti SJEDNOCENÉ ruční GT
+  204∪205∪204.5 (26 bodů, Hungarian tol 12) → **F1 0,260** (recall 0,385 / prec 0,196). **STROP doložen 5
+  diskriminátory** (fill/ecc/solidity/area/okolní-černá = stejné rozdělení TP/FP; opening recall 0,85 ale
+  prec 0,11). Příčina: skalnatá Branžež → balvan nerozlišitelný od fragmentu srázové kresby 202. Anti-Goodhart
+  negativní nález → ML (204 už v Png2Point scope). NEexportováno; `207` z `planned_next` (stejná rodina/strop).
+- [x] **Volba rodiny** (verify-against-source paleta): balvany 204/205/204.5 (26 GT) > spádovky 101.1/103.1
+  (40 GT, ale fragmentový FP šum NA vrstevnicích = riziko Goodhart → odloženo). 65 testů OK. KPI 68,4 % netknuto.
+
 ## Sezení 173 (2026-06-27) — Budovy 521 granularita + ruční crop polygon (mapfield) + scan-vytěžení bodů 419/111/112/115 (ntbhej)
 Detail: [diary/2026-06-27.md](diary/2026-06-27.md#sezení-173--budovy-521-granularita--ruční-crop-polygon-mapfield--scan-vytěžení-bodů-419111112115-ntbhej).
 - [x] **`fc6afa0` budovy 521 granularita** (`zabaged.py`+`generator.py`): vyřazení vrstvy „Kůlna, skleník, fóliovník,
