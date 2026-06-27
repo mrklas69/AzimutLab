@@ -254,6 +254,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > ntbhej KPI 67,1→**67,3** (+0,2 pb), bod 67,9→**70,2** (+2,3 pb), žádná regrese (109 vypadlo z top-5 děr). Reframe:
 > 109 nebyl díra, ale podstřel (gen ho kreslí z plných 5 m vrstevnic; DMR strop na drobné kupky). Canonical HAL3000
 > (67,5) NEpřeměřeno → carry (sirotek-disciplína, nemíchat). Trénink netknut (Png2Point z `inject.py`, ne gen .omap).
+> **Sez. 173 (ntbhej): budovy 521 + ruční crop polygon (mapfield).** (1) **521 granularita** — vyřazena vrstva „Kůlna…"
+> + `BUILDING_MIN_AREA_PX2` 0,2 mm² (ISOM min, jen 521): gen 498→370, čisté A/B **plocha +1,9 pb** (Bedř +4,9 / Blatná 0
+> kontrola); headline neutrální = bodový měřicí šum (Velbloud). (2) **Ruční crop polygon** (nález „zelená z log" =
+> banner/loga jako falešný les, KPI counts kontaminované): `resources/<name>_mapfield.json` nahrazuje auto detekci
+> i convex hull v separaci+KPI. Provizorní Bedř: **KPI 62,3→66,1** (plocha 69,2→78,5), **ntbhej headline 67,3→68,4 (+1,2)**.
+> Canonical HAL3000 (67,5) NEpřeměřeno (sirotek-disciplína, nemíchat ntbhej↔canonical; budovy+mapfield = změny kódu
+> přenositelné → carry HAL3000 přeměření). Metodický nález: agregátní HI sim PŘESTŘELILA (per-mapa norm) → simuluj per-mapa.
 >
 > **Plošná + liniová páka z čistě ČÚZK dat je VYČERPANÁ** (potvrzeno 4× Sez. 99-102: 403 granularitní propast +0,1,
 > 508 smíšený podstřel +0,34; Sez. 152 potvrzuje, že 404/407/409 patří do mapper-scan separace, ne do ČÚZK).
@@ -296,12 +303,30 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   **204 = ok** (r 1,08, `PSEUDO_BOULDER=900` Sez. 152 dobře vyladěn — nesahat). **ZBÝVÁ:** **521 budovy** (real-data
   granularita, +1,5 pb sim — viz samostatná %THINK položka níže) + **417/525 pseudo** (marginální +~0,3 pb, RNG-křehké —
   čekají na nezávislé RNG streamy). Paměť [[kpi-fill-undershoot-dilutes]] + [[kpi-overshoot-share-not-absolute]].
-- [ ] *(KPI páka, %THINK PŘED kódem — nález Sez. 166)* **521 Building přestřel = granularita drobných staveb.**
-  Měření Sez. 166: gen **498** budov vs orig **136** (3,7×) na 3-map sadě = největší zbývající KPI páka (**+1,5 pb sim**).
-  Příčina: gen kreslí VŠECHNY ZABAGED budovy vč. drobných (kůlny/skleníky/přístřešky zahrádkářských kolonií, `zabaged.py:241`),
-  kartograf generalizuje (ISOM building min size ~0,4×0,5 mm). **REAL-DATA zásah = opatrně** (riziko vynechat legitimní budovy
-  + ubrat Png2Area 521 příklady). **%THINK:** min-area filtr (jaký práh? ISOM min size vs měřítko) — uživatelova doménová
-  expertíza (kreslí kartograf opravdu kůlny?). Izomorf 403 min_area (Sez. 148), ale diskrétní objekty (ne pattern). Spolu s 503/304 (taky real-data přestřel, granularita/projekce).
+- [x] *(KPI páka — HOTOVO Sez. 173, `fc6afa0`)* **521 Building přestřel = granularita drobných staveb.** Vyřazena vrstva
+  „Kůlna…" (doménové rozhodnutí kartografa) + `BUILDING_MIN_AREA_PX2` 0,2 mm² (ISOM 0,4×0,5 mm, jen 521 ne 523). gen 498→370,
+  čisté A/B **plocha +1,9 pb** (Bedř +4,9 / Blatná 0 kontrola). Headline neutrální = bodový měřicí šum, ne vada. Sim agregátní
+  HI přestřelila (per-mapa norm). **ZBÝVÁ:** 503/304 (taky real-data přestřel granularita/projekce) — zvážit izomorfně.
+- [ ] *(scan-vytěžení bodů, ROADMAP Etapa 1 — nález/přesměrování uživatele Sez. 173)* **Rozšířit scan-detekci bodů na další
+  ISOM typy proti GT Branžež.** Baseline Sez.173 (vs ruční GT 187/21): kalibrovaný 109/111/112/115 + 419; **9 bohatě-GT kódů
+  BEZ detektoru** = roadmapa: **103.1(26) / 101.1(14) / 204.5(10) / 204(9) / 205(7) / 106(7) / 308.1(6) / 203.1(5)**. Skály
+  204/205 = nová detektor rodina, KOMPAS velké. Match infrastruktura `scratchpad/baseline_points.py` (GT↔detekce scan px, tol
+  12px). Anti-Goodhart: kódy s <5 GT neladit do přemíry (strop CV = argument pro ML, jako 112/115). Kalibrace → `calibration_manifest`.
+- [ ] *(scan-vytěžení, nález Sez. 173)* **418 přestřel ze skenu.** `vegetation_points_poc` default masivně přestřeluje 418
+  (overlay stovky FP modrých) → kalibrovat proti GT (jako 419/111). Pozn: 418 GT na Branžeži jen 1 → potřeba víc GT / jiná mapa.
+- [ ] *(mapfield doladit, nález Sez. 173)* **Bedřichovka mapfield provizorní → přesný** (`tools/mark_mapfield.py`, drobnost
+  pravý horní roh) + **naklikat Velbloud + ostatní skenové mapy** (Blatná plocha 85,7 % → možná čistý layout, ověřit). Livelox
+  páry mají taky layout (pairs separace bez map_field_mask) → zvážit mapfield i tam.
+- [ ] *(robustnost, nález Sez. 173)* **SSL certifi do connectorů.** ČÚZK přešel na nový Let's Encrypt cert; uv-cpython default
+  trust store ho neuznává („certificate has expired"). Workaround = `SSL_CERT_FILE`→certifi. Trvalý fix: `ortofoto.py`/`dmr.py`/
+  `arcgis.py` SSL context s `certifi.where()` (jinak každý ČÚZK fetch na ntbhej potřebuje env var). + Soví vrch regen (DEV cesta,
+  .omap neaktuální vůči budovám 521).
+- [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
+  `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
+  Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210
+  kalibrace náhodně 419 250→147, 525 6→20) → KPI kalibrace jednoho symbolu je **zašuměná cascade**. Fix: `rng.spawn()` per pseudo
+  symbol (nezávislý stream) → kalibrace izolovaná, čistá atribuce. Pak teprve doladit 417/525 přestřely. Pozn.: dopad na trénink
+  NULOVÝ (Png2Point z `inject.py`, ne gen .omap), čistě měřicí/KPI robustnost.
 - [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
   `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
   Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210

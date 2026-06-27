@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 173 (2026-06-27) — Budovy 521 granularita + ruční crop polygon (mapfield) + scan-vytěžení bodů 419/111/112/115 (ntbhej)
+Detail: [diary/2026-06-27.md](diary/2026-06-27.md#sezení-173--budovy-521-granularita--ruční-crop-polygon-mapfield--scan-vytěžení-bodů-419111112115-ntbhej).
+- [x] **`fc6afa0` budovy 521 granularita** (`zabaged.py`+`generator.py`): vyřazení vrstvy „Kůlna, skleník, fóliovník,
+  přístřešek" z `BUILDING_AREA_LAYERS` (doménové rozhodnutí kartografa) + `BUILDING_MIN_AREA_PX2` (0,2 mm² = ISOM
+  0,4×0,5 mm, jen 521 ne 523 Ruin, izomorf SURFACE/TREEROW/BOULDER). gen 521 498→370. Čisté A/B (git stash):
+  **plocha +1,9 pb** (Bedř +4,9 / Blatná 0 kontrola / Velbloud +0,6); headline 67,3→67,2 neutrální = bodový měřicí
+  šum (Velbloud −4,5, separace běh-citlivá). Nález: agregátní HI sim PŘESTŘELILA (+3,23 vs +1,9) — per-mapa norm.
+- [x] **`39fd0f6` ruční crop polygon (mapfield)** (`map_gt.py`+`measure_dod.py`+`tools/mark_mapfield.py`+`.gitignore`):
+  nález uživatele „zase zelená z log" doložen (banner/R-loga = mapová barva, spojené s lesem → `_detect_map_area`
+  i convex hull 98,3 % je nevyřízne → KPI counts kontaminované). `resources/<name>_mapfield.json` + matplotlib klikač
+  + `segment_gt(map_field_mask=)`/`rasterize_map_field` + `_load_map_field` (separace i KPI ořez) + no-silent fallback.
+  `.gitignore` `!resources/*_mapfield.json`. Provizorní Bedř: **KPI 62,3→66,1** (plocha 69,2→78,5), **headline 67,3→68,4**.
+- [x] **`3049f46` scan-detekce 419** (`vegetation_points_poc.py`+manifest): +419 X-template; kalibrace vs GT (24, tol 12px)
+  → recall 0,38 prec 0,90 **F1 0,53** (z 0 detektoru). Strop classic-CV (tenký X) = argument pro ML.
+- [x] **`ccc5a7b` rekalibrace 111/112/115** (manifest): `--min-area 30 --score-threshold 0.7` (ecc kontraprod. — U/▽
+  vysoký ecc): **111 F1 0,18→0,58** (candidate_calibrated) / 112 →0,44 / 115 →0,80. Terénní rodina 109/111/112/115 kalibrovaná.
+- [x] **Mimo commity:** regen 3 KPI map se 3 podklady (ortho+DMR+scan) pro OOM verify; **SSL fix** (ČÚZK nový LE cert,
+  `SSL_CERT_FILE`→certifi; trvalý fix do connectorů = carry).
+
 ## Sezení 172 (2026-06-26) — Scan-transfer 109/111 z polovičních vrstevnic (reframe: podstřel, ne díra) → KPI bod +2,3 pb (ntbhej)
 Detail: [diary/2026-06-26.md](diary/2026-06-26.md#sezení-172--scan-transfer-109111-z-polovičních-vrstevnic-reframe-podstřel-ne-díra--kpi-bod-23-pb-ntbhej).
 - [x] **Reframe (verify-against-source, zabránil falešné pseudo práci):** 109 NENÍ díra — generátor ho kreslí z uzavřených
