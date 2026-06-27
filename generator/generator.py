@@ -239,6 +239,12 @@ ISOM_RUIN = 523                    # zřícenina → čárkovaný černý obrys 
 BUILDING_NAME = {ISOM_BUILDING: "Building", ISOM_RUIN: "Ruin"}
 # ISOM kód → třída v mask_buildings.png (0 = pozadí). Multi-class: budova 1, zřícenina 2 (Sez. 43).
 BUILDING_CLASS = {ISOM_BUILDING: 1, ISOM_RUIN: 2}
+# Min. mapovatelná plocha budovy 521 (Sez. 173): ISOM 2017-2 minimum 0,4×0,5 mm = 0,2 mm² na papíře
+# (≈ 20 m² @ 1:10000). Generalizace doložená KPI přestřelem (gen 498 / orig 136, 3-map) — kartograf
+# drobné stavby pod min-size nekreslí. RAW jinak (Sez. 27): filtr je jediná výjimka, izomorf
+# SURFACE_MIN_AREA_PX2 / TREEROW_MIN_AREA_PX2 / BOULDER_FIELD_MIN_AREA_PX2. Jen na 521, NE 523 Ruin
+# (vzácná, orig 3 — neořezávat). Spolu s vyřazením vrstvy „Kůlna…" ze zabaged.BUILDING_AREA_LAYERS.
+BUILDING_MIN_AREA_PX2 = round(0.2 * PX_PER_MM ** 2)
 
 # El. vedení + lanovka/vlek (Sez. 24 + 55, real-půlka, izomorfní s cestami): ZABAGED
 # Elektrické_vedení + Lanová dráha/lyžařský vlek → ISOM 510 „Power line, cableway or skilift".
@@ -2439,6 +2445,10 @@ def _generate_real_buildings(draw: ImageDraw.ImageDraw, bdraw: ImageDraw.ImageDr
         for poly in f["rings"]:
             grid_rings, px_rings = _poly_to_grid_px(poly, geo_bbox)
             if len(px_rings[0]) < 3:
+                continue
+            # ISOM min-size budovy (Sez. 173): drobné stavby pod 0,2 mm² (≈20 m² @ 1:10000)
+            # kartograf negeneralizuje → zahodit. Jen 521 Building, NE 523 Ruin (vzácná).
+            if code == ISOM_BUILDING and _polygon_area_px(px_rings[0]) < BUILDING_MIN_AREA_PX2:
                 continue
             _draw_building_area(draw, bdraw, px_rings, code)
             area_features.append((grid_rings, code))

@@ -237,13 +237,14 @@ WATER_AREA_LAYERS = ("Vodní_plocha", "Pozemní_nádrž")
 # bodová (`_bod_`) je v lesních OB výsecích prázdná (ověřeno — 0 features na Sovím vrchu),
 # proto se táhne jen plošná (izomorfní s Vodní_plocha). Pramen-like vynechání bodové
 # vrstvy = „nevymýšlet, co v datech není" (jako Zdroj_podzemních_vod, Sez. 17).
-# Sez. 42 (audit land-cover): přidána `Kůlna, skleník, fóliovník, přístřešek` (id 105) = drobné
-# stavby (přístřešky, skleníky, kůlny — časté v zahrádkářských koloniích) → taky 521 (KISS, mirror
-# budov; drobné, ale reálné). Obě vrstvy plošné, mapuje map_building_to_isom (DRY přes tuto konstantu).
+# Sez. 42 (audit land-cover) přidala `Kůlna, skleník, fóliovník, přístřešek` (id 105, drobné stavby
+# zahrádkářských kolonií) → 521. Sez. 173 ji ale VYŘADILA: KPI měření doložilo 521 přestřel (gen 498 /
+# orig 136 na 3-map sadě) a kartograf na 1:10000 zahrádkářské přístřešky/skleníky/kůlny negeneralizuje
+# do mapy (rozhodnutí uživatele-mapéra) → celá vrstva pryč (medián 30 m², 111 obj na 3 mapách). Zbylé
+# budovy navíc filtruje ISOM min-size (BUILDING_MIN_AREA_PX2 v generator.py). Měřený dopad: Png2Area +3,2 pb sim.
 # Sez. 43 (audit katalogu): + `Zámek`/`Hrad` (id 102/101) → 521 jako běžná budova (footprint do měřítka;
 # zámek SV = domov mládeže Krompach, 1882 m²; hrad HS 87-145 m²). ČÚZK je vede zvlášť, ne v Budova_99.
 BUILDING_AREA_LAYERS = ("Budova_jednotlivá_nebo_blok_budov__plocha_",
-                        "Kůlna, skleník, fóliovník, přístřešek",
                         "Zámek", "Hrad")
 # Zříceniny (Sez. 43, audit katalogu). ZABAGED `Rozvalina, zřícenina` (id 103, plocha, `podtypob`=
 # rozvalina) → ISOM 523 Ruin = čárkovaný černý obrys půdorysu (NE plná výplň jako 521; ruina =
@@ -936,9 +937,10 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
     Vodojem zemní mapuje uživatel (terénní mapér Soví vrchu) také na 521 — v rastru se
     chová jako malá budova (rozhodnutí Sez. 18). Mapování:
       Budova_..._plocha_ (jakýkoli druhbud)  → 521 Building (plošný černý symbol)
-      Kůlna, skleník, fóliovník, přístřešek  → 521 Building (Sez. 42, drobné stavby)
       Zámek / Hrad                           → 521 Building (Sez. 43, historická stavba = budova)
       Rozvalina, zřícenina                   → 523 Ruin   (Sez. 43, čárkovaný obrys, ne plná výplň)
+    (`Kůlna, skleník, fóliovník, přístřešek` vyřazena Sez. 173 — KPI přestřel + kartograf
+     drobné zahrádkářské stavby na 1:10000 negeneralizuje; viz BUILDING_AREA_LAYERS.)
 
     Bez rozlišení podle `druhbud` (KISS — jen jeden druh na výřezu navíc). Vrací holý
     ISOM kód (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
