@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 176 (2026-06-29) — Canonical KPI přeměření + watercourse 304/305 klasifikace (délka místo pojmenovanosti) → KPI 67,5→68,7 (HAL3000)
+Detail: [diary/2026-06-29.md](diary/2026-06-29.md#sezení-176--canonical-kpi-přeměření--watercourse-304305-klasifikace-délka-místo-pojmenovanosti--kpi-675687-hal3000).
+- [x] **Canonical KPI přeměřeno** (Příště #3 carry od Sez. 166): stale 67,5 (Sez. 164) → **68,0 %** na HAL3000
+  (Bedř 63,6 / Blatná 69,0 / Velbloud 71,5; plocha 79,4 / linie 66,8 / bod 65,0). ntbhej zisky (210/109-111/
+  budovy/mapfield) se přenesly tlumeně (68,0 < ntbhej 68,4, separace stroj-citlivá). Sirotek-disciplína: canonical
+  (HAL3000) ≠ ntbhej, drženo odděleně.
+- [x] **Watercourse 304/305 klasifikace opravena** (`connectors/zabaged.py` + `generator/generator.py`):
+  verify-against-source ISOM 2017-2 §3.4 — 304 vs 305 je o ŠÍŘCE toku (304 ≥~1 m, 305 < 1 m), NE o pojmenovanosti.
+  ZABAGED šířku koryta nenese, pojmenované toky tu jsou drobné lesní potoky („Červený/Blatný potok") = 305 → dřívější
+  `jmeno → 304` 304 systematicky nadhodnocovalo (KOMPAS: gen 304 = 46 vs orig 12). Náhrada: `map_water_to_isom`
+  stálý → 305 default; `_generate_real_water` agreguje CELKOVOU délku toku per `idvt` a povýší úseky dlouhých toků
+  (≥ `WATERCOURSE_MAIN_LEN_M = 3000 m`, přirozený zlom v distribuci) na 304. Zachovává 304 capability (volba uživatele).
+- [x] **Měřený dopad (governance před/po, canonical 3-map):** **KPI 68,0 → 68,7 % (+0,7 pb)**, linie 66,8 → **68,7**
+  (+1,9 pb), plocha/bod bez regrese. KOMPAS: **304 gen 46→11** (≈orig 12), **305 gen 44→79** (orig 267, podstřel→ok),
+  306 beze změny. 304/305 vypadly ze žebříčku děr. Past: práh 1000 m naslepo KPI nejdřív SRAZIL (304→53, generate_map
+  bbox > probe) → probe distribuce délek → 3000 m. Bezpečné pro Png2Line (`omap_raster.LINE_CLASSES` spojuje 304+305
+  do jedné label-třídy „watercourse" → trénink netknut, žádný retrain).
+- [x] **Nález (verify-against-source, odloženo):** 308 Small marsh (158/0 „chybí") = prázdná ZABAGED data (1 rašeliniště
+  na 3 mapy), ne regrese — kartografových 158 mokřadů ZABAGED nevede → ne ZABAGED páka.
+- [x] **Verify:** `py_compile` OK, `unittest discover` 74 OK + 1 skip, `tests/smoke.py` OK (305 stále kreslen).
+
 ## Sezení 175 (2026-06-28) — %AUDIT:CODE fixy + %AUDIT:DOCS propagace (ntbhej)
 Detail: [diary/2026-06-28.md](diary/2026-06-28.md#sezení-175--auditcode-fixy--auditdocs-propagace-ntbhej).
 - [x] **`%AUDIT:CODE opravit všechny nálezy`:** doplněn `connectors/ssl_ctx.py` + `certifi` do runtime,

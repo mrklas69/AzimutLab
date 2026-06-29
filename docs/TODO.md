@@ -225,8 +225,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > po změně `N_LINE` vyžadují rebuild + retrain.
 > Pravidlo: nová KPI práce se ptá „pomůže to reconstructoru na reálném skenu?".
 >
-> **Stav Sez. 164: KPI 67,5 %** (`KPI_3MAP_CANONICAL`; plocha **78,8** / linie **66,4** / bod **67,9**;
-> Bedř 61,9 / Blatná 65,9 / Velbloud 74,7). Sez. 164 opravila gate 407/409 (`label==solid-zeleň 4a8712e` →
+> **Stav Sez. 176: canonical KPI 68,7 %** (HAL3000, `KPI_3MAP_CANONICAL`; plocha **79,4** / linie **68,7** /
+> bod **65,0**; Velbloud 71,9). Sez. 176 přeměřil stale canonical (67,5→**68,0**) + opravil watercourse 304/305
+> klasifikaci (délka toku per `idvt` místo pojmenovanosti — ISOM kritérium je ŠÍŘKA, ZABAGED ji nenese, pojmenované
+> toky jsou drobné lesní potoky = 305; práh `WATERCOURSE_MAIN_LEN_M=3000 m`): **304 gen 46→11 ≈ orig 12, 305 44→79
+> podstřel→ok, linie 66,8→68,7 → headline 68,0→68,7**. Bezpečné pro Png2Line (304+305 = 1 label-třída). ntbhej 68,4
+> (Sez. 173) = separátní stroj-baseline, stale vůči watercourse opravě (sirotek-disciplína, nemíchat).
+> Sez. 164 (canonical 67,5): gate 407/409 (`label==solid-zeleň 4a8712e` →
 > `!=open`): 409 ožilo **0 → 114 gen** (vypadlo z žebříčku děr, bylo #3 / 1,6pb), 407 12→83; plocha 75,0 → 78,8,
 > headline 66,2 → 67,5. Diagnóza: gate `==2` vyžadoval solid zeleň, ale 409 leží na BÍLÉM lese (GT label 0) →
 > 0 polygonů. Sez. 160 (66,2) doložila sirotka plnou regenerací `maps/` (audit A3/A4): committed `separate.py`
@@ -236,8 +241,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > (headline 62,5 → 63,3; 508 `ok`, 504 už ne přestřel). Sez. 152 přidala 404/407/409
 > do scan separace / `N_AREA=21`, rozšířila `N_LINE` na 304/305 + 306 + 309 + 508* a zvedla
 > `PSEUDO_BOULDER_PER_KM2` 500→900. Sez. 154 přidala kandidátní scan-transfer pro bodové kódy
-> 109/111/112/115/417/418 a obecný `.omap` export, ale bez KPI povýšení před kurací. **Žebříček děr:**
-> **403 / 416 / 306 / 202 / 109 / 501 / 308 / 108 / 408 / 208**. **KOMPAS `--table` má
+> 109/111/112/115/417/418 a obecný `.omap` export, ale bez KPI povýšení před kurací. **Žebříček děr (Sez. 176):**
+> **403 / 416 / 306 / 210 / 202 / 501 / 308 / 109 / 108 / 208** (304/305 vypadly po watercourse opravě). **KOMPAS `--table` má
 > sloupce `zdroj · gen · scan · provedení`**; původ symbolů je v `isom.capabilities`, kde `gen` popisuje
 > fallback generátoru a `scan` ukazuje mapper-scan signál. `_provedeni` zůstává AUTO ze share orig:gen.
 > Další velká strukturální páka zůstává Png2Line; KPI je kompas děr, ne cílová funkce.

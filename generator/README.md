@@ -64,7 +64,8 @@ Realizuje **MVP řez** specifikace
   dlouhodobě udržované linie), ne zdroj kompletnosti; kompletnější 508 má dodat scan/Png2Line.
   Runnability pozadí se nekreslí (vegetace = UC5). Vyžaduje `--terrain real`,
 - **voda** — `--water real` (real-půlka, Sez. 17; týž `zabaged.py`): vodní toky ISOM **304/305/306**
-  (pojmenovaný stálý / bezejmenný stálý / občasný; podzemní se nekreslí) + vodní plochy **301**
+  (304 dlouhá vodoteč ≥3 km/idvt / 305 kratší stálý / 306 občasný — dle DÉLKY ne pojmenovanosti, Sez. 176;
+  podzemní se nekreslí) + vodní plochy **301**
   (modrá výplň + břeh, vč. koupališť z `Pozemní_nádrž`, Sez. 27). Vyžaduje `--terrain real`. Pramen
   **312** (ze `Zdroj_podzemních_vod`) se kreslí přes `--landmarks` (bodový, Sez. 44 — modré „U" ústím
   nahoru). Procedurální voda (hydro jádro D8) zatím ne,

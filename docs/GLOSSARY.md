@@ -384,10 +384,13 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
   (527 kalibrace dolů + `Cesta typcesty_k=025`→508); Sez. 152: 65,8 %
   (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota); Sez. 160: 66,2 %
-  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`); **Sez. 164:
-  canonical HAL3000 67,5 %** (gate 407/409 opraven na `!=open` → 409 ožilo 0→114 gen;
-  plocha 78,8 / linie 66,4 / bod 67,9); **Sez. 173: ntbhej 68,4 %** po ručním mapfield ořezu
-  Bedřichovky. HAL3000 přeměření je carry, obě hodnoty nemíchat.
+  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`); Sez. 164:
+  canonical HAL3000 67,5 % (gate 407/409 opraven na `!=open` → 409 ožilo 0→114 gen);
+  Sez. 173: ntbhej 68,4 % po ručním mapfield ořezu Bedřichovky; **Sez. 176: canonical HAL3000
+  68,7 %** (přeměření stale 67,5→68,0 + oprava watercourse 304/305 klasifikace — délka toku per `idvt`
+  místo pojmenovanosti, práh 3000 m; linie 66,8→68,7; 304 gen 46→11 ≈ orig 12, 305 44→79 podstřel→ok;
+  plocha 79,4 / linie 68,7 / bod 65,0). ntbhej 68,4 = separátní stroj-baseline, obě hodnoty nemíchat
+  (sirotek-disciplína, separace stroj-citlivá).
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).

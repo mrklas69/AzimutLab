@@ -112,7 +112,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 
 | Vrstva | Geom | ISOM | Stav | Pozn. / proč ne |
 |---|---|---|---|---|
-| `Vodní_tok` | linie | 304 / 305 / 306 | ✓ | dle pojmenovanosti/stálosti; podzemní (`typtoku_k`=004) nekreslit |
+| `Vodní_tok` | linie | 304 / 305 / 306 | ✓ | 304 dlouhá vodoteč (≥3 km/idvt) · 305 kratší stálý (default) · 306 občasný; dle DÉLKY ne pojmenovanosti (Sez. 176); podzemní (`typtoku_k`=004) nekreslit |
 | `Vodní_plocha` | plocha | 301 Uncrossable body of water | ✓ | výplň + břehová linie |
 | `Zdroj podzemních vod` | bod | 312 Spring | ✓ | **Sez. 44** (`--landmarks`, modré „U" ústím nahoru ∪); pramen Σ65 napříč 5 lokalitami (REST jméno s mezerami) |
 | `Vodopád__linie_` | linie | 313 Prominent water feature | ○ | vodopád. **Změřeno Sez. 55:** 0 ve všech 5 výsecích |

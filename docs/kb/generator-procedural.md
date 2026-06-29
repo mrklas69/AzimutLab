@@ -185,8 +185,10 @@ hustot ⇒ geometricky konzistentní.
 pro pramen** (4.10).
 **✅ Reálná voda (Sez. 17, real-půlka):** `--water real` vezme skutečnou hydrografii z **ČÚZK
 ZABAGED Polohopis (ArcGIS REST)** (`zabaged.fetch_water`, týž konektor jako cesty) pro tentýž výsek jako
-DMR. Vyžaduje `--terrain real`. **Vodní_tok** → ISOM **304** (pojmenovaný stálý) / **305**
-(bezejmenný stálý) / **306** (občasný, čárkovaný); podzemní toky se nekreslí. **Vodní_plocha** →
+DMR. Vyžaduje `--terrain real`. **Vodní_tok** → ISOM **304** (hlavní vodoteč — dlouhá souvislá, ≥ 3 km
+celkové délky per `idvt`) / **305** (kratší stálý tok, default) / **306** (občasný, čárkovaný); podzemní
+toky se nekreslí. 304/305 dle DÉLKY toku, ne pojmenovanosti — ISOM kritérium je šířka, ZABAGED ji nenese
+a pojmenované toky jsou drobné lesní potoky = 305 (Sez. 176). **Vodní_plocha** →
 **301** (modrá výplň + břeh). Pramen **312 Spring** se táhne ze `Zdroj_podzemních_vod` (v demo
 výřezu žádný → vynechán). Modrá `C_BLUE`, GT `mask_water.png`. Z-order: po vrstevnicích, před
 cestami. Procedurální §4.8 (proc voda) = noise-půlka; hydro jádro D8 budoucí (viz IDEAS). Detaily

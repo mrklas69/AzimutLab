@@ -260,13 +260,15 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
-  **Stav: 68,4 % na ntbhej (Sez. 173, mapfield crop fix); canonical HAL3000 67,5 % je stale (Sez. 164)**
-  (Sez. 164 opravila gate 407/409 na `!=open` → 409 ožilo 0→114 gen, plocha 75,0→78,8,
-  headline 66,2→67,5; Sez. 173 ruční mapfield pro Bedř odstranil layout kontaminaci a zvedl ntbhej
-  headline 67,3→68,4; HAL3000 přeměření je carry)
-  na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
-  (plocha 78,8 / linie 66,4 / bod 67,9; Bedř 61,9 / Blatná 65,9 / Velbloud 74,7);
-  největší díry 403/416/306/109/202/501/308/108/408/208.
+  **Stav: 68,7 % canonical (HAL3000, Sez. 176); ntbhej 68,4 % (Sez. 173) = separátní stroj-baseline,
+  stale vůči watercourse opravě.** Sez. 176 přeměřil stale canonical (67,5 Sez. 164) → 68,0 %, pak
+  oprava klasifikace watercourse 304/305 (délka toku per `idvt` místo pojmenovanosti — ISOM kritérium je
+  šířka, ZABAGED ji nenese; práh 3000 m) zvedla linie 66,8→68,7 → headline **68,0 → 68,7** (304 gen 46→11
+  ≈ orig 12, 305 44→79 podstřel→ok). (Sez. 164 gate 407/409 `!=open` → 409 0→114 gen, 66,2→67,5;
+  Sez. 173 ntbhej mapfield 67,3→68,4.)
+  Kanonická 3-map sada Bedřichovka/Blatná/Velbloud
+  (plocha 79,4 / linie 68,7 / bod 65,0; Velbloud 71,9);
+  největší díry 403/416/306/210/202/501/308/109/108/208.
   Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
   se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
   `--table` kompas — sloupce `zdroj · gen · scan · provedení`; původ symbolů drží `isom.capabilities`).

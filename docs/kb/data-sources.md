@@ -140,8 +140,10 @@ endpoint / CRS / GeoJSON / axis [x,y] jako komunikace. Ověřeno proti zdroji na
   `Vodní_plocha` (plochy; `STOJVODA`, `TYP_VP_P`). Pramen `Zdroj_podzemních_vod` (`typzdroj_k`
   PS=pramen / VR=studna,vrt) — ve výřezu 0 (nejbližší PS 1,9 km) → nekreslen.
 - **Mapování → ISOM** (fyzický stav, ne 1:1): podzemní tok (`typtoku_k=004`) → nekreslit; občasný →
-  306 Minor/seasonal water channel; pojmenovaný stálý → 304 Crossable watercourse; bezejmenný stálý →
-  305 Small crossable watercourse; plocha → 301 Uncrossable body of water. (Viz `zabaged.map_water_to_isom`.)
+  306 Minor/seasonal water channel; stálý tok → 305 Small crossable watercourse (default), dlouhá souvislá
+  vodoteč (≥ 3 km per `idvt`) → 304 Crossable watercourse; plocha → 301 Uncrossable body of water.
+  (304/305 dle DÉLKY ne pojmenovanosti — ISOM kritérium je šířka, ZABAGED ji nenese; Sez. 176.
+  Viz `zabaged.map_water_to_isom` + `generator._generate_real_water` agregace per idvt.)
 - **Pozn. ISOM:** pramen = **312 Spring** (ne 313 = Prominent water feature — verify-against-source catch, Sez. 17).
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `water.licence`. Soví vrch = 16 toků + 2 plochy.
 
