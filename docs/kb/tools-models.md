@@ -56,7 +56,8 @@ SSoT závislostí = `requirements.txt` (runtime) + `requirements-train.txt` (tr�
 - **Runtime generátor + konektory:** Python (3.12 na ntbhej / 3.14 cp314 na mrkla) + numpy +
   contourpy (marching squares) + Pillow + pyproj (WGS84→S-JTSK) + **scipy** (morfologie
   `rock_relief`) + **scikit-image** (skeletonize, Png2Line .omap assembly Sez. 132) +
-  **pygeomag** (grivace WMM offline, Sez. 112). Venv v kořeni repa (`.venv`).
+  **pygeomag** (grivace WMM offline, Sez. 112) + **certifi** (sdílený CA bundle pro urllib
+  konektory ČÚZK/Livelox přes `connectors/ssl_ctx.py`, Sez. 175). Venv v kořeni repa (`.venv`).
   (Pozn.: dřívější „scikit-image vynechán" už neplatí — přidán Sez. 132.)
 - **Trénink (jen `mrkla`, GPU):** torch (cu128 Blackwell, mimo PyPI) + **segmentation-models-pytorch**
   + **matplotlib** (křivky). Detail strojů: `hardware.md`.

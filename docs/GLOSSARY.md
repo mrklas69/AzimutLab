@@ -175,7 +175,8 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   protože 201 je linie a lom je plocha → plocha→plocha, kamenné útvary zůstávají v z-orderu nad olivovou).
   **Asfaltové dopravní areály** (autobusové nádraží/čerpací stanice, `typzast_k` 408/409) + parkoviště + kolejiště
   → **501** přes `--paved` (rozdělení 114 podle ISOM kódu: 520→surfaces, 501→paved). Kůlny/přístřešky (`Kůlna…`
-  105) → 521 přes budovy. Render `_draw_surface_area`/`_draw_dotted_surface_area` (`outline=None`), barvy
+  105) byly v Sez. 173 vyřazeny z budov: na 1:10000 je kartograf negeneralizuje a KPI 521 byl přestřelený.
+  Render `_draw_surface_area`/`_draw_dotted_surface_area` (`outline=None`), barvy
   `C_YELLOW`/`C_OLIVE`, maska `mask_surfaces.png` (multi-class 1=open/2=olivová/3=pole/4=402 park/5=402.1 zeleň). **Z-order: ÚPLNĚ VESPOD**
   (olivová NAD žlutou/polem — privátní zahrada RÚIAN přemaže pokryv pod ní), les = bílá default = [[vegetace-gate]] (UC5).
   **Olivová 520 = DISSOLVE do bloků (Sez. 98):** RÚIAN katastr fragmentuje zástavbu na tisíce drobných parcel
@@ -383,8 +384,10 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
   (527 kalibrace dolů + `Cesta typcesty_k=025`→508); Sez. 152: 65,8 %
   (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota); Sez. 160: 66,2 %
-  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`); **Sez. 164: 67,5 %**
-  (gate 407/409 opraven na `!=open` → 409 ožilo 0→114 gen; plocha 78,8 / linie 66,4 / bod 67,9).
+  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`); **Sez. 164:
+  canonical HAL3000 67,5 %** (gate 407/409 opraven na `!=open` → 409 ožilo 0→114 gen;
+  plocha 78,8 / linie 66,4 / bod 67,9); **Sez. 173: ntbhej 68,4 %** po ručním mapfield ořezu
+  Bedřichovky. HAL3000 přeměření je carry, obě hodnoty nemíchat.
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).
@@ -445,7 +448,7 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   aktuálně **20 ISOM kódů + pozadí = 21 výstupních labelů 0..20** ze
   [[omap_raster]], bez ignore_index. **Plný trénink
   Sez. 90-91:** test mIoU 0,621→0,640 (cap vah @10 + cosine LR); budovy 521 zachráněny 0,00→0,68; vzácné
-  208/501/301.1 = datový strop → class-balanced expansion. **Přetrénován N_AREA 18 (Sez. 103, +310): test mIoU
+  208/501/301 = datový strop → class-balanced expansion. **Přetrénován N_AREA 18 (Sez. 103, +310): test mIoU
   0,568 ≈ val 0,571.** Trénink = mrkla.
   **`Png2Point` MVP pipeline Sez. 105** (`model/png2point/{inject,dataset,train}.py`): jiná úloha než Png2Area —
   **lokalizace+klasifikace bodů** = HEATMAP regrese (CenterNet). **A1 GT = INJEKCE** (ne gen body — kompas Sez. 96

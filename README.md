@@ -5,8 +5,9 @@ knowledgebase. **Not one application: a set of them**, sharing a common understa
 of what an orienteering map *is*.
 
 **Status: phase B (umbrella).** Active foundations are UC2 connectors, the UC4-I
-`generator()`, and **three live reconstructors**. Generator KPI is **67.5%** (`KPI_3MAP_CANONICAL`,
-session 164 — gate 407/409 fix revived the 409 area class, 0→114 gen; was 66.2 at session 160).
+`generator()`, and **three live reconstructors**. Generator KPI is **68.4% on ntbhej** (session 173,
+after the mapfield crop fix; **canonical HAL3000 remains stale at 67.5%** from session 164 and is a
+carry for re-measurement).
 `Png2Area` has test mIoU **0.577** (21-class, session 156 retrain on the expanded scope;
 real eval_real Bedř soft mIoU 0.525 / pixel-acc 0.887), `Png2Point` a 3-seed median mF1 **0.745**
 (10 classes 204/210/417/419/531/525/527/109/**111/112**; session 162 added **111 Small depression (∪ arc) +
@@ -59,9 +60,9 @@ structure; where they differ, ROADMAP wins.
 |----|------|-------|--------|
 | UC1 | Knowledgebase + Sandbox | Collect info, links, sources; isolated experiments; the DAG itself | ◐ founding (MVP) |
 | UC2 | Data connectors | Survey + connect 3rd-party sources (LIDAR, ortofoto, QGIS, ČÚZK ZABAGED/RÚIAN/ZTM, geoportál) | ◐ connectors live (DMR 5G terrain, ZABAGED paths + water + buildings + power lines + land cover + point/line landmarks + marshes/springs/caves/tanks, RÚIAN cadastre parcels; full 149-layer catalogue data-driven audited, sessions 43–44) |
-| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 20 ISOM codes + background (`N_AREA=21`, incl. 404/407/409 scan-pattern classes), synthetic test mIoU **0.577** (21-class retrain, session 156) at canonical 1.33 m/px; real eval_real Bedř soft mIoU **0.525** / pixel-acc **0.887**, Blatná per-shade **0.232** / soft **0.363** (new 404/407/409 transfer weakly — rare in CZ maps, model hallucinates them). `Png2Point` (10 classes 204/210/417/419/531/525/527/109/111/112 by Sez. 162): 3-seed synthetic median mF1 **0.745** (stable 0.738-0.763); real transfer — **111/419/525/109 strong (111 0.71-0.89, 419 0.67-0.76, 525 Bedř 0.766, 109 median 0.65)**, 531 strong Velbloud 0.708, 112/527 medium-good (112 0.53-0.77, 527 0.50-0.83), 417 moderate, 204 stable, 210 collapses. 109 disk / 111 arc ∪ / 112 filled ▽ = brown terrain points — brown transfers like black/green despite contour lines. 112 reconstructor-only (generator does not draw it → kept out of USED_CODES, no false KPI hole). `Png2Line`: session-152 scope (306/309/508*) retrained + measured session 156 → **watercourse regressed → reverted to 2-class watercourse-only** (test mIoU 0.774, real IoU 0.409; dashed 508 domain gap, 2nd confirmation of Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **67.5%** (`KPI_3MAP_CANONICAL`, session 164; 407/409 gate fix). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
+| UC5 | Map-understanding models | `generator()` → reconstructors for Area/Point/Line ISOM geometry | ◐ **216 curated classic maps**, geographic split without leakage. `Png2Area`: 20 ISOM codes + background (`N_AREA=21`, incl. 404/407/409 scan-pattern classes), synthetic test mIoU **0.577** (21-class retrain, session 156) at canonical 1.33 m/px; real eval_real Bedř soft mIoU **0.525** / pixel-acc **0.887**, Blatná per-shade **0.232** / soft **0.363** (new 404/407/409 transfer weakly — rare in CZ maps, model hallucinates them). `Png2Point` (10 classes 204/210/417/419/531/525/527/109/111/112 by Sez. 162): 3-seed synthetic median mF1 **0.745** (stable 0.738-0.763); real transfer — **111/419/525/109 strong (111 0.71-0.89, 419 0.67-0.76, 525 Bedř 0.766, 109 median 0.65)**, 531 strong Velbloud 0.708, 112/527 medium-good (112 0.53-0.77, 527 0.50-0.83), 417 moderate, 204 stable, 210 collapses. 109 disk / 111 arc ∪ / 112 filled ▽ = brown terrain points — brown transfers like black/green despite contour lines. 112 reconstructor-only (generator does not draw it → kept out of USED_CODES, no false KPI hole). `Png2Line`: session-152 scope (306/309/508*) retrained + measured session 156 → **watercourse regressed → reverted to 2-class watercourse-only** (test mIoU 0.774, real IoU 0.409; dashed 508 domain gap, 2nd confirmation of Sez. 133). Pseudo points 204/210 **and 417/418/419** (Sez. 136-137, boulder principle) drawn into the generator off water/rock/buildings/paths/paved/railway with ISOM spacing. Generator KPI **68.4% ntbhej** (mapfield fix, session 173; canonical HAL3000 **67.5% stale**). **Phase gate (ROADMAP.md): we are in the `Generator()` phase — `Rekonstruktor()` + "degradace" are frozen words until KOMPAS is full.** Details in architecture/TODO/DONE. |
 | UC3 | Restoration | Strip the purple race layer (controls, refreshments, OOB) + digital restore of worn printed maps | ☐ |
-| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 67.5 %; III = Pic2Omap) |
+| UC4 | Generators | I: plausible-random · II: inspired (by image / coords) · III: **precise = Pic2Omap** (muddy scan → OCD/OMAP) | ◐ (I = generator, Lab pillar — KPI 68.4 % ntbhej / 67.5 % canonical stale; III = Pic2Omap) |
 
 UC4-III is the project's summit and currently lives in Pic2Omap. Full UC4-I
 (plausible-random, not a random pile of ISOM symbols) is still the hardest goal — but as a
@@ -102,9 +103,10 @@ docs/
     hardware.md          #   machines (mrkla=RTX 5070 training rig, ntbhej=laptop); UC5 train/inference (session 74)
 connectors/            # UC2 enabler: real-geodata connectors (pulled out of sandbox, session 16)
   dmr.py               #   ČÚZK DMR 5G elevation (ArcGIS ImageServer); --terrain real
-  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/sheds/marshes/springs/caves/tanks/tree rows/chimneys/barriers (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real
+  zabaged.py           #   ČÚZK ZABAGED Polohopis paths/forest rides/water/paved/buildings/power lines/railways/rocks/bridges/pillboxes/land cover/utility compounds/marshes/springs/caves/tanks/tree rows/chimneys/barriers; sheds layer intentionally excluded since session 173 (ArcGIS REST, GeoJSON); --paths/--rides/--water/--paved/--buildings/--powerlines/--railways/--rocks/--bridges/--ropiky/--surfaces/--landmarks/--linefeatures/--marsh/--treerows/--barriers real
   ruian.py             #   ČÚZK RÚIAN cadastre parcels by land-use → private land → olive 520 (session 42)
   arcgis.py            #   shared low-level ArcGIS REST transport (paging+cache+GeoJSON parsers; DRY for zabaged+ruian, session 42)
+  ssl_ctx.py           #   shared certifi TLS context for urllib connectors (ČÚZK/Livelox, session 175)
   ortofoto.py          #   ČÚZK ortophoto basemap under generated map (ČÚZK sibling of dmr/zabaged, session 42)
   magnetic.py          #   grivation (S-JTSK grid → magnetic-north angle) for point+date → magnetic meridians (session 132)
   livelox.py           #   UC5 corpus: real OB maps from Livelox → map.png + meta.json (georef, epsg from data) + blend.png (session 68)
@@ -121,6 +123,7 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
   omap_raster.py       #   Y-pipeline: rasterize area ISOM symbols from .omap → label raster (Y for Png2Area; per-code, z-order, holes; session 87)
                        #     consumes connectors/ (real terrain, paths, water, …); adds them to sys.path
   omap_export.py       #   inserts generator output into user's clean ISOM 2017-2 template (USED_CODES set)
+  omap_symbols.py      #   robust string-level .omap <symbol> id/code parser shared by export + cut
   cut.py               #   geometric clip of gen output (.omap + render) to real map field (rotated quad / axis box; Sutherland-Hodgman; sessions 109/114/142)
   gen_backgrounds.py   #   switchable OOM basemaps into corpus gen.omap (session 104)
   measure_dod.py       #   KPI/KOMPAS driver: histogram-intersection of ISOM distribution gen vs sample maps (--table/--dod; primary quantifier, session 100)
@@ -134,6 +137,8 @@ generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandb
 model/                 # UC5 model code (sibling of connectors/generator, sys.path scripts; session 77). Four subdirs, three live reconstructors:
   checkpoints.py       #   shared run_id checkpoints: atomic best.pt + manifest + explicit promote to canonical unet_best.pt
   mpp.py               #   canonical training-tile resolution (SSoT) + resample to it (session 126 MPP fix)
+  norm.py              #   shared ImageNet normalization constants for loaders
+  peaks.py             #   shared heatmap peak/NMS/matching helpers
   purple.py            #   purple course-overprint augmentation (ISOM) for both reconstructors (supervisor audit A2a; session 123)
   vectorize.py         #   shared reconstructor postprocess: line mask → polyline (session 132)
   runnability/         #   ARCHIVED ortho→runnability model (dead-end session 79; git-moved here session 88)

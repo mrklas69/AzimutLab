@@ -124,10 +124,11 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   NE plná test suite (over-engineering proti fázi B): (1) noise-mode checksum (proc 65 byte-identický);
   (2) golden Šulcák 48 polygonů / 2,56 ha, tol ±2/±5 % (potřebuje ČÚZK fetch nebo `.dmr_cache`);
   (3) konzistence `AREA_ZORDER` ⊆ symboly v `template_classic.omap` ∧ kódy zapisované `omap_export`
-  (chytá 301/301.1 typ bugu staticky); (4) `cut.py` mini-verify primitiv (případy Sez. 114 zakonzervovat);
+  (chytá 301/301.1 typ bugu staticky; Sez. 175 částečně kryje `test_omap_symbols.py`);
+  (4) `cut.py` mini-verify primitiv (případy Sez. 114 zakonzervovat; Sez. 175 kryje chybějící fill/border symboly);
   (5) mini `build_pair`/rasterizace fixture → Y má nenulové px pro každý area kód přítomný v `.omap`
-  (chytá 301/301.1 dynamicky). Jeden soubor `tests/smoke.py`, spustitelný `python tests/smoke.py`
-  (bez pytest závislosti, KISS); do `docs/PROMPTS.md` %END přidat „měnil-li se kód: spusť smoke".
+  (chytá 301/301.1 dynamicky). `tests/smoke.py` existuje a `tests/test_smoke.py` ho chrání před těžkým
+  auto-spuštěním; zbývá golden Šulcák/build_pair fixture + %END připomínka „měnil-li se kód: spusť smoke".
 - [!] *(A6; HAL3000 → priorita zvednuta %CALIBRATE Sez. 145; Velbloud.pgw na ntbhej lokálně doplněn 2026-06-19)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
   neopakovatelná lidská práce), `_split.json` (bez něj jsou všechna mIoU neporovnatelná), chybějící
   `resources/*.pgw` (**Velbloud na ntbhej byl doplněn, ale `resources/` je gitignored → záloha/kanál pořád nevyřešený**). Malé textové soubory BEZ copyright obsahu → commitnout
@@ -149,25 +150,16 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
 *(ChatGPT audity 2026-06-14 / Sez. 125 — DOCS+CODE: nálezy vypořádány Sez. 125-127, zdroje
 `AUDIT_DOCS_260614.md` / `AUDIT_CODE_260614.md` archivovány Sez. 139.)*
 
-## %AUDIT:CODE (Sez. 143) — nálezy → úkoly
+## %AUDIT:CODE (Sez. 143/175) — nálezy → úkoly
 5 paralelních agentů + ruční verify proti zdroji (18 103 LOC). **OPRAVENO Sez. 143 (quick wins):**
 C1 separate RAM (row-chunk, odblokuje měření na ntbhej) · D1 USED_CODES +416/416.1 · D5 `_line_line_pt`
 guard · D7 stale 0,537→0,683 · K1 Png2Polygon→Png2Area · K3 530/531 rozlišení · K4 docstring 509 ·
-K5 mrtvý `_TEMPLATE`. (K7 „51 kódů" = falešný poplach, číslo jen v docs.) **ZBÝVÁ:**
-- [ ] *(D2, robustnost; = existující „detect_version trojí-realita" níže)* `compare_isom.detect_version` binární vs
-  trojí realita + tichý default `return "2017-2"` (řádek 189). Headline KPI empiricky imunní (6/6 map ověřeno),
-  ale past. Fix: rozlišit OOM/OCAD (`id="OCD"` / kódy 535-540) + `warn` místo tichého defaultu. **Verify-against-source
-  bonus:** diár Sez. 141 nepřesný — `Soví vrch.omap` má `538=Krmelec`, ne `527` (přes 526-building → crosswalk OK).
-- [ ] *(D3, křehkost)* Duplikovaný symbol-id resolver `cut.py:225` vs `omap_export.py:109` — identický regex, stejný
-  „id-před-code" předpoklad, ale asymetrie: omap_export selže nahlas, `cut` tiše degraduje (chybějící 301.1/301.4 →
-  černý břeh na řezné hraně bez varování). Fix: sdílený `parse_symbol_ids()`. (Souvisí s B1 string-`.omap` modul.)
-- [ ] *(D4, no-silent-fallback)* `arcgis.py:79-81` paging končí dle délky dávky, ne `exceededTransferLimit` → tichý
-  ztrátový ořez když server `maxRecordCount` < `page_size` (2000). Dnes neškodí (ZABAGED cap 2000), křehké vůči nové vrstvě.
+K5 mrtvý `_TEMPLATE`. **Sez. 175:** D2 warning místo tichého defaultu `compare_isom.detect_version`, D3 sdílený
+`omap_symbols.parse_symbol_ids()` + hlasitý fill/border split vody, D4 ArcGIS paging přes `exceededTransferLimit`,
+D8 README layout drift a TLS docs. (K7 „51 kódů" = falešný poplach, číslo jen v docs.) **ZBÝVÁ:**
 - [ ] *(D6, DRY)* `_generate_pseudo_boulders` (generator.py:2942) vs `_generate_pseudo_points` (3066) duplikují ~40-50 LOC
   umísťovací mašinérie (grid/area_km2/water mask/forbid/rejection). Extrahovat `_place_points_in_mask`. Pozn.: SLAP —
   `_generate_pseudo_boulders` navíc míchá 204 (rejection) + 210 (pole teček) → kandidát `_place_stony_fields`.
-- [ ] *(D8, kód↔docs; spíš %AUDIT:DOCS)* README „Repository layout" drift — chybí konektory `ortofoto.py`/`magnetic.py`
-  + model-root `mpp/purple/vectorize` + `cut/omap_export/measure_dod`. Komentář „51 kódů" v CLAUDE.md/DIARY → ~59 (K7).
 - [ ] *(D9, DRY napříč model/)* `PX_PER_MM`/`MAP_SCALE` (3× purple/inject/generator), `_IMAGENET_MEAN/STD` (6×),
   peak-detekce kopie (train↔eval png2point i png2line), tiling helper (`_positions`/`_crop`/`TILE=512`). Vlastní
   „extrahovat až 3. konzument" triggery už nastaly → konsolidovat (`mpp.py` / nový `peakdetect.py`/`norm.py`/`tiling.py`).
@@ -322,10 +314,6 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(mapfield doladit, nález Sez. 173)* **Bedřichovka mapfield provizorní → přesný** (`tools/mark_mapfield.py`, drobnost
   pravý horní roh) + **naklikat Velbloud + ostatní skenové mapy** (Blatná plocha 85,7 % → možná čistý layout, ověřit). Livelox
   páry mají taky layout (pairs separace bez map_field_mask) → zvážit mapfield i tam.
-- [ ] *(robustnost, nález Sez. 173)* **SSL certifi do connectorů.** ČÚZK přešel na nový Let's Encrypt cert; uv-cpython default
-  trust store ho neuznává („certificate has expired"). Workaround = `SSL_CERT_FILE`→certifi. Trvalý fix: `ortofoto.py`/`dmr.py`/
-  `arcgis.py` SSL context s `certifi.where()` (jinak každý ČÚZK fetch na ntbhej potřebuje env var). + Soví vrch regen (DEV cesta,
-  .omap neaktuální vůči budovám 521).
 - [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
   `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
   Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210
@@ -457,7 +445,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
   - *(Png2Area HOTOVO Sez. 87–126, detail DONE)* PRVNÍ reconstructor: Y-pipeline `omap_raster.py` (`N_AREA 21`),
     `model/png2area/{tile,dataset,train}.py`, nález **tvar > velikost** (tenké třídy se downsamplingem rozpustí);
     test mIoU 0,568 → **0,683** (Sez. 126 MPP fix). Archiv ortho-baseline `git mv` → `model/runnability/`.
-  - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301.1
+  - [~] *(odsunuto za pokrytí generátoru)* **class-balanced expansion** — model = detektor vzácných 208/501/301
     (`208` test 0,00 = cap vzal váhu → datový strop) → cílený Livelox download → přetrénovat (IDEAS „Class-balanced
     corpus expansion").
   - *(Png2Point HOTOVO Sez. 105–106, detail DONE)* DRUHÝ reconstructor: injekce symbolů + CenterNet heatmap
@@ -546,7 +534,7 @@ Rozhodnuto: vstup **jen ortofoto RGB**, **5 tříd** (eval zelená), **smoke tes
 - [ ] *(drobnost, doladění mostů/tunelů Sez. 33)* laděné konstanty `BRIDGE_CROP_HALFWIDTH_MM` (1,25), `BRIDGE_CARRIED_PARALLEL_DEG` (25°), `TUNNEL_PORTAL_HALF_UM` (750), passage `near_mm` (2,0) — ověřit i na LS silničním tunelu a hustší síti; případně tunelu cropovat i vodu (dnes jen železnice/cesty).
 - [ ] *(drobnost, nález Sez. 31)* **Podjezd ZABAGED** — `Podjezd (bod)` id=64 + `Podjezd (linie)` id=77; tematická skupina s Most/Tunel. Mapování → 519 Underpass? Verify-against-source spec před implementací (paměť `isom-spec-before-render`).
 - [ ] *(drobnost, nález Sez. 31)* **tramvaj LS verify v OOM** — 25 nových liniových objektů 509 (Tramvajová dráha včetně točny Lidové sady, LS celkem 40 železničních linií). Vykreslí OOM kombinovaný symbol 509 (čárky + bílý knockout) korektně i přes městskou síť?
-- [ ] *(rozšíření cest/vody)* věrná dvojitá linie 502 Wide road (teď PoC casing), ladění 505/506, ořez reálných linií na bbox; (voda) „hranatý" malý rybník, věrný kombinovaný 301 s břehovou linií v OMAP (teď 301.1).
+- [ ] *(rozšíření cest/vody)* věrná dvojitá linie 502 Wide road (teď PoC casing), ladění 505/506, ořez reálných linií na bbox; (voda) „hranatý" malý rybník / tvarová věrnost zdrojové geometrie. Kombinovaný 301 s břehovou linií v OMAP je hotový; cut ho na hraně výřezu rozkládá na fill 301.1 + skutečný břeh 301.4.
 - [ ] *(drobnost, nález %AUDIT:CODE Sez. 19 — P2)* OMAP export 110 Small elongated knoll: rastr respektuje orientaci `horiz`, ale `.omap` exportuje vždy `rotation="0"`. Předat orientaci protáhlosti do exportu (rastr↔omap konzistence).
 - [ ] *(anotace, až bude vstup)* čtečka čísel kontrol **ISOM 704** ze separátního anotačního `.omap` (kanál uživatel → AI: označí místo v OOM, generátor nepřepíše; já přečtu polohu/číslo). Workflow rozhodnut Sez. 18.
 - [~] Stupeň 2 — augmentační pipeline (§8.3): degradace render → „sken". **Fotometrická půlka HOTOVO Sez. 86,

@@ -67,7 +67,7 @@ Otestovat a vytvořit spojení na užitečné zdroje třetích stran: LIDAR, ort
   výškopis, ArcGIS ImageServer),
   `zabaged.py` (ZABAGED Polohopis ArcGIS REST, Sez. 26: cesty + lesní průseky + voda + budovy + vedení/lanovka +
   železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv open land/hřbitov/parkoviště Sez. 41 +
-  areály účelové zástavby 114 → 520/501 + kůlny 105 → 521, Sez. 42 +
+  areály účelové zástavby 114 → 520/501, Sez. 42; kůlny 105 byly přidány Sez. 42 a vyřazeny Sez. 173 +
   **Sez. 43 systematický audit katalogu: zámek/hrad → 521, zřícenina → 523, věž/vodojem/silo/… → 524, mohyla → 526,
   kříž → 530, strom → 417, sráz → 104, zeď/hradba → 513, rokle/výmol → 107 Erosion gully (Sez. 58)** — `--landmarks`/`--linefeatures`;
   **Sez. 44 dávka 4 vodní/mokřady: bažina+rašeliniště → 308 Marsh (`--marsh`; + 310 Indistinct pseudo split ~55 % Sez. 99),
@@ -188,7 +188,7 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   běh → `resources/area_model/runs/<run_id>/`. **Výsledek
   (Sez. 90):** plný trénink 40 ep → **test mIoU 0,621 ≈ val 0,629** (bez leaku, vs runnability baseline 0,25); budovy
   `521` zachráněny 0,00→0,68 (median-freq váhy + data). **Stabilizace (Sez. 91):** cap vah @10 + cosine LR →
-  test mIoU 0,640 (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301.1`) = datový strop → class-balanced
+  test mIoU 0,640 (loss-spiky zmizely); vzácné třídy (`208`/`501`/`301`) = datový strop → class-balanced
   expansion. **Pokrytí area tříd (Sez. 92):** přidána **403 Rough open** (bledá žlutá ze separace). **Přetrénován
   N_AREA 18 (Sez. 103):** +310 Indistinct marsh → 18 tříd; regen 205 párů + degradace-augmentace → test mIoU
   0,568 ≈ val 0,571 (hlavní plochy 0,70-0,92). **Voda 301 fix re-trénink (Sez. 118):** `omap_raster` měl od narození
@@ -260,8 +260,10 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   povýšit.
 - **KPI generátoru = primární kvantifikátor (Sez. 100+):** proporční podobnost distribuce ISOM symbolů gen vs
   reálné mapy (histogram intersection), nahradil binární DoD ≥ 90 % (nedosažitelný).
-  **Stav Sez. 164: 67,5 %** (Sez. 164 opravila gate 407/409 na `!=open` → 409 ožilo 0→114 gen, plocha
-  75,0→78,8, headline 66,2→67,5; Sez. 160 doložila 66,2 plnou regenerací KPI sady — audit A3/A4 sirotek)
+  **Stav: 68,4 % na ntbhej (Sez. 173, mapfield crop fix); canonical HAL3000 67,5 % je stale (Sez. 164)**
+  (Sez. 164 opravila gate 407/409 na `!=open` → 409 ožilo 0→114 gen, plocha 75,0→78,8,
+  headline 66,2→67,5; Sez. 173 ruční mapfield pro Bedř odstranil layout kontaminaci a zvedl ntbhej
+  headline 67,3→68,4; HAL3000 přeměření je carry)
   na kanonické 3-map sadě Bedřichovka/Blatná/Velbloud
   (plocha 78,8 / linie 66,4 / bod 67,9; Bedř 61,9 / Blatná 65,9 / Velbloud 74,7);
   největší díry 403/416/306/109/202/501/308/108/408/208.

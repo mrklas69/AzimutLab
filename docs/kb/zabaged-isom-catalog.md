@@ -181,7 +181,7 @@ ne vybraná"* — proto je tu i to, co (zatím) nepoužíváme.
 | `Budova_jednotlivá_nebo_blok_budov__plocha_` | plocha | 521 Building | ✓ | plošná budova (vč. vodojemu zemního) |
 | `Rozvalina__zřícenina` | plocha | 523 Ruin | ✓ | **Sez. 43** (`--buildings`, id 103; čárkovaný obrys bez výplně; `podtypob`=rozvalina). Milštejn ad. SV 8 / LS 7 / HS 5 (Σ20) |
 | `Budova_jednotlivá_nebo_blok_budov__bod_` | bod | (521) | ✗ | v lesních výsecích prázdná (Sez. 18; probe Sez. 43: 0 ve všech 5) |
-| `Kůlna__skleník__fóliovník__přístřešek` | plocha | 521 Building | ✓ | **Sez. 42** (audit; přidáno do `BUILDING_AREA_LAYERS` → 521, drobné stavby; LS budovy 8273→9123) |
+| `Kůlna__skleník__fóliovník__přístřešek` | plocha | 521 Building | ⊘ VYŘAZENO | **Sez. 42** přidáno do `BUILDING_AREA_LAYERS` → 521; **Sez. 173 vyřazeno** po měření (521 přestřel, kartograf drobné zahrádkářské stavby na 1:10000 negeneralizuje) |
 | `Hrad` | plocha | 521 Building | ✓ | **Sez. 43** (`--buildings`, id 101 → 521 jako budova; HS 3) |
 | `Zámek` | plocha | 521 Building | ✓ | **Sez. 43** (`--buildings`, id 102 → 521; **domov mládeže Krompach na SV** = bývalý zámek, 1882 m²; Σ3) |
 | `Věžovitá_stavba` | plocha | 524 High tower | ✓ | **Sez. 43** (`--landmarks`, id 100; footprint ~3 m² → centroid → 524 bod, ne 521; Σ9) |

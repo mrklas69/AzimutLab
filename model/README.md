@@ -21,6 +21,8 @@ Dekompozice podle typu geometrie ISOM → tři CV úlohy, GT zdarma z `.omap`.
 | Modul | Účel |
 |-------|------|
 | `mpp.py` | **SSoT kanonického měřítka dlaždice** `CANONICAL_MPP=1,33` m/px + `resample_to_mpp` (Sez. 126, audit C1/K1). Symboly i páry i `eval_real` lícují na tuto hodnotu. |
+| `norm.py` | **SSoT ImageNet normalizace** pro modelové loadery (mean/std; extrakce DRY dluhu z auditů). |
+| `peaks.py` | Sdílené peak/NMS/matching utility pro heatmapové detektory a eval (sjednocuje train/eval peak logiku). |
 | `checkpoints.py` | Sdílená správa checkpointů: izolované `runs/<run_id>/` + atomický `--promote` na kanonický `unet_best.pt` (Sez. 127). |
 | `purple.py` | Fialový přetisk tratě (ISOM 701-706) JEN do X = augmentace obou modelů (A2a, Sez. 123). Mimo `generator/` = hranice paralelního vlákna. |
 | `vectorize.py` | Maska → polyline (skeletonize → graf → RDP), čistá geometrie bez torch; sdílený `.omap assembly` postprocess (Sez. 132). |

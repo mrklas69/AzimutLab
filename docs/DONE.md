@@ -2,6 +2,21 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 175 (2026-06-28) — %AUDIT:CODE fixy + %AUDIT:DOCS propagace (ntbhej)
+Detail: [diary/2026-06-28.md](diary/2026-06-28.md#sezení-175--auditcode-fixy--auditdocs-propagace-ntbhej).
+- [x] **`%AUDIT:CODE opravit všechny nálezy`:** doplněn `connectors/ssl_ctx.py` + `certifi` do runtime,
+  ArcGIS paging přes `exceededTransferLimit` (offset podle skutečné dávky, no-silent empty-page guard),
+  `compare_isom.detect_version` už při defaultu varuje, a `generator/omap_symbols.py` sjednotil robustní
+  `code`/`id` parser bez závislosti na pořadí atributů.
+- [x] **`.omap` cut/export robustnost:** `omap_export` i `cut` používají sdílený parser; voda 301 fill/border
+  split selže nahlas, pokud v mapě chybí 301.1/301.4. Přidané unittesty kryjí parser, ArcGIS paging,
+  compare warning, TLS context a discover-visible live smoke skip.
+- [x] **`%AUDIT:DOCS a opravit vše`:** propsán aktuální KPI stav (ntbhej 68,4 / HAL3000 canonical 67,5 stale),
+  repo layout doplněn o `ssl_ctx.py`, `omap_symbols.py`, `model/norm.py`, `model/peaks.py`, opraven Velbloud `.pgw`,
+  `generator/README` sladěn s fill/border splitem a TODO očištěno od hotových D2/D3/D4/D8/SSL carry.
+- [x] **Verify:** `unittest discover` 74 OK + 1 skip, `tests/smoke.py` OK, `git diff --check` bez chyb
+  (jen CRLF warningy prostředí). KPI nepřeměřeno — změny jsou robustnost/docs, ne generátorová kresba.
+
 ## Sezení 174 (2026-06-27) — Scan-detekce balvanů 204/205/204.5 → doložený strop classic-CV (ntbhej)
 Detail: [diary/2026-06-27.md](diary/2026-06-27.md#sezení-174--scan-detekce-balvanů-204205204.5--doložený-strop-classic-cv-ntbhej).
 - [x] **`isom_scan/boulder_points_poc.py`** (nový, 4. detektor rodina, izomorf `manmade_points_poc`): černá

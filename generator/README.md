@@ -29,10 +29,11 @@ objekt. `pairs` volá s `labels=True`. Pár = **[`rgb.png` (X),
 `cut.py` (Sez. 114) = geometrický ořez `.omap` (primitiva `cut_point`/`cut_line`/`cut_area`
 Sutherland-Hodgman → orchestrátor `clip_omap` přepíše `<coords>` se zachováním flagů →
 wrappery `cut_box` papír [CLI `--location`] / `clip_omap_to_quad` Livelox quad); odstraní
-přesah bboxu = okolní sídla. **Neatline border (Sez. 138 E2):** `cut._emit_area` detekuje
-řeznou hranu plochy s neproniknutelným obrysem (voda 301 / 520 / 521) a přerotuje ji na
-uzavírací segment s flagem **16** → OOM nekreslí černý border podél umělé řezné hrany
-(single-run; multi-run je doložený limit). `gen_backgrounds.py` (Sez. 104/109) = OOM bg
+přesah bboxu = okolní sídla. **Neatline border (Sez. 142/175):** voda **301** se po klipu
+rozkládá na fill-only **301.1** + samostatné břehové linie **301.4** jen na skutečných březích
+(`cut._emit_bordered_area`, `_border_runs`). Symbol id se čtou robustně přes `omap_symbols.parse_symbol_ids`
+z aktuálního `<symbols>` bloku; chybějící fill/border symbol je chyba, ne tichý fallback. Starší
+flag-16 potlačení zůstává jen pro neborderované plochy, které nemají fill/border split. `gen_backgrounds.py` (Sez. 104/109) = OOM bg
 podklady do `gen.omap` (`add_backgrounds` Livelox pár / `add_resources_scan_background`
 měřicí mapa). Podklady DMR hillshade + ortofoto + Livelox sken: `attach_dmr_hillshade` /
 `attach_ortho` / `attach_livelox_scan` (Sez. 138/140, OOM *Templates* toggle; `_resolve_omap`
@@ -214,12 +215,12 @@ gen 2017-2 → porovnání přes sémantiku, ne kód); STAT 2 = prostorová shod
 ## Stack
 
 Python 3.14 (testováno; PEP 649/749 bez `__future__`) · numpy · contourpy (marching squares) · Pillow · pyproj (jen real režimy, WGS→S-JTSK) ·
-scipy (jen `--rocks real`: morfologie + connected-components pro rock-relief z DMR, Sez. 63). Viz `requirements.txt`.
+certifi (TLS CA bundle pro HTTPS konektory) · scipy (jen `--rocks real`: morfologie + connected-components pro rock-relief z DMR, Sez. 63). Viz `requirements.txt`.
 Venv v kořeni LAB (`.venv`) — sdílený pro `generator/` i `connectors/`. Konektory reálných dat žijí
 v **`connectors/`** v kořeni LAB (`dmr.py` výškopis, `zabaged.py` komunikace + voda + budovy + vedení +
-železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv + areály 114/kůlny 105, `ruian.py` katastr
+železnice + kolejiště + skály + mosty/tunely + řopíky + plošný pokryv + areály 114; kůlny 105 jsou od Sez. 173 vyřazené, `ruian.py` katastr
 (privátní pozemky → olivová 520, Sez. 42), `ortofoto.py` podklad — sourozenci, sdílejí `dmr.build_bbox` i
-`arcgis.py` REST transport); generátor si jejich složku přidá na `sys.path` (Sez. 16).
+`arcgis.py` REST transport a `ssl_ctx.py` certifi TLS kontext); generátor si jejich složku přidá na `sys.path` (Sez. 16).
 
 Reálná data = ČÚZK DMR 5G (výškopis) + ZABAGED Polohopis (vektorové vrstvy) + ORTOFOTO (podklad), vše
 open data **CC BY 4.0** (atribuce povinná — uložena i v `meta.json`).

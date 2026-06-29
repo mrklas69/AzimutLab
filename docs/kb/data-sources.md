@@ -26,7 +26,7 @@ Dříve uváděné „ZTMP" slévalo dvě oddělené věci. Správně:
 
 | Zdroj | Typ dat | Pokrytí | Přístup | Licence | Stav |
 |-------|---------|---------|---------|---------|------|
-| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27, železnice+kolejiště Sez. 28, plošný pokryv Sez. 41, areály účelové zástavby 114 + kůlny 105 Sez. 42, **systematický audit katalogu Sez. 43: zámek/hrad→521, zřícenina→523, bodové orient. prvky 524/526/530/417, liniové 104/513**, **dávka 4 Sez. 44: mokřady→308, pramen→312, jeskyně/šachta→203.2, nádrž→311**, **stromořadí→406 lineární les Sez. 45**)** |
+| ZABAGED® Polohopis | vektor: vodstvo, komunikace, vegetace, budovy, hranice (**katalog všech 149 vrstev → ISOM: `zabaged-isom-catalog.md`**) | ČR | **ArcGIS REST** (Sez. 26; též WFS/ATOM/WMS) | CC BY 4.0 | ✓ prozkoumáno + **použito (komunikace Sez. 16, vodstvo Sez. 17, budovy Sez. 18, el. vedení Sez. 24, koupaliště+řopíky Sez. 27, železnice+kolejiště Sez. 28, plošný pokryv Sez. 41, areály účelové zástavby 114 Sez. 42; kůlny 105 přidány Sez. 42 a vyřazeny Sez. 173, **systematický audit katalogu Sez. 43: zámek/hrad→521, zřícenina→523, bodové orient. prvky 524/526/530/417, liniové 104/513**, **dávka 4 Sez. 44: mokřady→308, pramen→312, jeskyně/šachta→203.2, nádrž→311**, **stromořadí→406 lineární les Sez. 45**)** |
 | **RÚIAN** (Registr územní identifikace, adres a nemovitostí) | vektor: katastrální parcely (druh pozemku), stavební objekty, adresy, správní hranice | ČR | **ArcGIS REST** `RUIAN/MapServer` (týž server jako ZABAGED) | **veřejná otevřená data, zák. 111/2009 Sb., bezúplatně** (atribuce ČÚZK) | ✓ **použito Sez. 42 (`connectors/ruian.py`: parcely druhu zahrada+zastavěná → olivová 520 privátní pozemek)** |
 | **DMR 5G** (ZABAGED Výškopis) | LIDAR výškopis, TIN, přesnost 0,18 m terén / 0,3 m les | ČR (100 %) | ATOM (LAZ, ~20 MB/list SM5), WMS stínovaný, **ArcGIS ImageServer `exportImage` (float TIFF, bbox)**, export přes geoprohlížeč | CC BY 4.0 | ✓ prozkoumáno + použito |
 | DMP 1G | model povrchu z LLS 2009–13 (LAZ); 1. odraz = koruna/stavby | ČR | ATOM, WMS | CC BY 4.0 | ✓ (nahrazován DMP OK) |
@@ -154,8 +154,10 @@ proti zdroji na výřezu Soví vrchu:
   Soví vrch = 105 ploch (`druhbud` = „budova blíže neurčená" 104× + „vodojem zemní" 1×; `jmeno` None).
 - **Mapování → ISOM:** `Budova_..._plocha_` (jakýkoli `druhbud`, vč. vodojemu) → **521 Building**
   (plošný černý symbol, výplň + obrys). Bez rozlišení podle `druhbud` (KISS; rozhodnutí uživatele-mapéra).
-- **Kartografická generalizace (Úroveň 1, Sez. 18):** min. velikost 0,5 mm + zjednodušení obrysu
-  Douglas-Peucker (0,3 mm) z ISOM rozměrů (`template_classic.omap` × `PX_PER_MM`). Detail: spec §4.9b.
+- **Kartografie:** L1 generalizace ze Sez. 18 (min. velikost 0,5 mm + Douglas-Peucker) byla v Sez. 27
+  zavržena a smazána — komolila footprint. Budovy se kreslí RAW jako voda; Sez. 173 přidal jen
+  defensivní ISOM min-size filtr 0,2 mm² pro 521 a vyřadil vrstvu `Kůlna, skleník, fóliovník, přístřešek`
+  kvůli měřenému KPI přestřelu.
 - **Licence: CC BY 4.0** (ČÚZK ZABAGED), `meta.json` `buildings.licence`.
 
 ### ZABAGED el. vedení — REST konektor (POUŽITO, Sez. 24)
@@ -279,7 +281,7 @@ přes georef a vyřazeny, ať neznečistí hold-out.)
 | Bedřichovka | 1:10 000 | pgw | les |
 | Blatná | 1:7 500 | pgw | |
 | Slovanka2016 | 1:15 000 | pgw | |
-| Velbloud | 1:15 000 | bez pgw | les 1:15k |
+| Velbloud | 1:15 000 | pgw | les 1:15k |
 | SampleMap | 1:15 000 | pgw | reálná navzdory jménu |
 
 `.omap` jsou plain XML (čitelné). Georef v **S-JTSK** (ověřeno Soví vrch) = přiložitelné na

@@ -420,7 +420,8 @@ Vypne `--only-real`. Jen `.omap` (USED_CODES +516) + rgb; vlastní GT maska zat�
   (s obrysem, vymezený prostor). **Parkoviště (`Parkoviště, odpočívka` 123) → 501.1 BEZ obrysu (Sez. 57)** —
   průchozí zpevněná plocha splývající s okolím (ISOM 501 jen „where distinct boundary"; parkoviště jde do
   spodního z-order průchodu jako base výplň, mirror ostatní plochy v sídlech).
-- **Drobné stavby → ISOM 521** (přes budovy): `Kůlna, skleník, fóliovník, přístřešek` (105) → 521 (Sez. 42).
+- **Drobné stavby NEKRESLIT** (Sez. 173): `Kůlna, skleník, fóliovník, přístřešek` (105) byly po
+  měření vyřazeny z budov. Přidávaly 521 přestřel a kartograf je na 1:10000 negeneralizuje.
 
 Plošné, izomorfní s vodní plochou/budovou/kolejištěm: render `_draw_area_symbol` s `outline=None`, barva dle
 `SURFACE_FILL` (`C_YELLOW` / `C_OLIVE` — **barvy normované ISOM, z palety, neladí se okem**); 412 pole / 402 park /
