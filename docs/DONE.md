@@ -2,6 +2,29 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 177 (2026-06-29) — Vynucený pruning + KPI/KOMPAS analýza (gen=0 díry = data-gate zeď) + plná regenerace maps/ (HAL3000)
+Detail: [diary/2026-06-29.md](diary/2026-06-29.md#sezení-177--vynucený-pruning--kpikompas-analýza-gen0-díry--data-gate-zeď--plná-regenerace-maps--hal3000).
+- [x] **Vynucený pruning IDEAS/TODO** (cadence ≥12, překročen o 2; poslední Sez. 163): **TODO 562 → 500 ř.**
+  Smazán exaktní duplikát „Nezávislé RNG streamy" (2× identický), `[x]` 521 blok → ZBÝVÁ 503, 8 nabobtnalých `[~]`
+  hotových tahů zúženo na samotné ZBÝVÁ (fokus B guard / circularity Sez. 170 / benchmark GT 168/171 / bodové
+  523.1 / pseudo 531 / oplocenky 516-518 / hist. kontext 145). IDEAS netknuto (94 ř.). Hotové věci ověřeny v DONE.
+- [x] **Governance ověření (audit A2 [!]):** `capabilities.py ↔ calibration_manifest.json` **konzistentní** po
+  reframech Sez. 158-162 — 112/115 záměrně mimo registr ([[capability-registry-equals-used-codes]]), 525/527/531
+  `SCAN_LIVE_POINT` = trénovaný Png2Point (ne classic-CV recall=null). **311/312/313 KÓDOVĚ HOTOVÉ** (water_points_poc
+  běžel: 312 recall 1.0, 311 4 kandidáti/0 GT, 313 bez dat) → blokuje ruční GT, ne kód. Opraven zastaralý fakt v TODO [!] Buschdörfl (audit C6).
+- [x] **KPI/KOMPAS analýza (volba A = čisté pokrytí):** KPI **68,7 %** potvrzeno (neměnný gen). **Klíčový nález:
+  žebříček `gen=0` děr je systematicky DATA-GATE** — 202 Passable rock face (195/0, sráz=linie, „passable" < práh 46°),
+  201 (36/0), 107/108 erozní rýhy (ZABAGED 0 na Liberecku), 205 (atribut výšky chybí), 208/308 (data 0 na canonical),
+  206 Gigantic boulder 0/0. ČÚZK pokrytí-páka VYČERPANÁ → gen=0 díry = symboly z terénní znalosti, již geodata nenesou.
+- [x] **ROADMAP self-check (Censure):** Png2Line gap-bridging nabídnut jako „legitimní", ale je **za fázovou závorou**
+  (čistě vektorizace masky→.omap = vrcholový `Rekonstruktor()` produkt; nezvedá gen KPI ani eval_real). Uživatel zvolil
+  (A) držet závoru. Censure: měl zachytit už při sestavování menu.
+- [x] **Plná regenerace maps/** (požadavek uživatele): `temp/regen_batch.py` **21/21 kroků OK** — KPI(3) podklady,
+  Livelox(5) `pairs.py map`, DEV(5) `--location`+scan-auto; Buschdörfl ZÁMĚRNĚ vynechán. Vizuál ukázán (Bedř/Velbloud/
+  Rovné), věrný. maps/ gitignored → v gitu se neprojeví.
+- [x] **Verify:** pruning integrita (0× `[x]` v aktivních, RNG 1×, 500 ř.); kód NEMĚNĚN (jen `docs/TODO.md`) →
+  smoke/KPI přeměření není nutné (68,7 % z cache, generátor neměnný od Sez. 176).
+
 ## Sezení 176 (2026-06-29) — Canonical KPI přeměření + watercourse 304/305 klasifikace (délka místo pojmenovanosti) → KPI 67,5→68,7 (HAL3000)
 Detail: [diary/2026-06-29.md](diary/2026-06-29.md#sezení-176--canonical-kpi-přeměření--watercourse-304305-klasifikace-délka-místo-pojmenovanosti--kpi-675687-hal3000).
 - [x] **Canonical KPI přeměřeno** (Příště #3 carry od Sez. 166): stale 67,5 (Sez. 164) → **68,0 %** na HAL3000

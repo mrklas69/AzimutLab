@@ -5,10 +5,9 @@ v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
 ## Sezení 165 — carry / follow-ups
-- *(fokus B UZAVŘEN NEGATIVNĚ Sez.165 — detail DONE)* Png2Area retrain `s165` na 409 datech **REGREDOVAL** na reálných
-  mapách (model halucinuje 409, krade pixely odstínům; Blatná soft 0,363→0,301) → **NEpromotováno, revert na baseline**.
-  Generator 409 gate ZŮSTÁVÁ (zvedl KPI 67,5%). **Guard pro budoucnost:** vzácnou pattern třídu (jako 208) NEjde naučit
-  jen víc daty — pokud 409 reconstructor znovu, **class-balance/oversampling**, ne slepý retrain; nemrhat CUDA oknem.
+- *(fokus B UZAVŘEN NEGATIVNĚ Sez. 165 — DONE)* **Guard:** vzácnou pattern třídu (409/208) NEjde naučit jen víc daty
+  (retrain `s165` REGREDOVAL reálný transfer, halucinace 407→409) → class-balance/oversampling, ne slepý retrain; nemrhat
+  CUDA oknem. Generator 409 gate ZŮSTÁVÁ (KPI+). Paměť [[rare-pattern-class-retrain-regresses]].
 - [ ] *(isom_scan %AUDIT:CODE opt-iny, Sez.165 — measure-first, MĚNÍ výstup detektorů)* **D2/D3 component-leak fix +
   D4 detector name-SSoT.** Fork je nechal jako dokumentovaný opt-in v `points_common` (label-izolace přepíše skóre,
   SSoT názvy přepíšou `name`). Aplikovat jen s měřením dopadu na kvalitu detekce, ne slepě. + **D7** `gt_ui` „celá
@@ -18,42 +17,16 @@ Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
   (`results.csv` `build=iter3-coached`); zbývá **Opus 4.8** (Sez.146 jen 1 uncoached) + **ChatGPT5.5** (starý 0,50 běh) →
   re-run pod stejným iter3 pravidlem pro fér leaderboard. Ne-CUDA (uživatel pustí modely, já skóruju). Nález: headline
   `point_F1` (bodová lokalizace) je zeď i po coachingu (ChatGPT recall 1,0 / point_F1 0,0) → klíč = ruční GT (viz níže).
-- [~] *(isom_scan candidate quality, vytěžek ChatGPT trace Sez.165 — `isom_scan/chatgpt_40min_aktivita1.pdf`; **ČÁST HOTOVO Sez.170**)*
-  **Circularity `4πA/P²` + solidity filtr pro bodové kandidáty.** ChatGPT jím odděluje kruhové body od fragmentů
-  linií/srázů — řeší **doložený balvany 204/210 vs skalní kresba FP** (Sez.138 E3, audit), dnes jen rejection/shape_f1.
-  Cheap geometrický diskriminátor do `points_common.component_candidates` (komplementární k shape_f1). Measure-first
-  na review manifestu. (HoughCircles pro kroužkové symboly = IDEAS, marginální vůči CenterNet.)
-  **Sez. 170:** zabudována **excentricita** (z momentů, ne `4πA/P²`) jako `component_candidates(max_eccentricity=…)`
-  + `open_px` (opening) + `reject_collinear_runs` (vše volitelné default-off, ostatní detektory beze změny); **109
-  measure-calibrated** proti ruční GT (recall 74,5 / prec 58 / F1 0,65). **ZBÝVÁ:** circularity `4πA/P²` + solidity
-  (jiná metrika než ecc — zvážit pro balvany 204/210 černou maskou) + skeleton-endpoint topologie (níže).
-  **+ skeleton-endpoint topologie** (vytěžek ChatGPT iter3 trace `chatgpt_aktivita2_3.pdf` Sez.165): počet koncových
-  bodů skeletonu rozliší man-made glyfy specifičtěji než shape_f1/circularity — **⊤** (525/526) = 3 konce (2 horní +
-  středový dřík), **×** (530/531) = 4 diagonální konce, **Λ** (527) = 2-3 konce. Levný topologický diskriminátor pro
-  lineární bodové znaky; doplnit k circularity (kulaté) ve `points_common`.
-- [~] *(benchmark robustnost, Sez.165 → INFRASTRUKTURA HOTOVO Sez. 168)* **Ruční benchmark GT přes GT factory.**
-  **Sez. 168 hotovo:** `mark_isoms.CODE_LABELS` 12→**21 bodových kódů**, nový `gt_from_markers.py` (markery→**hybrid GT v2**:
-  ruční body nahradí gen body, gen linie/plochy zůstanou, + sanity-check blízkých bodů 526/530), `score.py` čte
-  `_benchmark_version` z GT (v1/v2 nemíchat). Scope (volba): „všechny ISOM, začneme bodovými", Branžež MVP (skalnatá →
-  body sporné u skalní kresby). **Sez. 171 HOTOVO — klikání + řetězec:** 3 sety (`mark_isoms`) → **187 bodů / 21 kódů**
-  (zelené 417/418/419 s 419×24, man-made 512.1/512.2/521.1/523.1/603 + 525/526/527/531; +5 kódů do palety
-  verify-against-source z template; nový durable `merge_marker_set.py` set→master). `gt_from_markers`→hybrid v2.0 →
-  **`score`: ChatGPT 5.5 point_F1 0,269 (z 0,0!) = ZEĎ PROLOMENA**, Opus 0,0. Recall nález: přehlédnutá jáma 112.
-  **ZBÝVÁ: re-run modelů na v2 GT** (Opus 4.8 / ChatGPT 5.5 aktuálním promptem → fér leaderboard; staré Sez.146 běhy
-  byly na 2-bodový úkol = orientační dolní odhad). Motivace (dnešní křehká generátorová GT) níže:
-  Dnešní `gt/ground_truth.json` je GENERÁTOROVÁ (`generate_map only_real`) → skóruje jen data-derivovatelné kódy
-  (z bodů JEN 2: 526/530) → headline `point_F1` visí na 2 bodech = křehký {0; 0,5; 1}, super šumivý. GT factory
-  (`mark_isoms`/`gt_ui`/`build_tile_set`, Sez.157) umí naklikat **SKUTEČNÉ polohy VŠECH symbolů na reálném skenu**
-  (i balvany/kupky, co ČÚZK nemá → generátor je fabrikuje pseudo) → desítky skórovatelných bodů místo 2. **Postup:**
-  naklikat `task_isom_scan.png` (Branžež) přes factory → uložit jako ruční GT, **zvýšit `BENCHMARK_VERSION`** (nemíchat
-  tiše s generátorovou, README pravidlo). **Caveaty:** ruční práce uživatele · 1 sken (robustní benchmark chce víc map) ·
-  subjektivita u některých symbolů (balvan vs sráz). Legitimní Etapa1 (anti-Goodhart, dokládá recall; [[isom-gt-factory-tool]]).
-  **GT red flag (ChatGPT iter3 trace Sez.165):** GT `526` (1512,1041) a `530` (1521,1035) jsou **~11 px od sebe** = dva
-  RŮZNÉ kódy na ~1 lokaci → nejspíš artefakt `only_real` (oba z téhož ZABAGED objektu); headline tedy nevisí na 2 bodech,
-  ale na ~1 lokaci se 2 kódy = ještě křehčí. **+ GT sanity-check:** dva různé bodové kódy na <20 px = podezřelé, hlásit
-  při build_gt. **Silný doklad pro ruční GT:** ChatGPT s plnou shape-CV mašinérií (globální průchod + skeleton + kontext)
-  trefil instance 429/1056 px vedle — sken je plný stejně vypadajících ⊤/× (40 kandidátů) → tvar SÁM nestačí, jen ruční
-  GT zná, který znak kartograf myslel. NENÍ to slabina metody, ale informační mezera.
+- [~] *(isom_scan candidate quality; ČÁST HOTOVO Sez. 170 — excentricita+`open_px`+`reject_collinear_runs` ve
+  `points_common` default-off, 109 measure-calibrated F1 0,65, DONE)* **ZBÝVÁ geometrické diskriminátory bodů:**
+  (a) circularity `4πA/P²` + convex-hull solidity (jiná metrika než ecc — pro balvany 204/210 černou maskou);
+  (b) skeleton-endpoint topologie (⊤ 525/526 = 3 konce, × 530/531 = 4, Λ 527 = 2-3 → rozliší man-made glyfy
+  specifičtěji než shape_f1). Measure-first na review manifestu. HoughCircles = IDEAS (marginální vůči CenterNet).
+- [~] *(benchmark robustnost; INFRASTRUKTURA HOTOVO Sez. 168/171 — `mark_isoms` 21 kódů, `gt_from_markers`→hybrid GT v2,
+  master 187 bodů / 21 kódů, `score` čte `_benchmark_version`, zeď point_F1 prolomena ChatGPT 5.5 0,269; DONE)*
+  **ZBÝVÁ: re-run modelů na v2 GT** — Opus 4.8 / ChatGPT 5.5 aktuálním promptem → fér leaderboard (staré Sez. 146 běhy
+  = 2-bodový úkol, orientační dolní odhad). Ne-CUDA (uživatel pustí modely, já skóruju). Caveat: 1 sken Branžež,
+  subjektivita balvan-vs-sráz. Anti-Goodhart, dokládá recall ([[isom-gt-factory-tool]]).
 
 ## Audit supervisor (2026-06-19) — námitky → úkoly
 Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260619.md`**. Tento audit navazuje na
@@ -80,9 +53,12 @@ pokud krmí barvy, masky, symbolové kandidáty nebo KOMPAS.
   per-symbol tvarových filtrů (`--min-area 25` u 109). **Zbývá:** hlavní modré pointy `311/312/313`,
   další černé bodové skupiny, drobné 301/308/310 vodní/mokřadní plochy a uzavřené 516/517/518 oplocenky.
   Výstup má být kurátorský manifest + pracovní `.omap` kandidáti, nejdřív na Buschdörfl/Hamr, potom ověřit
-  na jedné české mapě. Per-ISOM calibration ledger je zavedený v `isom_scan/calibration_manifest.json`;
-  další konkrétní krok jsou `311/312/313`. **Vysoká priorita před dalšími ZABAGED honbami:** tahle data jsou v mapářském
-  skenu, ne v ČÚZK.
+  na jedné české mapě. Per-ISOM calibration ledger je zavedený v `isom_scan/calibration_manifest.json`.
+  **Stav 311/312/313 (ověřeno Sez. 177 z manifestu): detektor `water_points_poc.py` UŽ běžel** — 312
+  `candidate_calibrated` (recall 1.0, 1 GT marker), 311 = 4 kandidáti ale **0 pozitivních GT** (uživatel je
+  ve 2. průchodu nepotvrdil), 313 bez kandidátů i GT. **Blokuje tedy RUČNÍ pozitivní GT (uživatel) / jiná mapa,
+  ne kód.** Stejně 417/418 (`unreviewed`) čekají na review verdiktů. **Vysoká priorita před dalšími ZABAGED
+  honbami:** tahle data jsou v mapářském skenu, ne v ČÚZK.
 - [!] *(260619-A4; Goodhart)* **Pseudo hustoty měnit jen přes crosswalk-aware měření na stejné sadě.**
   527 přestřel je na kanonické sadě opravený (103→3, KPI 62,0→62,5); 508 `Cesta typcesty_k=025`
   přesun je ověřený KOMPASem (508 `ok`, headline 63,3); **210 Stony ground opraveno Sez. 166** (`PSEUDO_STONY_FIELD_PER_KM2
@@ -297,13 +273,10 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   ntbhej plná 3-map):** `--table` měřením potvrzen proporční přestřel (gen_share 11,8 % vs orig 7,3 %, invertuje poměr 204:210),
   ač absolutně podstřeluje (622<975, gen globálně kreslí míň) → `PSEUDO_STONY_FIELD_PER_KM2 12→7` (proporční match), **KPI
   65,6→67,1 % +1,5 pb**, 210→ok. Simulace z counts PŘED kódem našla optimum 0,5–0,6 + odhalila past (share-based ≠ absolutní).
-  **204 = ok** (r 1,08, `PSEUDO_BOULDER=900` Sez. 152 dobře vyladěn — nesahat). **ZBÝVÁ:** **521 budovy** (real-data
-  granularita, +1,5 pb sim — viz samostatná %THINK položka níže) + **417/525 pseudo** (marginální +~0,3 pb, RNG-křehké —
-  čekají na nezávislé RNG streamy). Paměť [[kpi-fill-undershoot-dilutes]] + [[kpi-overshoot-share-not-absolute]].
-- [x] *(KPI páka — HOTOVO Sez. 173, `fc6afa0`)* **521 Building přestřel = granularita drobných staveb.** Vyřazena vrstva
-  „Kůlna…" (doménové rozhodnutí kartografa) + `BUILDING_MIN_AREA_PX2` 0,2 mm² (ISOM 0,4×0,5 mm, jen 521 ne 523). gen 498→370,
-  čisté A/B **plocha +1,9 pb** (Bedř +4,9 / Blatná 0 kontrola). Headline neutrální = bodový měřicí šum, ne vada. Sim agregátní
-  HI přestřelila (per-mapa norm). **ZBÝVÁ:** 503/304 (taky real-data přestřel granularita/projekce) — zvážit izomorfně.
+  **204 = ok** (r 1,08, `PSEUDO_BOULDER=900` Sez. 152 dobře vyladěn — nesahat). **ZBÝVÁ:** **417/525 pseudo** (marginální
+  +~0,3 pb, RNG-křehké — čekají na nezávislé RNG streamy; 521 budovy HOTOVO Sez. 173). Paměť [[kpi-fill-undershoot-dilutes]] + [[kpi-overshoot-share-not-absolute]].
+- [ ] *(KPI páka, real-data granularita — 521 HOTOVO Sez. 173 `fc6afa0`, DONE)* **503 přestřel granularita/projekce.**
+  Zvážit izomorfně s 521 (vyřazení jemné vrstvy + ISOM min-size 0,2 mm²). Pozn.: 304 už řešen jinak (watercourse délka per `idvt`, Sez. 176).
 - [~] *(scan-vytěžení bodů, ROADMAP Etapa 1 — nález/přesměrování uživatele Sez. 173; **balvany UZAVŘENY Sez. 174 = strop CV**)*
   **Rozšířit scan-detekci bodů na další ISOM typy proti GT Branžež.** Baseline Sez.173 (vs ruční GT 187/21): kalibrovaný
   109/111/112/115 + 419; **9 bohatě-GT kódů BEZ detektoru**. **Sez. 174: balvany 204(9)/205(7)/204.5(10) = jedna třída
@@ -325,57 +298,28 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
   kalibrace náhodně 419 250→147, 525 6→20) → KPI kalibrace jednoho symbolu je **zašuměná cascade**. Fix: `rng.spawn()` per pseudo
   symbol (nezávislý stream) → kalibrace izolovaná, čistá atribuce. Pak teprve doladit 417/525 přestřely. Pozn.: dopad na trénink
   NULOVÝ (Png2Point z `inject.py`, ne gen .omap), čistě měřicí/KPI robustnost.
-- [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
-  `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
-  Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210
-  kalibrace náhodně 419 250→147, 525 6→20) → KPI kalibrace jednoho symbolu je **zašuměná cascade**. Fix: `rng.spawn()` per pseudo
-  symbol (nezávislý stream) → kalibrace izolovaná, čistá atribuce. Pak teprve doladit 417/525 přestřely. Pozn.: dopad na trénink
-  NULOVÝ (Png2Point z `inject.py`, ne gen .omap), čistě měřicí/KPI robustnost.
 - [ ] *(měření, audit A3 — nález Sez. 166)* **Baseline sirotek: ntbhej KPI ≠ HAL3000 canonical.** Sez. 166 ntbhej plná 3-map
   = **65,6 %**, ale `KPI_3MAP_CANONICAL` (HAL3000, Sez. 164) = **67,5 %**. Rozdíl lokalizován do **Bedřichovky** (ntbhej 57,4 vs
   README 58,5 vs TODO 61,9 — i HAL3000 doklady se rozcházejí); Blatná/Velbloud sedí napříč stroji. Kód generátoru 164→HEAD
   NEZMĚNĚN → STROJOVÝ rozdíl (Bedř = největší sken, separace RAM-downscale / DMR fetch citlivá). **Prozkoumat** (ntbhej↔HAL3000
   separace téže mapy) + sjednotit headline (audit A3: dva labely KPI_3MAP_NTBHEJ / KPI_3MAP_CANONICAL, nemíchat). **+ HAL3000
   přeměření po 210 kalibraci + 109/111 půlhladinové detekci** (canonical 67,5 → ~69,2? — Δ 210 +1,5 + 109/111 +0,2 přenositelné = změny kódu).
-- [~] *(vytěžení, nové body, nález uživatele Sez. 140; **525/527/531 HOTOVO Sez. 141**, 523.1 carry)* **Bodové symboly
-  523.1 / 525 / 527 / 531.** **HOTOVO Sez. 141:** 527 Fodder rack (krmelec) / 525 Small tower (posed) / 531 Prom. man-made x
-  jako **pseudo man-made body** (ZABAGED je nevede → čistě pseudo na měřenou hustotu, izomorf veg 418/419;
-  `_generate_pseudo_points` zobecnění, render Λ+noha / ⊤ / černý X). Měření crosswalk-aware (paměť
-  [[isom-dual-numbering-oom-ocad]]): původní 527 medián ~7,7/km² byl později vyhodnocený jako crosswalk-slepý;
-  Sez. 150 kalibrace snížila 527 na vzácný pseudo bod (`PSEUDO_FODDER_PER_KM2=(0.08,0.35)`). 525 ~1,1, 531 ~1,3.
-  **ZBÝVÁ 523.1 Ruin min
-  size — ODLOŽENO** (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní
-  (buildings vrací area, 523.1 je point → cross-pipeline změna signatury/render/omap) → reálná páka ≈ 0. Když se
-  bude dělat: footprint < ISOM min 0,8×0,8 mm (144 m²) → bodový čtverec 523.1 místo zanikajícího obrysu 523.
-- Historický měřicí kontext *(KPI verify — ZMĚŘENO Sez. 145 na ntbhej, C1 odblokoval)*: **Přeměřeno KPI/KOMPAS dopad pseudo bodů
-  527/525/531 + 517/518.** C1 fix (Sez. 143) reálně odblokoval `measure_dod` na ntbhej (rozpor diáře 141/143
-  rozřešen: `segment_gt` na downscalovaném skenu RAM nepřekročí). KPI 2-mapová sada **55,3 %** (Bedř 49,4 / Blatná
-  61,2; Velbloud.pgw chybí → hlasitě vynechán, NEsrovnatelné s 3-map 60,7 % — Velbloud byl nejvyšší 67,0). KOMPAS
-  provedení (historický Bedř+Blatná agregát): **527 PŘESTŘEL 11× (orig 7 / gen 79), 531 přestřel 3,3× (6/20)**.
-  **527 už opraveno Sez. 150 na 3-map sadě**; zbytek zůstává jako měřicí kontext pro další kalibraci.
-- [~] *(KPI kalibrace, nález Sez. 145 měření)* **Přeměřit pseudo hustoty crosswalk-aware + kalibrovat pseudo přestřely.**
-  **527 hotovo Sez. 150:** kanonická 3-map sada ukázala `orig 8 / gen 103`; změna
-  `PSEUDO_FODDER_PER_KM2=(3,13) → (0.08,0.35)` dala `gen 3`, stav `ok`, headline KPI **62,0→62,5**.
-  Navazující přesun `Cesta typcesty_k=025` do 508 kanálu dal KPI **62,5→63,3**, ale jen jako řídký
-  fallback; kompletnost 508 patří do scan/Png2Line, ne do ZABAGED.
-  Zbývá hlídat 531 a spojit s „Přestřel hustoty 204/210" výše (táž páka
-  kpi-fill-undershoot-dilutes, balvany + pseudo body). Změny dělat jen s `measure_dod --table`
-  před/po na stejné sadě.
+- [~] *(vytěžení, nové body; 525/527/531 HOTOVO Sez. 141 + kalibrace 527 Sez. 150, DONE)* **523.1 Ruin min size — ODLOŽENO**
+  (volba uživatele Sez. 141): měřením marginální (1/5 map, 1 objekt Velbloud) + invazivní (buildings vrací area, 523.1 je
+  point → cross-pipeline změna) → reálná páka ≈ 0. Když se bude dělat: footprint < ISOM min 144 m² → bodový čtverec 523.1
+  místo zanikajícího obrysu 523.
+- [~] *(KPI kalibrace; 527 HOTOVO Sez. 150 — `PSEUDO_FODDER_PER_KM2=(0.08,0.35)` gen 3, + 508 přesun `Cesta typcesty_k=025`,
+  headline 62,0→63,3, DONE)* **ZBÝVÁ hlídat 531** a spojit s „Přestřel hustoty 204/210" výše (táž páka
+  [[kpi-fill-undershoot-dilutes]]). Změny jen s `measure_dod --table` před/po na stejné sadě.
 - [ ] *(robustnost měření, nález Sez. 141)* **`compare_isom.detect_version` — trojí realita místo binární.** Dnes
   vrací jen „2000"/„2017-2" (podle Building 526/521), ale existují TŘI číslovací sady: ISOM2000 / OOM-2017 (524-531) /
   OCAD-2017 (535-540, Building=526 → mylně detekováno „2000"). Funguje náhodou pro OCAD mapy (crosswalk pravý sloupec
   = OCAD), ale **Soví vrch (OOM-2017, krmelec kóduje přímo 527) → `resolve(527,"2000")={520}` = nesmysl**. Soví vrch
   NENÍ v default KPI sadě (Bedř/Blatná/Velbloud) → headline nezkresluje, ale past. Fix: rozlišit OOM vs OCAD set
   (např. dle `<symbols id="OCD">` nebo přítomnosti 535-540) → správné crosswalk routování. Paměť [[isom-dual-numbering-oom-ocad]].
-- [~] *(vytěžení, nález uživatele Sez. 140; **(a) pseudo HOTOVO Sez. 144**)* **Oplocenky = uzavřené linie 516–518.** ZABAGED
-  ploty NEvede (doložený SKIP Sez. 57, katalog sekce 11) → data gap. **(a) pseudo HOTOVO Sez. 144:** existující 516
-  (kolem RÚIAN zahrad druh 5) rozšířen na **tři typy 516/517/518** (varianta plotu, KISS) — per pozemek losován typ
-  (516 Fence / 517 Ruined čárkovaná / 518 Impassable silná+dvojtick) deterministicky z geometrie (spatial-hash, vzor
-  Sez. 57), váhy z measure-first (5/5 ČR map Σ 113/42/115 → 0,42/0,16/0,42). Verify: render LS .omap 80/39/108, vizuál
-  rozlišitelný, KPI měří crosswalk-aware správně (522/523/524↔516/517/518). **ZBÝVÁ (b) Png2Line ze skenu** (Etapa 2,
-  povýšeno na vysokou prioritu položkou `260620-Buschdörfl`) — detekce uzavřené smyčky plotu = JINÝ přístup
-  (topologie uzávěru), ne jen starý dashed multi-class pokus ze Sez. 133. **+ KPI/KOMPAS dopad 517/518 ZMĚŘEN Sez. 145** (na ntbhej, C1 odblokoval): 517 podstřel
-  (orig 17 / gen 1), 518 ok (16/6), 516 podstřel (24/6) — kalibrace plotů → položka „pseudo hustoty" výše.
+- [~] *(vytěžení; (a) pseudo 516/517/518 HOTOVO Sez. 144 — varianta plotu kolem RÚIAN zahrad, váhy 0,42/0,16/0,42,
+  KPI/KOMPAS dopad změřen Sez. 145, DONE)* **ZBÝVÁ (b) Png2Line ze skenu** (Etapa 2, povýšeno `260620-Buschdörfl`) —
+  detekce uzavřené smyčky plotu = JINÝ přístup (topologie uzávěru), ne starý dashed multi-class pokus (Sez. 133).
 - [ ] *(bug fix, test výstupů Sez. 118)* **Hranice porostu 416 NESMÍ vést přes vodní plochu** (`resources/livelox/631730/gen/map.omap`,
   marker {A}). `_predict_veg_boundaries(class_mask, draw, bdraw)` (gen 2609) kreslí 416 čistě z mezitřídních hranic predikčních
   veg ploch (`class_mask`) — **nedostává vodní masku** → když separovaná zeleň sahá k vodě / přes ni, tečkovaná hranice projde
