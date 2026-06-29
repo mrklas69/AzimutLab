@@ -907,23 +907,27 @@ def map_water_to_isom(layer: str, props: dict) -> int | None:
     proti reálným datům (verify-against-source, Sez. 17) na výřezu Svitávky:
       Vodní_tok podzemní (typtoku_k=004)   → None  (není na povrchu vidět → nekreslit)
       Vodní_tok občasný (vydattok_p)        → 306 Minor/seasonal water channel (čárkovaný)
-      Vodní_tok stálý, pojmenovaný (hlavní) → 304 Crossable watercourse (silnější linie)
-      Vodní_tok stálý, bezejmenný (přítok)  → 305 Small crossable watercourse (tenčí linie)
+      Vodní_tok stálý                        → 305 Small crossable watercourse (default; hlavní
+                                               vodoteče povýší generator.py na 304 podle délky toku)
       Vodní_plocha                           → 301 Uncrossable body of water (výplň + břeh)
       Pozemní_nádrž (umělá vč. koupališť)    → 301 (Sez. 27; bazén/nádrž = vodní plocha na mapě)
 
-    Hierarchie 304/305 podle pojmenovanosti toku (generalizovatelné — pojmenovaný tok je
-    v ZABAGED evidovaný/významnější; ne hardcode konkrétní řeky). Vrací holý ISOM kód
-    (int) nebo None; render konstanty zná generator.py (žádný cyklický import).
+    304 vs 305 je v ISOM o ŠÍŘCE toku (304 Crossable ≥~1 m = silnější, 305 Small <1 m = tenčí),
+    NE o pojmenovanosti (verify-against-source ISOM 2017-2 §3.4). ZABAGED šířku koryta nenese
+    (jen Shape_Length / vydattok_p) a pojmenované toky tu jsou drobné lesní potoky („Červený
+    potok", „Blatný potok") = 305, ne řeky → dřívější heuristika `jmeno → 304` 304 systematicky
+    NADHODNOCOVALA (Sez. 176 KOMPAS canonical: gen 304 = 46 vs orig 12). Tato funkce je per-feature
+    (nezná ostatní úseky téhož toku) → vrací 305 pro každý stálý tok; rozlišení hlavní vodoteče
+    (304, širší) dělá generator._generate_real_water agregací CELKOVÉ délky toku per idvt
+    (dlouhá souvislá vodoteč = páteřní/širší tok). Vrací holý ISOM kód (int) nebo None; render
+    konstanty zná generator.py (žádný cyklický import).
     """
     if layer == "Vodní_tok":
         if props.get("typtoku_k") == "004":       # podzemní tok → na povrchu neviditelný
             return None
         if props.get("vydattok_p") == "občasný":  # občasný (vysychající) tok
             return 306
-        if props.get("jmeno"):                    # pojmenovaný stálý tok = hlavní
-            return 304
-        return 305                                 # bezejmenný stálý přítok
+        return 305                                 # stálý tok = 305 default (304 dle délky výš v generator.py)
     if layer in ("Vodní_plocha", "Pozemní_nádrž"):  # Pozemní_nádrž = umělé nádrže/koupaliště (Sez. 27)
         return 301
     return None

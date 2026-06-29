@@ -208,9 +208,15 @@ PATH_EDGE_FRAC = (0.15, 0.85) # rozsah náhodného konce cesty na okraji mříž
 # reálná půlka (ZABAGED Polohopis REST, Sez. 17, izomorfní s reálnými cestami): toky (linie)
 # + plochy (polygon). Procedurální hydro jádro (D8) = budoucí noise-půlka. Mapování
 # ZABAGED→ISOM viz zabaged.map_water_to_isom. Barva = modrá (C_BLUE z palety).
-ISOM_CROSSABLE_WATERCOURSE = 304   # stálý pojmenovaný tok (hlavní) → plná modrá silnější
-ISOM_SMALL_WATERCOURSE = 305       # stálý bezejmenný přítok → plná modrá tenčí
+ISOM_CROSSABLE_WATERCOURSE = 304   # hlavní vodoteč (dlouhá souvislá, ≥ WATERCOURSE_MAIN_LEN_M) → plná modrá silnější
+ISOM_SMALL_WATERCOURSE = 305       # stálý přítok (kratší) → plná modrá tenčí
 ISOM_SEASONAL_CHANNEL = 306        # občasný tok → čárkovaná modrá
+# Práh CELKOVÉ délky toku (per idvt) pro 304 Crossable vs 305 Small (Sez. 176). ZABAGED nenese šířku
+# koryta (ISOM kritérium 304/305) → délka jako proxy hlavní vodoteče. Pojmenovanost je špatný proxy
+# (i drobný „potok" má jméno). 3 km = jen páteřní vodoteč napříč celou mapou; přirozený zlom v distribuci
+# délek (Sez. 176 probe: 3 KPI mapy mají skok 47→7 segmentů mezi prahy 2,5 a 3 km) → 304 řídké jako
+# u kartografa (orig ~12), zbytek stálých toků zůstává 305 (kde je velký prostor, orig ~267).
+WATERCOURSE_MAIN_LEN_M = 3000.0
 ISOM_UNCROSSABLE_WATER = 301       # vodní plocha (rybník/tůň) → modrá výplň + břehová linie
 WATER_NAME = {ISOM_CROSSABLE_WATERCOURSE: "Crossable watercourse",
               ISOM_SMALL_WATERCOURSE: "Small crossable watercourse",
@@ -2392,10 +2398,22 @@ def _generate_real_water(draw: ImageDraw.ImageDraw, wdraw: ImageDraw.ImageDraw,
     line_features: list[tuple] = []
     area_features: list[tuple] = []
     water_info: list[dict] = []
+    # Hlavní vodoteč (304 Crossable, širší) vs přítok (305 Small): ZABAGED šířku koryta nenese,
+    # tak ji proxujeme CELKOVOU délkou toku per idvt (identifikátor vodního toku) — dlouhá souvislá
+    # vodoteč napříč mapou = páteřní/širší tok. map_water_to_isom (per-feature) vrací 305; tady
+    # povýšíme úseky dlouhých toků na 304 (Sez. 176; pojmenovanost byla špatný proxy).
+    idvt_len: dict = {}
+    for f in line_feats:
+        if f["layer"] == "Vodní_tok":
+            k = f["props"].get("idvt")
+            idvt_len[k] = idvt_len.get(k, 0.0) + float(f["props"].get("Shape_Length", 0) or 0)
     for f in line_feats:
         code = map_water_to_isom(f["layer"], f["props"])
         if code is None:                       # podzemní tok → nekreslit
             continue
+        if code == ISOM_SMALL_WATERCOURSE and \
+                idvt_len.get(f["props"].get("idvt"), 0.0) >= WATERCOURSE_MAIN_LEN_M:
+            code = ISOM_CROSSABLE_WATERCOURSE  # dlouhá souvislá vodoteč → 304 širší (Sez. 176)
         for line in f["lines"]:
             grid = [_sjtsk_to_grid(x, y, geo_bbox) for x, y in line]
             # Cropping mostů (buffer pás kolem osy, Sez. 33 verify Most.omap)
