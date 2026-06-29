@@ -35,6 +35,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from isom.capabilities import generator_codes
+from omap_symbols import parse_symbol_ids
 
 # SSoT plošných ISOM kódů: omap_raster.AREA_ZORDER je kanonický (label schéma Png2Area + z-order).
 # AREA_CODES (close-flag membership) se z něj odvozuje → export a raster se NEMŮŽOU rozejít (drift
@@ -101,13 +102,7 @@ def _parse_symbol_ids(template_xml: str) -> dict[str, int]:
     Id v OOM nejsou pořadová ani rovna kódu (503 má id 110, 505 id 112), proto se musí číst
     ze souboru, ne hádat. `setdefault` drží první výskyt (kód je v template unikátní).
     """
-    ids: dict[str, int] = {}
-    for m in re.finditer(r'<symbol\b[^>]*\bid="(\d+)"[^>]*\bcode="([^"]+)"', template_xml):
-        ids.setdefault(m.group(2), int(m.group(1)))
-    missing = [c for c in USED_CODES if c not in ids]
-    if missing:
-        raise ValueError(f"Template {TEMPLATE_PATH.name} postrádá ISOM symboly: {missing}")
-    return ids
+    return parse_symbol_ids(template_xml, set(USED_CODES), source=TEMPLATE_PATH.name)
 
 
 def _image_template_element(name: str, sx: float, sy: float) -> str:

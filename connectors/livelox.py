@@ -35,6 +35,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from ssl_ctx import ssl_context  # sdílený certifi TLS kontext (Let's Encrypt řetěz, Sez. 175)
+
 # kořen repa (connectors/ je přímo v kořeni) → resources/livelox/ kotvíme sem
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _CORPUS_DIR = _REPO_ROOT / "resources" / "livelox"
@@ -83,7 +85,7 @@ def _open_with_retry(req: urllib.request.Request, timeout: float, tries: int = 4
     """
     for attempt in range(tries):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as resp:
                 return resp.read()
         except urllib.error.HTTPError as e:
             if e.code in _PERMANENT_HTTP or attempt == tries - 1:

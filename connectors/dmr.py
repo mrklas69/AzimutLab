@@ -24,6 +24,8 @@ import numpy as np
 from PIL import Image
 from pyproj import Transformer
 
+from ssl_ctx import ssl_context  # sdílený certifi TLS kontext (ČÚZK Let's Encrypt, Sez. 175)
+
 # REST endpoint DMR 5G ImageServeru (nové .gov.cz; cesta MUSÍ obsahovat /rest/).
 _IMG_SERVER = "https://ags.cuzk.gov.cz/arcgis2/rest/services/dmr5g/ImageServer"
 
@@ -95,7 +97,7 @@ def fetch_elevation_grid(
         }
         url = f"{_IMG_SERVER}/exportImage?{urllib.parse.urlencode(params)}"
         req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=60, context=ssl_context()) as resp:
             ctype = resp.headers.get("Content-Type", "")
             raw = resp.read()
         # server při chybě vrací JSON místo obrázku → srozumitelná výjimka

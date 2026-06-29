@@ -19,7 +19,17 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from ssl_ctx import ssl_context  # sdílený certifi TLS kontext (ČÚZK Let's Encrypt, Sez. 175)
+
 DEFAULT_PAGE = 2000   # typický maxRecordCount ArcGIS REST query (ZABAGED Polohopis); RÚIAN má víc
+
+
+def _exceeded_transfer_limit(payload: dict) -> bool:
+    """ArcGIS signalizuje další stránku přes `exceededTransferLimit`, ne jen délkou dávky."""
+    if payload.get("exceededTransferLimit") is True:
+        return True
+    properties = payload.get("properties")
+    return isinstance(properties, dict) and properties.get("exceededTransferLimit") is True
 
 
 def fetch_geojson_layer(server: str, layer_id: int,
@@ -54,14 +64,15 @@ def fetch_geojson_layer(server: str, layer_id: int,
         "spatialRel": "esriSpatialRelIntersects",
         "where": where, "outFields": "*", "f": "geojson",
     }
-    # paging: stahuj dávky po page_size, dokud server vrací plnou dávku (poslední je kratší)
+    # paging: ArcGIS umí vrátit kratší dávku a přesto signalizovat pokračování přes
+    # exceededTransferLimit. Offset proto posouváme o skutečně přijaté prvky, ne o requested page_size.
     features: list[dict] = []
     offset = 0
     while True:
         params = {**base, "resultOffset": str(offset), "resultRecordCount": str(page_size)}
         url = f"{server}/{layer_id}/query?{urllib.parse.urlencode(params)}"
         req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=120, context=ssl_context()) as resp:
             ctype = resp.headers.get("Content-Type", "")
             raw = resp.read()
         text = raw.decode("utf-8", "replace")
@@ -75,10 +86,19 @@ def fetch_geojson_layer(server: str, layer_id: int,
         if isinstance(fc.get("error"), dict):
             raise RuntimeError(f"ArcGIS REST chyba (layer_id={layer_id}): {fc['error']}")
         batch = fc.get("features", [])
+        if not isinstance(batch, list):
+            raise RuntimeError(f"ArcGIS REST vrátil neplatné features (layer_id={layer_id}): {type(batch).__name__}")
         features.extend(batch)
-        if len(batch) < page_size:        # neúplná dávka = poslední → konec
+        exceeded = _exceeded_transfer_limit(fc)
+        if not batch:
+            if exceeded:
+                raise RuntimeError(
+                    f"ArcGIS REST signalizuje další stránku bez features (layer_id={layer_id}, offset={offset})"
+                )
             break
-        offset += page_size
+        offset += len(batch)
+        if not exceeded and len(batch) < page_size:        # neúplná dávka bez serverového pokračování = konec
+            break
     result = {"type": "FeatureCollection", "features": features}
     cache_dir.mkdir(parents=True, exist_ok=True)
     cpath.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")

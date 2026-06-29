@@ -947,7 +947,7 @@ def map_building_to_isom(layer: str, props: dict) -> int | None:
     """
     if layer in RUIN_AREA_LAYERS:        # zřícenina (Sez. 43) → 523 Ruin (čárkovaný obrys)
         return 523
-    if layer in BUILDING_AREA_LAYERS:    # budovy + kůlny + zámek/hrad (Sez. 42/43) → 521 (DRY s konstantou)
+    if layer in BUILDING_AREA_LAYERS:    # budovy + zámek/hrad → 521; kůlny vyřazeny Sez. 173 (DRY s konstantou)
         return 521
     return None
 

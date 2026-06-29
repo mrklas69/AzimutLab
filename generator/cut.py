@@ -28,6 +28,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from omap_raster import _paper_to_px
+from omap_symbols import parse_symbol_ids
 
 Image.MAX_IMAGE_PIXELS = None
 _OBJ_RE = re.compile(r"<object\b.*?</object>", re.DOTALL)       # párový objekt (s coords); self-closing nematchne → ponechán
@@ -224,7 +225,6 @@ def cut_area(rings: list, clip_poly: list) -> list:
 _OBJECTS_RE = re.compile(r'(<objects count=")(\d+)(">)(.*?)(</objects>)', re.DOTALL)
 _TYPE_RE = re.compile(r'<object type="(\d)"')
 _SYMBOL_RE = re.compile(r'symbol="(\d+)"')
-_SYMBOLS_DEF_RE = re.compile(r'<symbol\b[^>]*\bid="(\d+)"[^>]*\bcode="([^"]+)"')   # id PŘED code (jako omap_export._parse_symbol_ids)
 
 # Ohraničené plochy = combined symbol (fill + obrysová linie kolem CELÉHO prstenu). Při ořezu by OOM
 # nakreslil obrys i na umělé řezné hraně (kartograf ho tam nekreslí). FILL/BORDER SPLIT (Sez. 142,
@@ -444,13 +444,17 @@ def clip_omap(omap_path: str | pathlib.Path, clip_poly: list) -> tuple:
     doc = omap_path.read_text(encoding="utf-8")
     # code → symbol id z <symbols> (objekty referují symbol právě tímto id) → ohraničené plochy
     # (fill/border split): id objektu → (fill id, border-linie id). Resolvováno z dokumentu, ne hardcode.
-    id_by_code: dict[str, int] = {}
-    for m in _SYMBOLS_DEF_RE.finditer(doc):
-        id_by_code.setdefault(m.group(2), int(m.group(1)))
+    id_by_code = parse_symbol_ids(doc, source=str(omap_path))
     bordered_ids: dict[int, tuple] = {}
     for code, (fill_c, border_c) in _BORDERED_AREA.items():
-        if code in id_by_code and fill_c in id_by_code and border_c in id_by_code:
-            bordered_ids[id_by_code[code]] = (id_by_code[fill_c], id_by_code[border_c])
+        if code not in id_by_code:
+            continue
+        missing = sorted(c for c in (fill_c, border_c) if c not in id_by_code)
+        if missing:
+            raise OmapFormatError(
+                f"{omap_path}: symbol {code} vyžaduje fill/border split, ale chybí symboly {missing}"
+            )
+        bordered_ids[id_by_code[code]] = (id_by_code[fill_c], id_by_code[border_c])
     om = _OBJECTS_RE.search(doc)
     if om is None:
         raise OmapFormatError(f"{omap_path}: chybí podporovaný <objects count=\"…\"> blok")

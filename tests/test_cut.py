@@ -78,6 +78,18 @@ class CutFormatTest(unittest.TestCase):
             self.assertEqual(clip_omap(path, _CLIP), (1, 0))
             self.assertEqual(path.read_text(encoding="utf-8"), original)
 
+    def test_bordered_area_split_requires_fill_and_border_symbols(self) -> None:
+        with self._workspace() as root:
+            path = root / "broken.omap"
+            original = (
+                '<map><symbols><symbol code="301" id="7"/></symbols>'
+                '<objects count="0"></objects></map>'
+            )
+            path.write_text(original, encoding="utf-8")
+            with self.assertRaisesRegex(OmapFormatError, "chybí symboly"):
+                clip_omap(path, _CLIP)
+            self.assertEqual(path.read_text(encoding="utf-8"), original)
+
 
 if __name__ == "__main__":
     unittest.main()

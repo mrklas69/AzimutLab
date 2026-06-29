@@ -5,6 +5,7 @@ numpy
 Pillow
 contourpy          # marching squares — vrstevnice + vektorizace rock-relief masky
 pyproj             # WGS84 → S-JTSK (jen real režimy)
+certifi            # jednotný CA bundle pro ČÚZK/Livelox TLS ve urllib konektorech
 scipy              # morfologie + connected-components — rock-relief z DMR sklonu (--rocks real, Sez. 63)
 scikit-image       # skeletonize (Zhang-Suen/Lee) — vektorizace masky linií → polyline (Png2Line .omap assembly, Sez. 132)
 pygeomag           # WMM magnetická deklinace (offline, vestavěné koef.) — grivace konektor magnetic.py (Sez. 112)

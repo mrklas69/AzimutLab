@@ -26,6 +26,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from ssl_ctx import ssl_context  # sdílený certifi TLS kontext (ČÚZK Let's Encrypt, Sez. 175)
+
 # ortofoto je velký rastr (12000×8000 = 96 Mpx, při jemnějším mpp i víc) → vypni PIL
 # DecompressionBomb ochranu (default limit 89 Mpx); zdroj je důvěryhodný ČÚZK, ne útok.
 Image.MAX_IMAGE_PIXELS = None
@@ -65,7 +67,7 @@ def _export_tile(xmin: float, ymin: float, xmax: float, ymax: float,
     }
     url = f"{_MAP_SERVER}/export?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"User-Agent": "AzimutLab-generator/0.1"})
-    with urllib.request.urlopen(req, timeout=120) as resp:    # větší dlaždice mohou trvat
+    with urllib.request.urlopen(req, timeout=120, context=ssl_context()) as resp:  # větší dlaždice mohou trvat
         ctype = resp.headers.get("Content-Type", "")
         raw = resp.read()
     # server při chybě vrací JSON místo obrázku → srozumitelná výjimka

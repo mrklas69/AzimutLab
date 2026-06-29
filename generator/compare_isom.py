@@ -1,8 +1,8 @@
-"""compare_isom.py — pokrytí ISOM symbolů: naše gen `.omap` vs reálná OB mapa (Sez. 91).
+"""compare_isom.py — legacy sonda pokrytí ISOM symbolů: gen `.omap` vs reálná OB mapa (Sez. 91).
 
-DoD nástroj generátoru: fáze výroby `generator()` je hotová až při ≥ 90 % pokrytí ISOM mapových
-symbolů 5 vzorových map v `resources/` (Bedřichovka/Blatná/Slovanka2016/Soví vrch/Velbloud). Co
-generátor nenakreslí do `.omap`, to se `reconstructor()` nikdy nenaučí → pokrytí = strop tréninku.
+Primární KPI generátoru dnes drží `measure_dod.py` histogram-intersection nad kanonickými 3 mapami.
+Tento skript zůstává užitečný jako diagnostika konkrétních chybějících symbolů: co generátor
+nenakreslí do `.omap`, to se `reconstructor()` nikdy nenaučí → pokrytí = strop tréninku.
 
 Měří jen POUŽITÉ symboly (≥1 objekt, ne celá template knihovna) a jen MAPOVÉ kódy 100-599
 (vyloučí layout 6xxx, loga 5002/5006, control/overprint 7xx — ten se v map_gt stejně ignoruje).
@@ -158,7 +158,7 @@ def detect_version(path: str) -> str:
 
     526 = Building/Budova v ISOM 2000 (v 2017-2 kód neexistuje), 521 = Building v 2017-2 (ve 2000
     je 521 High stone wall). Budova je v každé OB mapě → robustní. Fallback (mapa bez budov):
-    průsek 509 (2000) / 508 (2017-2); jinak default 2017-2 (= generátorova verze)."""
+    průsek 509 (2000) / 508 (2017-2); jinak default 2017-2 (= generátorova verze) s varováním."""
     root = ET.parse(path).getroot()
     id2 = {s.get("id"): (s.get("code", ""), (s.get("name") or "").lower())
            for s in root.iter() if _local(s.tag) == "symbol"}
@@ -185,6 +185,11 @@ def detect_version(path: str) -> str:
                 return "2000"
             if ci == 508:
                 return "2017-2"
+    print(
+        f"[compare_isom] VAROVÁNÍ: {path}: nepodařilo se detekovat ISOM verzi z budovy/průseku; "
+        "předpokládám 2017-2.",
+        file=sys.stderr,
+    )
     return "2017-2"
 
 
@@ -227,7 +232,10 @@ def main() -> None:
     r = coverage(sys.argv[1], sys.argv[2])
     print(f"REÁLNÁ {sys.argv[1]}: verze ISOM {r['version']}, "
           f"{r['denom']} ISOM kódů v jmenovateli (+{len(r['custom'])} custom vyřazeno)")
-    print(f">>> POKRYTÍ: {len(r['covered'])}/{r['denom']} = {r['pct']:.0f}%  (DoD = ≥ 90 %)\n")
+    print(
+        f">>> POKRYTÍ: {len(r['covered'])}/{r['denom']} = {r['pct']:.0f}%  "
+        "(legacy sonda; primární KPI = measure_dod.py)\n"
+    )
 
     print(f"CHYBÍ v generátoru ({len(r['missing'])}, dle četnosti; → 2017-2 cíl, který má kreslit):")
     for c, targets, freq, name in sorted(r["missing"], key=lambda m: -m[2]):
