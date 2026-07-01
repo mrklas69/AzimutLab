@@ -397,8 +397,16 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **Sloupce `zdroj · gen · scan · provedení`**: `isom.capabilities` drží jediný registr původu symbolů.
   `gen` popisuje fallback generátoru bez konkrétního skenu (real / mapper_scan / mixed / pseudo), `scan`
   ukazuje živý nebo kandidátní mapper-scan signál a `provedení` je AUTO ze share orig:gen
-  (ok/přestřel/podstřel/chybí). Konfliktní pravidlo: mapper-scan od skutečného mapaře má přednost před
-  externími geodaty i pseudo vrstvou.
+  (ok/přestřel/podstřel/chybí/**strop**, Sez. 178 — viz [[data-gate-strop]]). Konfliktní pravidlo:
+  mapper-scan od skutečného mapaře má přednost před externími geodaty i pseudo vrstvou.
+- **Data-gate strop** <a name="data-gate-strop"></a> (Sez. 177-178) — `gen=0` KOMPAS řádka, jejíž příčina
+  je OVĚŘENÁ: ZABAGED/DMR pro danou oblast/typ nenese zdroj (regionální řídkost, žádná mapovatelná vrstva),
+  nebo jde o vědomé design rozhodnutí (chybějící atribut → sloučeno do jiného kódu). Odlišuje se od
+  obyčejného „chybí" (akční díra BEZ ověřené příčiny) — bez rozlišení by KOMPAS/audit honil už prošetřené
+  slepé konce jako novou páku. Registr `generator/measure_dod.py::DATA_GATE_CEILING` (mimo
+  `isom.capabilities`, nemění `USED_CODES`); `_provedeni` vrátí `strop` jen pro kódy v registru. Kód bez
+  OVĚŘENÉHO důvodu (např. 108 Small erosion gully) zůstává „chybí", i když je stejně nápadný — undercount
+  stropů je bezpečnější než falešný strop.
 - **`reconstructor()`** — pojem-agent **obalující funkci `reconstruct_map()`** (dříve navrženo `mapper()`).
   Ze **skenu existující** OB mapy (i opotřebené / pomačkané) vyrobí `.omap`. Pro **stejnou lokalitu a čas**
   znovu opatří **real část** přes [[generator]] (tvrdé vrstvy přesně z mapových služeb) a zkombinuje ji

@@ -2,6 +2,27 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 178 (2026-07-01) — KOMPAS data-gate strop: `_provedeni` rozlišuje ověřenou příčinu od akční díry (HAL3000)
+Detail: [diary/2026-07-01.md](diary/2026-07-01.md#sezení-178--kompas-data-gate-strop-rozlišení-ověřené-příčiny-od-akční-díry-hal3000).
+- [x] **`DATA_GATE_CEILING` registr** (`generator/measure_dod.py`, mimo `isom.capabilities` — nesahá na
+  `CAPABILITIES`/`USED_CODES` invariant, paměť [[capability-registry-equals-used-codes]]): 6 ověřených
+  kódů s doloženým důvodem (107/208/308 ZABAGED zdroj existuje ale 0/skoro prázdno na canonical,
+  201/202 chybí liniový extraktor srázu / sklonový práh míjí passable, 205 ZABAGED nenese výšku
+  balvanu → sloučeno do 204). `_provedeni` vrací `strop` místo `chybí` jen pro tyhle kódy; 108 Small
+  erosion gully záměrně zůstává `chybí` (Sez. 177 zaznamenal jen počet, ne ověřenou příčinu).
+  `run_table`/`run_kpi` obě anotují inline `[strop]` + tisknou zdůvodnění na konci výpisu.
+- [x] **Postmortem type bug:** první verze porovnávala string klíč proti int kódu (`c` z crosswalku
+  je `int`, izomorf `_kompas_source`) — prošlo unit testem (string vstupy), odhaleno až živým
+  `--table` na reálných datech. Opraveno `str(code)`, testy přepsané na reálný int vstup + přidán
+  regresní test na přesně tenhle mismatch.
+- [x] **Verify:** 80 testů OK (+1 skip, 74→80), smoke OK, živý `--table`+KPI běh potvrdil KPI beze
+  změny (68,7 %) a správné strop/chybí rozlišení na reálných datech. GLOSSARY doplněn (nový termín
+  „Data-gate strop"). Commit `152d25c` (feat).
+- [x] **DIARY.md index:** poznámka o token-zátěži starých dlouhých řádků (%CALIBRATE Sez. 51 nález,
+  drift od politiky „stručný hook") — pruning kandidát pro příští %AUDIT:DOCS/%CALIBRATE, neopraveno teď.
+- [ ] **NEVYŘEŠENO tento sezení:** mapfield Velbloud stale (6. sezení v kuse, DO/DROP) + %CALIBRATE
+  handoff (zralý kandidát) — obojí nabídnuto v `%BEGIN`, uživatel zvolil jiný fokus. Carry do Příště.
+
 ## Sezení 177 (2026-06-29) — Vynucený pruning + KPI/KOMPAS analýza (gen=0 díry = data-gate zeď) + plná regenerace maps/ (HAL3000)
 Detail: [diary/2026-06-29.md](diary/2026-06-29.md#sezení-177--vynucený-pruning--kpikompas-analýza-gen0-díry--data-gate-zeď--plná-regenerace-maps--hal3000).
 - [x] **Vynucený pruning IDEAS/TODO** (cadence ≥12, překročen o 2; poslední Sez. 163): **TODO 562 → 500 ř.**
