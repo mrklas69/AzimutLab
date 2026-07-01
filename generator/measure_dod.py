@@ -399,14 +399,50 @@ def _kompas_source(code: int) -> tuple[str, str, str]:
     return _shorten(cap.generator_source, 24), cap.generator_kind, scan
 
 
-def _provedeni(o: int, g: int, tot_o: int, tot_g: int) -> str:
+# Doložené data-gate stropy (nález Sez. 177): gen=0 kódy, kde je PŘÍČINA ověřená a zapsaná,
+# ne jen "zatím nehotovo". Bez tohohle `_provedeni` čte každou takovou řádku jako "chybí" =
+# akční díra, ačkoli ČÚZK/DMR/design ji nedovolí zavřít bez nové datové cesty (scan-mining)
+# nebo %THINK designu (verify-against-source, memory `verify-data-not-assume`). Radši
+# undercount stropů než falešný strop — kód bez OVĚŘENÉ příčiny (např. 108 Small erosion
+# gully, Sez. 177 zaznamenal jen počet 155/0, ne mechanismus) sem NEPATŘÍ a zůstává "chybí".
+DATA_GATE_CEILING: dict[str, str] = {
+    "107": "ZABAGED zdroj existuje (GEN_REAL), ale 0 na canonical sadě (Liberecko bez rýh, Sez. 177).",
+    "201": "Žádná ZABAGED liniová vrstva pro neprůchozí sráz; rock_relief kreslí jen plochu 206 (Sez. 177).",
+    "202": "rock_relief sklonový práh 46° mírnější 'passable' sráz míjí; kandidát na %THINK (Sez. 177 Příště #1), ne quick-fix.",
+    "205": "ZABAGED nenese atribut výšky balvanu → Large boulder sloučen do 204 Boulder (design rozhodnutí, ne mezera).",
+    "208": "ZABAGED vrstva existuje (GEN_REAL), ale 0 objektů na canonical sadě (regionální řídkost, Sez. 177).",
+    "308": "ZABAGED marshes existují (GEN_REAL), ale skoro prázdné na canonical sadě (1 rašeliniště/3 mapy, Sez. 176).",
+}
+
+
+def _print_ceiling_footnotes(codes) -> None:
+    """Vytiskne doložené důvody pro kódy z `DATA_GATE_CEILING`, které se objevily ve výpisu.
+
+    `codes` proudí z `all_codes`/agregátu jako `int` (crosswalk cíl, izomorf `_kompas_source`) —
+    `DATA_GATE_CEILING` má string klíče (dotted varianty jako budoucí "204.5" by jinak nešly
+    reprezentovat čistým int), proto `str(c)` před dotazem."""
+    hits = sorted({str(c) for c in codes if str(c) in DATA_GATE_CEILING})
+    if not hits:
+        return
+    print(f"\n  [strop] doložený data-gate limit (NE akční díra, viz DATA_GATE_CEILING):")
+    for c in hits:
+        print(f"    {c}: {DATA_GATE_CEILING[c]}")
+
+
+def _provedeni(code: int, o: int, g: int, tot_o: int, tot_g: int) -> str:
     """AUTO provedení z PROPORČNÍHO poměru orig:gen (volba uživatele Sez. 138; share-based = Goodhart-aware,
     memory `kpi-overshoot-dilutes-not-counts` — absolutní Σ klame, gen globálně podstřeluje).
 
     Porovnává PODÍL symbolu (gen_share vs orig_share) přes celý měřený set, ne absolutní počty → globální
-    rozdíl měřítka se vyruší. chybí = neumíme (gen 0) · jen gen = falešný typ (orig 0) · podstřel/přestřel =
-    proporčně mimo (mimo pásmo 0,67–1,5×) · ok = proporčně sedí."""
+    rozdíl měřítka se vyruší. chybí = neumíme (gen 0) · strop = gen 0 s OVĚŘENOU doloženou příčinou
+    (`DATA_GATE_CEILING`, Sez. 177) · jen gen = falešný typ (orig 0) · podstřel/přestřel = proporčně mimo
+    (mimo pásmo 0,67–1,5×) · ok = proporčně sedí.
+
+    `code` chodí jako `int` (crosswalk cíl) — `str(code)` před dotazem do `DATA_GATE_CEILING`,
+    stejná konvence jako `_kompas_source`/`capability_by_code(str(code))`."""
     if g == 0:
+        if o > 0 and str(code) in DATA_GATE_CEILING:
+            return "strop"
         return "chybí" if o > 0 else "–"
     if o == 0:
         return "jen gen"
@@ -448,7 +484,8 @@ def run_table() -> None:
     tot_o, tot_g = sum(orig.values()), sum(gen.values())   # globální Σ pro proporční provedení (share-based)
     print(f"KOMPAS pokrytí — orig (reálné .omap) vs gen (separace) přes {len(MAPS)} mapy {MAPS}")
     print("sloupce: orig/gen Σ objektů · zdroj fallback generátoru · gen real/mapper_scan/mixed/pseudo · "
-          "scan signal · provedení AUTO z proporce orig:gen (ok/přestřel/podstřel/chybí/jen gen)")
+          "scan signal · provedení AUTO z proporce orig:gen (ok/přestřel/podstřel/chybí/strop/jen gen; "
+          "strop = doložený data-gate limit, viz DATA_GATE_CEILING)")
     print(f"konflikt zdrojů: {CONFLICT_POLICY}")
     for title, gkey in sections:
         codes = sorted([c for c in all_codes if geom[c] == gkey], key=lambda c: -orig[c])
@@ -461,13 +498,14 @@ def run_table() -> None:
         for c in codes:
             o, gg = orig[c], gen[c]
             zdroj, kind, scan = _kompas_source(c)
-            prov = _provedeni(o, gg, tot_o, tot_g)
+            prov = _provedeni(c, o, gg, tot_o, tot_g)
             print(f"  {c:>5} {o:>6} {gg:>6}  {zdroj:<24} {kind:<11} {scan:<19} {prov:<8} {names.get(c, '')[:26]}")
     other = sorted([c for c in all_codes if geom[c] not in ("area", "line", "point")],
                    key=lambda c: -orig[c])
     if other:
         print(f"\n{'-' * 60}\nostatní (kombi/text/jen-gen): " +
               " ".join(f"{c}(o{orig[c]}/g{gen[c]})" for c in other))
+    _print_ceiling_footnotes(all_codes)
 
 
 def run_kpi() -> None:
@@ -512,10 +550,14 @@ def run_kpi() -> None:
                    for c in set(agg_orig) | set(agg_gen)), reverse=True)
     print(f"\n  největší proporční díry (agregát, kam směřovat práci):")
     print(f"    {'kód':>5} {'orig':>6} {'gen':>6} {'ztráta':>7}  jméno")
+    shown = []
     for loss, c in gaps[:10]:
         if loss <= 0:
             break
-        print(f"    {c:>5} {agg_orig[c]:>6} {agg_gen[c]:>6} {loss * 100:>5.1f}pb  {agg_names.get(c, '')[:34]}")
+        shown.append(c)
+        marker = "  [strop]" if str(c) in DATA_GATE_CEILING else ""
+        print(f"    {c:>5} {agg_orig[c]:>6} {agg_gen[c]:>6} {loss * 100:>5.1f}pb  {agg_names.get(c, '')[:34]}{marker}")
+    _print_ceiling_footnotes(shown)
 
 
 def main() -> None:
