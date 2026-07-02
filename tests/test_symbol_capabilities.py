@@ -42,6 +42,21 @@ def _used_codes_from_omap_export() -> tuple[str, ...]:
     return tuple(module.USED_CODES)
 
 
+def _area_zorder_from_omap_raster() -> tuple[str, ...]:
+    generator_dir = _REPO_ROOT / "generator"
+    if str(generator_dir) not in sys.path:
+        sys.path.insert(0, str(generator_dir))
+    module = importlib.import_module("omap_raster")
+    return tuple(module.AREA_ZORDER)
+
+
+# 523 Ruin je v registru geom="area", ale v template je to line_symbol s close-flag (dashed
+# obrys bez vyplne) -> nema Y-rasterizacni tridu a zamerne NENI v AREA_ZORDER (viz omap_export.py
+# komentar u AREA_CODES). Jedina zdokumentovana vyjimka; kazdy dalsi geom="area" kod BEZ zaznamu
+# tady je potencialni Sez. 110 drift (capability rika "area", ale Y ho tise zahodi).
+AREA_GEOM_WITHOUT_ZORDER = frozenset({"523"})
+
+
 class SymbolCapabilitiesTest(unittest.TestCase):
     def test_registry_matches_generator_used_codes(self) -> None:
         self.assertEqual(generator_codes(), _used_codes_from_omap_export())
@@ -83,6 +98,19 @@ class SymbolCapabilitiesTest(unittest.TestCase):
         self.assertEqual(preferred_kind_by_code("111"), GEN_MAPPER_SCAN)  # Sez. 162 live Png2Point signál
         self.assertEqual(capability_by_code("418").preferred_kind, GEN_PSEUDO)  # bez live signálu → pseudo
         self.assertEqual(capability_by_code("203").code, "203.2")
+
+    def test_area_geom_capabilities_have_y_rasterization_class(self) -> None:
+        """Kazdy capability zaznam s geom=="area" musi mit Y-rasterizacni tridu v
+        omap_raster.AREA_ZORDER, jinak `omap_export` kod zapise, ale `omap_raster` ho tise
+        vynecha z Y (presne trida bugu Sez. 110: AREA_ZORDER mel stale "301.1", generator uz
+        psal "301"). Jedina zdokumentovana vyjimka je 523 Ruin (dashed obrys, zadna vyplna)."""
+        area_zorder = set(_area_zorder_from_omap_raster())
+        for record in CAPABILITIES:
+            if record.geom != "area" or record.code in AREA_GEOM_WITHOUT_ZORDER:
+                continue
+            self.assertIn(record.code, area_zorder,
+                          f"{record.code} ({record.name}) je geom=area v capability registru, "
+                          "ale chybi v omap_raster.AREA_ZORDER -> Y ho tise zahodi")
 
     def test_summary_keeps_real_pseudo_mapper_split_visible(self) -> None:
         summary = summarize_by_kind()
