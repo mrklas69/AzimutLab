@@ -1,0 +1,2764 @@
+{
+  "_meta": {
+    "generated": "connectors/curate.py (auto-tag + merge, Sez. 71)",
+    "total": 268,
+    "kept": 216,
+    "dropped": 52,
+    "taxonomy": {
+      "discipline": [
+        "classic",
+        "sprint",
+        "mtbo",
+        "overview"
+      ],
+      "auto_tags": [
+        "variant_contour",
+        "variant_black",
+        "base_layer",
+        "basemap",
+        "training",
+        "foreign_crs"
+      ],
+      "visual_tags": [
+        "composite",
+        "damage",
+        "legend",
+        "logo"
+      ],
+      "disqualify_tags": [
+        "base_layer",
+        "basemap",
+        "composite",
+        "damage",
+        "variant_black",
+        "variant_contour"
+      ],
+      "keep": "keep_override JINAK (classic AND bez disqualify tagu)"
+    }
+  },
+  "1005002": {
+    "name": "Branzez_Kost_10000_2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 9.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1009535": {
+    "name": "Všechny barvy světa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 15.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1011464": {
+    "name": "sedmpulka",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 5.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1011743": {
+    "name": "mapa_ofestcup",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 9.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1015162": {
+    "name": "azimuty_slovanka_mapa",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 9.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1015762": {
+    "name": "Bedřichov-J25-okruhy",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 26.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1017114": {
+    "name": "Selská rokle 2024 fs",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 14.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1017132": {
+    "name": "map (1)_page-0001",
+    "scale": 3000.0,
+    "epsg": 4326,
+    "green_pct": 3.8,
+    "discipline": "sprint",
+    "tags": [
+      "composite",
+      "legend",
+      "logo"
+    ],
+    "reviewed": true,
+    "keep": false
+  },
+  "1021068": {
+    "name": "_250818_milire_kom_LLX.new",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 5.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1021624": {
+    "name": "kost3002",
+    "scale": 3000.0,
+    "epsg": 32633,
+    "green_pct": 5.8,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1024666": {
+    "name": "Borecké skály",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 2.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1024718": {
+    "name": "Rovné skály",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1027569": {
+    "name": "e8",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1029935": {
+    "name": "Branzez_Kost_10000_2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 17.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1031154": {
+    "name": "Branzez_Kost_10000_2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 26.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1031880": {
+    "name": "Na Prašivci",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 2.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1033264": {
+    "name": "E1 - Rozcvičovák.Červená",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 23.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1043996": {
+    "name": "Máchovka",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1045134": {
+    "name": "cejch-s-logem",
+    "scale": 1000.0,
+    "epsg": 5514,
+    "green_pct": 11.3,
+    "discipline": "sprint",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1045223": {
+    "name": "Kost_10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1045227": {
+    "name": "Kost_7.5_layout",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 12.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1047807": {
+    "name": "Skrivanek2025_0904",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 12.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1049057": {
+    "name": "Mapa KO kvalda 4",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 13.9,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1051666": {
+    "name": "mapa_sobota",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 14.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1052982": {
+    "name": "Brizky_22.8.2023_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 21.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1052988": {
+    "name": "Brizky_22.8.2023_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 23.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1057001": {
+    "name": "Černá ",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1057854": {
+    "name": "Buš V",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1058688": {
+    "name": "Privysina_2024_2610_final",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1060346": {
+    "name": "kumburk-MTBO-10000",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.1,
+    "discipline": "mtbo",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1061329": {
+    "name": "Bohemia 2009 E1-5 ISOM 2017-2 aktualizace 2021",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 4.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1062363": {
+    "name": "Noční Šťastná farsta",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 14.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1070249": {
+    "name": "Mnich 1_10000_20250314",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1073893": {
+    "name": "Ovál 2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1075723": {
+    "name": "Kopanina",
+    "scale": 30000.0,
+    "epsg": 32633,
+    "green_pct": 5.7,
+    "discipline": "overview",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1075733": {
+    "name": "Kozákov",
+    "scale": 30000.0,
+    "epsg": 32633,
+    "green_pct": 0.4,
+    "discipline": "overview",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1076717": {
+    "name": "Zulak251026_10000-orezOZ",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1077870": {
+    "name": "Certuvmlyn20251103_nh305x215",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 8.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1080932": {
+    "name": "Slovanka_28.8.2025_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 18.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1080934": {
+    "name": "KAM_SEMIK_PREZIDENTSKA",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1080945": {
+    "name": "Slovanka_28.8.2025_ocd10 vrstevnice",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 1.3,
+    "discipline": "classic",
+    "tags": [
+      "variant_contour"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1082359": {
+    "name": "Lužické polomy",
+    "scale": 15000.0,
+    "epsg": 4326,
+    "green_pct": 1.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1083713": {
+    "name": "Králův stolec březen 2025 bez cest",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1084507": {
+    "name": "derby2025_livelox_mapa.All",
+    "scale": 15000.0,
+    "epsg": 5514,
+    "green_pct": 18.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1087346": {
+    "name": "mapa_babinsky_25",
+    "scale": 15000.0,
+    "epsg": 4326,
+    "green_pct": 23.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1088230": {
+    "name": "Kozlov_2022_09_21",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 8.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1088246": {
+    "name": "Turnov_4000_2025_06_21",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 44.6,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1088447": {
+    "name": "Přebor 2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 2.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1096573": {
+    "name": "Polevský vrch_2024",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 21.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1100444": {
+    "name": "Korenov-10000-2025",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1100863": {
+    "name": "MapaLOB_KorenovFINAL",
+    "scale": 15000.0,
+    "epsg": 5514,
+    "green_pct": 1.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1100872": {
+    "name": "JRD_housenka.Course 1",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 3.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1102878": {
+    "name": "Borný",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 13.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1104546": {
+    "name": "MAPA_Harrachov-LOB2026-sprint5",
+    "scale": 5000.0,
+    "epsg": 32633,
+    "green_pct": 13.5,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1105766": {
+    "name": "Branzez_Kost_10000_2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 11.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1106619": {
+    "name": "Kumburk_2024_1804_desitka",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 18.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1106623": {
+    "name": "Privysina_2024_2610_final",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 22.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1107599": {
+    "name": "Jicin_4000_ISSprOM_2601_trenink_260207_a",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 16.4,
+    "discipline": "sprint",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1109655": {
+    "name": "PZL 2026 Trenink JD 01",
+    "scale": 8000.0,
+    "epsg": 5513,
+    "green_pct": 1.2,
+    "discipline": "classic",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": true
+  },
+  "1110774": {
+    "name": "Trosky_2025_06_22",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 9.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1110784": {
+    "name": "Ober Hanichen",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 8.1,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1114909": {
+    "name": "Kost",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116250": {
+    "name": "E2 Jelení vršek 2026 A3",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 8.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116255": {
+    "name": "E2 Jelení vršek 2026 A3",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 8.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116283": {
+    "name": "Uranové jámy 260509.pro LL OK",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 18.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116300": {
+    "name": "Uprchlík 260510 (3) pro LL",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 16.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116303": {
+    "name": "Uprchlík 260510 (3) pro LL",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 16.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1116622": {
+    "name": "Slavicek_final_10072023_ocd20_10000_FIN - kopie",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 13.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1117080": {
+    "name": "OSM Bright",
+    "scale": 15000.0,
+    "epsg": 4326,
+    "green_pct": 46.5,
+    "discipline": "classic",
+    "tags": [
+      "basemap"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1117989": {
+    "name": "Slavíček_final_10072023_ocd20_10000_FIN - kopie(1)",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 11.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1118298": {
+    "name": "Slavíček_final_10072023_ocd20_10000_FIN - kopie",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 19.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1118753": {
+    "name": "slavicek_kombo",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1119007": {
+    "name": "sosnova2025_revize_0607-1",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 25.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1121619": {
+    "name": "Bartosova-pec",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 7.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1122470": {
+    "name": "Kost",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 4.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1122471": {
+    "name": "Valdstejn",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 4.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1123543": {
+    "name": "Sv_Barča_2026_7500_final_v2",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 7.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1123597": {
+    "name": "Kozelská_rokle_2026_final",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1123651": {
+    "name": "Skleněný_vrch_2026_10000_final_v3",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1125628": {
+    "name": "intro_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 4.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1125634": {
+    "name": "vrstevnice_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 2.9,
+    "discipline": "classic",
+    "tags": [
+      "variant_contour"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1125637": {
+    "name": "okruhy_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 6.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1125654": {
+    "name": "contacto_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 11.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1125667": {
+    "name": "staf_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1126409": {
+    "name": "Pruský kámen_březen2025_výřez",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127134": {
+    "name": "L_podklad",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 4.6,
+    "discipline": "classic",
+    "tags": [
+      "base_layer"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1127418": {
+    "name": "Kost",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 6.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127433": {
+    "name": "Kost",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 3.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127438": {
+    "name": "3_vrstevnicovka_podklad",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 0.1,
+    "discipline": "classic",
+    "tags": [
+      "variant_contour",
+      "base_layer"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1127443": {
+    "name": "Branzez-2026-02",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127449": {
+    "name": "Branzez-2026-02",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 17.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127454": {
+    "name": "Branzez-2026-02",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 15.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1127460": {
+    "name": "Branzez-2026-02",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1128725": {
+    "name": "Polevský vrch_revize 2026",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 15.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1133415": {
+    "name": "Velikonoce - koridor.Černá",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 0.6,
+    "discipline": "classic",
+    "tags": [
+      "variant_black"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1134590": {
+    "name": "nočák_králův_stolec.A",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 16.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1135048": {
+    "name": "Králův stolec fs_black_vr",
+    "scale": null,
+    "epsg": 5514,
+    "green_pct": 0.0,
+    "discipline": "classic",
+    "tags": [
+      "variant_black"
+    ],
+    "reviewed": false,
+    "keep": false
+  },
+  "1135068": {
+    "name": "Králův stolec fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 26.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1135363": {
+    "name": "Mseno",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 26.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1135890": {
+    "name": "T2",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 11.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1136561": {
+    "name": "Branzez",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 14.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1136640": {
+    "name": "01_vrst",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 11.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1136833": {
+    "name": "Branzez2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 12.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1136849": {
+    "name": "Branzez",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 13.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1137129": {
+    "name": "Králův_stolec_fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1137146": {
+    "name": "Borný_a_Šroubený_spojené_fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1137180": {
+    "name": "Břízky_22.8.2023_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 15.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1137210": {
+    "name": "Šance_spojená_fs",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 13.3,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1137476": {
+    "name": "02_cs_scorelauf.A",
+    "scale": 5000.0,
+    "epsg": 5514,
+    "green_pct": 7.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1137558": {
+    "name": "Všechny kontroly",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 1.2,
+    "discipline": "classic",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": true
+  },
+  "1137894": {
+    "name": "03_middle_mapa",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 21.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138058": {
+    "name": "Bramberk_7.10.2024_ocd10",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 7.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138280": {
+    "name": "Branzez",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 16.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138425": {
+    "name": "Map_Oybin_7500_SAXBO_2026_Livelox",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 7.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138456": {
+    "name": "Zákupy ŽA 8.5.2026",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 8.7,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1138552": {
+    "name": "04_mapa",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 11.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138567": {
+    "name": "04_mapa",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 11.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1138583": {
+    "name": "jh2025_250314_export HK",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 12.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1139435": {
+    "name": "Radec_1",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 11.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1139871": {
+    "name": "06_mapa",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 22.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1140459": {
+    "name": "Branzez",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 19.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1140574": {
+    "name": "Selská rokle ",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 12.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1140580": {
+    "name": "T3_mapa_all",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1140600": {
+    "name": "Doksy",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1141205": {
+    "name": "Senov_2020",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 8.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1141392": {
+    "name": "03_ZI-OlberSee_MBK125_260407",
+    "scale": 12500.0,
+    "epsg": 4326,
+    "green_pct": 34.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1141395": {
+    "name": "TrL2026-04_04_OlberSee_Merke",
+    "scale": 12500.0,
+    "epsg": 4326,
+    "green_pct": 9.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1143644": {
+    "name": "Milire_250612 - Stepan-plot",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 25.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1143892": {
+    "name": "ZI-Leipaer_260410",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 17.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1144071": {
+    "name": "Peklicko260412",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1144077": {
+    "name": "Peklicko260412",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1144271": {
+    "name": "08_ZI-OlberSee_MBK07_260410",
+    "scale": 12500.0,
+    "epsg": 4326,
+    "green_pct": 54.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1146420": {
+    "name": "sprint_mapa_Vr4000_260415_ISSprOM",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 7.3,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1146490": {
+    "name": "sosnova2025_revize_0607 (2)",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1148951": {
+    "name": "U_Zamku_2025_03_02",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 21.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1154173": {
+    "name": "Lomnice_190426_šváby_4000_livelox",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 11.4,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1154702": {
+    "name": "Jahodnice_10_000_2026",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1155818": {
+    "name": "Lipa sprint - final 240613 (003)",
+    "scale": 3000.0,
+    "epsg": 32633,
+    "green_pct": 27.9,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1157789": {
+    "name": "Kraluv_stolec_PC600_T1",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1162203": {
+    "name": "Mnich 1_10000_20250314",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 4.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1162615": {
+    "name": "Králův stolec fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1162664": {
+    "name": "Šance",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 12.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1162740": {
+    "name": "Doksy_PC600_lvlx",
+    "scale": 5000.0,
+    "epsg": 4326,
+    "green_pct": 23.3,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1162743": {
+    "name": "Šance spojená fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 14.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1163111": {
+    "name": "Borny_PC600",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 16.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1163808": {
+    "name": "kocici.hrbet",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 16.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1163841": {
+    "name": "borny",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 27.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164004": {
+    "name": "Kravi hora 2022 fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164018": {
+    "name": "Posluv_mlyn_PC600",
+    "scale": 2500.0,
+    "epsg": 5514,
+    "green_pct": 11.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1164409": {
+    "name": "netisknout_nejsou_PC600_barvy_Bořejov - Beškov",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 16.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164446": {
+    "name": "Sance_PC600",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 18.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164639": {
+    "name": "Bradáčova věž",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 14.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164687": {
+    "name": "Obora",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 19.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164719": {
+    "name": "Pařez",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1164850": {
+    "name": "Kozlov_2022_09_21 (2)",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 9.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1165059": {
+    "name": "Jablonne",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 12.8,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1165072": {
+    "name": "Cvikov_4000_e2_new",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 12.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1166024": {
+    "name": "Šance spojená fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 4.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1167142": {
+    "name": "Sance_PC600",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1167562": {
+    "name": "Lisci_Vrch_2025_2806_final_revize_0607",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 6.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1169758": {
+    "name": "Mnichovo Hradiště_A3_300DPI",
+    "scale": 4000.0,
+    "epsg": 4326,
+    "green_pct": 16.9,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1177415": {
+    "name": "Bohemia2019 podkladovka E1-E3 10072019_10ka_revize2024",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 32.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1179769": {
+    "name": "Mšeno",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 15.1,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "1185321": {
+    "name": "sosnova2025_revize_0607 (2)",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 36.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1186703": {
+    "name": "ComboLong",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 19.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189204": {
+    "name": "Slavicek_10000",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 11.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189774": {
+    "name": "05_cs.A.B.C",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 4.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189790": {
+    "name": "05_map",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 5.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189824": {
+    "name": "04_map",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 5.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189879": {
+    "name": "02_all_loops",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 5.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1189916": {
+    "name": "06_cs2_All",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 9.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1190581": {
+    "name": "Pustý zámek_mapa Líska",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 3.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1192000": {
+    "name": "01_cs_livelox.Intro",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 10.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1192962": {
+    "name": "Certovy mlyny (1)",
+    "scale": 15000.0,
+    "epsg": 5514,
+    "green_pct": 17.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "1194541": {
+    "name": "Kozi_brada_22_05_2026_v18",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 15.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "262617": {
+    "name": "Granite Hill",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 6.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "276861": {
+    "name": "Hamr",
+    "scale": 15000.0,
+    "epsg": 4326,
+    "green_pct": 39.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "461218": {
+    "name": "Kančák",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 18.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "519383": {
+    "name": "Vlčí údolí",
+    "scale": 15000.0,
+    "epsg": 32633,
+    "green_pct": 5.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "557440": {
+    "name": "Turnov_TK_230128",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 12.6,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "579228": {
+    "name": "Slovanka",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 11.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "579950": {
+    "name": "E2",
+    "scale": 10000.0,
+    "epsg": 3045,
+    "green_pct": 12.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "631730": {
+    "name": "Bezděz",
+    "scale": 15000.0,
+    "epsg": 32633,
+    "green_pct": 20.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "632691": {
+    "name": "Zamecky_les_190309_MTBO",
+    "scale": 15000.0,
+    "epsg": 4326,
+    "green_pct": 8.9,
+    "discipline": "mtbo",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "636028": {
+    "name": "E1 Zahorinske kotliny 10ka",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 11.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "639609": {
+    "name": "mapaKOKOE3_livelox",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 8.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "652562": {
+    "name": "TROSKY-7500-MAPA",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 8.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "652602": {
+    "name": "SKALACEK-10000-mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 8.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "655492": {
+    "name": "20230825_191147",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 82.5,
+    "discipline": "classic",
+    "tags": [
+      "damage"
+    ],
+    "reviewed": true,
+    "keep": false
+  },
+  "656122": {
+    "name": "All controls",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 77.3,
+    "discipline": "classic",
+    "tags": [
+      "training",
+      "damage",
+      "logo"
+    ],
+    "reviewed": true,
+    "keep": false
+  },
+  "658184": {
+    "name": "dl2021_v11_vyr_m10",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 12.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "660577": {
+    "name": "klasika_2_brizky_kontroly",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 15.1,
+    "discipline": "classic",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": true
+  },
+  "660580": {
+    "name": "foxoring_kontroly",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 11.7,
+    "discipline": "classic",
+    "tags": [
+      "training"
+    ],
+    "reviewed": false,
+    "keep": true
+  },
+  "676620": {
+    "name": "klasika_mapa_A3_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 12.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "681387": {
+    "name": "Pod Trništěm boss",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 11.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "690592": {
+    "name": "Zakupy",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 0.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "690635": {
+    "name": "Lasvice_Katahttps://www.livelox.com/Admin/Events/EditMaps/116565",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 30.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "692483": {
+    "name": "Drabovna_2020_10000_map2",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 3.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "694396": {
+    "name": "Doksy_WOC_2021_ocd10",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 18.0,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "705632": {
+    "name": "mapa",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 12.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "724947": {
+    "name": "querxen-Sprint-Basis",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 12.8,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "729646": {
+    "name": "Valstejn_ocd10",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 17.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "729789": {
+    "name": "Design_HO_7500_OCAD10_STAFETY",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 16.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "730821": {
+    "name": "bernstejn",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "732037": {
+    "name": "Kravi hora 2022 fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "732266": {
+    "name": "image_6487327",
+    "scale": 7500.0,
+    "epsg": 4326,
+    "green_pct": 59.5,
+    "discipline": "classic",
+    "tags": [
+      "damage",
+      "legend"
+    ],
+    "reviewed": true,
+    "keep": false
+  },
+  "740097": {
+    "name": "20230508_Hrabenka_10000",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 22.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "751084": {
+    "name": "Králův stolec 2024 fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 20.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "751532": {
+    "name": "Kumburk",
+    "scale": 15000.0,
+    "epsg": 5514,
+    "green_pct": 7.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "753238": {
+    "name": "Doksy_zmenene",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 33.0,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "764141": {
+    "name": "Víska M1_10",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "764189": {
+    "name": "LW5 2024 Buchberg 10000 A3 Q OCD20",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 17.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "771146": {
+    "name": "Psi louka orez LL",
+    "scale": 3000.0,
+    "epsg": 32633,
+    "green_pct": 9.5,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "781348": {
+    "name": "Cvicak4000_240505-1",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 12.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "786466": {
+    "name": "Skrivanek2024_0521",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 11.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "792896": {
+    "name": "AMČR Sprint 2024.All",
+    "scale": 4000.0,
+    "epsg": 4326,
+    "green_pct": 17.1,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "804027": {
+    "name": "bedrichov",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 25.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "819538": {
+    "name": "Sandst 2024 mapa E1",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 15.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "819905": {
+    "name": "Sandst 2024 mapa E2",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 13.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "820536": {
+    "name": "Sandst 2024 mapa E3",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 15.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "821638": {
+    "name": "PP24-E3-mapa",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 6.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "837301": {
+    "name": "Spáleniště-2024-15000-fs",
+    "scale": 15000.0,
+    "epsg": 5514,
+    "green_pct": 11.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "856040": {
+    "name": "mezi_silnicemi_posledni_verze",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 6.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "861085": {
+    "name": "Sv Barča_mapa_final3_7500",
+    "scale": 7500.0,
+    "epsg": 5514,
+    "green_pct": 10.4,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "861525": {
+    "name": "Bramberk",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 10.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "862091": {
+    "name": "mapa_10_ocd10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 7.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "864580": {
+    "name": "Kynast 10000",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 9.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "872772": {
+    "name": "Nad Vraždou",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 16.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "874127": {
+    "name": "Skleněný_vrch_2023_final_ocad18",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.5,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "883172": {
+    "name": "Scorelauf",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 28.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "888429": {
+    "name": "Posilvestrovská kocovina",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 24.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "914117": {
+    "name": "mapa15_A4",
+    "scale": 15000.0,
+    "epsg": 32633,
+    "green_pct": 13.7,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "918080": {
+    "name": "Final_MTBO_Leipaer2011_Stand_19_03",
+    "scale": 10000.0,
+    "epsg": 4326,
+    "green_pct": 17.8,
+    "discipline": "mtbo",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "925747": {
+    "name": "Šroubený 2021 fs",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "928644": {
+    "name": "Pavlovický_důl_2025_10000_A3",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 6.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "934138": {
+    "name": "Valečov_2018_4000_revize_2024_ISSrOM2019_final",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 10.8,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "936978": {
+    "name": "Branzez2025",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 14.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "939413": {
+    "name": "Šance_leden_2025",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "941237": {
+    "name": "E1-10-MAPA orez",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 13.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "941310": {
+    "name": "E2-mapa-orez",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "941378": {
+    "name": "E3-mapa orez",
+    "scale": 4000.0,
+    "epsg": 32633,
+    "green_pct": 20.3,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "941446": {
+    "name": "E4-mapa-10",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 22.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "941522": {
+    "name": "E5-mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 17.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "942068": {
+    "name": "Slavíček_final_30.8._ocd10",
+    "scale": 15000.0,
+    "epsg": 32633,
+    "green_pct": 16.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "942886": {
+    "name": "jh2025_250417_vyrezOM",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 18.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "945996": {
+    "name": "Oybin - Alte Leipaer",
+    "scale": 7500.0,
+    "epsg": 32633,
+    "green_pct": 25.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "946084": {
+    "name": "Saxbo 25 design 10_000 A4",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "948417": {
+    "name": "Kraluv stolec brezen 2025",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 21.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "948502": {
+    "name": "selska.rokle",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 14.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "948922": {
+    "name": "hradcany",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 14.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "949736": {
+    "name": "Slavíček_komplet",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 13.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "949753": {
+    "name": "Dva_svety_revizeJB",
+    "scale": 4000.0,
+    "epsg": 4326,
+    "green_pct": 15.7,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "950058": {
+    "name": "Poslův Mlýn 2500 fs",
+    "scale": 2500.0,
+    "epsg": 5514,
+    "green_pct": 11.2,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "950808": {
+    "name": "mapa",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 16.1,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "951592": {
+    "name": "Slavicek_vychod",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 10.2,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "952485": {
+    "name": "dopo_mapa",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 14.7,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "952529": {
+    "name": "odpo_mapa",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 10.3,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "964730": {
+    "name": "Kanci vrch250530_proKT",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 5.6,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "970619": {
+    "name": "harrachov_pouzita_mapa",
+    "scale": 10000.0,
+    "epsg": 32633,
+    "green_pct": 12.6,
+    "discipline": "classic",
+    "tags": [
+      "legend",
+      "logo"
+    ],
+    "reviewed": true,
+    "keep": true
+  },
+  "971390": {
+    "name": "jakuszyce_pouzita_mapa",
+    "scale": 15000.0,
+    "epsg": 2180,
+    "green_pct": 14.9,
+    "discipline": "classic",
+    "tags": [
+      "foreign_crs"
+    ],
+    "reviewed": false,
+    "keep": true
+  },
+  "975666": {
+    "name": "Bramberk_7.10.2024_ocd10",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 6.9,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "981315": {
+    "name": "Kančák_castJBC_květen2021_ocd10",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 17.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "981543": {
+    "name": "Machovka 2025",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 9.3,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "985571": {
+    "name": "F2025_hokejka_0610",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 8.9,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "985588": {
+    "name": "F2025_Slovan0906",
+    "scale": 4000.0,
+    "epsg": 5514,
+    "green_pct": 7.4,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "988741": {
+    "name": "E3 podklad final 02 (1)",
+    "scale": 4000.0,
+    "epsg": 4326,
+    "green_pct": 15.7,
+    "discipline": "sprint",
+    "tags": [],
+    "reviewed": false,
+    "keep": false
+  },
+  "990759": {
+    "name": "Milire_250612 - Stepan východ",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 10.8,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  },
+  "992379": {
+    "name": "Milire_zapad_250412",
+    "scale": 10000.0,
+    "epsg": 5514,
+    "green_pct": 15.0,
+    "discipline": "classic",
+    "tags": [],
+    "reviewed": false,
+    "keep": true
+  }
+}

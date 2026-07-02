@@ -65,6 +65,15 @@ resources/isom/*
 !resources/isom/README.md
 !resources/isom/index.schema.json
 
+# Livelox korpus metadata (Sez. 71/76): ruční kurace + train/val/test split + ČR filtr = jen
+# classId → tag/label JSON, žádný copyright mapový obsah → commitnout (audit A3/A4 —
+# neopakovatelná ruční práce; bez nich mIoU napříč stroji neporovnatelné).
+!resources/livelox/
+resources/livelox/*
+!resources/livelox/_curation.json
+!resources/livelox/_split.json
+!resources/livelox/_cz_filter.json
+
 # Cache stažených reálných ČÚZK dat (nepatří do gitu, ale regenerovatelné → NEMAZAT, Sez. 25):
 # DMR 5G dlaždice (výškopis), ZABAGED komunikace (GeoJSON z REST), ortofoto podklad. Kotveno
 # u konektorů (connectors/.X_cache); pravidla bez leading-slash matchují v libovolném adresáři.
