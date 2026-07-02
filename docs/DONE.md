@@ -2,6 +2,31 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 179 (2026-07-02) — Mapfield naklikání + 210 Stony ground rozlišovací experiment (HAL3000)
+Detail: [diary/2026-07-02.md](diary/2026-07-02.md#sezení-179-2026-07-02--mapfield-naklikání-proces-lekce--210-stony-ground-rozlišovací-experiment-smíšený-výsledek-hal3000).
+- [x] **Mapfield Velbloud/Blatná/Soví vrch naklikány** (`tools/mark_mapfield.py`) + bonus fix chybějícího
+  `Image.MAX_IMAGE_PIXELS = None` guardu (spadl na Soví vrch 264 Mpx). **Proces-lekce:** Velbloud/Blatná
+  neměly kontaminaci (naklikaný polygon ≈ celý sken = no-op) — měl jsem to ověřit vizuálně PŘED voláním
+  nástroje, TODO poznámka to už předem naznačovala. Paměť [[screen-before-manual-gui-tool]]. Zbývá:
+  Bedřichovka roh (drobnost), Livelox páry (odloženo).
+- [x] **210 Stony ground diagnóza:** kolinearita FP≈TP na Velbloudu (medián 3,42 vs 3,39 px) vyvrátila
+  „FP na hranicích ploch" hypotézu měřením. Skutečná příčina verify-against-source (`template_classic.omap:219`):
+  210.1 dot `inner_radius=150 µm` → 3 m na zemi → ~2,25 px na `CANONICAL_MPP=1,33` (204 Boulder ~6 px
+  funguje). Rozlišovací strop, ne training bug.
+- [x] **Izolovaný jednotřídní 210 experiment @2× jemnější MPP (0,665):** `model/png2point/dataset.py`+
+  `train.py` dostaly volitelný `target_mpp`/`tol_px` parametr (default beze změny, 84 testů OK), nový
+  `model/png2point/experiment_210_mpp.py` (monkey-patch registru na jen 210, samostatný checkpoint
+  adresář, kanonický model netknutý). Gotcha: opakovaný `sys.path.insert(0,…)` obrací pořadí →
+  `model/png2area/train.py` tiše vyhrál nad `png2point/train.py` (TypeError), opraveno. Paměť
+  [[syspath-insert0-reverses-order]].
+- [x] **Výsledek (40 epoch, seed 0): synt. test mF1 0,925**, ale reálný transfer SMÍŠENÝ (sweep prahu
+  3 mapy): Blatná 0,252→0,611 (lepší), Velbloud 0,250→0,117 (horší), Bedřichovka 0,000→~0,006 (beze
+  změny) — recall vyřešen (0,16–0,22→0,94–1,00), ale nový mapa-závislý šum-precision trade-off (jemné
+  rozlišení odkryje reálnou tiskovou/papírovou texturu, kterou syntetický podklad nemá). **Checkpoint
+  NEPROMOVÁN** (žádný čistý zisk napříč mapami). Paměť [[png2point-210-resolution-vs-noise-tradeoff]].
+- [x] **Verify:** 84 testů OK (+1 skip), dataset.py self-test potvrdil kanonickou cestu netknutou
+  (N_POINT=10). KPI 68,7 % beze změny (fokus byl reconstructor).
+
 ## Sezení 178 (2026-07-01) — KOMPAS data-gate strop: `_provedeni` rozlišuje ověřenou příčinu od akční díry (HAL3000)
 Detail: [diary/2026-07-01.md](diary/2026-07-01.md#sezení-178--kompas-data-gate-strop-rozlišení-ověřené-příčiny-od-akční-díry-hal3000).
 - [x] **`DATA_GATE_CEILING` registr** (`generator/measure_dod.py`, mimo `isom.capabilities` — nesahá na

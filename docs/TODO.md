@@ -14,16 +14,20 @@ README+CLAUDE.md (`c6397aa`), **B4a/b** `run_kpi` MAPS label + `requirements-tra
 - [!] *(A1; VYSOKÁ, rozhodnutí uživatele)* **Exit-kritérium fázové závory (KPI ≥ 85 %) je sankcionovanými
   prostředky nejspíš nedosažitelné.** ČÚZK plošná+liniová páka „VYČERPANÁ" (potvrzeno 4×), gen=0 díry jsou
   systematicky data-gate (Sez. 177 `DATA_GATE_CEILING`). Jediná zbývající páka = scan-mining, blokovaná na
-  ruční GT uživatele (mapfield stale 6→7 sezení, 311/313 čeká). Doporučení auditu: buď (a) operacionalizovat
-  práh „KOMPAS téměř plný" = „všechny NE-data-gate díry v `ok`" a rozdělit headline na ČÚZK-dosažitelnou +
-  scan-mining složku, nebo (b) naplánovat ruční GT jako explicitní blocker sezení, ne odkládaný carry.
-  Přestat vydávat nulová KPI sezení (176 poslední reálný pohyb, 177+178 = 0 pb) za progres.
-- [!] *(A2; VYSOKÁ, CUDA fokus)* **`eval_real` (vrcholová metrika) zamrzlá ~16 sezení.** Checkpointy
-  naposled Sez. 156/162, od té doby žádný retrain (jen KPI kalibrace/docs/audity). Reálný transfer
-  prostřední a statický (Png2Area Blatná soft 0,363, 210 kolabuje 0,00–0,25, 404/407/409 halucinují).
-  Doporučení: buď (a) cíleně otevřít závoru pro MĚŘITELNOU reconstructor práci (210 collapse / 404-409
-  halucinace / class-balanced expansion 208/501/301), nebo (b) tvrdě prioritizovat scan-mining GT (A1).
-  Nepokračovat v sériích nulových KPI sezení na CUDA stroji.
+  ruční GT uživatele (311/313 čeká; mapfield Velbloud/Blatná/Soví vrch VYŘEŠENO Sez. 179 — viz DONE).
+  Doporučení auditu: buď (a) operacionalizovat práh „KOMPAS téměř plný" = „všechny NE-data-gate díry v
+  `ok`" a rozdělit headline na ČÚZK-dosažitelnou + scan-mining složku, nebo (b) naplánovat ruční GT jako
+  explicitní blocker sezení, ne odkládaný carry. Přestat vydávat nulová KPI sezení za progres.
+- [~] *(A2; VYSOKÁ, CUDA fokus; ČÁST HOTOVO Sez. 179 — 210 collapse zkoumán, NEpromováno)*
+  **`eval_real` (vrcholová metrika) zamrzlá ~16 sezení.** Checkpointy naposled Sez. 156/162.
+  **Sez. 179: 210 Stony ground diagnóza + izolovaný experiment** — verify-against-source ukázal
+  210.1 dot ISOM-spec 150 µm ≈ 2,25 px na `CANONICAL_MPP` (rozlišovací strop, ne training bug).
+  Jednotřídní retrain @2× jemnější MPP (0,665): recall vyřešen (0,16–0,22→0,94–1,00), ale reálný
+  transfer SMÍŠENÝ (Blatná +143 %, Velbloud −53 %, Bedřichovka beze změny — jemné rozlišení odkryje
+  mapa-závislý skenovací šum) → **NEPROMOVÁNO**, kanonický model netknutý. Detail DONE/diary Sez. 179,
+  paměť [[png2point-210-resolution-vs-noise-tradeoff]]. **ZBÝVÁ:** 404/407/409 halucinace (jiný přístup
+  než Sez. 165) nebo class-balanced expansion 208/501/301, případně hard-negative mining pro 210
+  (reálná skenová textura jako trénovací negativ — další CUDA investice, nejistý výsledek).
 - [ ] *(B3, odloženo do fáze A)* **DRY: tiling 3× (`png2area/tile.py` ≈ `png2line/tile.py`, ~42 % liší) +
   `MAP_SCALE=10000` opsáno 3× (generator.py/inject.py/purple.py).** Audit sám: spouštěč extrakce = přechod
   na balík (fáze A), do té doby komentářový sync stačí. POZOR: `PX_PER_MM` má DVĚ legitimně různé hodnoty
@@ -31,10 +35,11 @@ README+CLAUDE.md (`c6397aa`), **B4a/b** `run_kpi` MAPS label + `requirements-tra
 - [ ] *(B5, marginální)* **`resources/isom/index.json` kurátorovaný + licence 113 SVG.** Committed je jen
   `index.schema.json` (kontrakt) + builder; provenance/licence 113 SVG „unknown". Začít živými bodovými
   třídami (204/210/417/419) při první příležitosti — dokud katalog není aktivní UC2 zdroj, nízká priorita.
-- [ ] *(B6, sebe-vlajkováno `DIARY.md:5-8`)* **DIARY.md index pruning (Sez. ~140–177 dlouhé odstavce
+- [!] *(B6, sebe-vlajkováno `DIARY.md:5-8`)* **DIARY.md index pruning (Sez. ~140–177 dlouhé odstavce
   místo 1-2 větných hooků).** Vlastní poznámka souboru: „kandidát pro příští %AUDIT:DOCS/%CALIBRATE, NE
   jednorázová oprava mimochodem" — proto NEprovedeno teď. %CALIBRATE práh (15 sezení od Sez. 163) je
-  PŘEKROČEN (Sez. 179 = 16. sezení) → další úklidové sezení by mělo pokrýt oboje najednou.
+  po Sez. 179 (mapfield + 210 experiment, jiný fokus) **PŘEKROČEN o 2 (17 sezení) → VYNUCENÝ první bod
+  příštího sezení**, mělo by pokrýt oboje najednou.
 
 ## Sezení 165 — carry / follow-ups
 - *(fokus B UZAVŘEN NEGATIVNĚ Sez. 165 — DONE)* **Guard:** vzácnou pattern třídu (409/208) NEjde naučit jen víc daty
@@ -322,8 +327,14 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - [ ] *(scan-vytěžení, nález Sez. 173)* **418 přestřel ze skenu.** `vegetation_points_poc` default masivně přestřeluje 418
   (overlay stovky FP modrých) → kalibrovat proti GT (jako 419/111). Pozn: 418 GT na Branžeži jen 1 → potřeba víc GT / jiná mapa.
 - [ ] *(mapfield doladit, nález Sez. 173)* **Bedřichovka mapfield provizorní → přesný** (`tools/mark_mapfield.py`, drobnost
-  pravý horní roh) + **naklikat Velbloud + ostatní skenové mapy** (Blatná plocha 85,7 % → možná čistý layout, ověřit). Livelox
+  pravý horní roh). *(ZBÝVÁ — jediná drobnost, ostatní vyřešeno Sez. 179.)* Livelox
   páry mají taky layout (pairs separace bez map_field_mask) → zvážit mapfield i tam.
+  *(Sez. 179 DONE: Velbloud + Blatná naklikány, ale hypotéza „čistý layout" se POTVRDILA — vizuální
+  kontrola po naklikání ukázala, že mapová kresba sahá k okrajům skenu u obou, žádný banner/logo;
+  naklikaný polygon ≈ celý obrázek = no-op vůči auto-detekci. Soví vrch měl reálnou kontaminaci
+  (crop vynechal ~3/4 skenu, „1/4 domapováno") → tam měl smysl. Proces-chyba: měl jsem se na skeny
+  podívat PŘED voláním nástroje, ne až po ruční práci uživatele — paměť [[screen-before-manual-gui-tool]].
+  Bonus fix: `mark_mapfield.py` chyběl `Image.MAX_IMAGE_PIXELS = None` guard, spadl na Soví vrch 264 Mpx.)*
 - [ ] *(robustnost generátoru, nález Sez. 166)* **Nezávislé RNG streamy pro pseudo body.** `generate_map` má JEDEN sdílený
   `np.random.default_rng(seed=1)` (gen 3880) mezi `_generate_pseudo_boulders` (210) a `_generate_pseudo_points` (417/419/418/525/527/531).
   Změna hustoty JEDNOHO symbolu (n_fields/n_*) posune RNG stav → ostatní pseudo counts se DETERMINISTICKY změní (Sez. 166: 210
