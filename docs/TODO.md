@@ -4,6 +4,38 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita. Hotové položky p
 v aktivních seznamech nepoužívej `[x]`.
 Vždy přes optiku UC DAGu (`docs/architecture.md`): enabler před aplikací.
 
+## Audit supervisor (2026-07-02) — námitky → úkoly
+Zdroj + plný kontext a doklady: **`docs/AUDIT_SUPERVISOR_260702.md`** (Opus 4.8, 4 verifikační agenti
+proti kódu). **260621-A1 (KRITICKÁ, checkpoint↔scope mismatch) definitivně VYŘEŠENA.** Vyřešeno v
+tomtéž sezení bez CUDA (docs-only + testy): **A3** `_curation.json`/`_split.json`/`_cz_filter.json`
+committed (`5d4dc5b`), **B1** AREA_ZORDER/301 invariantní testy (`032cce9`), **B2** `isom_scan/` do
+README+CLAUDE.md (`c6397aa`), **B4a/b** `run_kpi` MAPS label + `requirements-train.txt` split (`ab4de2d`).
+
+- [!] *(A1; VYSOKÁ, rozhodnutí uživatele)* **Exit-kritérium fázové závory (KPI ≥ 85 %) je sankcionovanými
+  prostředky nejspíš nedosažitelné.** ČÚZK plošná+liniová páka „VYČERPANÁ" (potvrzeno 4×), gen=0 díry jsou
+  systematicky data-gate (Sez. 177 `DATA_GATE_CEILING`). Jediná zbývající páka = scan-mining, blokovaná na
+  ruční GT uživatele (mapfield stale 6→7 sezení, 311/313 čeká). Doporučení auditu: buď (a) operacionalizovat
+  práh „KOMPAS téměř plný" = „všechny NE-data-gate díry v `ok`" a rozdělit headline na ČÚZK-dosažitelnou +
+  scan-mining složku, nebo (b) naplánovat ruční GT jako explicitní blocker sezení, ne odkládaný carry.
+  Přestat vydávat nulová KPI sezení (176 poslední reálný pohyb, 177+178 = 0 pb) za progres.
+- [!] *(A2; VYSOKÁ, CUDA fokus)* **`eval_real` (vrcholová metrika) zamrzlá ~16 sezení.** Checkpointy
+  naposled Sez. 156/162, od té doby žádný retrain (jen KPI kalibrace/docs/audity). Reálný transfer
+  prostřední a statický (Png2Area Blatná soft 0,363, 210 kolabuje 0,00–0,25, 404/407/409 halucinují).
+  Doporučení: buď (a) cíleně otevřít závoru pro MĚŘITELNOU reconstructor práci (210 collapse / 404-409
+  halucinace / class-balanced expansion 208/501/301), nebo (b) tvrdě prioritizovat scan-mining GT (A1).
+  Nepokračovat v sériích nulových KPI sezení na CUDA stroji.
+- [ ] *(B3, odloženo do fáze A)* **DRY: tiling 3× (`png2area/tile.py` ≈ `png2line/tile.py`, ~42 % liší) +
+  `MAP_SCALE=10000` opsáno 3× (generator.py/inject.py/purple.py).** Audit sám: spouštěč extrakce = přechod
+  na balík (fáze A), do té doby komentářový sync stačí. POZOR: `PX_PER_MM` má DVĚ legitimně různé hodnoty
+  (generator 4,59 vs model 7,52, jiný `TARGET_MPP`) — NESJEDNOCOVAT naslepo (paměť `canonical-mpp-tile-resolution`).
+- [ ] *(B5, marginální)* **`resources/isom/index.json` kurátorovaný + licence 113 SVG.** Committed je jen
+  `index.schema.json` (kontrakt) + builder; provenance/licence 113 SVG „unknown". Začít živými bodovými
+  třídami (204/210/417/419) při první příležitosti — dokud katalog není aktivní UC2 zdroj, nízká priorita.
+- [ ] *(B6, sebe-vlajkováno `DIARY.md:5-8`)* **DIARY.md index pruning (Sez. ~140–177 dlouhé odstavce
+  místo 1-2 větných hooků).** Vlastní poznámka souboru: „kandidát pro příští %AUDIT:DOCS/%CALIBRATE, NE
+  jednorázová oprava mimochodem" — proto NEprovedeno teď. %CALIBRATE práh (15 sezení od Sez. 163) je
+  PŘEKROČEN (Sez. 179 = 16. sezení) → další úklidové sezení by mělo pokrýt oboje najednou.
+
 ## Sezení 165 — carry / follow-ups
 - *(fokus B UZAVŘEN NEGATIVNĚ Sez. 165 — DONE)* **Guard:** vzácnou pattern třídu (409/208) NEjde naučit jen víc daty
   (retrain `s165` REGREDOVAL reálný transfer, halucinace 407→409) → class-balance/oversampling, ne slepý retrain; nemrhat
