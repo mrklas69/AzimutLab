@@ -7,13 +7,8 @@ contourpy          # marching squares — vrstevnice + vektorizace rock-relief m
 pyproj             # WGS84 → S-JTSK (jen real režimy)
 certifi            # jednotný CA bundle pro ČÚZK/Livelox TLS ve urllib konektorech
 scipy              # morfologie + connected-components — rock-relief z DMR sklonu (--rocks real, Sez. 63)
-scikit-image       # skeletonize (Zhang-Suen/Lee) — vektorizace masky linií → polyline (Png2Line .omap assembly, Sez. 132)
 pygeomag           # WMM magnetická deklinace (offline, vestavěné koef.) — grivace konektor magnetic.py (Sez. 112)
 
-# --- UC5 runnability model (Sez. 74) — trénink jen na mrkla (RTX 5070, viz docs/kb/hardware.md) ---
-# POZOR: torch/torchvision NEinstalovat z PyPI (stáhne CPU build → na Blackwellu sm_120 padne
-# 'no kernel image'). Nutný cu128 build z PyTorch indexu:
-#   py -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-# (ověřeno: torch 2.11.0+cu128, cp314 wheel, sm_120 v arch_list, smoke test Sez. 74)
-segmentation-models-pytorch   # U-Net + pretrained encodery (ResNet34); táhne si timm + torch
-matplotlib                    # křivky učení (loss/mIoU/per-class IoU) → resources/model/curve_*.png
+# UC5 model/ (trénink + inference reconstructorů, Png2Area/Point/Line) běží jen na stroji s CUDA
+# (mrkla/HAL3000, RTX 5070) → viz requirements-train.txt (audit 260702-B4b; hranice byla dřív jen
+# nepsaný komentář, ne fyzický soubor — 260612-B4 → 260621-B8 → dnes).

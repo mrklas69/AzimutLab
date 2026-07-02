@@ -1,0 +1,11 @@
+# AzimutLab — UC5 model/ závislosti (trénink + inference reconstructorů Png2Area/Point/Line).
+# Jen na stroji s CUDA (mrkla/HAL3000, RTX 5070, viz docs/kb/hardware.md). Instalace navíc
+# k requirements.txt: py -m pip install -r requirements.txt -r requirements-train.txt
+#
+# POZOR: torch/torchvision NEinstalovat z PyPI (stáhne CPU build → na Blackwellu sm_120 padne
+# 'no kernel image'). Nutný cu128 build z PyTorch indexu:
+#   py -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# (ověřeno: torch 2.11.0+cu128, cp314 wheel, sm_120 v arch_list, smoke test Sez. 74)
+segmentation-models-pytorch   # U-Net + pretrained encodery (ResNet34); táhne si timm + torch
+matplotlib                    # křivky učení (loss/mIoU/per-class IoU) → resources/model/curve_*.png
+scikit-image                  # skeletonize (Zhang-Suen/Lee) — vektorizace masky linií → polyline (model/vectorize.py, Sez. 132)

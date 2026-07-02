@@ -536,6 +536,8 @@ def run_kpi() -> None:
             agg_names.setdefault(c, v)
 
     print(f"{'#' * 70}\nKPI generator() — proporční podobnost distribuce ISOM symbolů (Sez. 100)\n{'#' * 70}")
+    print(f"  sada: {len(MAPS)} mapy {MAPS}  (izomorf run_table — audit 260702-B4a, sirotek-disciplína:"
+          " headline bez sady je neporovnatelný napříč stroji)")
     print(f"  {'mapa':<14} {'KPI':>5}   {'plocha':>6} {'linie':>6} {'bod':>6}")
     for name, kpi, sub in per_map:
         print(f"  {name:<14} {kpi:>4.1f}%   {sub['area']:>5.1f}% {sub['line']:>5.1f}% {sub['point']:>5.1f}%")
