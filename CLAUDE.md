@@ -65,6 +65,13 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   `_curation.json`, 216 keep classic, Sez. 71) + `split.py` (ČR/DE filtr 207 ČR + geografický train/val/test
   split → `_split.json`, Sez. 76), Sez. 68. Sys.path skripty, ne balík (pozn.: `rock_relief.py`
   žije v `generator/`, ne zde).
+- `isom/` — sdílené ISOM utility: SVG symbolový index + capability registr generátoru
+  (`real`/`mixed`/`pseudo`/`mapper_scan`), test-vynucený invariant `CAPABILITIES == USED_CODES`.
+- `isom_scan/` — scan-mining / GT-factory větev (19 souborů, Sez. 142+, ROADMAP-legální
+  „Generator()/scan mining", audit 260619-A1): classic-CV kandidátní detektory bodů/ploch/linií
+  ze skenů (`*_points_poc.py`), ruční GT (`mark_isoms.py`/`gt_ui.py`, ruční klikání = neopakovatelná
+  práce uživatele), `calibration_manifest.json` (kalibrace/recall ledger, tracked), `review_ui.py`
+  (kurace kandidátů → `.omap`). Krmí KOMPAS + generátorové pokrytí, NENÍ reconstructor.
 - `generator/` — UC4-I/UC5 generátor OB map (pilíř Laboratoře; povýšen ze `sandbox/generator-poc/`
   v Sez. 39 — `sandbox/` zrušen, byl jediný obyvatel). Konzumuje `connectors/`. `generate_map()` =
   hlavní vstup. Výstupy → `maps/<lokalita>/` (gitignored, kotveno v kořeni přes `MAPS_DIR`).

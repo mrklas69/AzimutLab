@@ -115,6 +115,10 @@ connectors/            # UC2 enabler: real-geodata connectors (pulled out of san
   curate.py            #   UC5 corpus: curation taxonomy + manifest (_curation.json) → keep set for training (session 71: 268 → 216 keep classic)
   split.py             #   UC5 corpus: geographic train/val/test split by bbox-overlap clusters (no leak) → _split.json; dirs_for() = loader contract (session 76)
 isom/                  # Shared ISOM symbol utilities: SVG symbol index + generator capability registry (real/mixed/pseudo/mapper_scan)
+isom_scan/             # scan-mining / GT-factory harness (session 142+, 19 files): classic-CV point/area/line
+                       #   candidate detectors on real cartographer scans (mark_isoms/gt_ui manual GT, calibration_manifest
+                       #   ledger, review_ui) — feeds Generator() coverage + KOMPAS, not a reconstructor (ROADMAP-legal
+                       #   scan mining, audit 260619-A1)
 generator/             # UC4-I/UC5 pillar: OB-map generator (promoted from sandbox/generator-poc, session 39)
   generator.py         #   generate_map(): contours + paths + water + buildings + rocks + bridges + … + masks
   rock_relief.py       #   ISOM 206 rock areas from DMR 5G slope (numpy+scipy+contourpy; --rocks real, session 63)
