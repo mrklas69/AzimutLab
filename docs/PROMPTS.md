@@ -87,7 +87,17 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
     `README.md` · `CLAUDE.md` · `AGENTS.md` · `docs/architecture.md` · `docs/GLOSSARY.md` ·
     `docs/kb/tools-models.md` · `model/README.md`. Aktualizuj VŠECHNY (audit Sez. 165: 4 expanze Png2Point
     Sez. 158-162 minuly 5 ze 7). SSoT scope = `isom.capabilities.SCAN_LIVE_POINT`; dokud DRY není vyřešen
-    (generovat scope list z capabilities), drž ruční sync.
+    (generovat scope list z capabilities), drž ruční sync. **ALE ne stejně podrobně:** `README.md`/
+    `architecture.md`/`GLOSSARY.md`/`model/README.md` nesou plné per-třídní číslo; `CLAUDE.md`/`AGENTS.md`
+    jsou orientační — jen scope (počet+kódy) + JEDNO headline číslo + pointer „detail v README/architecture",
+    NIKDY plný rozpis (nález %CALIBRATE Sez. 180: `CLAUDE.md` Png2Point bullet nabobtnal na ~700 slov přesně
+    podle téhle instrukce, self-flagged Sez. 163, 16 sezení neopraveno).
+  - **Definiční dokumenty (`CLAUDE.md`, `GLOSSARY.md`) NAHRAZUJÍ starou hodnotu novou + pointerem do diáře —
+    NEpřipojují plnou historickou deltu za sebe** (nález %CALIBRATE Sez. 180: `GLOSSARY.md` KPI entry nesla
+    9 čísel Sez. 100→176 v jednom bloku, `TODO.md` nesla 4651znakový bullet = kompletní stavební log Sez.
+    11–58, ač totéž už session-by-session existuje v `DONE.md`). Historie patří do `DIARY.md`/`diary/`/`DONE.md`;
+    definiční doc drží jen AKTUÁLNÍ STAV. Stejný root-cause jako DIARY index bloat výše (Sez. 51/178) — hlídat
+    ho i mimo `DIARY.md`.
   - **Po `%END` ověř:** každé `## Sezení N` v diáři má řádek v `DIARY.md` indexu **i** v `DONE.md`
     (Sez. 30 vypadlo z obou — audit Sez. 34).
 - Identita sezení = datum + pořadí v daném dni.

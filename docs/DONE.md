@@ -2,6 +2,19 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 180 (2026-07-02) — %CALIBRATE: root-cause changelog-bloat opraven (HAL3000)
+Detail: [diary/2026-07-02.md](diary/2026-07-02.md#sezení-180-2026-07-02--calibrate-root-cause-changelog-bloat-ve-3-docs--sirotek-definice-hal3000).
+- [x] **Vynucený %CALIBRATE (17 sez. od Sez. 163, práh +2).** A) hygiena čistá (0 rozbitých pointerů,
+  cadence sedí na realitě). B) **Root-cause nález: 3 definiční docs nabalovaly plný historický changelog
+  místo aktuálního stavu** — `CLAUDE.md` Png2Point bullet (self-flag Sez. 163, 16 sez. neopraveno),
+  `TODO.md:389` 4651znakový duplicitní stavební log (info už v `DONE.md`), `GLOSSARY.md` KPI 9-číselný
+  changelog. C) `sirotek-disciplína` používána 8+ sezení bez vlastní GLOSSARY definice.
+- [x] **Opravy (B6 z audit 260702, docs-only):** `DIARY.md` index 144–179 zkrácen na hooky; `CLAUDE.md`
+  Png2Point bullet zkrácen na orientaci; `TODO.md:389` smazán; `GLOSSARY.md` KPI entry zkrácena + nová
+  definice **Sirotek(-disciplína)**; `docs/PROMPTS.md` %END rozšířeno o dvě pravidla (CLAUDE.md/AGENTS.md
+  = jen orientační sync; definiční docs nahrazují hodnotu, nepřipojují historii) — ať se root-cause
+  za 15 sezení nezopakuje. KPI 68,7 % netknuto (žádný kód).
+
 ## Sezení 179 (2026-07-02) — Mapfield naklikání + 210 Stony ground rozlišovací experiment (HAL3000)
 Detail: [diary/2026-07-02.md](diary/2026-07-02.md#sezení-179-2026-07-02--mapfield-naklikání-proces-lekce--210-stony-ground-rozlišovací-experiment-smíšený-výsledek-hal3000).
 - [x] **Mapfield Velbloud/Blatná/Soví vrch naklikány** (`tools/mark_mapfield.py`) + bonus fix chybějícího

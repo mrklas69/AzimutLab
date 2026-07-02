@@ -379,18 +379,14 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   54 %) a slepý k inkrementální práci. **Přesah-ořez** (Sez. 104, `_clipped_gen_counts`): gen kreslí obdélníkový
   výsek, reálná mapa je nepravidelný blob → ČÚZK objekty přesahují → DISPROPORČNÍ přestřel, který proporce
   NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →
-  convex-hull maska). Baseline Sez. 100: **46,1 %**; Sez. 104 (s ořezem): 50,3 %; Sez. 107: 59,1 % (plocha
-  69,2 / linie 59,3 / bod 18,4 → 54,3 po integraci pseudo bodů 204/210 na masku doložené skalnatosti, +8,8 pb);
-  Sez. 136 (pseudo 417/419) 61,1 %; Sez. 137 (+418) 61,7 %; Sez. 138: 60,7 %; **Sez. 150: 63,3 %**
-  (527 kalibrace dolů + `Cesta typcesty_k=025`→508); Sez. 152: 65,8 %
-  (404/407/409 scan separace, `N_LINE` 306/309/508*, 204 hustota); Sez. 160: 66,2 %
-  (regenerace KPI sady doložila sirotka — committed `separate.py` gate `4a8712e`); Sez. 164:
-  canonical HAL3000 67,5 % (gate 407/409 opraven na `!=open` → 409 ožilo 0→114 gen);
-  Sez. 173: ntbhej 68,4 % po ručním mapfield ořezu Bedřichovky; **Sez. 176: canonical HAL3000
-  68,7 %** (přeměření stale 67,5→68,0 + oprava watercourse 304/305 klasifikace — délka toku per `idvt`
-  místo pojmenovanosti, práh 3000 m; linie 66,8→68,7; 304 gen 46→11 ≈ orig 12, 305 44→79 podstřel→ok;
-  plocha 79,4 / linie 68,7 / bod 65,0). ntbhej 68,4 = separátní stroj-baseline, obě hodnoty nemíchat
-  (sirotek-disciplína, separace stroj-citlivá).
+  convex-hull maska). **Aktuální hodnota: 68,7 % canonical HAL3000 (Sez. 176)** — plocha 79,4 / linie 68,7 /
+  bod 65,0; ntbhej 68,4 = separátní stroj-baseline ([[Sirotek]], nemíchat). Plná historie měření (Sez. 100→176)
+  je v `docs/diary/` přes `DIARY.md` index, ne zde — GLOSSARY nese jen aktuální stav.
+- **Sirotek(-disciplína)** (poprvé doloženo Sez. 160) — dvě po sobě neporovnatelné hodnoty téže metriky
+  (typicky [[KPI generátoru]]) vzniklé na různých strojích nebo po tiché změně kódu, které navenek vypadají
+  jako přímo srovnatelný trend, ale nejsou. Disciplína: držet oddělené labely (`KPI_3MAP_NTBHEJ` /
+  `KPI_3MAP_CANONICAL`), nikdy je nemíchat do jednoho čísla a netvrdit trend mezi nimi bez explicitního
+  přeměření na stejném stroji/kódu.
 - **KOMPAS** (`measure_dod.py --table`, Sez. 96) — diagnostický doplněk KPI: tabulka orig vs gen Σ objektů per
   ISOM kód ve 3 kapitolách dle geometrie (Png2Area / Png2Line / Png2Point). Ukazuje PROPORCE (přestřel/podstřel)
   a největší díry — *kam* směřovat práci, kdežto KPI říká *jak daleko* jsme. Geom z reálné mapy (`used_geometry`).

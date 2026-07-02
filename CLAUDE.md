@@ -90,11 +90,12 @@ realistické ≠ náhodný soubor symbolů — vrstevnice/terén musí dávat fy
   [`rgb.png`, `area_labels.png`] z `pairs.py`; degradace on-the-fly; `tile.py`
   BEZ rejection — pozadí je legitimní třída; test mIoU **0,577 Sez. 156** (21-class retrain; 0,683 Sez. 126 byl 5-class
   na kanonickém měřítku dlaždice 1,33 před scope expansion) · `png2point/` = **živý** reconstructor
-  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, **scope 204/210/417/419/531/525/527/109/111/112**
-  od Sez. 162 (109 disk / 111 Small depression oblouk ∪ / 112 Pit vyplněný ▽ = HNĚDÉ terénní body; 525 ⊤ / 527 Λ man-made; kind `dot`/`arc`/`pit`/`tower`/`fodder`/`cross`/`tree`); test mF1 **0,745 medián 3 seedů** (10 tříd) na kanonickém měřítku 1,33 — STABILNÍ (0,738–0,763, těsnější rozptyl než Sez. 161 0,696–0,830) po focal bias initu Sez. 125;
-  vše na kanonickém MPP `model/mpp.CANONICAL_MPP`, symboly i páry lícují, Sez. 126 audit C1/K1). **Reálný transfer
-  (eval_real): 111 SILNÝ 0,71–0,89 (hnědý oblouk ∪, LEPŠÍ než 109), 419 SILNÝ 0,67–0,76, 531 SILNÝ Velbloud 0,708, 525 SILNÝ Bedř 0,766 (černý ⊤), 527 STŘEDNÍ-DOBRÝ 0,50–0,83 (černý Λ, seed-citlivý), 109 SILNÝ medián 0,65 (hnědý disk), 112 STŘEDNÍ-DOBRÝ 0,53–0,77 (hnědý ▽, recall nižší konzervativní), 417 střední 0,40–0,49, 204 stabilní, 210 kolabuje** (výrazné distinktivní
-  symboly se přenášejí — zelené i černé man-made ⊤/Λ/X i hnědé terénní disk/oblouk/▽; práh per-class VYSOKÝ u černých man-made + hnědé 0,60–0,70, FP z cest/textu/vrstevnic; **112 je reconstructor-only — gen NEkreslí, mimo capability/USED_CODES, ať nedělá falešnou KPI díru**; KPI pseudo injekce do gen vědomě odložena, data-gate→Goodhart A3). · `png2line/` = **živý** reconstructor `Png2Line` (sken → liniové symboly,
+  `Png2Point` (sken → bodové symboly, `inject.py` injekce ikonek + heatmap CenterNet, **10 tříd** 204/210/417/419/525/527/531/109/111/112
+  od Sez. 162 — zelené/černé man-made + hnědé terénní body, kind `dot`/`arc`/`pit`/`tower`/`fodder`/`cross`/`tree`;
+  112 je reconstructor-only, gen nekreslí, mimo `USED_CODES`); test mF1 **0,745** medián 3 seedů na kanonickém
+  `model/mpp.CANONICAL_MPP`. **Reálný transfer:** silný na distinktivních tvarech (111/419/525/531/109 0,65–0,89),
+  210 (drobné tečky) kolabuje. Plné per-třídní číslo/detail = SSoT `README.md`/`architecture.md`, NEduplikovat sem
+  (kandidát 260702-%CALIBRATE, dřív rostl s každou expanzí scope). · `png2line/` = **živý** reconstructor `Png2Line` (sken → liniové symboly,
   segmentace+skeletonizace, vektorizace přes `model/vectorize.py`; kanonický 2-class watercourse 304/305,
   test mIoU 0,774 / reálný completeness 0,85–0,93; 5-class scope Sez. 152 retrénován+revertován Sez. 156 =
   watercourse regrese → watercourse-only; Sez. 130-134).
