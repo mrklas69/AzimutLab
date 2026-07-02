@@ -81,7 +81,8 @@ class PointTileDataset(Dataset):
       limit_cids : volitelný seznam cid/lokalit (overfit gate: 1-3 mapy)."""
 
     def __init__(self, split: str, *, augment: bool = False,
-                 limit_cids: list[str] | None = None):
+                 limit_cids: list[str] | None = None,
+                 target_mpp: float | None = None):
         self.split = split
         self.augment = augment
         paths = _pointbase_paths(split)
@@ -93,12 +94,16 @@ class PointTileDataset(Dataset):
                 f"žádné point_base rendery pro split '{split}'"
                 + (f" / cid {limit_cids}" if limit_cids else "")
                 + f" v {_CORPUS}/<cid>/gen_pointbase/rgb.png — spusť `python generator/pairs.py pointbase 40`")
-        # načti plné rendery do paměti jednou + resample na kanonické měřítko dlaždice (Sez. 126,
-        # audit C1/K1): render je ~2,18 m/px, ale inject/purple kreslí symboly v CANONICAL_MPP (1,33)
-        # → bez resamplu byly symboly 1,64× velké. Upsample 2,18→1,33 ≈ 1,64× (~40 map × 3760² × 3 B
-        # ≈ 1,7 GB; HAL3000 utáhne). Random-crop za běhu je pak levný (bez re-dekódování PNG).
+        # načti plné rendery do paměti jednou + resample na měřítko dlaždice (Sez. 126, audit C1/K1):
+        # render je ~2,18 m/px, ale inject/purple kreslí symboly v CANONICAL_MPP (1,33) → bez resamplu
+        # byly symboly 1,64× velké. Upsample 2,18→1,33 ≈ 1,64× (~40 map × 3760² × 3 B ≈ 1,7 GB; HAL3000
+        # utáhne). Random-crop za běhu je pak levný (bez re-dekódování PNG).
+        # target_mpp=None → kanonické měřítko (resample_to_mpp default, beze změny chování). Explicitní
+        # override (Sez. 179, 210 rozlišovací strop experiment) — volající MUSÍ souhlasně přepsat
+        # inject.TARGET_MPP/PX_PER_MM, jinak symboly a podklad nelícují (viz experiment_210_mpp.py).
+        resample_kwargs = {} if target_mpp is None else {"target_mpp": target_mpp}
         self.maps = [resample_to_mpp(np.asarray(Image.open(p).convert("RGB"), dtype=np.uint8),
-                                     read_src_mpp(p.parent))
+                                     read_src_mpp(p.parent), **resample_kwargs)
                      for p in paths]
         self.cids = [p.parent.parent.name for p in paths]
 

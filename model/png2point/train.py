@@ -108,14 +108,18 @@ from peaks import nms as _nms, peaks_xy as _peaks_xy, match_counts as _match_cou
 
 # ------------------------------------------------------------------------- metriky
 @torch.no_grad()
-def evaluate(model, loader, device, thr: float | None = None) -> tuple[list[dict], float]:
+def evaluate(model, loader, device, thr: float | None = None,
+             tol_px: float | None = None) -> tuple[list[dict], float]:
     """Projde loader, vrátí (per-class {tp,fp,fn,precision,recall,f1}, mean F1). BF16 autocast.
 
     GT centra = NMS peaky GT heatmapy (gt==1). Pred peaky = NMS sigmoid(logits) > práh.
     thr=None → PER-TŘÍDA práh z registru (POINT_CLASSES[c].peak_thr, Sez. 129); float → globální
-    override pro všechny třídy (sweep / experiment přes --peak-thr)."""
+    override pro všechny třídy (sweep / experiment přes --peak-thr).
+    tol_px=None → modulové TOL_PX (kanonické měřítko); float → override (jiné MPP = jiná px-tolerance
+    pro stejnou reálnou vzdálenost, Sez. 179 --target-mpp experiment)."""
     model.eval()
     thrs = [pc.peak_thr for pc in POINT_CLASSES] if thr is None else [thr] * N_POINT
+    tol = TOL_PX if tol_px is None else tol_px
     tp = np.zeros(N_POINT, np.int64)
     fp = np.zeros(N_POINT, np.int64)
     fn = np.zeros(N_POINT, np.int64)
@@ -130,7 +134,7 @@ def evaluate(model, loader, device, thr: float | None = None) -> tuple[list[dict
             for c in range(N_POINT):
                 p_xy = _peaks_xy(pred[b, c], thrs[c])
                 g_xy = _peaks_xy(gt_nms[b, c], 0.99)
-                t, f, n = _match_counts(p_xy, g_xy, TOL_PX)
+                t, f, n = _match_counts(p_xy, g_xy, tol)
                 tp[c] += t; fp[c] += f; fn[c] += n
 
     per = []
@@ -214,7 +218,8 @@ class _EMA:
 # -------------------------------------------------------------------------- trénink
 def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | None = None,
           seed: int | None = None, ema: bool = False, ema_decay: float = 0.998,
-          run_id: str | None = None) -> float | None:
+          run_id: str | None = None, target_mpp: float | None = None,
+          tol_px: float | None = None) -> float | None:
     assert torch.cuda.is_available(), "trénink jen na CUDA GPU (mrkla/HAL3000, RTX 5070)"
     device = "cuda"
     if seed is not None:
@@ -235,11 +240,11 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | Non
         pb = _pointbase_paths("train")
         cids = [p.parent.parent.name for p in pb[:2]]
         print(f"[overfit] mapy: {cids}")
-        train_ds = PointTileDataset("train", augment=False, limit_cids=cids)
+        train_ds = PointTileDataset("train", augment=False, limit_cids=cids, target_mpp=target_mpp)
         val_ds = train_ds
     else:
-        train_ds = PointTileDataset("train", augment=True)
-        val_ds = PointTileDataset("val", augment=False)
+        train_ds = PointTileDataset("train", augment=True, target_mpp=target_mpp)
+        val_ds = PointTileDataset("val", augment=False, target_mpp=target_mpp)
 
     # num_workers=0 ZÁMĚRNĚ (na rozdíl od png2area/png2line s NW=4): PointTileDataset si v __init__
     # přednačítá VŠECHNY mapy do RAM (~1,7 GB, dataset.py ř. 100) → random-crop je pak levný bez workerů.
@@ -318,7 +323,7 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | Non
         if ema_obj is not None:
             ema_obj.copy_to(ema_model)
         eval_target = ema_model if ema_obj is not None else model
-        per, mf1 = evaluate(eval_target, val_dl, device, thr)
+        per, mf1 = evaluate(eval_target, val_dl, device, thr, tol_px)
         dt = time.time() - t0
         lr_now = optimizer.param_groups[0]["lr"]
         print(f"ep {ep:>3}/{epochs}  loss {avg:.4f}  {f1_label} mF1 {mf1:.3f}  "
@@ -342,9 +347,9 @@ def train(*, epochs: int, batch: int, lr: float, overfit: bool, thr: float | Non
     if not overfit:
         ckpt = torch.load(run.best_path, weights_only=False)
         model.load_state_dict(ckpt["model"])
-        test_dl = DataLoader(PointTileDataset("test", augment=False),
+        test_dl = DataLoader(PointTileDataset("test", augment=False, target_mpp=target_mpp),
                              batch_size=batch, shuffle=False, num_workers=0)
-        per, mf1 = evaluate(model, test_dl, device, thr)
+        per, mf1 = evaluate(model, test_dl, device, thr, tol_px)
         print(f"\n=== TEST (best ep {ckpt['epoch']}, val mF1 {ckpt['mf1']:.3f}) ===")
         print(f"test mF1 {mf1:.3f}  [{_fmt(per)}]")
         finish_run(run, "test_mf1", mf1)
@@ -379,6 +384,15 @@ if __name__ == "__main__":
     ap.add_argument("--ema-decay", type=float, default=0.998, help="EMA decay (default 0.998)")
     ap.add_argument("--run-id", default=None,
                     help="vlastní ID běhu; default je UTC čas + náhodný suffix")
+    ap.add_argument("--target-mpp", type=float, default=None,
+                    help="override m/px dlaždice (default None = mpp.CANONICAL_MPP, beze změny). "
+                         "Experiment Sez. 179 (210 rozlišovací strop): volající MUSÍ souhlasně přepsat "
+                         "inject.TARGET_MPP/PX_PER_MM PŘED importem dataset.py, jinak symboly a podklad "
+                         "nelícují — viz experiment_210_mpp.py.")
+    ap.add_argument("--tol-px", type=float, default=None,
+                    help="override matching tolerance (px); default None = modulové TOL_PX (kanonické "
+                         "měřítko). Jiné --target-mpp potřebuje škálovanou toleranci pro stejnou reálnou "
+                         "vzdálenost: tol_new = TOL_PX * (CANONICAL_MPP/target_mpp).")
     ap.add_argument("--promote", metavar="RUN_ID",
                     help="atomicky povýší dokončený běh na unet_best.pt a skončí")
     args = ap.parse_args()
@@ -391,4 +405,5 @@ if __name__ == "__main__":
 
     n_ep = args.epochs if args.epochs is not None else (60 if args.overfit else 40)
     train(epochs=n_ep, batch=args.batch, lr=args.lr, overfit=args.overfit, thr=args.peak_thr,
-          seed=args.seed, ema=args.ema, ema_decay=args.ema_decay, run_id=args.run_id)
+          seed=args.seed, ema=args.ema, ema_decay=args.ema_decay, run_id=args.run_id,
+          target_mpp=args.target_mpp, tol_px=args.tol_px)

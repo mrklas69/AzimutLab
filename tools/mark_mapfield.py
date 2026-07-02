@@ -27,6 +27,7 @@ def main(name: str) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
     from PIL import Image
+    Image.MAX_IMAGE_PIXELS = None                  # reálné skeny jsou velké (Soví vrch 264 Mpx)
 
     png = REPO / "resources" / f"{name}.png"
     if not png.exists():
