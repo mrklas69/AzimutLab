@@ -141,18 +141,10 @@ při dokončení přesunout do DONE **s kódem námitky** (A1, B4, …), ať je 
   (5) mini `build_pair`/rasterizace fixture → Y má nenulové px pro každý area kód přítomný v `.omap`
   (chytá 301/301.1 dynamicky). `tests/smoke.py` existuje a `tests/test_smoke.py` ho chrání před těžkým
   auto-spuštěním; zbývá golden Šulcák/build_pair fixture + %END připomínka „měnil-li se kód: spusť smoke".
-- [!] *(A6; HAL3000 → priorita zvednuta %CALIBRATE Sez. 145; Velbloud.pgw na ntbhej lokálně doplněn 2026-06-19)* **Záloha měřicích artefaktů** — `_curation.json` (ruční vizuální tagy Sez. 71 =
-  neopakovatelná lidská práce), `_split.json` (bez něj jsou všechna mIoU neporovnatelná), chybějící
-  `resources/*.pgw` (**Velbloud na ntbhej byl doplněn, ale `resources/` je gitignored → záloha/kanál pořád nevyřešený**). Malé textové soubory BEZ copyright obsahu → commitnout
-  (rozhodnout s uživatelem: přímo do repa vs privátní kanál) + krok do %END checklistu („měřicí
-  artefakty zálohovány?"). Řeší zároveň carry „kurace + split na ntbhej" (sekce korpus níže).
 - [ ] *(B3, rešerše bez kódu)* **Livelox ToS — TDM opt-out check.** EU DSM čl. 4 připouští opt-out
   nositele práv ze strojové TDM výjimky; deep research Sez. 67/110 řešil dostupnost dat, NE opt-out.
   Ověřit Livelox podmínky z tohoto pohledu; do vyjasnění: checkpointy modelů privátně (možný derivát),
   žádné výřezy Livelox map v commitovaných souborech/docs.
-- [ ] *(B4, drobnost)* **requirements split** — `requirements.txt` (runtime: numpy/Pillow/contourpy/
-  pyproj/scipy/pygeomag) vs `requirements-train.txt` (smp/matplotlib + pozn. torch cu128 mimo PyPI).
-  Hranice „matplotlib = trénink-only" je dnes nepsaná a už vystřelila (Sez. 112 clip_quad na ntbhej).
 - [ ] *(B1, až bolí)* **Sdílený modul pro string-level `.omap` operace.** `cut.py`/`gen_backgrounds.py` jsou správně
   moduly (monolit nepřikrmovat), ale string-regex místo XML parseru je křehké — každý nový `.omap` zápis musí myslet, ať ho
   cut/backgrounds nerozbije (Sez. 109: clip NESMÍ přes ET kvůli inject). Extrahovat konvenci string-`.omap` operací na jedno místo.
@@ -393,12 +385,13 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 - *(verify nástroj `compare_real_vs_gen.py` HOTOVO Sez. 37–58 — multi-mapa; **Stale DROP Sez. 69**, detail DONE)*
   ~60 % precision tvrdé geometrie / vegetace ~30 % gate na 3 cizích mapách. Otevřené zbytky (Soví vrch ~1/4 domapováno,
   Slovanka UTM33, vektor-na-vektor rozpad po sémantických skupinách) zůstávají evidovaný nález — **NEnavrhovat v Příště** (viselo 9×).
-- [~] *(Sez. 110 stahování + Sez. 111 GT HOTOVO, kurace/split carry)* **Korpus + GT na ntbhej.** `livelox batch` stáhl
+- [~] *(Sez. 110 stahování + Sez. 111 GT HOTOVO, kurace/split carry)* **Korpus + GT na ntbhej/Stella.** `livelox batch` stáhl
   **57 → 264 map**, GT **264/264** (Sez. 111 chunked classify odblokoval 6 obřích). **ZBÝVÁ:** (a) **kurace + split
   rozhodnout** — `_curation.json`/`_split.json` na ntbhej NEJSOU (gitignored, ruční vizuální tagy Sez. 71 žijí na HAL3000)
   → buď **zkopírovat z HAL3000** (zachová tréninkový split, doporučeno), nebo auto-`curate`+`split` tady (rozejde se
   s HAL3000). Pozn.: `build_pair`/trénink je stejně CUDA-vázané (HAL3000) — ntbhej korpus slouží měření / `build_pair`
-  E2E ověření / rozšíření tréninkového setu po přenosu na HAL3000.
+  E2E ověření / rozšíření tréninkového setu po přenosu na HAL3000. **Sez. 181:** Stella má zatím jen tracked metadata
+  v `resources/livelox/`, syrový gitignored korpus chybí; `pairs.py map`/`scan-auto` tam nepouštět bez privátního syncu.
 - [ ] *(ověření, Sez. 109; ořez povýšen Sez. 114)* **Ořez `pairs.build_pair` end-to-end na HAL3000.** `cut.clip_omap_to_quad`
   přidán do `build_pair` (před rasterizací Y → konzistentní pár; quad = Livelox `g["quad"]`) + izolovaný sanity OK, ale
   plný běh na ntbhej blokován syrovým korpusem (0 gt). Ověřit na HAL3000: že páry mají ořezané .omap+render (bez

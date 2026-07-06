@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 181 (2026-07-06) — %BEGIN cleanup + Stella bootstrap + testovací mapy (Stella)
+- [x] **%BEGIN konzistence TODO→DONE:** starší auditové sirotky `A6 Záloha měřicích artefaktů`
+  a `B4 requirements split` byly v TODO pořád otevřené, ale už jsou hotové podle aktuálního stromu:
+  `_curation.json`/`_split.json`/`_cz_filter.json` jsou tracked v `resources/livelox/` (commit
+  `5d4dc5b`) a hranice runtime/trénink závislostí je fyzicky rozdělená do `requirements.txt` +
+  `requirements-train.txt` (commit `ab4de2d`). TODO očištěn. Bonus: README UC5 řádek měl stale
+  canonical KPI `67,5 %` navzdory hornímu statusu `68,7 %`; srovnáno na 68,7 % canonical. Kód netknut.
+- [x] **Stella bootstrap:** podle `D:\=STELLA\STELLA.md` doplněn projektový hardware KB záznam pro
+  `Stella` (Strix Halo / AMD Radeon 8060S / 128 GB unified RAM). Doinstalováno `uv`, OpenOrienteering
+  Mapper 0.9.5, QGIS LTR 3.44.11 a projektové `.venv` s runtime závislostmi; `pip check` OK.
+  Tréninkový stack neinstalován záměrně — Stella nemá NVIDIA CUDA, UC5 trénink zůstává HAL3000/mrkla
+  do samostatného rozhodnutí o AMD HIP/ROCm cestě. Projektový zvonek přepnut na
+  `C:\Users\stell\.codex\resources\needs_input.mp3`.
+- [x] **Lokální mapy pro testování na Stelle:** reálná lokalita `SV` vygenerována do
+  `maps\Soví vrch\` (`rgb.png`, `.omap`, DMR/ortho podklady, masky, `meta.json`) a vizuálně ověřena.
+  Pokus o další DEV lokality skončil dvakrát na ČÚZK DMR `ConnectionRefusedError [WinError 10061]`
+  při `NL`, proto nebyl maskován jako plná real regenerace. Doplněn síťově nezávislý batch
+  `maps\dataset_noise\` (8 map + `montage.png`), vizuálně ověřen. `maps/` zůstává gitignored.
+
 ## Sezení 180 (2026-07-02) — %CALIBRATE: root-cause changelog-bloat opraven (HAL3000)
 Detail: [diary/2026-07-02.md](diary/2026-07-02.md#sezení-180-2026-07-02--calibrate-root-cause-changelog-bloat-ve-3-docs--sirotek-definice-hal3000).
 - [x] **Vynucený %CALIBRATE (17 sez. od Sez. 163, práh +2).** A) hygiena čistá (0 rozbitých pointerů,
