@@ -54,7 +54,8 @@ Tento soubor obsahuje pouze projektové override a rozšíření.
    UC DAGu: je navržený fokus enabler, nebo záclona?
 6. **KPI + KOMPAS rekapitulace (Sez. 100, přání uživatele).** Vždy uveď aktuální stav primárního
    kvantifikátoru fáze `generator()` — **KPI** (proporční podobnost distribuce ISOM symbolů,
-   `measure_dod.py` default; cíl 55 % plošná / ≥ 85 % s reconstructory) + **headline KOMPASu**
+   `measure_dod.py` default; exit-kritérium fáze: každá KOMPAS díra `ok`/doložený `strop`,
+   SSoT ROADMAP — Sez. 182) + **headline KOMPASu**
    (`--table`, největší proporční díry). Zdroj: poslední zaznamenaná hodnota z diáře/DIARY indexu
    (levné, vždy dostupné). **Přeměř** (na stroji s `resources/*.pgw`), jen pokud se od posledního
    měření měnil generátor (`connectors/`+`generator/` `.py`) → ukaž TREND vůči minulému sezení.

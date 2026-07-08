@@ -14,14 +14,19 @@ README+CLAUDE.md (`c6397aa`), **B4a/b** `run_kpi` MAPS label + `requirements-tra
 `CLAUDE.md` Png2Point bullet zkrácen (16 sezení nabobtnalý), `GLOSSARY.md` KPI changelog nahrazen aktuální
 hodnotou + `[[Sirotek]]` definicí, `TODO.md` smazán 4651znakový duplicitní stavební log (už v `DONE.md`),
 `docs/PROMPTS.md` %END rozšířen o pravidlo „definiční docs nesou stav, ne historii" (viz DONE).
+**A1 VYŘEŠENO Sez. 182 (rozhodnutí uživatele — hybrid):** číselný práh 85 % zrušen, exit-kritérium =
+KOMPAS-verdikt `ok`/doložený `strop` pro každou díru (SSoT `ROADMAP.md`); scan-mining = paralelní trať,
+ne zátka závory. Follow-upy níže (viz DONE).
 
-- [!] *(A1; VYSOKÁ, rozhodnutí uživatele)* **Exit-kritérium fázové závory (KPI ≥ 85 %) je sankcionovanými
-  prostředky nejspíš nedosažitelné.** ČÚZK plošná+liniová páka „VYČERPANÁ" (potvrzeno 4×), gen=0 díry jsou
-  systematicky data-gate (Sez. 177 `DATA_GATE_CEILING`). Jediná zbývající páka = scan-mining, blokovaná na
-  ruční GT uživatele (311/313 čeká; mapfield Velbloud/Blatná/Soví vrch VYŘEŠENO Sez. 179 — viz DONE).
-  Doporučení auditu: buď (a) operacionalizovat práh „KOMPAS téměř plný" = „všechny NE-data-gate díry v
-  `ok`" a rozdělit headline na ČÚZK-dosažitelnou + scan-mining složku, nebo (b) naplánovat ruční GT jako
-  explicitní blocker sezení, ne odkládaný carry. Přestat vydávat nulová KPI sezení za progres.
+- [!] *(A1 follow-up Sez. 182; exit-kritérium)* **403/416 verdikt: `ok` nebo doložený strop.** #1/#2 díry
+  žebříčku; separace-kvalita páka doložila jen +0,1 pb (Sez. 99–102) → po měřicím pokusu je legitimní
+  stropnout s dokladem (volba uživatele Sez. 182). Stroj s `resources/*` skeny (HAL3000/ntbhej).
+- [ ] *(A1 follow-up Sez. 182)* **306 / 108 / 501: ověřit mechanismus → `ok`/`strop`/páka.** 306 podezření
+  vzácná ZABAGED data (Sez. 176), 108 čestně `chybí` (Sez. 178 zaznamenal jen počet, ne mechanismus),
+  501 mechanismus nezkoumán. Verdikt pro každou = součást exit-kritéria.
+- [ ] *(A1 follow-up Sez. 182, měření)* **`measure_dod` footnote „dosažitelný strop bez data-gate".**
+  Tisknout vedle KPI (diagnostika, NE druhé doc-trackované číslo — [[kpi-one-quantifier-not-methodology-sprawl]]).
+  Kód kdekoli, živý verify jen na stroji s `resources/*` skeny (lekce Sez. 178: unit test se string vstupem lhal).
 - [~] *(A2; VYSOKÁ, CUDA fokus; ČÁST HOTOVO Sez. 179 — 210 collapse zkoumán, NEpromováno)*
   **`eval_real` (vrcholová metrika) zamrzlá ~16 sezení.** Checkpointy naposled Sez. 156/162.
   **Sez. 179: 210 Stony ground diagnóza + izolovaný experiment** — verify-against-source ukázal
@@ -205,7 +210,8 @@ Spec: `docs/kb/generator-procedural.md` · kód: `generator/`
 > = **histogram intersection** `Σ min(orig_share, gen_share)`, per-mapa průměr. Jedno číslo 0–100 %. Měř
 > **`generator/measure_dod.py`** (DEFAULT režim; `--table` kompas diagnostika děr / `--dod` archiv binární DoD).
 > Robustní vůči obal-artefaktu (proporce ruší rozdíl plochy); penalizuje chybějící typ i přestřel (`min` ukrojí).
-> **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno), **s Png2Point + Png2Line ≥ 85 %** (61 % hmoty = linie + body).
+> **CÍL: plošná fáze (jen ČÚZK data) ~55 %** (splněno); **číselný exit-práh 85 % zrušen Sez. 182**
+> (audit 260702-A1) — exit-kritérium fáze = KOMPAS-verdikt `ok`/doložený `strop` pro každou díru (SSoT `ROADMAP.md`).
 >
 > **2. KPI — reálný doménový gap (Sez. 120–121, re-benchmark Sez. 126 po MPP fixu, supervisor audit A1):** KPI výše měří jen
 > FEEDER (kvalita generátoru); zda reconstructor reálné mapy ČTE, měří `model/png2{area,point,line}/eval_real.py` na

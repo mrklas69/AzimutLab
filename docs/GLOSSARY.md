@@ -374,8 +374,9 @@ DRY). Pojmy se zavádějí, jak je projekt potkává; doplňuj v `%END`.
   **reálně vyhlížejících** O-map". = **proporční podobnost distribuce ISOM symbolů** gen vs vzorové mapy =
   **histogram intersection** `Σ min(orig_share, gen_share)` (každý vektor normalizován na vlastní Σ → ruší
   rozdíl plochy / **obal-artefakt**), per-mapa pak průměr. Jedno číslo 0–100 % („% symbolové hmoty gen mapy
-  proporčně překryté s reálnou"). Měří `generator/measure_dod.py` (DEFAULT režim). **Cíl: 55 % plošná fáze /
-  ≥ 85 % s reconstructory.** Nahradil binární **DoD ≥ 90 %** (`--dod` archiv): ten byl nedosažitelný (strop
+  proporčně překryté s reálnou"). Měří `generator/measure_dod.py` (DEFAULT režim). **Cíl: 55 % plošná fáze (splněn); číselný
+  exit-práh ≥ 85 % zrušen Sez. 182** (audit 260702-A1) — exit-kritérium fáze = každá KOMPAS díra `ok`,
+  nebo doložený `strop` (SSoT `ROADMAP.md`). Nahradil binární **DoD ≥ 90 %** (`--dod` archiv): ten byl nedosažitelný (strop
   54 %) a slepý k inkrementální práci. **Přesah-ořez** (Sez. 104, `_clipped_gen_counts`): gen kreslí obdélníkový
   výsek, reálná mapa je nepravidelný blob → ČÚZK objekty přesahují → DISPROPORČNÍ přestřel, který proporce
   NEruší → gen objekty se ořezávají na obal nakreslených objektů reálné mapy (centroid → S-JTSK → sken px →

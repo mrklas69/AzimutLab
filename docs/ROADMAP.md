@@ -56,7 +56,16 @@ KOMPAS, je to přímé vytěžení pro `Generator()`. Zakázaná je až práce, 
 jako tréninková augmentace, dewarping, de-purple, čtení deformovaných map.)
 
 ### ⛔ Fázová závora
-**Dokud nebude KPI dostatečné a tabulka KOMPAS téměř plná, nemá smysl postoupit do etapy 2.**
+**Exit-kritérium (operacionalizováno Sez. 182 = rozhodnutí uživatele po auditu 260702-A1; nahrazuje
+dřívější číselný práh „KPI ≥ 85 %"):** do Etapy 2 se smí, až má **každá díra KOMPASu verdikt** —
+buď stav `ok`, nebo **doložený data-gate strop** (`DATA_GATE_CEILING` v `measure_dod.py`; zápis
+vyžaduje ověřenou příčinu, ne dojem — disciplína „108" ze Sez. 178). Práh 85 % byl stanoven před
+poznáním data-gate stropu a sankcionovanými prostředky je nedosažitelný: ČÚZK páka vyčerpaná
+(potvrzeno 4×), zbývající symbolová hmota existuje jen v mapařských skenech (doklad Sez. 177 +
+audit 260702). KPI zůstává jediným headline číslem — kompas děr, ne cílová funkce.
+
+**Scan-mining (ruční GT uživatele) je paralelní trať, ne zátka závory** — krmí pokrytí teď i GT
+potřeby Etapy 2, ale její tempo fázi neblokuje (Sez. 182).
 
 Jsme v **Etapě 1 (`Generator()`)**. Proto:
 

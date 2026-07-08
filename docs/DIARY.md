@@ -1,12 +1,13 @@
 # DIARY — AzimutLab
 
-Aktivní index posledních ~35 sezení (123–181). Starší záznamy jsou v [DIARY-archive.md](DIARY-archive.md).
+Aktivní index posledních ~35 sezení (123–182). Starší záznamy jsou v [DIARY-archive.md](DIARY-archive.md).
 
 Řádky = stručný hook (1–2 věty + klíčové ISOM kódy/čísla), NE kopie záznamu — plný detail je v `diary/`.
 (Sez. 180, %CALIBRATE: pruning řádků 144–179 zpět na politiku po self-flagu Sez. 178; nález %CALIBRATE Sez. 51.)
 
 | Sezení | Datum | Téma | Výsledek |
 |---:|:---:|---|---|
+| 182 | 2026-07-08 | A1 rozhodnutí (hybrid): exit-práh 85 % zrušen → KOMPAS-verdikt `ok`/doložený `strop` (SSoT ROADMAP), scan-mining = paralelní trať; Livelox skeny na Stellu (1127443 už 404!) + DEV mapy NL/LS/HS/NV zpět (Stella). | [diary/2026-07-08.md](diary/2026-07-08.md#sezení-182-2026-07-08--a1-exit-kritérium-fázové-závory-operacionalizováno--livelox-skeny-na-stellu-stella) |
 | 181 | 2026-07-06 | Stella bootstrap + lokální testovací mapy: runtime `.venv`, OOM/QGIS/uv, reálná `SV` mapa a 8 noise map; další DEV lokality blokuje ČÚZK DMR `WinError 10061` (Stella). | [diary/2026-07-06.md](diary/2026-07-06.md#sezení-181-2026-07-06--begin-cleanup--stella-bootstrap--lokální-testovací-mapy-stella) |
 | 180 | 2026-07-02 | %CALIBRATE: root-cause changelog-bloat v `CLAUDE.md`/`TODO.md`/`GLOSSARY.md` opraven (DIARY 144–179 zkrácen, `Sirotek` definován, pravidlo do `PROMPTS.md`) (HAL3000). | [diary/2026-07-02.md](diary/2026-07-02.md#sezení-180-2026-07-02--calibrate-root-cause-changelog-bloat-ve-3-docs--sirotek-definice-hal3000) |
 | 179 | 2026-07-02 | Mapfield naklikání (proces-lekce) + 210 Stony ground rozlišovací experiment: recall vyřešen @2× jemnější MPP, ale reálný přenos smíšený → NEpromováno (HAL3000). | [diary/2026-07-02.md](diary/2026-07-02.md#sezení-179-2026-07-02--mapfield-naklikání-proces-lekce--210-stony-ground-rozlišovací-experiment-smíšený-výsledek-hal3000) |

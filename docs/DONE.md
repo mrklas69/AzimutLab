@@ -2,6 +2,25 @@
 
 Dokončené úkoly (stručně co se udělalo). Aktuální/čekající: TODO.md.
 
+## Sezení 182 (2026-07-08) — A1: exit-kritérium fázové závory operacionalizováno (Stella)
+- [x] **(A1 z auditu 260702, rozhodnutí uživatele — hybrid):** číselný práh „KPI ≥ 85 %" zrušen —
+  byl stanoven před poznáním data-gate stropu; ČÚZK páka vyčerpaná (potvrzeno 4×) a zbývající
+  symbolová hmota existuje jen v mapařských skenech za ruční GT (doklad Sez. 177 + audit 260702).
+  Nové exit-kritérium: **každá KOMPAS díra má verdikt `ok`, nebo doložený `strop`**
+  (`DATA_GATE_CEILING`, disciplína ověřené příčiny „108"). Scan-mining degradován z gate-blockeru
+  na **paralelní trať**; 403/416 po měřicím pokusu legitimně stropnutelné (volba uživatele).
+  Propagace: `ROADMAP.md` (SSoT závory), `architecture.md`, `GLOSSARY.md`, `docs/PROMPTS.md`,
+  `TODO.md` (3 follow-upy). KPI 68,7 % netknuto (docs-only).
+- [x] **DEV mapy NL/LS/HS/NV doregenerovány (Příště #2 Sez. 181):** ČÚZK DMR služba zase online
+  (probe HTTP 200) → všechny 4 lokality exit 0, `bg_dmr`+`bg_ortho` přítomné, rendery vizuálně
+  ověřeny (bílý les drží, voda no-draw drží, HS skalní město věrohodné). `maps/` zpět 5 DEV
+  lokalit + `dataset_noise` (gitignored).
+- [x] **Livelox skeny pro GT práci staženy na Stellu (návrh uživatele):** 1116300 Hamr na Jezeře,
+  1005002 Branžež-GT (11907×7837 @ 0,56 m/px, mapa GT-factory dlaždic 417/418), 1201511 Buschdörfl
+  → scan-mining GT práce (311/313, 417/418 review) na Stelle odblokovaná. **Nález: 1127443 Branžež
+  benchmark = HTTP 404 „blob does not exist"** — Livelox už sken nehostí, rastr žije jen na discích
+  ntbhej/HAL3000 → privátní sync korpusu nutný a URGENTNÍ (Livelox bloby mizí).
+
 ## Sezení 181 (2026-07-06) — %BEGIN cleanup + Stella bootstrap + testovací mapy (Stella)
 - [x] **%BEGIN konzistence TODO→DONE:** starší auditové sirotky `A6 Záloha měřicích artefaktů`
   a `B4 requirements split` byly v TODO pořád otevřené, ale už jsou hotové podle aktuálního stromu:

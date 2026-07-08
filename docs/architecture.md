@@ -269,7 +269,9 @@ separation / klasifikace" je opuštěný, viz reframe Sez. 79 níže.)
   Kanonická 3-map sada Bedřichovka/Blatná/Velbloud
   (plocha 79,4 / linie 68,7 / bod 65,0; Velbloud 71,9);
   největší díry 403/416/306/210/202/501/308/109/108/208.
-  Cíl plošná ~55 % (splněn), s reconstructory ≥ 85 %. KPI je kompas děr, nikoli cílová funkce; úspěch
+  Cíl plošná ~55 % (splněn); číselný exit-práh ≥ 85 % zrušen Sez. 182 (audit 260702-A1, rozhodnutí
+  uživatele) — exit-kritérium fáze `Generator()` = každá KOMPAS díra `ok`, nebo doložený `strop`
+  (SSoT `ROADMAP.md`). KPI je kompas děr, nikoli cílová funkce; úspěch
   se ověřuje také na reálném domain-gap benchmarku. Měř `generator/measure_dod.py` (default KPI,
   `--table` kompas — sloupce `zdroj · gen · scan · provedení`; původ symbolů drží `isom.capabilities`).
   Detail TODO/DONE.
